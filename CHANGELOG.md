@@ -1,0 +1,7 @@
+## 0.1.0
+
+This is the initial release of the module, with basic support for creating:
+
+- A Google Virtual Private Network (VPC)
+- Subnets within the VPC
+- Secondary ranges for the subnets (if applicable)
