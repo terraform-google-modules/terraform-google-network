@@ -8,27 +8,6 @@ It supports creating:
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
-## Requirements
-### Terraform plugins
-- [Terraform](https://www.terraform.io/downloads.html) 0.10.x
-- [terraform-provider-google](https://github.com/terraform-providers/terraform-provider-google) plugin v1.8.0
-
-### Configure a Service Account
-In order to execute this module you must have a Service Account with the following roles:
-
-- roles/compute.networkAdmin on the organization
-
-### Enable API's
-In order to operate with the Service Account you must activate the following API on the project where the Service Account was created:
-
-- Compute Engine API - compute.googleapis.com
-
-## Install
-
-### Terraform
-Be sure you have the correct Terraform version (0.10.x), you can choose the binary here:
-- https://releases.hashicorp.com/terraform/
-
 ## Usage
 You can go to the examples folder, however the usage of the module could be like this in your own main.tf file:
 
@@ -36,7 +15,7 @@ You can go to the examples folder, however the usage of the module could be like
 module "vpc" {
     source = "github.com/terraform-google-modules/terraform-google-network"
     project_id = "<PROJECT ID>"
-    vpc_name   = "example-vpc"
+    network_name   = "example-vpc"
 
     subnets = [
         {
@@ -74,10 +53,30 @@ Then perform the following commands on the root folder:
 - `terraform destroy` to destroy the built infrastructure
 
 #### Variables
-Please refer the /variables.tf file for the required and optional variables.
+Please refer to the [variables.tf](./variables.tf) file for the required and optional variables.
 
 #### Outputs
-Please refer the /outputs.tf file for the outputs that you can get with the `terraform output` command
+Please refer to the [outputs.tf](./outputs.tf) file for the outputs that you can get with the `terraform output` command
+
+## Requirements
+### Terraform plugins
+- [Terraform](https://www.terraform.io/downloads.html) 0.10.x
+- [terraform-provider-google](https://github.com/terraform-providers/terraform-provider-google) plugin v1.8.0
+
+### Configure a Service Account
+In order to execute this module you must have a Service Account with the following roles:
+
+- roles/compute.networkAdmin on the organization
+
+### Enable API's
+In order to operate with the Service Account you must activate the following API on the project where the Service Account was created:
+
+- Compute Engine API - compute.googleapis.com
+
+## Install
+### Terraform
+Be sure you have the correct Terraform version (0.10.x), you can choose the binary here:
+- https://releases.hashicorp.com/terraform/
 
 ## File structure
 The project has the following folders and files:
@@ -90,8 +89,7 @@ The project has the following folders and files:
 - /output.tf: the outputs of the module
 - /README.md: this file
 
-## Testing
-
+## Development
 ### Requirements
 - [bats](https://github.com/sstephenson/bats) 0.4.0
 - [jq](https://stedolan.github.io/jq/) 1.5
