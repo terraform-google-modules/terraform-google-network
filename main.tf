@@ -39,3 +39,11 @@ resource "google_compute_subnetwork" "subnetwork" {
 
   secondary_ip_range = "${var.secondary_ranges[lookup(var.subnets[count.index], "subnet_name")]}"
 }
+
+/******************************************
+	Shared VPC
+ *****************************************/
+resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
+  count   = "${var.shared_vpc_host == "true" ? 1 : 0}"
+  project = "${var.project_id}"
+}
