@@ -35,8 +35,8 @@ You can go to the examples folder, however the usage of the module could be like
 ```hcl
 module "vpc" {
     source = "github.com/terraform-google-modules/terraform-google-network"
-    project_id = "<PROJECT ID>"
-    vpc_name   = "example-vpc"
+    project_id   = "<PROJECT ID>"
+    network_name = "example-vpc"
 
     subnets = [
         {
