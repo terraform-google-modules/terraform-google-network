@@ -1,3 +1,7 @@
+## 0.2.0
+
+- Add support for Shared VPC hosting
+
 ## 0.1.0
 
 This is the initial release of the module, with basic support for creating:
