@@ -8,27 +8,6 @@ It supports creating:
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
-## Requirements
-### Terraform plugins
-- [Terraform](https://www.terraform.io/downloads.html) 0.10.x
-- [terraform-provider-google](https://github.com/terraform-providers/terraform-provider-google) plugin v1.8.0
-
-### Configure a Service Account
-In order to execute this module you must have a Service Account with the following roles:
-
-- roles/compute.networkAdmin on the organization
-
-### Enable API's
-In order to operate with the Service Account you must activate the following API on the project where the Service Account was created:
-
-- Compute Engine API - compute.googleapis.com
-
-## Install
-
-### Terraform
-Be sure you have the correct Terraform version (0.10.x), you can choose the binary here:
-- https://releases.hashicorp.com/terraform/
-
 ## Usage
 You can go to the examples folder, however the usage of the module could be like this in your own main.tf file:
 
@@ -73,11 +52,52 @@ Then perform the following commands on the root folder:
 - `terraform apply` to apply the infrastructure build
 - `terraform destroy` to destroy the built infrastructure
 
-#### Variables
-Please refer the /variables.tf file for the required and optional variables.
+[^]: (autogen_docs_start)
 
-#### Outputs
-Please refer the /outputs.tf file for the outputs that you can get with the `terraform output` command
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|:----:|:-----:|:-----:|
+| network_name | The name of the network being created | string | `` | no |
+| project_id | The ID of the project where this VPC will be created | string | `` | no |
+| secondary_ranges | Secondary ranges that will be used in some of the subnets | map | - | yes |
+| shared_vpc_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `false` | no |
+| subnets | The list of subnets being created | list | - | yes |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| network_name | The name of the VPC being created |
+| subnets_ips | The IP and cidrs of the subnets being created |
+| subnets_names | The names of the subnets being created |
+| subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
+| subnets_regions | The region where the subnets will be created |
+| subnets_secondary_ranges | The secondary ranges associated with these subnets |
+
+[^]: (autogen_docs_end)
+
+## Requirements
+### Terraform plugins
+- [Terraform](https://www.terraform.io/downloads.html) 0.10.x
+- [terraform-provider-google](https://github.com/terraform-providers/terraform-provider-google) plugin v1.8.0
+
+### Configure a Service Account
+In order to execute this module you must have a Service Account with the following roles:
+
+- roles/compute.networkAdmin on the organization
+
+### Enable API's
+In order to operate with the Service Account you must activate the following API on the project where the Service Account was created:
+
+- Compute Engine API - compute.googleapis.com
+
+## Install
+
+### Terraform
+Be sure you have the correct Terraform version (0.10.x), you can choose the binary here:
+- https://releases.hashicorp.com/terraform/
 
 ## File structure
 The project has the following folders and files:
@@ -149,29 +169,3 @@ is a compiled language so there is no standard linter.
 * Terraform - terraform has a built-in linter in the 'terraform validate'
 command.
 * Dockerfiles - hadolint. Can be found in homebrew
-
-[^]: (autogen_docs_start)
-
-
-## Inputs
-
-| Name | Description | Type | Default | Required |
-|------|-------------|:----:|:-----:|:-----:|
-| network_name | The name of the network being created | string | `` | no |
-| project_id | The ID of the project where this VPC will be created | string | `` | no |
-| secondary_ranges | Secondary ranges that will be used in some of the subnets | map | - | yes |
-| shared_vpc_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `false` | no |
-| subnets | The list of subnets being created | list | - | yes |
-
-## Outputs
-
-| Name | Description |
-|------|-------------|
-| network_name | The name of the VPC being created |
-| subnets_ips | The IP and cidrs of the subnets being created |
-| subnets_names | The names of the subnets being created |
-| subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
-| subnets_regions | The region where the subnets will be created |
-| subnets_secondary_ranges | The secondary ranges associated with these subnets |
-
-[^]: (autogen_docs_end)
