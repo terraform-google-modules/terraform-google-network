@@ -90,11 +90,12 @@ The project has the following folders and files:
 - /output.tf: the outputs of the module
 - /README.md: this file
 
-## Testing
+## Testing and documentation generation
 
 ### Requirements
 - [bats](https://github.com/sstephenson/bats) 0.4.0
 - [jq](https://stedolan.github.io/jq/) 1.5
+- [terraform-docs](https://github.com/segmentio/terraform-docs/releases) 0.3.0
 
 ### Integration test
 ##### Terraform integration tests
@@ -109,6 +110,12 @@ The integration tests for this module are built with bats, basically the test ch
 You can use the following command to run the integration test in the folder */test/integration/gcloud-test*
 
   `. launch.sh`
+
+### Autogeneration of documentation from .tf files
+Run
+```
+make generate_docs
+```
 
 ### Linting
 The makefile in this project will lint or sometimes just format any shell,
