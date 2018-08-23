@@ -28,7 +28,7 @@
 import re
 import sys
 
-insert_separator_regex = '(.*?\[\^\]\:\ \(autogen_docs_start\))(.*?)(\[\^\]\:\ \(autogen_docs_end\).*?$)'
+insert_separator_regex = '(.*?\[\^\]\:\ \(autogen_docs_start\))(.*?)(\n\[\^\]\:\ \(autogen_docs_end\).*?$)'
 exclude_separator_regex = '(.*?)Copyright 20\d\d Google LLC.*?limitations under the License.(.*?)$'
 
 if len(sys.argv) != 3:

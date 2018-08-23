@@ -87,10 +87,10 @@ function check_trailing_whitespace() {
 
 function generate_docs() {
   echo "Generating markdown docs with terraform-docs"
-  TMPFILE=$(tempfile)
+  TMPFILE=$(mktemp)
   for j in `for i in $(find . -type f | grep \.tf$) ; do dirname $i ; done | sort -u` ; do
     terraform-docs markdown $j > $TMPFILE
-    python test/combine_docfiles.py $j/README.md $TMPFILE
+    python helpers/combine_docfiles.py $j/README.md $TMPFILE
   done
   rm -f $TMPFILE
 }
