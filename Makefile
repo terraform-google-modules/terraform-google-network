@@ -63,3 +63,6 @@ check_headers:
 	@echo "Checking file headers"
 	@python test/verify_boilerplate.py
 
+.PHONY: generate_docs
+generate_docs:
+	@source test/make.sh && generate_docs

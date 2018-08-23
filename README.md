@@ -142,3 +142,6 @@ is a compiled language so there is no standard linter.
 * Terraform - terraform has a built-in linter in the 'terraform validate'
 command.
 * Dockerfiles - hadolint. Can be found in homebrew
+
+[^]: (autogen_docs_start)
+[^]: (autogen_docs_end)
