@@ -151,4 +151,27 @@ command.
 * Dockerfiles - hadolint. Can be found in homebrew
 
 [^]: (autogen_docs_start)
+
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|:----:|:-----:|:-----:|
+| network_name | The name of the network being created | string | `` | no |
+| project_id | The ID of the project where this VPC will be created | string | `` | no |
+| secondary_ranges | Secondary ranges that will be used in some of the subnets | map | - | yes |
+| shared_vpc_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `false` | no |
+| subnets | The list of subnets being created | list | - | yes |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| network_name | The name of the VPC being created |
+| subnets_ips | The IP and cidrs of the subnets being created |
+| subnets_names | The names of the subnets being created |
+| subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
+| subnets_regions | The region where the subnets will be created |
+| subnets_secondary_ranges | The secondary ranges associated with these subnets |
+
 [^]: (autogen_docs_end)
