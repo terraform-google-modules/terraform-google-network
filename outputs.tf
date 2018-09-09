@@ -39,6 +39,11 @@ output "subnets_private_access" {
   description = "Whether the subnets will have access to Google API's without a public IP"
 }
 
+output "subnets_flow_logs" {
+  value       = "${google_compute_subnetwork.subnetwork.*.enable_flow_logs}"
+  description = "Whether the subnets will have VPC flow logs enabled"
+}
+
 output "subnets_secondary_ranges" {
   value       = "${google_compute_subnetwork.subnetwork.*.secondary_ip_range}"
   description = "The secondary ranges associated with these subnets"
