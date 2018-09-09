@@ -23,12 +23,14 @@ module "vpc" {
             subnet_ip             = "10.10.10.0/24"
             subnet_region         = "us-west1"
             subnet_private_access = false
+            subnet_flow_logs      = true
         },
         {
             subnet_name           = "subnet-02"
             subnet_ip             = "10.10.20.0/24"
             subnet_region         = "us-west1"
             subnet_private_access = false
+            subnet_flow_logs      = true
         },
     ]
 
@@ -73,6 +75,7 @@ Then perform the following commands on the root folder:
 | subnets_ips | The IP and cidrs of the subnets being created |
 | subnets_names | The names of the subnets being created |
 | subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
+| subnet_flow_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets_regions | The region where the subnets will be created |
 | subnets_secondary_ranges | The secondary ranges associated with these subnets |
 
