@@ -1,3 +1,8 @@
+## 0.3.0
+
+- Add support for controlling subnet flow logs (#6)
+- Make `subnet_private_access` default to false (#6)
+
 ## 0.2.0
 
 - Add support for Shared VPC hosting
