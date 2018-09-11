@@ -22,14 +22,12 @@ module "vpc" {
             subnet_name           = "subnet-01"
             subnet_ip             = "10.10.10.0/24"
             subnet_region         = "us-west1"
-            subnet_private_access = false
-            subnet_flow_logs      = true
         },
         {
             subnet_name           = "subnet-02"
             subnet_ip             = "10.10.20.0/24"
             subnet_region         = "us-west1"
-            subnet_private_access = false
+            subnet_private_access = true
             subnet_flow_logs      = true
         },
     ]
@@ -63,16 +61,26 @@ Then perform the following commands on the root folder:
 |------|-------------|:----:|:-----:|:-----:|
 | network_name | The name of the network being created | string | - | yes |
 | project_id | The ID of the project where this VPC will be created | string | - | yes |
-| secondary_ranges | Secondary ranges that will be used in some of the subnets | map | - | yes |
 | shared_vpc_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `false` | no |
 | subnets | The list of subnets being created | list | - | yes |
+| secondary_ranges | Secondary ranges that will be used in some of the subnets | map | - | yes |
+
+### Subnet Inputs
+The subnets list contains maps, where each object represents a subnet. Each map has the following inputs (please see examples folder for additional references):
+ Name | Description | Type | Default | Required |
+|------|-------------|:----:|:-----:|:-----:|
+| subnet_name | The name of the subnet being created  | string | - | yes |
+| subnet_ip | The IP and CIDR range of the subnet being created | string | - | yes |
+| subnet_region | The region where the subnet will be created  | string | - | yes |
+| subnet_private_access | Whether this subnet will have private Google access enabled | boolean | false | no |
+| subnet_flow_logs  | Whether the subnet will record and send flow log data to logging | boolean | false | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
 | network_name | The name of the VPC being created |
-| subnets_ips | The IP and cidrs of the subnets being created |
+| subnets_ips | The IPs and CIDRs of the subnets being created |
 | subnets_names | The names of the subnets being created |
 | subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
 | subnet_flow_logs | Whether the subnets will have VPC flow logs enabled |
