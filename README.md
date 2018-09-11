@@ -67,7 +67,8 @@ Then perform the following commands on the root folder:
 
 ### Subnet Inputs
 The subnets list contains maps, where each object represents a subnet. Each map has the following inputs (please see examples folder for additional references):
- Name | Description | Type | Default | Required |
+
+| Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
 | subnet_name | The name of the subnet being created  | string | - | yes |
 | subnet_ip | The IP and CIDR range of the subnet being created | string | - | yes |
