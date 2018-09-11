@@ -40,6 +40,11 @@ output "network_01_subnets_private_access" {
   description = "Whether the subnets will have access to Google API's without a public IP on network-01"
 }
 
+output "network_01_subnets_flow_logs" {
+  value       = "${module.test-vpc-module-01.subnets_flow_logs}"
+  description = "Whether the subnets will have VPC flow logs enabled"
+}
+
 output "network_01_subnets_secondary_ranges" {
   value       = "${module.test-vpc-module-01.subnets_secondary_ranges}"
   description = "The secondary ranges associated with these subnets on network-01"
@@ -69,6 +74,11 @@ output "network_02_subnets_regions" {
 output "network_02_subnets_private_access" {
   value       = "${module.test-vpc-module-02.subnets_private_access}"
   description = "Whether the subnets will have access to Google API's without a public IP on network-02"
+}
+
+output "network_02_subnets_flow_logs" {
+  value       = "${module.test-vpc-module-02.subnets_flow_logs}"
+  description = "Whether the subnets will have VPC flow logs enabled"
 }
 
 output "network_02_subnets_secondary_ranges" {

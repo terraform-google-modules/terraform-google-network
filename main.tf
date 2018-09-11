@@ -33,8 +33,8 @@ resource "google_compute_subnetwork" "subnetwork" {
   name                     = "${lookup(var.subnets[count.index], "subnet_name")}"
   ip_cidr_range            = "${lookup(var.subnets[count.index], "subnet_ip")}"
   region                   = "${lookup(var.subnets[count.index], "subnet_region")}"
-  private_ip_google_access = "${lookup(var.subnets[count.index], "subnet_private_access")}"
-  enable_flow_logs         = "${lookup(var.subnets[count.index], "subnet_flow_logs")}"
+  private_ip_google_access = "${lookup(var.subnets[count.index], "subnet_private_access", false)}"
+  enable_flow_logs         = "${lookup(var.subnets[count.index], "subnet_flow_logs", false)}"
   network                  = "${google_compute_network.network.name}"
   project                  = "${var.project_id}"
 
