@@ -25,21 +25,21 @@ module "test-vpc-module-01" {
       subnet_ip             = "10.10.10.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = false
-      subnet_flow_logs      = true 
+      subnet_flow_logs      = true
     },
     {
       subnet_name           = "test-network-01-subnet-02"
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = false
-      subnet_flow_logs      = true 
+      subnet_flow_logs      = true
     },
     {
       subnet_name           = "test-network-01-subnet-03"
       subnet_ip             = "10.10.30.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = false
-      subnet_flow_logs      = true 
+      subnet_flow_logs      = true
     },
   ]
 
@@ -77,14 +77,14 @@ module "test-vpc-module-02" {
       subnet_ip             = "10.10.40.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = false
-      subnet_flow_logs      = true 
+      subnet_flow_logs      = true
     },
     {
       subnet_name           = "test-network-02-subnet-02"
       subnet_ip             = "10.10.50.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = false
-      subnet_flow_logs      = true 
+      subnet_flow_logs      = true
     },
   ]
 
