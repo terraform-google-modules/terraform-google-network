@@ -19,6 +19,11 @@ output "network_name" {
   description = "The name of the VPC being created"
 }
 
+output "network_self_link" {
+  value       = "${google_compute_network.network.self_link}"
+  description = "The URI of the VPC being created"
+}
+
 output "subnets_names" {
   value       = "${google_compute_subnetwork.subnetwork.*.name}"
   description = "The names of the subnets being created"

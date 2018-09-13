@@ -81,10 +81,11 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | Name | Description |
 |------|-------------|
 | network_name | The name of the VPC being created |
+| network_self_link | The URI of the VPC being created |
 | subnets_ips | The IPs and CIDRs of the subnets being created |
 | subnets_names | The names of the subnets being created |
 | subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
-| subnet_flow_logs | Whether the subnets will have VPC flow logs enabled |
+| subnets_flow_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets_regions | The region where the subnets will be created |
 | subnets_secondary_ranges | The secondary ranges associated with these subnets |
 
