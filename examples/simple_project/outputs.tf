@@ -19,7 +19,7 @@ output "network_name" {
   description = "The name of the VPC being created"
 }
 
-output "network_01_self_link" {
+output "network_self_link" {
   value       = "${module.test-vpc-module.network_self_link}"
   description = "The URI of the VPC being created"
 }

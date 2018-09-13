@@ -16,7 +16,6 @@ This example configures a host network project with two separate networks.
 | Name | Description |
 |------|-------------|
 | network_01_name | vpc 1 |
-| network_01_self_link | The URI of the VPC network-02 |
 | network_01_self_link | The URI of the VPC network-01 |
 | network_01_subnets | The names of the subnets being created on network-01 |
 | network_01_subnets_flow_logs | Whether the subnets will have VPC flow logs enabled |
@@ -25,6 +24,7 @@ This example configures a host network project with two separate networks.
 | network_01_subnets_regions | The region where the subnets will be created on network-01 |
 | network_01_subnets_secondary_ranges | The secondary ranges associated with these subnets on network-01 |
 | network_02_name | vpc 2 |
+| network_02_self_link | The URI of the VPC network-02 |
 | network_02_subnets | The names of the subnets being created on network-02 |
 | network_02_subnets_flow_logs | Whether the subnets will have VPC flow logs enabled |
 | network_02_subnets_ips | The IP and cidrs of the subnets being created on network-02 |
