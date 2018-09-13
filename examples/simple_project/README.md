@@ -17,7 +17,9 @@ This VPC has two subnets, with the first subnet being given a single secondary r
 
 | Name | Description |
 |------|-------------|
+| network_01_self_link | The URI of the VPC being created |
 | network_name | The name of the VPC being created |
+| subnets_flow_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets_ips | The IP and cidrs of the subnets being created |
 | subnets_names | The names of the subnets being created |
 | subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
