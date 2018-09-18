@@ -94,7 +94,7 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 ## Requirements
 ### Terraform plugins
 - [Terraform](https://www.terraform.io/downloads.html) 0.10.x
-- [terraform-provider-google](https://github.com/terraform-providers/terraform-provider-google) plugin v1.8.0
+- [terraform-provider-google](https://github.com/terraform-providers/terraform-provider-google) plugin v1.12.0
 
 ### Configure a Service Account
 In order to execute this module you must have a Service Account with the following roles:
