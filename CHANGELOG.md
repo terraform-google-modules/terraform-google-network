@@ -1,3 +1,7 @@
+## 0.4.0
+
+- Make `subnet_private_access` and `subnet_flow_logs` into strings to be consistent with `shared_vpc` flag (#13)
+
 ## 0.3.0
 
 - Add support for controlling subnet flow logs (#6)
