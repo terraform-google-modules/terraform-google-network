@@ -55,6 +55,11 @@ output "network_01_subnets_secondary_ranges" {
   description = "The secondary ranges associated with these subnets on network-01"
 }
 
+output "network_01_routes" {
+  value       = "${module.test-vpc-module-01.routes}"
+  description = "The routes associated with network-01"
+}
+
 # vpc 2
 output "network_02_name" {
   value       = "${module.test-vpc-module-02.network_name}"
@@ -94,4 +99,9 @@ output "network_02_subnets_flow_logs" {
 output "network_02_subnets_secondary_ranges" {
   value       = "${module.test-vpc-module-02.subnets_secondary_ranges}"
   description = "The secondary ranges associated with these subnets on network-02"
+}
+
+output "network_02_routes" {
+  value       = "${module.test-vpc-module-02.routes}"
+  description = "The routes associated with network-02"
 }

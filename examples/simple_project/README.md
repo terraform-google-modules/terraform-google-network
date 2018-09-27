@@ -25,5 +25,6 @@ This VPC has two subnets, with the first subnet being given a single secondary r
 | subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
 | subnets_regions | The region where subnets will be created |
 | subnets_secondary_ranges | The secondary ranges associated with these subnets |
+| routes | The routes associated with this VPC |
 
 [^]: (autogen_docs_end)

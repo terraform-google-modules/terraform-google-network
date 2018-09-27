@@ -53,3 +53,8 @@ output "subnets_secondary_ranges" {
   value       = "${module.test-vpc-module.subnets_secondary_ranges}"
   description = "The secondary ranges associated with these subnets"
 }
+
+output "routes" {
+  value       = "${module.test-vpc-module.routes}"
+  description = "The routes associated with this VPC"
+}

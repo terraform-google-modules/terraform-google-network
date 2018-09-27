@@ -64,6 +64,7 @@ Then perform the following commands on the root folder:
 | shared_vpc_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `false` | no |
 | subnets | The list of subnets being created | list | - | yes |
 | secondary_ranges | Secondary ranges that will be used in some of the subnets | map | - | yes |
+| routes | The list of routes being created | list | - | no |
 
 ### Subnet Inputs
 The subnets list contains maps, where each object represents a subnet. Each map has the following inputs (please see examples folder for additional references):
@@ -75,6 +76,22 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | subnet_region | The region where the subnet will be created  | string | - | yes |
 | subnet_private_access | Whether this subnet will have private Google access enabled | string | false | no |
 | subnet_flow_logs  | Whether the subnet will record and send flow log data to logging | string | false | no |
+
+### Route Inputs
+The routes list contains maps, where each object represents a route. For the next_hop_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each map has the following inputs (please see examples folder for additional references):
+
+| Name | Description | Type | Default | Required |
+|------|-------------|:----:|:-----:|:-----:|
+| name | The name of the route being created  | string | - | no |
+| description | The description of the route being created | string | - | no |
+| tags | The network tags assigned to this route. This is a list in string format. Eg. "tag-01,tag-02"| string | - | yes |
+| dest_range | The destination range of outgoing packets that this route applies to. Only IPv4 is supported | string | - | yes 
+| next_hop_gateway | Whether the next hop to this route will the default internet gateway. Use "true" to enable this as next hop | string | - | yes |
+| next_hop_ip | Network IP address of an instance that should handle matching packets | string | - | yes |
+| next_hop_instance |  URL or name of an instance that should handle matching packets. If just name is specified "next_hop_instance_zone" is required | string | - | yes |
+| next_hop_instance_zone |  The zone of the instance specified in next_hop_instance. Only required if next_hop_instance is specified as a name | string | - | no |
+| next_hop_vpn_tunnel | URL to a VpnTunnel that should handle matching packets | string | - | yes |
+| priority | The priority of this route. Priority is used to break ties in cases where there is more than one matching route of equal prefix length. In the case of two routes with equal prefix length, the one with the lowest-numbered priority value wins | string | 1000 | yes |
 
 ## Outputs
 
@@ -88,6 +105,7 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | subnets_flow_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets_regions | The region where the subnets will be created |
 | subnets_secondary_ranges | The secondary ranges associated with these subnets |
+| routes | The routes associated with this VPC |
 
 [^]: (autogen_docs_end)
 
