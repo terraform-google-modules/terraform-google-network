@@ -1,14 +1,19 @@
+resource "random_id" "network_id" {
+  byte_length = 8
+}
+
 resource "google_project_service" "compute" {
   service = "compute.googleapis.com"
 }
 
+# Create the network
 module "vpc" {
   source  = "terraform-google-modules/network/google"
   version = "~> 0.4.0"
 
   # Give the network a name and project
   project_id   = "${google_project_service.compute.project}"
-  network_name = "my-custom-vpc"
+  network_name = "my-custom-vpc-${random_id.network_id.hex}"
 
   subnets = [
     {
@@ -37,4 +42,53 @@ module "vpc" {
       },
     ]
   }
+}
+
+resource "random_id" "instance_id" {
+  byte_length = 8
+}
+
+# Launch a VM on it
+resource "google_compute_instance" "default" {
+  name         = "vm-${random_id.instance_id.hex}"
+  project      = "${google_project_service.compute.project}"
+  machine_type = "f1-micro"
+  zone         = "us-west1-a"
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-9"
+    }
+  }
+
+  network_interface {
+    subnetwork         = "${module.vpc.subnets_names[0]}"
+    subnetwork_project = "${google_project_service.compute.project}"
+
+    access_config {
+      # Include this section to give the VM an external ip address
+    }
+  }
+
+  # Apply the firewall rule to allow external IPs to ping this instance
+  tags = ["allow-ping"]
+}
+
+# Allow traffic to the VM
+resource "google_compute_firewall" "allow-ping" {
+  name    = "default-ping"
+  network = "${module.vpc.network_name}"
+  project = "${google_project_service.compute.project}"
+
+  allow {
+    protocol = "icmp"
+  }
+
+  # Allow traffic from everywhere to instances with an http-server tag
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["allow-ping"]
+}
+
+output "ip" {
+  value = "${google_compute_instance.default.network_interface.0.access_config.0.nat_ip}"
 }
