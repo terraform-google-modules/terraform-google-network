@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 /******************************************
 	VPC configuration
  *****************************************/
@@ -28,7 +29,7 @@ resource "google_compute_network" "network" {
 	Subnet configuration
  *****************************************/
 resource "google_compute_subnetwork" "subnetwork" {
-  count = "${length(var.subnets)}"
+  count = "${length(var.secondary_ranges) > 0 ? length(var.subnets) : 0}"
 
   name                     = "${lookup(var.subnets[count.index], "subnet_name")}"
   ip_cidr_range            = "${lookup(var.subnets[count.index], "subnet_ip")}"
@@ -39,6 +40,19 @@ resource "google_compute_subnetwork" "subnetwork" {
   project                  = "${var.project_id}"
 
   secondary_ip_range = "${var.secondary_ranges[lookup(var.subnets[count.index], "subnet_name")]}"
+}
+
+resource "google_compute_subnetwork" "no_secondary_subnetwork" {
+  count = "${length(var.secondary_ranges) > 0 ? 0 : length(var.subnets)}"
+
+  name                     = "${lookup(var.subnets[count.index], "subnet_name")}"
+  ip_cidr_range            = "${lookup(var.subnets[count.index], "subnet_ip")}"
+  region                   = "${lookup(var.subnets[count.index], "subnet_region")}"
+  private_ip_google_access = "${lookup(var.subnets[count.index], "subnet_private_access", "false")}"
+  enable_flow_logs         = "${lookup(var.subnets[count.index], "subnet_flow_logs", "false")}"
+  network                  = "${google_compute_network.network.name}"
+  project                  = "${var.project_id}"
+
 }
 
 /******************************************

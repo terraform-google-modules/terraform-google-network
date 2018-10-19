@@ -15,41 +15,41 @@
  */
 
 output "network_name" {
-  value       = "${google_compute_network.network.name}"
+  value       = "${module.test-vpc-module.network_name}"
   description = "The name of the VPC being created"
 }
 
 output "network_self_link" {
-  value       = "${google_compute_network.network.self_link}"
+  value       = "${module.test-vpc-module.network_self_link}"
   description = "The URI of the VPC being created"
 }
 
 output "subnets_names" {
-  value       = "${google_compute_subnetwork.subnetwork.*.name}"
+  value       = "${module.test-vpc-module.subnets_names}"
   description = "The names of the subnets being created"
 }
 
 output "subnets_ips" {
-  value       = "${google_compute_subnetwork.subnetwork.*.ip_cidr_range}"
-  description = "The IPs and CIDRs of the subnets being created"
+  value       = "${module.test-vpc-module.subnets_ips}"
+  description = "The IP and cidrs of the subnets being created"
 }
 
 output "subnets_regions" {
-  value       = "${google_compute_subnetwork.subnetwork.*.region}"
-  description = "The region where the subnets will be created"
+  value       = "${module.test-vpc-module.subnets_regions}"
+  description = "The region where subnets will be created"
 }
 
 output "subnets_private_access" {
-  value       = "${google_compute_subnetwork.subnetwork.*.private_ip_google_access}"
+  value       = "${module.test-vpc-module.subnets_private_access}"
   description = "Whether the subnets will have access to Google API's without a public IP"
 }
 
 output "subnets_flow_logs" {
-  value       = "${google_compute_subnetwork.subnetwork.*.enable_flow_logs}"
+  value       = "${module.test-vpc-module.subnets_flow_logs}"
   description = "Whether the subnets will have VPC flow logs enabled"
 }
 
 //output "subnets_secondary_ranges" {
-//  value       = "${google_compute_subnetwork.subnetwork.*.secondary_ip_range}"
+//  value       = "${module.test-vpc-module.subnets_secondary_ranges}"
 //  description = "The secondary ranges associated with these subnets"
 //}
