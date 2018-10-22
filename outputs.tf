@@ -25,31 +25,31 @@ output "network_self_link" {
 }
 
 output "subnets_names" {
-  value       = "${google_compute_subnetwork.subnetwork.*.name}"
+  value       = ["${google_compute_subnetwork.subnetwork.*.name}", "${google_compute_subnetwork.no_secondary_subnetwork.*.name}"]
   description = "The names of the subnets being created"
 }
 
 output "subnets_ips" {
-  value       = "${google_compute_subnetwork.subnetwork.*.ip_cidr_range}"
+  value       = ["${google_compute_subnetwork.subnetwork.*.ip_cidr_range}", "${google_compute_subnetwork.no_secondary_subnetwork.*.ip_cidr_range}"]
   description = "The IPs and CIDRs of the subnets being created"
 }
 
 output "subnets_regions" {
-  value       = "${google_compute_subnetwork.subnetwork.*.region}"
+  value       = ["${google_compute_subnetwork.subnetwork.*.region}", "${google_compute_subnetwork.no_secondary_subnetwork.*.region}"]
   description = "The region where the subnets will be created"
 }
 
 output "subnets_private_access" {
-  value       = "${google_compute_subnetwork.subnetwork.*.private_ip_google_access}"
+  value       = ["${google_compute_subnetwork.subnetwork.*.private_ip_google_access}", "${google_compute_subnetwork.no_secondary_subnetwork.*.private_ip_google_access}"]
   description = "Whether the subnets will have access to Google API's without a public IP"
 }
 
 output "subnets_flow_logs" {
-  value       = "${google_compute_subnetwork.subnetwork.*.enable_flow_logs}"
+  value       = ["${google_compute_subnetwork.subnetwork.*.enable_flow_logs}", "${google_compute_subnetwork.no_secondary_subnetwork.*.enable_flow_logs}"]
   description = "Whether the subnets will have VPC flow logs enabled"
 }
 
-//output "subnets_secondary_ranges" {
-//  value       = "${google_compute_subnetwork.subnetwork.*.secondary_ip_range}"
-//  description = "The secondary ranges associated with these subnets"
-//}
+output "subnets_secondary_ranges" {
+  value       = "${google_compute_subnetwork.subnetwork.*.secondary_ip_range}"
+  description = "The secondary ranges associated with these subnets"
+}

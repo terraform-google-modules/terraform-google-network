@@ -34,9 +34,5 @@ module "test-vpc-module" {
     },
   ]
 
-  secondary_ranges = {
-    subnet-01 = []
-
-    subnet-02 = []
-  }
+  secondary_ranges = {}
 }

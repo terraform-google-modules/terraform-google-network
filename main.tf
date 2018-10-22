@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /******************************************
 	VPC configuration
  *****************************************/
@@ -52,7 +51,6 @@ resource "google_compute_subnetwork" "no_secondary_subnetwork" {
   enable_flow_logs         = "${lookup(var.subnets[count.index], "subnet_flow_logs", "false")}"
   network                  = "${google_compute_network.network.name}"
   project                  = "${var.project_id}"
-
 }
 
 /******************************************
