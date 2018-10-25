@@ -29,6 +29,7 @@ variable "subnets" {
 
 variable "secondary_ranges" {
   type        = "map"
+  default     = {}
   description = "Secondary ranges that will be used in some of the subnets"
 }
 
