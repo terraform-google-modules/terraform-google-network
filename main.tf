@@ -60,13 +60,16 @@ resource "google_compute_route" "route" {
   name                   = "${lookup(var.routes[count.index], "name", format("%s-%s-%d", lower(var.network_name), "route",count.index))}"
   description            = "${lookup(var.routes[count.index], "description","")}"
   tags                   = "${compact(split(",",lookup(var.routes[count.index], "tags","")))}"
-  dest_range             = "${lookup(var.routes[count.index], "dest_range","")}"
-  next_hop_gateway       = "${lookup(var.routes[count.index], "next_hop_gateway","") == "true" ? "default-internet-gateway":""}"
+  dest_range             = "${lookup(var.routes[count.index], "destination_range","")}"
+  next_hop_gateway       = "${lookup(var.routes[count.index], "next_hop_internet","") == "true" ? "default-internet-gateway":""}"
   next_hop_ip            = "${lookup(var.routes[count.index], "next_hop_ip","")}"
   next_hop_instance      = "${lookup(var.routes[count.index], "next_hop_instance","")}"
   next_hop_instance_zone = "${lookup(var.routes[count.index], "next_hop_instance_zone","")}"
   next_hop_vpn_tunnel    = "${lookup(var.routes[count.index], "next_hop_vpn_tunnel","")}"
   priority               = "${lookup(var.routes[count.index], "priority", "1000")}"
 
-  depends_on = ["google_compute_network.network"]
+  depends_on = [
+    "google_compute_network.network",
+    "google_compute_subnetwork.subnetwork",
+  ]
 }

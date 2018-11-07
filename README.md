@@ -45,18 +45,18 @@ module "vpc" {
     
     routes = [
         {
-            name             = "egress-inet"
-            description      = "route through IGW to access internet"
-            dest_range       = "0.0.0.0/0"
-            tags             = "egress-inet"
-            next_hop_gateway = "true"
+            name               = "egress-internet"
+            description        = "route through IGW to access internet"
+            destination_range  = "0.0.0.0/0"
+            tags               = "egress-inet"
+            next_hop_internet  = "true"
         },
         {
-            name        = "app-proxy"
-            description = "route through proxy to reach app"
-            dest_range  = "10.50.10.0/24"
-            tags        = "app-proxy"
-            next_hop_ip = "10.10.20.10"
+            name               = "app-proxy"
+            description        = "route through proxy to reach app"
+            destination_range  = "10.50.10.0/24"
+            tags               = "app-proxy"
+            next_hop_ip        = "10.10.20.10"
         },
     ]
 }
@@ -102,8 +102,8 @@ The routes list contains maps, where each object represents a route. For the nex
 | name | The name of the route being created  | string | - | no |
 | description | The description of the route being created | string | - | no |
 | tags | The network tags assigned to this route. This is a list in string format. Eg. "tag-01,tag-02"| string | - | yes |
-| dest_range | The destination range of outgoing packets that this route applies to. Only IPv4 is supported | string | - | yes 
-| next_hop_gateway | Whether the next hop to this route will the default internet gateway. Use "true" to enable this as next hop | string | - | yes |
+| destination_range | The destination range of outgoing packets that this route applies to. Only IPv4 is supported | string | - | yes 
+| next_hop_internet | Whether the next hop to this route will the default internet gateway. Use "true" to enable this as next hop | string | - | yes |
 | next_hop_ip | Network IP address of an instance that should handle matching packets | string | - | yes |
 | next_hop_instance |  URL or name of an instance that should handle matching packets. If just name is specified "next_hop_instance_zone" is required | string | - | yes |
 | next_hop_instance_zone |  The zone of the instance specified in next_hop_instance. Only required if next_hop_instance is specified as a name | string | - | no |

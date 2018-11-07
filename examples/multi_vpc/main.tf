@@ -111,18 +111,18 @@ module "test-vpc-module-02" {
 
   routes = [
     {
-      name             = "egress-inet"
-      description      = "route through IGW to access internet"
-      dest_range       = "0.0.0.0/0"
-      tags             = "egress-inet"
-      next_hop_gateway = "true"
+      name              = "egress-inet"
+      description       = "route through IGW to access internet"
+      destination_range = "0.0.0.0/0"
+      tags              = "egress-inet"
+      next_hop_gateway  = "true"
     },
     {
-      name        = "app-proxy"
-      description = "route through proxy to reach app"
-      dest_range  = "10.50.10.0/24"
-      tags        = "app-proxy"
-      next_hop_ip = "10.10.40.10"
+      name              = "app-proxy"
+      description       = "route through proxy to reach app"
+      destination_range = "10.50.10.0/24"
+      tags              = "app-proxy"
+      next_hop_ip       = "10.10.40.10"
     },
   ]
 }
