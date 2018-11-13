@@ -53,3 +53,8 @@ output "subnets_secondary_ranges" {
   value       = "${google_compute_subnetwork.subnetwork.*.secondary_ip_range}"
   description = "The secondary ranges associated with these subnets"
 }
+
+output "routes" {
+  value       = "${google_compute_route.route.*.name}"
+  description = "The routes associated with this VPC"
+}
