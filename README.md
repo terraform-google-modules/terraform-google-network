@@ -13,7 +13,7 @@ You can go to the examples folder, however the usage of the module could be like
 
 ```hcl
 module "vpc" {
-    source = "github.com/terraform-google-modules/terraform-google-network"
+    source = "terraform-google-modules/network/google"
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"
 
