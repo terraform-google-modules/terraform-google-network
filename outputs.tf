@@ -50,7 +50,7 @@ output "subnets_flow_logs" {
 }
 
 output "subnets_secondary_ranges" {
-  value       = "${google_compute_subnetwork.subnetwork.*.secondary_ip_range}"
+  value       = "${data.google_compute_subnetwork.created_subnets.*.secondary_ip_range}"
   description = "The secondary ranges associated with these subnets"
 }
 

@@ -49,6 +49,14 @@ resource "google_compute_subnetwork" "subnetwork" {
   secondary_ip_range = "${var.secondary_ranges[lookup(var.subnets[count.index], "subnet_name")]}"
 }
 
+data "google_compute_subnetwork" "created_subnets" {
+  count = "${length(var.subnets)}"
+
+  name    = "${lookup(var.subnets[count.index], "subnet_name")}"
+  region  = "${lookup(var.subnets[count.index], "subnet_region")}"
+  project = "${var.project_id}"
+}
+
 /******************************************
 	Routes
  *****************************************/
