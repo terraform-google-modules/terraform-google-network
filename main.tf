@@ -52,8 +52,8 @@ resource "google_compute_subnetwork" "subnetwork" {
 data "google_compute_subnetwork" "created_subnets" {
   count = "${length(var.subnets)}"
 
-  name    = "${lookup(var.subnets[count.index], "subnet_name")}"
-  region  = "${lookup(var.subnets[count.index], "subnet_region")}"
+  name    = "${element(google_compute_subnetwork.subnetwork.*.name, count.index)}"
+  region  = "${element(google_compute_subnetwork.subnetwork.*.region, count.index)}"
   project = "${var.project_id}"
 }
 
