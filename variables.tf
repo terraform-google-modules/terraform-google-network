@@ -22,6 +22,12 @@ variable "network_name" {
   description = "The name of the network being created"
 }
 
+variable "routing_mode" {
+  type = "string"
+  default = "GLOBAL"
+  description = "The network routing mode (default 'GLOBAL')"
+}
+
 variable "shared_vpc_host" {
   type        = "string"
   description = "Makes this project a Shared VPC host if 'true' (default 'false')"
