@@ -2,6 +2,9 @@
 ### Fixed
 - Resolved issue with networks that have no secondary networks (#19)
 
+### Added
+- Add subnet self links as outputs. [#27]
+
 ## 0.4.0
 ### Changed
 - Make `subnet_private_access` and `subnet_flow_logs` into strings to be consistent with `shared_vpc` flag (#13)
