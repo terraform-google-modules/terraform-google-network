@@ -34,6 +34,11 @@ output "subnets_ips" {
   description = "The IPs and CIDRs of the subnets being created"
 }
 
+output "subnets_self_links" {
+  value       = "${google_compute_subnetwork.subnetwork.*.self_link}"
+  description = "The self-links of subnets being created"
+}
+
 output "subnets_regions" {
   value       = "${google_compute_subnetwork.subnetwork.*.region}"
   description = "The region where the subnets will be created"

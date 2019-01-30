@@ -44,7 +44,7 @@ module "vpc" {
 
         subnet-02 = []
     }
-    
+
     routes = [
         {
             name                   = "egress-internet"
@@ -105,7 +105,7 @@ The routes list contains maps, where each object represents a route. For the nex
 | name | The name of the route being created  | string | - | no |
 | description | The description of the route being created | string | - | no |
 | tags | The network tags assigned to this route. This is a list in string format. Eg. "tag-01,tag-02"| string | - | yes |
-| destination_range | The destination range of outgoing packets that this route applies to. Only IPv4 is supported | string | - | yes 
+| destination_range | The destination range of outgoing packets that this route applies to. Only IPv4 is supported | string | - | yes
 | next_hop_internet | Whether the next hop to this route will the default internet gateway. Use "true" to enable this as next hop | string | - | yes |
 | next_hop_ip | Network IP address of an instance that should handle matching packets | string | - | yes |
 | next_hop_instance |  URL or name of an instance that should handle matching packets. If just name is specified "next_hop_instance_zone" is required | string | - | yes |
@@ -120,6 +120,7 @@ The routes list contains maps, where each object represents a route. For the nex
 | network_name | The name of the VPC being created |
 | network_self_link | The URI of the VPC being created |
 | subnets_ips | The IPs and CIDRs of the subnets being created |
+| subnets_self_links | The `self_link`s of the subnets being created |
 | subnets_names | The names of the subnets being created |
 | subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
 | subnets_flow_logs | Whether the subnets will have VPC flow logs enabled |
