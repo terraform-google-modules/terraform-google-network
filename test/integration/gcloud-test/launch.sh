@@ -38,7 +38,8 @@ function clean_workdir() {
 
 # Creates the main.tf file for Terraform
 function create_main_tf_file() {
-  echo "Creating main.tf file"
+  local ROUTING_MODE=$1
+  echo "Creating main.tf file (for a ${ROUTING_MODE} network)"
   touch main.tf
   eval "cat <<EOF
 $(<templates/main.tf.tmpl)
@@ -54,14 +55,25 @@ $(<templates/outputs.tf.tmpl)
 EOF" | tee > outputs.tf
 }
 
+## Testing Creation of Global Network
 # Preparing environment
 clean_workdir
-create_main_tf_file
+create_main_tf_file "GLOBAL"
 create_outputs_file
 
 # Call to bats
-echo "Test to execute: $(bats integration.bats -c)"
-bats integration.bats
+echo "Test to execute: $(bats integration.global_network.bats -c)"
+bats integration.global_network.bats
+
+## Testing Creation of Regional Network
+# Preparing environment
+clean_workdir
+create_main_tf_file "REGIONAL"
+create_outputs_file
+
+# Call to bats
+echo "Test to execute: $(bats integration.regional_network.bats -c)"
+bats integration.regional_network.bats
 
 export CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=""
 unset CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE

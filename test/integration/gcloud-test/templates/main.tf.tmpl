@@ -26,6 +26,7 @@ module "test-vpc-module-01" {
   source       = "../../../"
   project_id   = "${PROJECT_ID}"
   network_name = "test-network-01"
+  routing_mode = "${ROUTING_MODE}"
 
   subnets = [
     {
