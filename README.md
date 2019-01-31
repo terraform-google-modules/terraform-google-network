@@ -81,7 +81,7 @@ Then perform the following commands on the root folder:
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
 | network_name | The name of the network being created | string | - | yes |
-| routing_mode | The network routing mode (default 'GLOBAL') | string | GLOBAL | no |
+| routing_mode | The network routing mode. Can be either 'REGIONAL' or 'GLOBAL' | string | GLOBAL | no |
 | project_id | The ID of the project where this VPC will be created | string | - | yes |
 | shared_vpc_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `false` | no |
 | subnets | The list of subnets being created | list | - | yes |
