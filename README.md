@@ -80,6 +80,7 @@ Then perform the following commands on the root folder:
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
+| delete_default_internet_gateway_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | string | `false` | no |
 | network_name | The name of the network being created | string | - | yes |
 | project_id | The ID of the project where this VPC will be created | string | - | yes |
 | routes | List of routes being created in this VPC | list | `<list>` | no |
