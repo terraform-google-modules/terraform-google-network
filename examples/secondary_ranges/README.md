@@ -7,24 +7,25 @@ ranges and the third being given a single secondary range.
 
 [^]: (autogen_docs_start)
 
+
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| project\_id | The project ID to host the network in | string | - | yes |
+| project_id | The project ID to host the network in | string | - | yes |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| network\_name | The name of the VPC being created |
-| network\_self\_link | The URI of the VPC being created |
+| network_name | The name of the VPC being created |
+| network_self_link | The URI of the VPC being created |
 | routes | The routes associated with this VPC |
-| subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
-| subnets\_ips | The IP and cidrs of the subnets being created |
-| subnets\_names | The names of the subnets being created |
-| subnets\_private\_access | Whether the subnets will have access to Google API's without a public IP |
-| subnets\_regions | The region where subnets will be created |
-| subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
+| subnets_flow_logs | Whether the subnets will have VPC flow logs enabled |
+| subnets_ips | The IP and cidrs of the subnets being created |
+| subnets_names | The names of the subnets being created |
+| subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
+| subnets_regions | The region where subnets will be created |
+| subnets_secondary_ranges | The secondary ranges associated with these subnets |
 
 [^]: (autogen_docs_end)

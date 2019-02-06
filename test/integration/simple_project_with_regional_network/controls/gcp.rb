@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-bucket_name = attribute('bucket_name')
+project_id   = attribute('project_id')
+network_name = attribute('network_name')
 
 control "gcp" do
   title "Google Cloud configuration"
 
-  describe google_storage_bucket(name: bucket_name) do
+  describe google_compute_network(
+    project: project_id,
+    name: network_name
+  ) do
     it { should exist }
+    its('routing_config.routing_mode') { should eq 'REGIONAL' }
   end
 end

@@ -14,17 +14,7 @@
  * limitations under the License.
  */
 
-resource "random_string" "random_suffix" {
-  length  = 4
-  upper   = "false"
-  lower   = "true"
-  number  = "false"
-  special = "false"
-}
-
 module "example" {
-  source = "../../../examples/simple_example"
-
-  project_id  = "${var.project_id}"
-  bucket_name = "simple-example-${random_string.random_suffix.result}"
+  source     = "../../../examples/multi_vpc"
+  project_id = "${var.project_id}"
 }

@@ -24,23 +24,59 @@ platforms:
   - name: local
 
 suites:
-  - name: "simple_example"
+  - name: "simple_project"
     driver:
       name: "terraform"
       command_timeout: 1800
-      root_module_directory: test/fixtures/simple_example/
+      root_module_directory: test/fixtures/simple_project/
     verifier:
       name: terraform
-      color: false
+      color: true
       systems:
-        - name: simple_example
+        - name: inspec-gcp
+          backend: gcp
+          controls:
+            - gcp
+        - name: local
           backend: local
           controls:
             - gcloud
-        - name: simple_example
+  - name: "simple_project_with_regional_network"
+    driver:
+      name: "terraform"
+      command_timeout: 1800
+      root_module_directory: test/fixtures/simple_project_with_regional_network/
+    verifier:
+      name: terraform
+      color: true
+      systems:
+        - name: inspec-gcp
           backend: gcp
-          shell: true
           controls:
             - gcp
-    provisioner:
+  - name: "secondary_ranges"
+    driver:
+      name: "terraform"
+      command_timeout: 1800
+      root_module_directory: test/fixtures/secondary_ranges/
+    verifier:
       name: terraform
+      color: true
+      systems:
+        - name: local
+          backend: local
+          controls:
+            - gcloud
+  - name: "multi_vpc"
+    driver:
+      name: "terraform"
+      command_timeout: 1800
+      root_module_directory: test/fixtures/multi_vpc/
+    verifier:
+      name: terraform
+      color: true
+      systems:
+        - name: local
+          backend: local
+          controls:
+            - gcloud

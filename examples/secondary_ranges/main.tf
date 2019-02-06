@@ -14,10 +14,20 @@
  * limitations under the License.
  */
 
+locals {
+  network_name = "test-network-${random_string.random_suffix.result}"
+}
+
+resource "random_string" "random_suffix" {
+  length  = 4
+  upper   = "false"
+  special = "false"
+}
+
 module "vpc-secondary-ranges" {
   source       = "../../"
   project_id   = "${var.project_id}"
-  network_name = "vpc-secondary-ranges"
+  network_name = "test-network-${local.network_name}"
 
   subnets = [
     {
@@ -33,9 +43,9 @@ module "vpc-secondary-ranges" {
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name           = "secondary-ranges-subnet-03"
-      subnet_ip             = "10.10.30.0/24"
-      subnet_region         = "us-west1"
+      subnet_name   = "secondary-ranges-subnet-03"
+      subnet_ip     = "10.10.30.0/24"
+      subnet_region = "us-west1"
     },
   ]
 
@@ -50,7 +60,9 @@ module "vpc-secondary-ranges" {
         ip_cidr_range = "192.168.65.0/24"
       },
     ]
+
     secondary-ranges-subnet-02 = []
+
     secondary-ranges-subnet-03 = [
       {
         range_name    = "subnet-03-01"

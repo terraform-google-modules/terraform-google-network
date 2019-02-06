@@ -1,12 +1,12 @@
-name: simple_example
+name: simple_project_with_regional_network
 depends:
   - name: inspec-gcp
     git: https://github.com/inspec/inspec-gcp.git
-    branch: master
+    version: 0.9.0
 attributes:
   - name: project_id
     required: true
     type: string
-  - name: bucket_name
+  - name: network_name
     required: true
     type: string
