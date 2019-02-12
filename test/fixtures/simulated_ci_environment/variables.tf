@@ -14,7 +14,22 @@
  * limitations under the License.
  */
 
-output "project_id" {
-  value       = "${var.project_id}"
-  description = "The ID of the project being used"
+variable "region" {
+  description = "The region to deploy to"
+  default     = "us-west1"
+}
+
+variable "organization_id" {
+  description = "The numeric organization id"
+  type        = "string"
+}
+
+variable "folder_id" {
+  description = "The numeric folder id to create resources"
+  type        = "string"
+}
+
+variable "billing_account" {
+  description = "The billing account id associated with the project, e.g. XXXXXX-YYYYYY-ZZZZZZ"
+  type        = "string"
 }

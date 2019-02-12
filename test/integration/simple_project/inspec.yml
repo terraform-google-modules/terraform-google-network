@@ -10,18 +10,3 @@ attributes:
   - name: network_name
     required: true
     type: string
-  - name: subnets_names
-    required: true
-    type: array
-  - name: subnets_ips
-    required: true
-    type: array
-  - name: subnets_regions
-    required: true
-    type: array
-  - name: subnets_private_access
-    required: true
-    type: array
-  - name: subnets_flow_logs
-    required: true
-    type: array

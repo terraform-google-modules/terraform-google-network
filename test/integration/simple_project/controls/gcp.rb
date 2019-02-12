@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project_id             = attribute('project_id')
-network_name           = attribute('network_name')
-subnets_names          = attribute('subnets_names')
-subnets_ips            = attribute('subnets_ips')
-subnets_regions        = attribute('subnets_regions')
-subnets_private_access = attribute('subnets_private_access')
+project_id   = attribute('project_id')
+network_name = attribute('network_name')
 
 control "gcp" do
   title "Google Cloud configuration"
@@ -29,26 +25,23 @@ control "gcp" do
     it { should exist }
   end
 
-  subnets_names.each_with_index do |subnet_name, subnet_index|
-    describe google_compute_subnetwork(
-      project: project_id,
-      name: subnet_name,
-      region: subnets_regions[subnet_index]
-    ) do
-      # true/false come in as strings but need to be matched as booleans
-      let(:private_ip_google_access) {
-        case subnets_private_access[subnet_index].downcase
-        when 'true'
-          true
-        when 'false'
-          false
-        end
-      }
+  describe google_compute_subnetwork(
+    project: project_id,
+    name: "subnet-01",
+    region: "us-west1"
+  ) do
+    it { should exist }
+    its('ip_cidr_range') { should eq "10.10.10.0/24" }
+    its('private_ip_google_access') { should be false }
+  end
 
-      # Tests
-      it { should exist }
-      its('ip_cidr_range') { should eq subnets_ips[subnet_index] }
-      its('private_ip_google_access') { should be private_ip_google_access }
-    end
+  describe google_compute_subnetwork(
+    project: project_id,
+    name: "subnet-02",
+    region: "us-west1"
+  ) do
+    it { should exist }
+    its('ip_cidr_range') { should eq "10.10.20.0/24" }
+    its('private_ip_google_access') { should be true }
   end
 end

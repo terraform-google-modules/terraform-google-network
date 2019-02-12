@@ -19,47 +19,7 @@ output "project_id" {
   description = "The ID of the project being used"
 }
 
-output "network_self_link" {
-  value       = "${module.example.network_self_link}"
-  description = "The URI of the VPC being created"
-}
-
 output "network_name" {
   value       = "${module.example.network_name}"
-  description = "The name of the VPC network being created"
-}
-
-output "subnets_names" {
-  value       = "${module.example.subnets_names}"
-  description = "The names of the subnets being created"
-}
-
-output "subnets_ips" {
-  value       = "${module.example.subnets_ips}"
-  description = "The IP and cidrs of the subnets being created"
-}
-
-output "subnets_regions" {
-  value       = "${module.example.subnets_regions}"
-  description = "The region where subnets will be created"
-}
-
-output "subnets_private_access" {
-  value       = "${module.example.subnets_private_access}"
-  description = "Whether the subnets will have access to Google API's without a public IP"
-}
-
-output "subnets_flow_logs" {
-  value       = "${module.example.subnets_flow_logs}"
-  description = "Whether the subnets will have VPC flow logs enabled"
-}
-
-output "subnets_secondary_ranges" {
-  value       = "${module.example.subnets_secondary_ranges}"
-  description = "The secondary ranges associated with these subnets"
-}
-
-output "routes" {
-  value       = "${module.example.routes}"
-  description = "The routes associated with this VPC"
+  description = "The name of the VPC being created"
 }

@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-output "project_id" {
-  value       = "${var.project_id}"
-  description = "The ID of the project being used"
+output "service_account_private_key" {
+  description = "The SA KEY JSON content.  Store in GOOGLE_CREDENTIALS."
+  value       = "${base64decode(google_service_account_key.network.private_key)}"
 }

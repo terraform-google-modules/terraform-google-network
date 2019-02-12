@@ -27,7 +27,7 @@ resource "random_string" "random_suffix" {
 module "test-vpc-module" {
   source       = "../../"
   project_id   = "${var.project_id}"
-  network_name = "test-network-${local.network_name}"
+  network_name = "${local.network_name}"
   routing_mode = "REGIONAL"
 
   subnets = [

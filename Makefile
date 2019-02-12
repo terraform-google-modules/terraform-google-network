@@ -67,12 +67,7 @@ check_headers:
 # Integration tests
 .PHONY: test_integration
 test_integration:
-	bundle install
-	bundle exec kitchen create
-	bundle exec kitchen converge
-	bundle exec kitchen converge
-	bundle exec kitchen verify
-	bundle exec kitchen destroy
+	./test/ci_integration.sh
 
 .PHONY: generate_docs
 generate_docs:
@@ -89,6 +84,7 @@ docker_run:
 	docker run --rm -it \
 		-e CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CREDENTIALS_PATH} \
 		-e GOOGLE_APPLICATION_CREDENTIALS=${CREDENTIALS_PATH} \
+		-e TF_VAR_project_id \
 		-v $(CURDIR):/cft/workdir \
 		${DOCKER_REPO_BASE_KITCHEN_TERRAFORM} \
 		/bin/bash
@@ -98,6 +94,7 @@ docker_create:
 	docker run --rm -it \
 		-e CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CREDENTIALS_PATH} \
 		-e GOOGLE_APPLICATION_CREDENTIALS=${CREDENTIALS_PATH} \
+		-e TF_VAR_project_id \
 		-v $(CURDIR):/cft/workdir \
 		${DOCKER_REPO_BASE_KITCHEN_TERRAFORM} \
 		/bin/bash -c "kitchen create"
@@ -107,6 +104,7 @@ docker_converge:
 	docker run --rm -it \
 		-e CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CREDENTIALS_PATH} \
 		-e GOOGLE_APPLICATION_CREDENTIALS=${CREDENTIALS_PATH} \
+		-e TF_VAR_project_id \
 		-v $(CURDIR):/cft/workdir \
 		${DOCKER_REPO_BASE_KITCHEN_TERRAFORM} \
 		/bin/bash -c "kitchen converge && kitchen converge"
@@ -116,6 +114,7 @@ docker_verify:
 	docker run --rm -it \
 		-e CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CREDENTIALS_PATH} \
 		-e GOOGLE_APPLICATION_CREDENTIALS=${CREDENTIALS_PATH} \
+		-e TF_VAR_project_id \
 		-v $(CURDIR):/cft/workdir \
 		${DOCKER_REPO_BASE_KITCHEN_TERRAFORM} \
 		/bin/bash -c "kitchen verify"
@@ -125,6 +124,7 @@ docker_destroy:
 	docker run --rm -it \
 		-e CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CREDENTIALS_PATH} \
 		-e GOOGLE_APPLICATION_CREDENTIALS=${CREDENTIALS_PATH} \
+		-e TF_VAR_project_id \
 		-v $(CURDIR):/cft/workdir \
 		${DOCKER_REPO_BASE_KITCHEN_TERRAFORM} \
 		/bin/bash -c "kitchen destroy"

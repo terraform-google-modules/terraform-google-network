@@ -12,44 +12,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project_id               = attribute('project_id')
-subnets_names            = attribute('subnets_names')
-subnets_regions          = attribute('subnets_regions')
-subnets_secondary_ranges = attribute('subnets_secondary_ranges')
+project_id = attribute('project_id')
 
 control "gcloud" do
   title "gcloud configuration"
 
-  subnets_names.each_with_index do |subnet_name, subnet_index|
-    describe command("gcloud compute networks subnets describe #{subnet_name} --project=#{project_id} --region=#{subnets_regions[subnet_index]} --format=json") do
-      its(:exit_status) { should eq 0 }
-      its(:stderr) { should eq '' }
+  describe command("gcloud compute networks subnets describe secondary-ranges-subnet-01 --project=#{project_id} --region=us-west1 --format=json") do
+    its(:exit_status) { should eq 0 }
+    its(:stderr) { should eq '' }
 
-      let(:data) do
-        if subject.exit_status == 0
-          JSON.parse(subject.stdout)
-        else
-          {}
-        end
+    let(:data) do
+      if subject.exit_status == 0
+        JSON.parse(subject.stdout)
+      else
+        {}
       end
+    end
 
-      # The subnets_secondary_ranges array does not map 1-for-1 with the
-      # subnets_names array because not all subnets have a secondary range (so
-      # you can't just cross-reference the elements). Instead we need to match
-      # on rangeName/range_name and compare the values. This test will fail if
-      # subnets_secondary_ranges.find doesn't locate a match because of the
-      # expectation that follows it, so the test should still be accurate.
-      it "should match secondaryIpRanges configuration" do
-        if data["secondaryIpRanges"]
-          data["secondaryIpRanges"].each do |item|
-            found_subnet_range = subnets_secondary_ranges.find {|element| element["range_name"] == item["rangeName"]}
-            expect(item).to include(
-              "rangeName"   => found_subnet_range["range_name"],
-              'ipCidrRange' => found_subnet_range['ip_cidr_range']
-            )
-          end
-        end
+    it "should have the correct secondaryIpRanges configuration for secondary-ranges-subnet-01" do
+      expect(data["secondaryIpRanges"][0]).to include(
+        "rangeName"   => "subnet-01-01",
+        "ipCidrRange" => "192.168.64.0/24"
+      )
+    end
+
+    it "should have the correct secondaryIpRanges configuration for secondary-ranges-subnet-02" do
+      expect(data["secondaryIpRanges"][1]).to include(
+        "rangeName"   => "subnet-01-02",
+        "ipCidrRange" => "192.168.65.0/24"
+      )
+    end
+  end
+
+  describe command("gcloud compute networks subnets describe secondary-ranges-subnet-03 --project=#{project_id} --region=us-west1 --format=json") do
+    its(:exit_status) { should eq 0 }
+    its(:stderr) { should eq '' }
+
+    let(:data) do
+      if subject.exit_status == 0
+        JSON.parse(subject.stdout)
+      else
+        {}
       end
+    end
+
+    it "should have the correct secondaryIpRanges configuration for secondary-ranges-subnet-01" do
+      expect(data["secondaryIpRanges"][0]).to include(
+        "rangeName"   => "subnet-03-01",
+        "ipCidrRange" => "192.168.66.0/24"
+      )
     end
   end
 end

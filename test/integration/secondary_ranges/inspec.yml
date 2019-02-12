@@ -1,18 +1,5 @@
 name: secondary_ranges
-depends:
-  - name: inspec-gcp
-    git: https://github.com/inspec/inspec-gcp.git
-    version: 0.9.0
 attributes:
   - name: project_id
     required: true
     type: string
-  - name: subnets_names
-    required: true
-    type: array
-  - name: subnets_regions
-    required: true
-    type: array
-  - name: subnets_secondary_ranges
-    required: true
-    type: array

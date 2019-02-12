@@ -18,5 +18,6 @@
 // They do not need to be included in real-world uses of this module
 
 output "project_id" {
-  value = "${var.project_id}"
+  value       = "${var.project_id}"
+  description = "The ID of the project to which resources are applied."
 }
