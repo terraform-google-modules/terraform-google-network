@@ -14,10 +14,20 @@
  * limitations under the License.
  */
 
+locals {
+  network_name = "test-network-${random_string.random_suffix.result}"
+}
+
+resource "random_string" "random_suffix" {
+  length  = 4
+  upper   = "false"
+  special = "false"
+}
+
 module "test-vpc-module" {
   source       = "../../"
   project_id   = "${var.project_id}"
-  network_name = "test-vpc-module"
+  network_name = "${local.network_name}"
 
   subnets = [
     {

@@ -14,28 +14,72 @@
  * limitations under the License.
  */
 
+locals {
+  network_01_name = "test-network-301"
+  network_02_name = "test-network-302"
+
+  network_01_routes = [
+    {
+      name              = "${local.network_01_name}-egress-inet"
+      description       = "route through IGW to access internet"
+      destination_range = "0.0.0.0/0"
+      tags              = "egress-inet"
+      next_hop_internet = "true"
+    },
+  ]
+
+  network_02_routes = [
+    {
+      name              = "${local.network_02_name}-egress-inet"
+      description       = "route through IGW to access internet"
+      destination_range = "0.0.0.0/0"
+      tags              = "egress-inet"
+      next_hop_internet = "true"
+    },
+    {
+      name              = "${local.network_02_name}-testapp-proxy"
+      description       = "route through proxy to reach app"
+      destination_range = "10.50.10.0/24"
+      tags              = "app-proxy"
+      next_hop_ip       = "10.10.40.10"
+    },
+  ]
+}
+
+resource "random_string" "random_suffix_01" {
+  length  = 4
+  upper   = "false"
+  special = "false"
+}
+
+resource "random_string" "random_suffix_02" {
+  length  = 4
+  upper   = "false"
+  special = "false"
+}
+
 module "test-vpc-module-01" {
   source       = "../../"
   project_id   = "${var.project_id}"
-  network_name = "test-network-01"
+  network_name = "test-network-${random_string.random_suffix_01.result}"
 
   subnets = [
     {
-      subnet_name           = "test-network-01-subnet-01"
+      subnet_name           = "${local.network_01_name}-subnet-01"
       subnet_ip             = "10.10.10.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name           = "test-network-01-subnet-02"
+      subnet_name           = "${local.network_01_name}-subnet-02"
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name           = "test-network-01-subnet-03"
+      subnet_name           = "${local.network_01_name}-subnet-03"
       subnet_ip             = "10.10.30.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
@@ -44,53 +88,45 @@ module "test-vpc-module-01" {
   ]
 
   secondary_ranges = {
-    test-network-01-subnet-01 = [
+    "${local.network_01_name}-subnet-01" = [
       {
-        range_name    = "test-network-01-subnet-01-01"
+        range_name    = "${local.network_01_name}-subnet-01-01"
         ip_cidr_range = "192.168.64.0/24"
       },
       {
-        range_name    = "test-network-01-subnet-01-02"
+        range_name    = "${local.network_01_name}-subnet-01-02"
         ip_cidr_range = "192.168.65.0/24"
       },
     ]
 
-    test-network-01-subnet-02 = [
+    "${local.network_01_name}-subnet-02" = [
       {
-        range_name    = "test-network-01-subnet-02-01"
+        range_name    = "${local.network_01_name}-subnet-02-01"
         ip_cidr_range = "192.168.74.0/24"
       },
     ]
 
-    test-network-01-subnet-03 = []
+    "${local.network_01_name}-subnet-03" = []
   }
 
-  routes = [
-    {
-      name             = "egress-inet"
-      description      = "route through IGW to access internet"
-      dest_range       = "0.0.0.0/0"
-      tags             = "egress-inet"
-      next_hop_gateway = "true"
-    },
-  ]
+  routes = "${local.network_01_routes}"
 }
 
 module "test-vpc-module-02" {
   source       = "../../"
   project_id   = "${var.project_id}"
-  network_name = "test-network-02"
+  network_name = "test-network-${random_string.random_suffix_02.result}"
 
   subnets = [
     {
-      subnet_name           = "test-network-02-subnet-01"
+      subnet_name           = "${local.network_02_name}-subnet-01"
       subnet_ip             = "10.10.40.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name           = "test-network-02-subnet-02"
+      subnet_name           = "${local.network_02_name}-subnet-02"
       subnet_ip             = "10.10.50.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
@@ -99,30 +135,15 @@ module "test-vpc-module-02" {
   ]
 
   secondary_ranges = {
-    test-network-02-subnet-01 = [
+    "${local.network_02_name}-subnet-01" = [
       {
-        range_name    = "est-network-02-subnet-02-01"
+        range_name    = "${local.network_02_name}-subnet-02-01"
         ip_cidr_range = "192.168.75.0/24"
       },
     ]
 
-    test-network-02-subnet-02 = []
+    "${local.network_02_name}-subnet-02" = []
   }
 
-  routes = [
-    {
-      name              = "egress-inet"
-      description       = "route through IGW to access internet"
-      destination_range = "0.0.0.0/0"
-      tags              = "egress-inet"
-      next_hop_gateway  = "true"
-    },
-    {
-      name              = "app-proxy"
-      description       = "route through proxy to reach app"
-      destination_range = "10.50.10.0/24"
-      tags              = "app-proxy"
-      next_hop_ip       = "10.10.40.10"
-    },
-  ]
+  routes = "${local.network_02_routes}"
 }

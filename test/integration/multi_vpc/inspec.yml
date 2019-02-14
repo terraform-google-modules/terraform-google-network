@@ -1,0 +1,5 @@
+name: simple_project
+attributes:
+  - name: project_id
+    required: true
+    type: string

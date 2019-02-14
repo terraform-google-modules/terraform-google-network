@@ -81,12 +81,29 @@ Then perform the following commands on the root folder:
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
 | network_name | The name of the network being created | string | - | yes |
-| routing_mode | The network routing mode. Can be either 'REGIONAL' or 'GLOBAL' | string | GLOBAL | no |
 | project_id | The ID of the project where this VPC will be created | string | - | yes |
+| routes | List of routes being created in this VPC | list | `<list>` | no |
+| routing_mode | The network routing mode (default 'GLOBAL') | string | `GLOBAL` | no |
+| secondary_ranges | Secondary ranges that will be used in some of the subnets | map | - | yes |
 | shared_vpc_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `false` | no |
 | subnets | The list of subnets being created | list | - | yes |
-| secondary_ranges | Secondary ranges that will be used in some of the subnets | map | - | yes |
-| routes | The list of routes being created | list | - | no |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| network_name | The name of the VPC being created |
+| network_self_link | The URI of the VPC being created |
+| routes | The routes associated with this VPC |
+| subnets_flow_logs | Whether the subnets will have VPC flow logs enabled |
+| subnets_ips | The IPs and CIDRs of the subnets being created |
+| subnets_names | The names of the subnets being created |
+| subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
+| subnets_regions | The region where the subnets will be created |
+| subnets_secondary_ranges | The secondary ranges associated with these subnets |
+| subnets_self_links | The self-links of subnets being created |
+
+[^]: (autogen_docs_end)
 
 ### Subnet Inputs
 The subnets list contains maps, where each object represents a subnet. Each map has the following inputs (please see examples folder for additional references):
@@ -114,23 +131,6 @@ The routes list contains maps, where each object represents a route. For the nex
 | next_hop_instance_zone |  The zone of the instance specified in next_hop_instance. Only required if next_hop_instance is specified as a name | string | - | no |
 | next_hop_vpn_tunnel | URL to a VpnTunnel that should handle matching packets | string | - | yes |
 | priority | The priority of this route. Priority is used to break ties in cases where there is more than one matching route of equal prefix length. In the case of two routes with equal prefix length, the one with the lowest-numbered priority value wins | string | 1000 | yes |
-
-## Outputs
-
-| Name | Description |
-|------|-------------|
-| network_name | The name of the VPC being created |
-| network_self_link | The URI of the VPC being created |
-| subnets_ips | The IPs and CIDRs of the subnets being created |
-| subnets_self_links | The `self_link`s of the subnets being created |
-| subnets_names | The names of the subnets being created |
-| subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
-| subnets_flow_logs | Whether the subnets will have VPC flow logs enabled |
-| subnets_regions | The region where the subnets will be created |
-| subnets_secondary_ranges | The secondary ranges associated with these subnets |
-| routes | The routes associated with this VPC |
-
-[^]: (autogen_docs_end)
 
 ## Requirements
 ### Terraform plugins

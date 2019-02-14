@@ -14,20 +14,30 @@
  * limitations under the License.
  */
 
+locals {
+  network_name = "test-network-${random_string.random_suffix.result}"
+}
+
+resource "random_string" "random_suffix" {
+  length  = 4
+  upper   = "false"
+  special = "false"
+}
+
 module "test-vpc-module" {
   source       = "../../"
   project_id   = "${var.project_id}"
-  network_name = "test-vpc-module"
+  network_name = "${local.network_name}"
   routing_mode = "REGIONAL"
 
   subnets = [
     {
-      subnet_name   = "subnet-01"
+      subnet_name   = "subnet-11"
       subnet_ip     = "10.10.10.0/24"
       subnet_region = "us-west1"
     },
     {
-      subnet_name           = "subnet-02"
+      subnet_name           = "subnet-12"
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "true"
@@ -36,7 +46,7 @@ module "test-vpc-module" {
   ]
 
   secondary_ranges = {
-    subnet-01 = []
-    subnet-02 = []
+    subnet-11 = []
+    subnet-12 = []
   }
 }

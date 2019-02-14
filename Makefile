@@ -15,6 +15,12 @@
 # Make will use bash instead of sh
 SHELL := /usr/bin/env bash
 
+# Docker build config variables
+CREDENTIALS_PATH 			?= /cft/workdir/credentials.json
+DOCKER_ORG 				:= gcr.io/cloud-foundation-cicd
+DOCKER_TAG_BASE_KITCHEN_TERRAFORM 	?= 0.11.10_216.0.0_1.19.1_0.1.10
+DOCKER_REPO_BASE_KITCHEN_TERRAFORM 	:= ${DOCKER_ORG}/cft/kitchen-terraform:${DOCKER_TAG_BASE_KITCHEN_TERRAFORM}
+
 # All is the first target in the file so it will get picked up when you just run 'make' on its own
 all: check_shell check_python check_golang check_terraform check_docker check_base_files test_check_headers check_headers check_trailing_whitespace generate_docs
 
@@ -45,10 +51,6 @@ check_docker:
 check_base_files:
 	@source test/make.sh && basefiles
 
-.PHONY: check_shebangs
-check_shebangs:
-	@source test/make.sh && check_bash
-
 .PHONY: check_trailing_whitespace
 check_trailing_whitespace:
 	@source test/make.sh && check_trailing_whitespace
@@ -60,9 +62,73 @@ test_check_headers:
 
 .PHONY: check_headers
 check_headers:
-	@echo "Checking file headers"
-	@python test/verify_boilerplate.py
+	@source test/make.sh && check_headers
+
+# Integration tests
+.PHONY: test_integration
+test_integration:
+	./test/ci_integration.sh
 
 .PHONY: generate_docs
 generate_docs:
 	@source test/make.sh && generate_docs
+
+# Versioning
+.PHONY: version
+version:
+	@source helpers/version-repo.sh
+
+# Run docker
+.PHONY: docker_run
+docker_run:
+	docker run --rm -it \
+		-e CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CREDENTIALS_PATH} \
+		-e GOOGLE_APPLICATION_CREDENTIALS=${CREDENTIALS_PATH} \
+		-e TF_VAR_project_id \
+		-v $(CURDIR):/cft/workdir \
+		${DOCKER_REPO_BASE_KITCHEN_TERRAFORM} \
+		/bin/bash
+
+.PHONY: docker_create
+docker_create:
+	docker run --rm -it \
+		-e CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CREDENTIALS_PATH} \
+		-e GOOGLE_APPLICATION_CREDENTIALS=${CREDENTIALS_PATH} \
+		-e TF_VAR_project_id \
+		-v $(CURDIR):/cft/workdir \
+		${DOCKER_REPO_BASE_KITCHEN_TERRAFORM} \
+		/bin/bash -c "kitchen create"
+
+.PHONY: docker_converge
+docker_converge:
+	docker run --rm -it \
+		-e CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CREDENTIALS_PATH} \
+		-e GOOGLE_APPLICATION_CREDENTIALS=${CREDENTIALS_PATH} \
+		-e TF_VAR_project_id \
+		-v $(CURDIR):/cft/workdir \
+		${DOCKER_REPO_BASE_KITCHEN_TERRAFORM} \
+		/bin/bash -c "kitchen converge && kitchen converge"
+
+.PHONY: docker_verify
+docker_verify:
+	docker run --rm -it \
+		-e CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CREDENTIALS_PATH} \
+		-e GOOGLE_APPLICATION_CREDENTIALS=${CREDENTIALS_PATH} \
+		-e TF_VAR_project_id \
+		-v $(CURDIR):/cft/workdir \
+		${DOCKER_REPO_BASE_KITCHEN_TERRAFORM} \
+		/bin/bash -c "kitchen verify"
+
+.PHONY: docker_destroy
+docker_destroy:
+	docker run --rm -it \
+		-e CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${CREDENTIALS_PATH} \
+		-e GOOGLE_APPLICATION_CREDENTIALS=${CREDENTIALS_PATH} \
+		-e TF_VAR_project_id \
+		-v $(CURDIR):/cft/workdir \
+		${DOCKER_REPO_BASE_KITCHEN_TERRAFORM} \
+		/bin/bash -c "kitchen destroy"
+
+.PHONY: test_integration_docker
+test_integration_docker: docker_create docker_converge docker_verify docker_destroy
+	@echo "Running test-kitchen tests in docker"
