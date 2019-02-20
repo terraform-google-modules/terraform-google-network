@@ -23,8 +23,8 @@ variable "network_name" {
 }
 
 variable "routing_mode" {
-  type = "string"
-  default = "GLOBAL"
+  type        = "string"
+  default     = "GLOBAL"
   description = "The network routing mode (default 'GLOBAL')"
 }
 
@@ -48,4 +48,9 @@ variable "routes" {
   type        = "list"
   description = "List of routes being created in this VPC"
   default     = []
+}
+
+variable "delete_default_internet_gateway_routes" {
+  description = "If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted"
+  default     = "false"
 }
