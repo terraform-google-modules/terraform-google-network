@@ -141,7 +141,12 @@ The routes list contains maps, where each object represents a route. For the nex
 ### Configure a Service Account
 In order to execute this module you must have a Service Account with the following roles:
 
-- roles/compute.networkAdmin on the organization
+- roles/compute.networkAdmin on the organization or folder
+
+If you are going to manage a Shared VPC, you must have either:
+
+- roles/compute.xpnAdmin on the organization
+- roles/compute.xpnAdmin on the folder (beta)
 
 ### Enable API's
 In order to operate with the Service Account you must activate the following API on the project where the Service Account was created:
