@@ -39,6 +39,11 @@ output "subnets_self_links" {
   description = "The self-links of subnets being created"
 }
 
+output "subnets_ids" {
+  value       = "${formatlist("projects/%s/regions/%s/subnetworks/%s", var.project_id, google_compute_subnetwork.subnetwork.*.region, google_compute_subnetwork.subnetwork.*.name)}"
+  description = "The fully-qualified IDs of subnets being created. Accepted by some Google modules"
+}
+
 output "subnets_regions" {
   value       = "${google_compute_subnetwork.subnetwork.*.region}"
   description = "The region where the subnets will be created"
