@@ -15,30 +15,24 @@
  */
 
 locals {
-  network_name = "test-network-${random_string.random_suffix.result}"
-}
-
-resource "random_string" "random_suffix" {
-  length  = 4
-  upper   = "false"
-  special = "false"
+  subnet_01 = "${var.network_name}-subnet-01"
 }
 
 module "test-vpc-module" {
   source                                 = "../../"
   project_id                             = "${var.project_id}"
-  network_name                           = "${local.network_name}"
+  network_name                           = "${var.network_name}"
   delete_default_internet_gateway_routes = "true"
 
   subnets = [
     {
-      subnet_name   = "subnet-41"
+      subnet_name   = "${local.subnet_01}"
       subnet_ip     = "10.20.30.0/24"
       subnet_region = "us-west1"
     },
   ]
 
   secondary_ranges = {
-    subnet-41 = []
+    "${local.subnet_01}" = []
   }
 }

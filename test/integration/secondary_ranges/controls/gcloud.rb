@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project_id = attribute('project_id')
+project_id   = attribute('project_id')
+network_name = attribute('network_name')
 
 control "gcloud" do
   title "gcloud configuration"
 
-  describe command("gcloud compute networks subnets describe secondary-ranges-subnet-01 --project=#{project_id} --region=us-west1 --format=json") do
+  describe command("gcloud compute networks subnets describe #{network_name}-subnet-01 --project=#{project_id} --region=us-west1 --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
@@ -29,22 +30,22 @@ control "gcloud" do
       end
     end
 
-    it "should have the correct secondaryIpRanges configuration for secondary-ranges-subnet-01" do
+    it "should have the correct secondaryIpRanges configuration for #{network_name}-subnet-01-01" do
       expect(data["secondaryIpRanges"][0]).to include(
-        "rangeName"   => "subnet-01-01",
+        "rangeName"   => "#{network_name}-subnet-01-01",
         "ipCidrRange" => "192.168.64.0/24"
       )
     end
 
-    it "should have the correct secondaryIpRanges configuration for secondary-ranges-subnet-02" do
+    it "should have the correct secondaryIpRanges configuration for #{network_name}-subnet-01-02" do
       expect(data["secondaryIpRanges"][1]).to include(
-        "rangeName"   => "subnet-01-02",
+        "rangeName"   => "#{network_name}-subnet-01-02",
         "ipCidrRange" => "192.168.65.0/24"
       )
     end
   end
 
-  describe command("gcloud compute networks subnets describe secondary-ranges-subnet-03 --project=#{project_id} --region=us-west1 --format=json") do
+  describe command("gcloud compute networks subnets describe #{network_name}-subnet-03 --project=#{project_id} --region=us-west1 --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
@@ -56,9 +57,9 @@ control "gcloud" do
       end
     end
 
-    it "should have the correct secondaryIpRanges configuration for secondary-ranges-subnet-01" do
+    it "should have the correct secondaryIpRanges configuration for #{network_name}-subnet-03-01" do
       expect(data["secondaryIpRanges"][0]).to include(
-        "rangeName"   => "subnet-03-01",
+        "rangeName"   => "#{network_name}-subnet-03-01",
         "ipCidrRange" => "192.168.66.0/24"
       )
     end

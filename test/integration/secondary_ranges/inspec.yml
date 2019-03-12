@@ -3,3 +3,6 @@ attributes:
   - name: project_id
     required: true
     type: string
+  - name: network_name
+    required: true
+    type: string

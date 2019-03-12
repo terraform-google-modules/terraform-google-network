@@ -27,7 +27,7 @@ control "gcp" do
 
   describe google_compute_subnetwork(
     project: project_id,
-    name: "subnet-01",
+    name: "#{network_name}-subnet-01",
     region: "us-west1"
   ) do
     it { should exist }
@@ -37,7 +37,7 @@ control "gcp" do
 
   describe google_compute_subnetwork(
     project: project_id,
-    name: "subnet-02",
+    name: "#{network_name}-subnet-02",
     region: "us-west1"
   ) do
     it { should exist }
