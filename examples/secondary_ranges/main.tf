@@ -15,57 +15,53 @@
  */
 
 locals {
-  network_name = "test-network-${random_string.random_suffix.result}"
-}
-
-resource "random_string" "random_suffix" {
-  length  = 4
-  upper   = "false"
-  special = "false"
+  subnet_01 = "${var.network_name}-subnet-01"
+  subnet_02 = "${var.network_name}-subnet-02"
+  subnet_03 = "${var.network_name}-subnet-03"
 }
 
 module "vpc-secondary-ranges" {
   source       = "../../"
   project_id   = "${var.project_id}"
-  network_name = "${local.network_name}"
+  network_name = "${var.network_name}"
 
   subnets = [
     {
-      subnet_name   = "secondary-ranges-subnet-01"
+      subnet_name   = "${local.subnet_01}"
       subnet_ip     = "10.10.10.0/24"
       subnet_region = "us-west1"
     },
     {
-      subnet_name           = "secondary-ranges-subnet-02"
+      subnet_name           = "${local.subnet_02}"
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "true"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name   = "secondary-ranges-subnet-03"
+      subnet_name   = "${local.subnet_03}"
       subnet_ip     = "10.10.30.0/24"
       subnet_region = "us-west1"
     },
   ]
 
   secondary_ranges = {
-    secondary-ranges-subnet-01 = [
+    "${local.subnet_01}" = [
       {
-        range_name    = "subnet-01-01"
+        range_name    = "${local.subnet_01}-01"
         ip_cidr_range = "192.168.64.0/24"
       },
       {
-        range_name    = "subnet-01-02"
+        range_name    = "${local.subnet_01}-02"
         ip_cidr_range = "192.168.65.0/24"
       },
     ]
 
-    secondary-ranges-subnet-02 = []
+    "${local.subnet_02}" = []
 
-    secondary-ranges-subnet-03 = [
+    "${local.subnet_03}" = [
       {
-        range_name    = "subnet-03-01"
+        range_name    = "${local.subnet_03}-01"
         ip_cidr_range = "192.168.66.0/24"
       },
     ]

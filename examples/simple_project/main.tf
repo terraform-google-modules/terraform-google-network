@@ -13,30 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 locals {
-  network_name = "test-network-${random_string.random_suffix.result}"
-}
-
-resource "random_string" "random_suffix" {
-  length  = 4
-  upper   = "false"
-  special = "false"
+  subnet_01 = "${var.network_name}-subnet-01"
+  subnet_02 = "${var.network_name}-subnet-02"
 }
 
 module "test-vpc-module" {
   source       = "../../"
   project_id   = "${var.project_id}"
-  network_name = "${local.network_name}"
+  network_name = "${var.network_name}"
 
   subnets = [
     {
-      subnet_name   = "subnet-01"
+      subnet_name   = "${local.subnet_01}"
       subnet_ip     = "10.10.10.0/24"
       subnet_region = "us-west1"
     },
     {
-      subnet_name           = "subnet-02"
+      subnet_name           = "${local.subnet_02}"
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "true"
@@ -45,7 +39,7 @@ module "test-vpc-module" {
   ]
 
   secondary_ranges = {
-    subnet-01 = []
-    subnet-02 = []
+    "${local.subnet_01}" = []
+    "${local.subnet_02}" = []
   }
 }

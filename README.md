@@ -75,34 +75,33 @@ Then perform the following commands on the root folder:
 
 [^]: (autogen_docs_start)
 
-
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| delete_default_internet_gateway_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | string | `false` | no |
-| network_name | The name of the network being created | string | - | yes |
-| project_id | The ID of the project where this VPC will be created | string | - | yes |
+| delete\_default\_internet\_gateway\_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | string | `"false"` | no |
+| network\_name | The name of the network being created | string | n/a | yes |
+| project\_id | The ID of the project where this VPC will be created | string | n/a | yes |
 | routes | List of routes being created in this VPC | list | `<list>` | no |
-| routing_mode | The network routing mode (default 'GLOBAL') | string | `GLOBAL` | no |
-| secondary_ranges | Secondary ranges that will be used in some of the subnets | map | - | yes |
-| shared_vpc_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `false` | no |
-| subnets | The list of subnets being created | list | - | yes |
+| routing\_mode | The network routing mode (default 'GLOBAL') | string | `"GLOBAL"` | no |
+| secondary\_ranges | Secondary ranges that will be used in some of the subnets | map | n/a | yes |
+| shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `"false"` | no |
+| subnets | The list of subnets being created | list | n/a | yes |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| network_name | The name of the VPC being created |
-| network_self_link | The URI of the VPC being created |
+| network\_name | The name of the VPC being created |
+| network\_self\_link | The URI of the VPC being created |
 | routes | The routes associated with this VPC |
-| subnets_flow_logs | Whether the subnets will have VPC flow logs enabled |
-| subnets_ips | The IPs and CIDRs of the subnets being created |
-| subnets_names | The names of the subnets being created |
-| subnets_private_access | Whether the subnets will have access to Google API's without a public IP |
-| subnets_regions | The region where the subnets will be created |
-| subnets_secondary_ranges | The secondary ranges associated with these subnets |
-| subnets_self_links | The self-links of subnets being created |
+| subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
+| subnets\_ips | The IPs and CIDRs of the subnets being created |
+| subnets\_names | The names of the subnets being created |
+| subnets\_private\_access | Whether the subnets will have access to Google API's without a public IP |
+| subnets\_regions | The region where the subnets will be created |
+| subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
+| subnets\_self\_links | The self-links of subnets being created |
 
 [^]: (autogen_docs_end)
 

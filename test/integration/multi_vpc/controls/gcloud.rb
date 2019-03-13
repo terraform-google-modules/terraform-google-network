@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project_id = attribute('project_id')
+project_id      = attribute('project_id')
+network_01_name = attribute('network_01_name')
+network_02_name = attribute('network_02_name')
 
 control "gcloud" do
   title "gcloud configuration"
 
-  describe command("gcloud compute routes describe test-network-301-egress-inet --project=#{project_id} --format=json") do
+  describe command("gcloud compute routes describe '#{network_01_name}-egress-inet' --project=#{project_id} --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
     let(:default_internet_gateway) { "https://www.googleapis.com/compute/v1/projects/#{project_id}/global/gateways/default-internet-gateway" }
@@ -49,7 +51,7 @@ control "gcloud" do
     end
   end
 
-  describe command("gcloud compute routes describe test-network-302-egress-inet --project=#{project_id} --format=json") do
+  describe command("gcloud compute routes describe '#{network_02_name}-egress-inet' --project=#{project_id} --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
     let(:default_internet_gateway) { "https://www.googleapis.com/compute/v1/projects/#{project_id}/global/gateways/default-internet-gateway" }
@@ -81,7 +83,7 @@ control "gcloud" do
     end
   end
 
-  describe command("gcloud compute routes describe test-network-302-testapp-proxy --project=#{project_id} --format=json") do
+  describe command("gcloud compute routes describe '#{network_02_name}-testapp-proxy' --project=#{project_id} --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
