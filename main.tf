@@ -30,6 +30,8 @@ resource "google_compute_network" "network" {
 resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
   count   = "${var.shared_vpc_host == "true" ? 1 : 0}"
   project = "${var.project_id}"
+  depends_on = ["google_compute_network.network"]
+
 }
 
 /******************************************
