@@ -15,6 +15,15 @@
  */
 
 /******************************************
+	Enable compute engine services on project
+ *****************************************/
+resource "google_project_service" "compute_engine_service" {
+  project                    = "${var.project_id}"
+  service                    = "compute.googleapis.com"
+  disable_dependent_services = true
+}
+
+/******************************************
 	VPC configuration
  *****************************************/
 resource "google_compute_network" "network" {
@@ -28,10 +37,9 @@ resource "google_compute_network" "network" {
 	Shared VPC
  *****************************************/
 resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
-  count   = "${var.shared_vpc_host == "true" ? 1 : 0}"
-  project = "${var.project_id}"
+  count      = "${var.shared_vpc_host == "true" ? 1 : 0}"
+  project    = "${var.project_id}"
   depends_on = ["google_compute_network.network"]
-
 }
 
 /******************************************
