@@ -15,7 +15,7 @@
  */
 
 locals {
-  network_name = "simple-project-${var.random_string_for_testing}"
+  network_name = "submodule-firewall-${var.random_string_for_testing}"
 }
 
 module "example" {
