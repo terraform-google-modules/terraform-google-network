@@ -1,6 +1,6 @@
-# Simple Project
+# Simple Project With Firewall
 
-This example configures a single simple VPC inside of a project.
+This example configures a single simple VPC inside of a project, and adds a basic firewall.
 
 This VPC has two subnets, with no secondary ranges.
 
@@ -17,14 +17,8 @@ This VPC has two subnets, with no secondary ranges.
 
 | Name | Description |
 |------|-------------|
+| admin\_ranges | Firewall attributes for admin ranges. |
+| internal\_ranges | Firewall attributes for internal ranges. |
 | network\_name | The name of the VPC being created |
-| network\_self\_link | The URI of the VPC being created |
-| routes | The routes associated with this VPC |
-| subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
-| subnets\_ips | The IP and cidrs of the subnets being created |
-| subnets\_names | The names of the subnets being created |
-| subnets\_private\_access | Whether the subnets will have access to Google API's without a public IP |
-| subnets\_regions | The region where subnets will be created |
-| subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
 
 [^]: (autogen_docs_end)

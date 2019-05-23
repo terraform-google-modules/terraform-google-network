@@ -51,6 +51,6 @@ module "net-firewall" {
 | Name | Description |
 |------|-------------|
 | admin\_ranges | Admin ranges data. |
-| internal\_ranges | Internal ranges data. |
+| internal\_ranges | Internal ranges. |
 
 [^]: (autogen_docs_end)
