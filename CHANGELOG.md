@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+### Added
+
+- New firewall submodule [#40]
+
 ## [0.6.0] - 2019-02-21
 
 ### Added
