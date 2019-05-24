@@ -54,10 +54,6 @@ groups = re.match(
 replace_content = groups[0] + groups[1]
 
 # Find where to put the replacement content, overwrite the input file
-m = re.match(insert_separator_regex, input, re.DOTALL)
-if not m:
-  print("insert regexp not matched in %s" % sys.argv[1])
-  sys.exit(0)
-groups = m.groups(0)
+groups = re.match(insert_separator_regex, input, re.DOTALL).groups(0)
 output = groups[0] + replace_content + groups[2] + "\n"
 open(sys.argv[1], "w").write(output)
