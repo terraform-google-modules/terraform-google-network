@@ -58,7 +58,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 - Add support for Shared VPC hosting
 
-## 0.1.0 - 2018-08-08
+## [0.1.0] - 2018-08-08
 
 ### Added
 
@@ -74,5 +74,6 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.4.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 [keepachangelog-site]: https://keepachangelog.com/en/1.0.0/
 [semver-site]: https://semver.org/spec/v2.0.0.html
