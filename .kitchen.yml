@@ -93,3 +93,20 @@ suites:
           backend: local
           controls:
             - gcloud
+  - name: "submodule_firewall"
+    driver:
+      name: "terraform"
+      command_timeout: 1800
+      root_module_directory: test/fixtures/submodule_firewall/
+    verifier:
+      name: terraform
+      color: true
+      systems:
+        - name: inspec-gcp
+          backend: gcp
+          controls:
+            - gcp
+        - name: local
+          backend: local
+          controls:
+            - gcloud
