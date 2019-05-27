@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 - New firewall submodule [#40]
 
+### Fixed
+
+- Shared VPC service account roles are included in the README. [#32]
+- Shared VPC host project explicitly depends on the network to avoid a
+  race condition. [#36]
+- gcloud dependency is included in the README. [#38]
+
 ## [0.6.0] - 2019-02-21
 
 ### Added
@@ -76,6 +83,9 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 [#40]: https://github.com/terraform-google-modules/terraform-google-network/pull/40
+[#38]: https://github.com/terraform-google-modules/terraform-google-network/pull/38
+[#36]: https://github.com/terraform-google-modules/terraform-google-network/pull/36
+[#32]: https://github.com/terraform-google-modules/terraform-google-network/pull/32
 [#29]: https://github.com/terraform-google-modules/terraform-google-network/pull/29
 [#27]: https://github.com/terraform-google-modules/terraform-google-network/pull/27
 [#26]: https://github.com/terraform-google-modules/terraform-google-network/pull/26
