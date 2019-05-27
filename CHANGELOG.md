@@ -7,9 +7,18 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+## [0.7.0] - 2019-05-27
+
 ### Added
 
 - New firewall submodule [#40]
+
+### Fixed
+
+- Shared VPC service account roles are included in the README. [#32]
+- Shared VPC host project explicitly depends on the network to avoid a
+  race condition. [#36]
+- gcloud dependency is included in the README. [#38]
 
 ## [0.6.0] - 2019-02-21
 
@@ -56,7 +65,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 - Add support for Shared VPC hosting
 
-## 0.1.0 - 2018-08-08
+## [0.1.0] - 2018-08-08
 
 ### Added
 
@@ -65,11 +74,25 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
-[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
+[#40]: https://github.com/terraform-google-modules/terraform-google-network/pull/40
+[#38]: https://github.com/terraform-google-modules/terraform-google-network/pull/38
+[#36]: https://github.com/terraform-google-modules/terraform-google-network/pull/36
+[#32]: https://github.com/terraform-google-modules/terraform-google-network/pull/32
+[#29]: https://github.com/terraform-google-modules/terraform-google-network/pull/29
+[#27]: https://github.com/terraform-google-modules/terraform-google-network/pull/27
+[#26]: https://github.com/terraform-google-modules/terraform-google-network/pull/26
+[#23]: https://github.com/terraform-google-modules/terraform-google-network/pull/23
+[#19]: https://github.com/terraform-google-modules/terraform-google-network/pull/19
+[#14]: https://github.com/terraform-google-modules/terraform-google-network/pull/14
+[#13]: https://github.com/terraform-google-modules/terraform-google-network/pull/13
+[#6]: https://github.com/terraform-google-modules/terraform-google-network/pull/6
 [keepachangelog-site]: https://keepachangelog.com/en/1.0.0/
 [semver-site]: https://semver.org/spec/v2.0.0.html
