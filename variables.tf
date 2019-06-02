@@ -54,3 +54,26 @@ variable "delete_default_internet_gateway_routes" {
   description = "If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted"
   default     = "false"
 }
+
+# allow controlling shared VPC project attachment or subnet access
+# passed-in values can be dynamic, so variables used in count need to be separate
+
+variable "shared_vpc_service_projects_num" {
+  description = "Number of service projects that will get full access to the shared VPC."
+  default     = 0
+}
+
+variable "shared_vpc_service_projects" {
+  description = "Service projects that will get full access to the shared VPC."
+  default     = []
+}
+
+variable "shared_vpc_iam_subnets" {
+  description = "Names of subnets on which to grant network user roles."
+  default     = []
+}
+
+variable "shared_vpc_iam_members" {
+  description = "Comma-delimited members that will be granted network user roles, one per subnet."
+  default     = []
+}
