@@ -35,16 +35,18 @@ resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
 
 resource "google_compute_shared_vpc_service_project" "projects" {
   count           = "${var.shared_vpc_host == "true" ? var.shared_vpc_service_projects_num : 0}"
-  host_project    = "host-project-id"
-  service_project = "${element(var.shared_vpc_service_projects, count.index)}"
+  host_project    = "${var.project_id}"
+  service_project = "${var.shared_vpc_service_projects[count.index]}"
   depends_on      = ["google_compute_shared_vpc_host_project.shared_vpc_host"]
 }
 
 resource "google_compute_subnetwork_iam_binding" "subnets" {
-  count      = "${var.shared_vpc_host == "true" ? length(var.shared_vpc_iam_subnets) : 0}"
-  subnetwork = "${element(var.shared_vpc_iam_subnets, count.index)}"
+  count      = "${var.shared_vpc_host == "true" ? length(var.shared_vpc_iam_subnet_names) : 0}"
+  project    = "${var.project_id}"
+  region     = "${lookup(var.shared_vpc_iam_subnets[count.index], "region")}"
+  subnetwork = "${var.shared_vpc_iam_subnet_names[count.index]}"
   role       = "roles/compute.networkUser"
-  members    = ["${split(",", element(var.shared_vpc_iam_members, count.index))}"]
+  members    = ["${split(",", lookup(var.shared_vpc_iam_subnets[count.index], "members"))}"]
   depends_on = ["google_compute_shared_vpc_host_project.shared_vpc_host"]
 }
 

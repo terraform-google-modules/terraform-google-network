@@ -68,12 +68,12 @@ variable "shared_vpc_service_projects" {
   default     = []
 }
 
-variable "shared_vpc_iam_subnets" {
+variable "shared_vpc_iam_subnet_names" {
   description = "Names of subnets on which to grant network user roles."
   default     = []
 }
 
-variable "shared_vpc_iam_members" {
-  description = "Comma-delimited members that will be granted network user roles, one per subnet."
+variable "shared_vpc_iam_subnets" {
+  description = "List of one map per subnet, each with a 'region' key and a 'members' key with comma-delimited IAM-style members."
   default     = []
 }
