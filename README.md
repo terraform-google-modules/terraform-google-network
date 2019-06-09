@@ -102,6 +102,7 @@ Then perform the following commands on the root folder:
 | subnets\_regions | The region where the subnets will be created |
 | subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
 | subnets\_self\_links | The self-links of subnets being created |
+| svpc\_host\_project\_id | Shared VPC host project id. |
 
 [^]: (autogen_docs_end)
 
