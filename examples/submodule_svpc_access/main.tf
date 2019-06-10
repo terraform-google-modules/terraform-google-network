@@ -48,7 +48,7 @@ module "net-svpc-access" {
   source              = "../../modules/fabric-net-svpc-access"
   host_project_id     = "${module.net-vpc-shared.svpc_host_project_id}"
   service_project_num = 1
-  service_project_ids = ["${var.service_project_id_full}"]
+  service_project_ids = ["${var.service_project_id_full_access}"]
   host_subnets        = ["${module.net-vpc-shared.subnets_names}"]
   host_subnet_regions = ["${module.net-vpc-shared.subnets_regions}"]
 
