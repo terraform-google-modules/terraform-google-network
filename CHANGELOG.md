@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+## [0.8.0] - 2019-06-12
+
+### Added
+
+- A submodule to configure Shared VPC network attachments. [#45]
+
 ## [0.7.0] - 2019-05-27
 
 ### Added
@@ -74,7 +80,8 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
-[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.4.0...v0.5.0
@@ -82,6 +89,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.3.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
+[#45]: https://github.com/terraform-google-modules/terraform-google-network/pull/45
 [#40]: https://github.com/terraform-google-modules/terraform-google-network/pull/40
 [#38]: https://github.com/terraform-google-modules/terraform-google-network/pull/38
 [#36]: https://github.com/terraform-google-modules/terraform-google-network/pull/36
