@@ -6,7 +6,7 @@ The VPC has two subnets with no secondary ranges, service projects are configure
 
 - the first service project is granted VPC-level access
 - the second service project is granted subnet-level access to the second subnet
-- the this service project is granted subnet-level access to the first and second subnet
+- the third service project is granted subnet-level access to the first and second subnet
 
 Subnet-level access in this example is only granted to the default GCE service accounts for illustrative purposes. More realistic examples should grant access to other service accounts (possibly including the GKE robot service accounts as per [documentation](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc)), and project users/groups that need to use the Shared VPC from other projects (eg to create VMs).
 
