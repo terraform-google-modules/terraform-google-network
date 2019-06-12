@@ -24,6 +24,11 @@ output "network_self_link" {
   description = "The URI of the VPC being created"
 }
 
+output "svpc_host_project_id" {
+  value       = "${element(concat(google_compute_shared_vpc_host_project.shared_vpc_host.*.project, list("")), 0)}"
+  description = "Shared VPC host project id."
+}
+
 output "subnets_names" {
   value       = "${google_compute_subnetwork.subnetwork.*.name}"
   description = "The names of the subnets being created"
