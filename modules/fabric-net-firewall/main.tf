@@ -19,22 +19,29 @@
 ###############################################################################
 
 resource "google_compute_firewall" "allow-internal" {
-  count         = "${var.internal_ranges_enabled && length(var.internal_allow) > 0 ? 1 : 0}"
+  count         = var.internal_ranges_enabled && length(var.internal_allow) > 0 ? 1 : 0
   name          = "${var.network}-ingress-internal"
   description   = "Allow ingress traffic from internal IP ranges"
-  network       = "${var.network}"
-  project       = "${var.project_id}"
-  source_ranges = ["${var.internal_ranges}"]
-  allow         = ["${var.internal_allow}"]
+  network       = var.network
+  project       = var.project_id
+  source_ranges = var.internal_ranges
+
+  dynamic "allow" {
+    for_each = [var.internal_allow]
+    content {
+      ports    = lookup(allow.value, "ports", null)
+      protocol = allow.value.protocol
+    }
+  }
 }
 
 resource "google_compute_firewall" "allow-admins" {
-  count         = "${var.admin_ranges_enabled > 0 ? 1 : 0}"
+  count         = var.admin_ranges_enabled > 0 ? 1 : 0
   name          = "${var.network}-ingress-admins"
   description   = "Access from the admin subnet to all subnets"
-  network       = "${var.network}"
-  project       = "${var.project_id}"
-  source_ranges = ["${var.admin_ranges}"]
+  network       = var.network
+  project       = var.project_id
+  source_ranges = var.admin_ranges
 
   allow {
     protocol = "icmp"
@@ -54,12 +61,12 @@ resource "google_compute_firewall" "allow-admins" {
 ###############################################################################
 
 resource "google_compute_firewall" "allow-tag-ssh" {
-  count         = "${length(var.ssh_source_ranges) > 0 ? 1 : 0}"
+  count         = length(var.ssh_source_ranges) > 0 ? 1 : 0
   name          = "${var.network}-ingress-tag-ssh"
   description   = "Allow SSH to machines with the 'ssh' tag"
-  network       = "${var.network}"
-  project       = "${var.project_id}"
-  source_ranges = ["${var.ssh_source_ranges}"]
+  network       = var.network
+  project       = var.project_id
+  source_ranges = var.ssh_source_ranges
   target_tags   = ["ssh"]
 
   allow {
@@ -69,12 +76,12 @@ resource "google_compute_firewall" "allow-tag-ssh" {
 }
 
 resource "google_compute_firewall" "allow-tag-http" {
-  count         = "${length(var.http_source_ranges) > 0 ? 1 : 0}"
+  count         = length(var.http_source_ranges) > 0 ? 1 : 0
   name          = "${var.network}-ingress-tag-http"
   description   = "Allow HTTP to machines with the 'http-server' tag"
-  network       = "${var.network}"
-  project       = "${var.project_id}"
-  source_ranges = ["${var.http_source_ranges}"]
+  network       = var.network
+  project       = var.project_id
+  source_ranges = var.http_source_ranges
   target_tags   = ["http-server"]
 
   allow {
@@ -84,12 +91,12 @@ resource "google_compute_firewall" "allow-tag-http" {
 }
 
 resource "google_compute_firewall" "allow-tag-https" {
-  count         = "${length(var.https_source_ranges) > 0 ? 1 : 0}"
+  count         = length(var.https_source_ranges) > 0 ? 1 : 0
   name          = "${var.network}-ingress-tag-https"
   description   = "Allow HTTPS to machines with the 'https' tag"
-  network       = "${var.network}"
-  project       = "${var.project_id}"
-  source_ranges = ["${var.https_source_ranges}"]
+  network       = var.network
+  project       = var.project_id
+  source_ranges = var.https_source_ranges
   target_tags   = ["https-server"]
 
   allow {

@@ -38,6 +38,21 @@ module "test-vpc-module" {
     },
   ]
 
+  routes = [
+    {
+      destination_range = "10.10.12.0/24"
+      network_name      = "${local.subnet_01}"
+      next_hop_ip       = "10.10.10.1"
+      priority          = 100
+    },
+    {
+      destination_range = "10.10.22.0/24"
+      network_name      = "${local.subnet_02}"
+      next_hop_ip       = "10.10.20.1"
+      priority          = 100
+    }
+  ]
+
   secondary_ranges = {
     "${local.subnet_01}" = []
     "${local.subnet_02}" = []
