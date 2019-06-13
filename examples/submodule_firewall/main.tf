@@ -49,11 +49,11 @@ module "test-firewall-submodule" {
   project_id              = "${var.project_id}"
   network                 = "${module.test-vpc-module.network_name}"
   internal_ranges_enabled = true
-  internal_ranges         = ["${module.test-vpc-module.subnets_ips}"]
+  internal_ranges         = "${module.test-vpc-module.subnets_ips}"
 
   internal_allow = [{
-    protocol = "icmp"
-  },
+      protocol = "icmp"
+    },
     {
       protocol = "tcp"
     },

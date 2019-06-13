@@ -23,29 +23,29 @@ variable "network_name" {
 }
 
 variable "routing_mode" {
-  type        = "string"
+  type        = string
   default     = "GLOBAL"
   description = "The network routing mode (default 'GLOBAL')"
 }
 
 variable "shared_vpc_host" {
-  type        = "string"
+  type        = string
   description = "Makes this project a Shared VPC host if 'true' (default 'false')"
   default     = "false"
 }
 
 variable "subnets" {
-  type        = "list"
+  type        = list(map(string))
   description = "The list of subnets being created"
 }
 
 variable "secondary_ranges" {
-  type        = "map"
+  type        = list(map(object))
   description = "Secondary ranges that will be used in some of the subnets"
 }
 
 variable "routes" {
-  type        = "list"
+  type        = list(map(string))
   description = "List of routes being created in this VPC"
   default     = []
 }

@@ -34,7 +34,6 @@ variable "internal_ranges" {
 
 variable "internal_allow" {
   description = "Allow rules for internal ranges."
-
   default = [
     {
       protocol = "icmp"
