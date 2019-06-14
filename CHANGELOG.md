@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+## [1.0.0] - 2019-06-ZZ
+
+### Changed
+
+- Supported version of Terraform is 0.12.
+
 ## [0.8.0] - 2019-06-12
 
 ### Added
@@ -80,7 +86,8 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
-[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.8.0...v2.0.0
 [0.8.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.5.0...v0.6.0
