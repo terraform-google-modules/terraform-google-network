@@ -20,7 +20,7 @@ locals {
 
 module "example" {
   source          = "../../../examples/multi_vpc"
-  project_id      = "${var.project_id}"
-  network_01_name = "${local.network_01_name}"
-  network_02_name = "${local.network_02_name}"
+  project_id      = var.project_id
+  network_01_name = local.network_01_name
+  network_02_name = local.network_02_name
 }

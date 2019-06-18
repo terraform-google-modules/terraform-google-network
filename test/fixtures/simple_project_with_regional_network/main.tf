@@ -20,6 +20,6 @@ locals {
 
 module "example" {
   source       = "../../../examples/simple_project_with_regional_network"
-  project_id   = "${var.project_id}"
-  network_name = "${local.network_name}"
+  project_id   = var.project_id
+  network_name = local.network_name
 }
