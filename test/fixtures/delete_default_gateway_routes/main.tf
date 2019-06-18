@@ -20,6 +20,6 @@ locals {
 
 module "example" {
   source       = "../../../examples/delete_default_gateway_routes"
-  project_id   = "${var.project_id}"
-  network_name = "${local.network_name}"
+  project_id   = var.project_id
+  network_name = local.network_name
 }

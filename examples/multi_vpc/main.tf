@@ -51,26 +51,26 @@ locals {
 
 module "test-vpc-module-01" {
   source       = "../../"
-  project_id   = "${var.project_id}"
-  network_name = "${var.network_01_name}"
+  project_id   = var.project_id
+  network_name = var.network_01_name
 
   subnets = [
     {
-      subnet_name           = "${local.network_01_subnet_01}"
+      subnet_name           = local.network_01_subnet_01
       subnet_ip             = "10.10.10.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name           = "${local.network_01_subnet_02}"
+      subnet_name           = local.network_01_subnet_02
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name           = "${local.network_01_subnet_03}"
+      subnet_name           = local.network_01_subnet_03
       subnet_ip             = "10.10.30.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
@@ -105,8 +105,8 @@ module "test-vpc-module-01" {
 
 module "test-vpc-module-02" {
   source       = "../../"
-  project_id   = "${var.project_id}"
-  network_name = "${var.network_02_name}"
+  project_id   = var.project_id
+  network_name = var.network_02_name
 
   subnets = [
     {
@@ -136,5 +136,5 @@ module "test-vpc-module-02" {
     "${local.network_02_subnet_02}" = []
   }
 
-  routes = "${local.network_02_routes}"
+  routes = local.network_02_routes
 }

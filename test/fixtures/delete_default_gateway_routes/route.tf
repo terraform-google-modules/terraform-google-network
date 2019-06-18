@@ -19,8 +19,8 @@
 # the default internet gateway routes.
 
 resource "google_compute_route" "alternative_gateway" {
-  project = "${var.project_id}"
-  network = "${module.example.network_name}"
+  project = var.project_id
+  network = module.example.network_name
 
   name             = "alternative-gateway-route"
   description      = "Alternative gateway route"

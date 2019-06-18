@@ -63,7 +63,7 @@ resource "google_compute_route" "route" {
   count                  = length(var.routes)
   project                = var.project_id
   network                = var.network_name
-  name                   = "${lookup(var.routes[count.index], "name", format("%s-%s-%d", lower(var.network_name), "route", count.index))}"
+  name                   = lookup(var.routes[count.index], "name", format("%s-%s-%d", lower(var.network_name), "route", count.index))
   description            = lookup(var.routes[count.index], "description", "")
   tags                   = compact(split(",", lookup(var.routes[count.index], "tags", "")))
   dest_range             = lookup(var.routes[count.index], "destination_range", "")

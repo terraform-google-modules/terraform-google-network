@@ -22,8 +22,8 @@ locals {
 
 module "vpc-secondary-ranges" {
   source       = "../../"
-  project_id   = "${var.project_id}"
-  network_name = "${var.network_name}"
+  project_id   = var.project_id
+  network_name = var.network_name
 
   subnets = [
     {

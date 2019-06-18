@@ -20,17 +20,17 @@ locals {
 
 module "test-vpc-module" {
   source       = "../../"
-  project_id   = "${var.project_id}"
-  network_name = "${var.network_name}"
+  project_id   = var.project_id
+  network_name = var.network_name
 
   subnets = [
     {
-      subnet_name   = "${local.subnet_01}"
+      subnet_name   = local.subnet_01
       subnet_ip     = "10.10.10.0/24"
       subnet_region = "us-west1"
     },
     {
-      subnet_name           = "${local.subnet_02}"
+      subnet_name           = local.subnet_02
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "true"
@@ -46,13 +46,13 @@ module "test-vpc-module" {
 
 module "test-firewall-submodule" {
   source                  = "../../modules/fabric-net-firewall"
-  project_id              = "${var.project_id}"
-  network                 = "${module.test-vpc-module.network_name}"
+  project_id              = var.project_id
+  network                 = module.test-vpc-module.network_name
   internal_ranges_enabled = true
-  internal_ranges         = "${module.test-vpc-module.subnets_ips}"
+  internal_ranges         = module.test-vpc-module.subnets_ips
 
   internal_allow = [{
-      protocol = "icmp"
+    protocol = "icmp"
     },
     {
       protocol = "tcp"

@@ -15,19 +15,19 @@
  */
 
 resource "google_compute_shared_vpc_service_project" "projects" {
-  count           = "${var.service_project_num}"
-  host_project    = "${var.host_project_id}"
-  service_project = "${element(var.service_project_ids, count.index)}"
+  count           = var.service_project_num
+  host_project    = var.host_project_id
+  service_project = element(var.service_project_ids, count.index)
 }
 
 resource "google_compute_subnetwork_iam_binding" "subnets" {
-  count      = "${length(var.host_subnets)}"
-  project    = "${var.host_project_id}"
-  region     = "${element(var.host_subnet_regions, count.index)}"
-  subnetwork = "${element(var.host_subnets, count.index)}"
+  count      = length(var.host_subnets)
+  project    = var.host_project_id
+  region     = element(var.host_subnet_regions, count.index)
+  subnetwork = element(var.host_subnets, count.index)
   role       = "roles/compute.networkUser"
 
-  members = ["${compact(split(",",
-    lookup(var.host_subnet_users, element(var.host_subnets, count.index))
-  ))}"]
+  members = compact(split(",", lookup(var.host_subnet_users,
+    element(var.host_subnets, count.index))
+  ))
 }
