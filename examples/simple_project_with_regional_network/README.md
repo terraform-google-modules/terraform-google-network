@@ -4,8 +4,7 @@ This example configures a single simple regional VPC inside of a project.
 
 This VPC has two subnets, with no secondary ranges.
 
-[^]: (autogen_docs_start)
-
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -27,4 +26,4 @@ This VPC has two subnets, with no secondary ranges.
 | subnets\_regions | The region where subnets will be created |
 | subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
 
-[^]: (autogen_docs_end)
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

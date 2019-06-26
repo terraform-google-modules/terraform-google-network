@@ -2,8 +2,7 @@
 
 This example configures a host network project with two separate networks.
 
-[^]: (autogen_docs_start)
-
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -35,4 +34,4 @@ This example configures a host network project with two separate networks.
 | network\_02\_subnets\_regions | The region where the subnets will be created on network-02 |
 | network\_02\_subnets\_secondary\_ranges | The secondary ranges associated with these subnets on network-02 |
 
-[^]: (autogen_docs_end)
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

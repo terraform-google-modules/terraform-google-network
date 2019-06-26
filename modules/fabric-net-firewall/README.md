@@ -29,8 +29,7 @@ module "net-firewall" {
 }
 ```
 
-[^]: (autogen_docs_start)
-
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -53,4 +52,4 @@ module "net-firewall" {
 | admin\_ranges | Admin ranges data. |
 | internal\_ranges | Internal ranges. |
 
-[^]: (autogen_docs_end)
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

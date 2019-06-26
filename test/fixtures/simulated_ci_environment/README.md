@@ -34,8 +34,7 @@ Alternatively, to run the integration tests directly from the Docker
 container used by the module's CI pipeline, perform the above steps and then
 run the `make test_integration_docker` target
 
-[^]: (autogen_docs_start)
-
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -51,4 +50,4 @@ run the `make test_integration_docker` target
 |------|-------------|
 | service\_account\_private\_key | The SA KEY JSON content.  Store in GOOGLE_CREDENTIALS. |
 
-[^]: (autogen_docs_end)
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

@@ -31,8 +31,7 @@ module "net-shared-vpc-access" {
 }
 ```
 
-[^]: (autogen_docs_start)
-
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -50,4 +49,4 @@ module "net-shared-vpc-access" {
 |------|-------------|
 | service\_projects | Project ids of the services with access to all subnets. |
 
-[^]: (autogen_docs_end)
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

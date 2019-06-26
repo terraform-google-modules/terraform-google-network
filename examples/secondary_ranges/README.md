@@ -5,8 +5,7 @@ This example configures a single simple VPC inside of a project.
 This VPC has three subnets, with the first subnet being given two secondary
 ranges and the third being given a single secondary range.
 
-[^]: (autogen_docs_start)
-
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -28,4 +27,4 @@ ranges and the third being given a single secondary range.
 | subnets\_regions | The region where subnets will be created |
 | subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
 
-[^]: (autogen_docs_end)
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
