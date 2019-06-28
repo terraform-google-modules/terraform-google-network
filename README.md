@@ -73,8 +73,7 @@ Then perform the following commands on the root folder:
 - `terraform apply` to apply the infrastructure build
 - `terraform destroy` to destroy the built infrastructure
 
-[^]: (autogen_docs_start)
-
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -82,11 +81,11 @@ Then perform the following commands on the root folder:
 | delete\_default\_internet\_gateway\_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | string | `"false"` | no |
 | network\_name | The name of the network being created | string | n/a | yes |
 | project\_id | The ID of the project where this VPC will be created | string | n/a | yes |
-| routes | List of routes being created in this VPC | list | `<list>` | no |
+| routes | List of routes being created in this VPC | list(map(string)) | `<list>` | no |
 | routing\_mode | The network routing mode (default 'GLOBAL') | string | `"GLOBAL"` | no |
-| secondary\_ranges | Secondary ranges that will be used in some of the subnets | map | n/a | yes |
+| secondary\_ranges | Secondary ranges that will be used in some of the subnets | object | n/a | yes |
 | shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `"false"` | no |
-| subnets | The list of subnets being created | list | n/a | yes |
+| subnets | The list of subnets being created | list(map(string)) | n/a | yes |
 
 ## Outputs
 
@@ -104,7 +103,7 @@ Then perform the following commands on the root folder:
 | subnets\_self\_links | The self-links of subnets being created |
 | svpc\_host\_project\_id | Shared VPC host project id. |
 
-[^]: (autogen_docs_end)
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 
 ### Subnet Inputs
 The subnets list contains maps, where each object represents a subnet. Each map has the following inputs (please see examples folder for additional references):
