@@ -135,7 +135,7 @@ The routes list contains maps, where each object represents a route. For the nex
 ## Requirements
 ### Installed Software
 - [Terraform](https://www.terraform.io/downloads.html) 0.10.x
-- [terraform-provider-google](https://github.com/terraform-providers/terraform-provider-google) plugin v1.12.0
+- [Terraform Provider for GCP][terraform-provider-google] ~> 2.10.0
 - [gcloud](https://cloud.google.com/sdk/gcloud/) >243.0.0
 
 ### Configure a Service Account
@@ -229,3 +229,5 @@ is a compiled language so there is no standard linter.
 * Terraform - terraform has a built-in linter in the 'terraform validate'
 command.
 * Dockerfiles - hadolint. Can be found in homebrew
+
+[terraform-provider-google]: https://github.com/terraform-providers/terraform-provider-google
