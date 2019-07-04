@@ -134,7 +134,7 @@ The routes list contains maps, where each object represents a route. For the nex
 
 ## Requirements
 ### Installed Software
-- [Terraform](https://www.terraform.io/downloads.html) 0.10.x
+- [Terraform](https://www.terraform.io/downloads.html) ~> 0.12.0
 - [Terraform Provider for GCP][terraform-provider-google] ~> 2.10.0
 - [gcloud](https://cloud.google.com/sdk/gcloud/) >243.0.0
 
@@ -152,12 +152,6 @@ If you are going to manage a Shared VPC, you must have either:
 In order to operate with the Service Account you must activate the following API on the project where the Service Account was created:
 
 - Compute Engine API - compute.googleapis.com
-
-## Install
-
-### Terraform
-Be sure you have the correct Terraform version (0.10.x), you can choose the binary here:
-- https://releases.hashicorp.com/terraform/
 
 ## File structure
 The project has the following folders and files:
