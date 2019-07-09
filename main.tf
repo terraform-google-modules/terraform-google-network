@@ -91,7 +91,7 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
     command = "${path.module}/scripts/delete-default-gateway-routes.sh ${var.project_id} ${var.network_name}"
   }
 
-  triggers {
+  triggers = {
     number_of_routes = "${length(var.routes)}"
   }
 
