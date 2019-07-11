@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@
 # the default internet gateway routes.
 
 resource "google_compute_route" "alternative_gateway" {
-  project = "${var.project_id}"
-  network = "${module.example.network_name}"
+  project = var.project_id
+  network = module.example.network_name
 
   name             = "alternative-gateway-route"
   description      = "Alternative gateway route"

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ locals {
 
 module "example" {
   source          = "../../../examples/multi_vpc"
-  project_id      = "${var.project_id}"
-  network_01_name = "${local.network_01_name}"
-  network_02_name = "${local.network_02_name}"
+  project_id      = var.project_id
+  network_01_name = local.network_01_name
+  network_02_name = local.network_02_name
 }

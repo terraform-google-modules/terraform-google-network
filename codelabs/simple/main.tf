@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ module "vpc" {
   version = "~> 0.4.0"
 
   # Give the network a name and project
-  project_id   = "${google_project_service.compute.project}"
+  project_id   = google_project_service.compute.project
   network_name = "my-custom-vpc-${random_id.network_id.hex}"
 
   subnets = [
@@ -67,7 +67,7 @@ resource "random_id" "instance_id" {
 # Launch a VM on it
 resource "google_compute_instance" "default" {
   name         = "vm-${random_id.instance_id.hex}"
-  project      = "${google_project_service.compute.project}"
+  project      = google_project_service.compute.project
   machine_type = "f1-micro"
   zone         = "us-west1-a"
 
@@ -78,8 +78,8 @@ resource "google_compute_instance" "default" {
   }
 
   network_interface {
-    subnetwork         = "${module.vpc.subnets_names[0]}"
-    subnetwork_project = "${google_project_service.compute.project}"
+    subnetwork         = module.vpc.subnets_names[0]
+    subnetwork_project = google_project_service.compute.project
 
     access_config {
       # Include this section to give the VM an external ip address
@@ -93,8 +93,8 @@ resource "google_compute_instance" "default" {
 # Allow traffic to the VM
 resource "google_compute_firewall" "allow-ping" {
   name    = "default-ping"
-  network = "${module.vpc.network_name}"
-  project = "${google_project_service.compute.project}"
+  network = module.vpc.network_name
+  project = google_project_service.compute.project
 
   allow {
     protocol = "icmp"
@@ -106,5 +106,5 @@ resource "google_compute_firewall" "allow-ping" {
 }
 
 output "ip" {
-  value = "${google_compute_instance.default.network_interface.0.access_config.0.nat_ip}"
+  value = google_compute_instance.default.network_interface.0.access_config.0.nat_ip
 }

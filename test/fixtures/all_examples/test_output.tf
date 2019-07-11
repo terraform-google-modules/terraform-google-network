@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,6 @@
 // They do not need to be included in real-world uses of this module
 
 output "project_id" {
-  value       = "${var.project_id}"
+  value       = var.project_id
   description = "The ID of the project to which resources are applied."
 }

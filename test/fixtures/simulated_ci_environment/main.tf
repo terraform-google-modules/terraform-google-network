@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@
  */
 
 provider "google" {
-  project = "${local.project_id}"
-  region  = "${var.region}"
+  project = local.project_id
+  region  = var.region
 }
 
 locals {
@@ -34,32 +34,32 @@ locals {
 }
 
 resource "google_project" "network" {
-  name            = "${local.project_id}"
-  project_id      = "${local.project_id}"
-  folder_id       = "${var.folder_id}"
-  billing_account = "${var.billing_account}"
+  name            = local.project_id
+  project_id      = local.project_id
+  folder_id       = var.folder_id
+  billing_account = var.billing_account
 }
 
 resource "google_project_service" "network" {
-  count              = "${length(local.services)}"
-  project            = "${google_project.network.id}"
-  service            = "${element(local.services, count.index)}"
+  count              = length(local.services)
+  project            = google_project.network.id
+  service            = element(local.services, count.index)
   disable_on_destroy = "true"
 }
 
 resource "google_service_account" "network" {
-  project      = "${google_project.network.id}"
+  project      = google_project.network.id
   account_id   = "ci-network"
   display_name = "ci-network"
 }
 
 resource "google_project_iam_member" "network" {
-  count   = "${length(local.required_service_account_project_roles)}"
-  project = "${google_project.network.id}"
-  role    = "${element(local.required_service_account_project_roles, count.index)}"
+  count   = length(local.required_service_account_project_roles)
+  project = google_project.network.id
+  role    = element(local.required_service_account_project_roles, count.index)
   member  = "serviceAccount:${google_service_account.network.email}"
 }
 
 resource "google_service_account_key" "network" {
-  service_account_id = "${google_service_account.network.id}"
+  service_account_id = google_service_account.network.id
 }

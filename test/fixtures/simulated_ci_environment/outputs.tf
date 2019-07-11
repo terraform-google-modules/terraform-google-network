@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,5 +15,5 @@
  */
 output "service_account_private_key" {
   description = "The SA KEY JSON content.  Store in GOOGLE_CREDENTIALS."
-  value       = "${base64decode(google_service_account_key.network.private_key)}"
+  value       = base64decode(google_service_account_key.network.private_key)
 }

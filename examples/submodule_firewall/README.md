@@ -4,8 +4,7 @@ This example configures a single simple VPC inside of a project, and adds a basi
 
 This VPC has two subnets, with no secondary ranges.
 
-[^]: (autogen_docs_start)
-
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -21,4 +20,4 @@ This VPC has two subnets, with no secondary ranges.
 | internal\_ranges | Firewall attributes for internal ranges. |
 | network\_name | The name of the VPC being created |
 
-[^]: (autogen_docs_end)
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

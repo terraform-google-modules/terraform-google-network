@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +15,16 @@
  */
 
 output "project_id" {
-  value       = "${var.project_id}"
+  value       = var.project_id
   description = "The ID of the project being used"
 }
 
 output "network_01_name" {
-  value       = "${local.network_01_name}"
+  value       = local.network_01_name
   description = "The name of the VPC network-01"
 }
 
 output "network_02_name" {
-  value       = "${local.network_02_name}"
+  value       = local.network_02_name
   description = "The name of the VPC network-01"
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -83,8 +83,8 @@ class AllTestCase(unittest.TestCase):
             # Invalid test cases for non-*file files (.tf|.py|.sh|.yaml|.xml..)
             invalid_header = []
             for line in header_template:
-                if "2018" in line:
-                    invalid_header.append(line.replace('2018', 'YEAR'))
+                if "2019" in line:
+                    invalid_header.append(line.replace('2019', 'YEAR'))
                 else:
                     invalid_header.append(line)
             invalid_header.append(content)

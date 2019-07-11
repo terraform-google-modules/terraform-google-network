@@ -8,13 +8,17 @@ It supports creating:
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
+## Compatibility
+
+This module is meant for use with Terraform 0.12. If you haven't [upgraded](https://www.terraform.io/upgrade-guides/0-12.html) and need a Terraform 0.11.x-compatible version of this module, the last released version intended for Terraform 0.11.x is [0.8.0](https://registry.terraform.io/modules/terraform-google-modules/network/google/0.8.0).
+
 ## Usage
 You can go to the examples folder, however the usage of the module could be like this in your own main.tf file:
 
 ```hcl
 module "vpc" {
     source  = "terraform-google-modules/network/google"
-    version = "0.6.0"
+    version = "~> 1.0.0"
 
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"
@@ -73,8 +77,7 @@ Then perform the following commands on the root folder:
 - `terraform apply` to apply the infrastructure build
 - `terraform destroy` to destroy the built infrastructure
 
-[^]: (autogen_docs_start)
-
+<!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
@@ -82,11 +85,11 @@ Then perform the following commands on the root folder:
 | delete\_default\_internet\_gateway\_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | string | `"false"` | no |
 | network\_name | The name of the network being created | string | n/a | yes |
 | project\_id | The ID of the project where this VPC will be created | string | n/a | yes |
-| routes | List of routes being created in this VPC | list | `<list>` | no |
+| routes | List of routes being created in this VPC | list(map(string)) | `<list>` | no |
 | routing\_mode | The network routing mode (default 'GLOBAL') | string | `"GLOBAL"` | no |
-| secondary\_ranges | Secondary ranges that will be used in some of the subnets | map | n/a | yes |
+| secondary\_ranges | Secondary ranges that will be used in some of the subnets | object | n/a | yes |
 | shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `"false"` | no |
-| subnets | The list of subnets being created | list | n/a | yes |
+| subnets | The list of subnets being created | list(map(string)) | n/a | yes |
 
 ## Outputs
 
@@ -104,7 +107,7 @@ Then perform the following commands on the root folder:
 | subnets\_self\_links | The self-links of subnets being created |
 | svpc\_host\_project\_id | Shared VPC host project id. |
 
-[^]: (autogen_docs_end)
+<!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 
 ### Subnet Inputs
 The subnets list contains maps, where each object represents a subnet. Each map has the following inputs (please see examples folder for additional references):
@@ -135,8 +138,8 @@ The routes list contains maps, where each object represents a route. For the nex
 
 ## Requirements
 ### Installed Software
-- [Terraform](https://www.terraform.io/downloads.html) 0.10.x
-- [terraform-provider-google](https://github.com/terraform-providers/terraform-provider-google) plugin v1.12.0
+- [Terraform](https://www.terraform.io/downloads.html) ~> 0.12.0
+- [Terraform Provider for GCP][terraform-provider-google] ~> 2.10.0
 - [gcloud](https://cloud.google.com/sdk/gcloud/) >243.0.0
 
 ### Configure a Service Account
@@ -153,12 +156,6 @@ If you are going to manage a Shared VPC, you must have either:
 In order to operate with the Service Account you must activate the following API on the project where the Service Account was created:
 
 - Compute Engine API - compute.googleapis.com
-
-## Install
-
-### Terraform
-Be sure you have the correct Terraform version (0.10.x), you can choose the binary here:
-- https://releases.hashicorp.com/terraform/
 
 ## File structure
 The project has the following folders and files:
@@ -230,3 +227,5 @@ is a compiled language so there is no standard linter.
 * Terraform - terraform has a built-in linter in the 'terraform validate'
 command.
 * Dockerfiles - hadolint. Can be found in homebrew
+
+[terraform-provider-google]: https://github.com/terraform-providers/terraform-provider-google

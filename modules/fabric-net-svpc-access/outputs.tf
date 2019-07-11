@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,5 +16,5 @@
 
 output "service_projects" {
   description = "Project ids of the services with access to all subnets."
-  value       = ["${google_compute_shared_vpc_service_project.projects.*.service_project}"]
+  value       = google_compute_shared_vpc_service_project.projects.*.service_project
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,14 @@
  * limitations under the License.
  */
 
+provider "google" {
+  version = "~> 2.10.0"
+}
+
+provider "null" {
+  version = "~> 2.1"
+}
+
 locals {
   subnet_01 = "${var.network_name}-subnet-01"
   subnet_02 = "${var.network_name}-subnet-02"
@@ -22,8 +30,8 @@ locals {
 
 module "vpc-secondary-ranges" {
   source       = "../../"
-  project_id   = "${var.project_id}"
-  network_name = "${var.network_name}"
+  project_id   = var.project_id
+  network_name = var.network_name
 
   subnets = [
     {

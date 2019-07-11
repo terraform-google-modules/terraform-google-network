@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ locals {
 
 module "net-vpc-shared" {
   source          = "../../"
-  project_id      = "${var.host_project_id}"
-  network_name    = "${var.network_name}"
+  project_id      = var.host_project_id
+  network_name    = var.network_name
   shared_vpc_host = "true"
 
   subnets = [
@@ -46,14 +46,14 @@ module "net-vpc-shared" {
 
 module "net-svpc-access" {
   source              = "../../modules/fabric-net-svpc-access"
-  host_project_id     = "${module.net-vpc-shared.svpc_host_project_id}"
+  host_project_id     = module.net-vpc-shared.svpc_host_project_id
   service_project_num = 1
-  service_project_ids = ["${var.service_project_id_full_access}"]
-  host_subnets        = ["${module.net-vpc-shared.subnets_names}"]
-  host_subnet_regions = ["${module.net-vpc-shared.subnets_regions}"]
+  service_project_ids = var.service_project_id_full_access
+  host_subnets        = module.net-vpc-shared.subnets_names
+  host_subnet_regions = module.net-vpc-shared.subnets_regions
 
   host_subnet_users = {
     first  = "${local.first_gce_sa},${local.second_gce_sa}"
-    second = "${local.second_gce_sa}"
+    second = local.second_gce_sa
   }
 }
