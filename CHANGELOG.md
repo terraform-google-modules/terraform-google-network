@@ -7,11 +7,11 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
-## [1.0.0] - 2019-06-ZZ
+## [1.0.0] - 2019-07-12
 
 ### Changed
 
-- Supported version of Terraform is 0.12.
+- Supported version of Terraform is 0.12. [#47]
 
 ## [0.8.0] - 2019-06-12
 
@@ -96,6 +96,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.3.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
+[#47]: https://github.com/terraform-google-modules/terraform-google-network/pull/47
 [#45]: https://github.com/terraform-google-modules/terraform-google-network/pull/45
 [#40]: https://github.com/terraform-google-modules/terraform-google-network/pull/40
 [#38]: https://github.com/terraform-google-modules/terraform-google-network/pull/38
