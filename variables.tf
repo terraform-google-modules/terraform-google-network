@@ -57,7 +57,7 @@ variable "delete_default_internet_gateway_routes" {
 
 
 variable "description" {
-  type	      = string
+  type        = string
   description = "An optional description of this resource. The resource must be recreated to modify this field."
   default     = ""
 }
