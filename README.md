@@ -82,7 +82,7 @@ Then perform the following commands on the root folder:
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| auto\_create\_subnetworks | When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources. | string | `"false"` | no |
+| auto\_create\_subnetworks | When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources. | bool | `"false"` | no |
 | delete\_default\_internet\_gateway\_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | string | `"false"` | no |
 | description | An optional description of this resource. The resource must be recreated to modify this field. | string | `""` | no |
 | network\_name | The name of the network being created | string | n/a | yes |
@@ -173,23 +173,27 @@ The project has the following folders and files:
 ## Testing and documentation generation
 
 ### Requirements
-- [bats](https://github.com/sstephenson/bats) 0.4.0
-- [jq](https://stedolan.github.io/jq/) 1.5
-- [terraform-docs](https://github.com/segmentio/terraform-docs/releases) 0.3.0
+- [docker](https://docker.com/)
 
-### Integration test
+### Integration testing
 ##### Terraform integration tests
-The integration tests for this module are built with bats, basically the test checks the following:
-- Perform `terraform init` command
-- Perform `terraform get` command
-- Perform `terraform plan` command and check that it'll create *n* resources, modify 0 resources and delete 0 resources
-- Perform `terraform apply -auto-approve` command and check that it has created the *n* resources, modified 0 resources and deleted 0 resources
-- Perform several `gcloud` commands and check the infrastructure is in the desired state
-- Perform `terraform destroy -force` command and check that it has destroyed the *n* resources
 
-You can use the following command to run the integration test in the folder */test/integration/gcloud-test*
+The module's integration tests are designed to be run within a Docker
+container containing all the dependencies required for testing. The
+`docker_test_integration` make target wraps this behavior but requires the
+following configuration to execute properly:
 
-  `. launch.sh`
+- Configure a service account with the roles documented above and export the JSON key to the `SERVICE_ACCOUNT_JSON` environment variable
+
+        export SERVICE_ACCOUNT_JSON=$(< /path/to/credentials.json)
+
+- Create `test/fixtures/shared/terraform.tfvars` and populate with the required Terraform input variables (see `test/fixtures/shared/terraform.tfvars.sample` for more information)
+
+Once those steps have been completed run `make docker_test_integration` from
+the root of the repository to execute the tests within the `project_id`
+provided. Infrastructure from `test/fixtures/*` will be provisioned,
+integration tests from `test/integration/*` will be executed, and the
+infrastructure will be deprovisioned to complete the process.
 
 ### Autogeneration of documentation from .tf files
 Run
@@ -197,37 +201,98 @@ Run
 make generate_docs
 ```
 
-### Linting
-The makefile in this project will lint or sometimes just format any shell,
-Python, golang, Terraform, or Dockerfiles. The linters will only be run if
-the makefile finds files with the appropriate file extension.
+### Lint testing
 
-All of the linter checks are in the default make target, so you just have to
-run
+Lint testing is also performed within a Docker container containing all the
+dependencies required for lint tests. Execute those tests by running `make
+docker_test_lint` from the root of the repository.
 
-```
-make -s
-```
-
-The -s is for 'silent'. Successful output looks like this
+Successful output looks similar to the following:
 
 ```
+Checking for trailing whitespace
+Checking for missing newline at end of file
 Running shellcheck
+Checking file headers
 Running flake8
-Running gofmt
+Running terraform fmt
+terraform fmt -diff -check=true -write=false .
+terraform fmt -diff -check=true -write=false ./codelabs/simple
+terraform fmt -diff -check=true -write=false ./examples/delete_default_gateway_routes
+terraform fmt -diff -check=true -write=false ./examples/multi_vpc
+terraform fmt -diff -check=true -write=false ./examples/secondary_ranges
+terraform fmt -diff -check=true -write=false ./examples/simple_project
+terraform fmt -diff -check=true -write=false ./examples/simple_project_with_regional_network
+terraform fmt -diff -check=true -write=false ./examples/submodule_firewall
+terraform fmt -diff -check=true -write=false ./examples/submodule_svpc_access
+terraform fmt -diff -check=true -write=false ./modules/fabric-net-firewall
+terraform fmt -diff -check=true -write=false ./modules/fabric-net-svpc-access
+terraform fmt -diff -check=true -write=false ./test/fixtures/all_examples
+terraform fmt -diff -check=true -write=false ./test/fixtures/delete_default_gateway_routes
+terraform fmt -diff -check=true -write=false ./test/fixtures/multi_vpc
+terraform fmt -diff -check=true -write=false ./test/fixtures/secondary_ranges
+terraform fmt -diff -check=true -write=false ./test/fixtures/shared
+terraform fmt -diff -check=true -write=false ./test/fixtures/simple_project
+terraform fmt -diff -check=true -write=false ./test/fixtures/simple_project_with_regional_network
+terraform fmt -diff -check=true -write=false ./test/fixtures/simulated_ci_environment
+terraform fmt -diff -check=true -write=false ./test/fixtures/submodule_firewall
 Running terraform validate
-Running hadolint on Dockerfiles
-Test passed - Verified all file Apache 2 headers
-```
+terraform_validate .
+Success! The configuration is valid.
 
-The linters
-are as follows:
-* Shell - shellcheck. Can be found in homebrew
-* Python - flake8. Can be installed with 'pip install flake8'
-* Golang - gofmt. gofmt comes with the standard golang installation. golang
-is a compiled language so there is no standard linter.
-* Terraform - terraform has a built-in linter in the 'terraform validate'
-command.
-* Dockerfiles - hadolint. Can be found in homebrew
+terraform_validate ./codelabs/simple
+Success! The configuration is valid.
+
+terraform_validate ./examples/delete_default_gateway_routes
+Success! The configuration is valid.
+
+terraform_validate ./examples/multi_vpc
+Success! The configuration is valid.
+
+terraform_validate ./examples/secondary_ranges
+Success! The configuration is valid.
+
+terraform_validate ./examples/simple_project
+Success! The configuration is valid.
+
+terraform_validate ./examples/simple_project_with_regional_network
+Success! The configuration is valid.
+
+terraform_validate ./examples/submodule_firewall
+Success! The configuration is valid.
+
+terraform_validate ./examples/submodule_svpc_access
+Success! The configuration is valid.
+
+terraform_validate ./modules/fabric-net-firewall
+Success! The configuration is valid.
+
+terraform_validate ./modules/fabric-net-svpc-access
+Success! The configuration is valid.
+
+terraform_validate ./test/fixtures/all_examples
+Success! The configuration is valid.
+
+terraform_validate ./test/fixtures/delete_default_gateway_routes
+Success! The configuration is valid.
+
+terraform_validate ./test/fixtures/multi_vpc
+Success! The configuration is valid.
+
+terraform_validate ./test/fixtures/secondary_ranges
+Success! The configuration is valid.
+
+terraform_validate ./test/fixtures/simple_project
+Success! The configuration is valid.
+
+terraform_validate ./test/fixtures/simple_project_with_regional_network
+Success! The configuration is valid.
+
+terraform_validate ./test/fixtures/simulated_ci_environment
+Success! The configuration is valid.
+
+terraform_validate ./test/fixtures/submodule_firewall
+Success! The configuration is valid.
+```
 
 [terraform-provider-google]: https://github.com/terraform-providers/terraform-provider-google
