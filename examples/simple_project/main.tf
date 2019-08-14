@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,32 @@
  * limitations under the License.
  */
 
+provider "google" {
+  version = "~> 2.10.0"
+}
+
+provider "null" {
+  version = "~> 2.1"
+}
+
+locals {
+  subnet_01 = "${var.network_name}-subnet-01"
+  subnet_02 = "${var.network_name}-subnet-02"
+}
+
 module "test-vpc-module" {
   source       = "../../"
-  project_id   = "${var.project_id}"
-  network_name = "test-vpc-module"
+  project_id   = var.project_id
+  network_name = var.network_name
 
   subnets = [
     {
-      subnet_name   = "subnet-01"
+      subnet_name   = "${local.subnet_01}"
       subnet_ip     = "10.10.10.0/24"
       subnet_region = "us-west1"
     },
     {
-      subnet_name           = "subnet-02"
+      subnet_name           = "${local.subnet_02}"
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "true"
@@ -35,13 +48,7 @@ module "test-vpc-module" {
   ]
 
   secondary_ranges = {
-    subnet-01 = [
-      {
-        range_name    = "subnet-01-secondary-01"
-        ip_cidr_range = "192.168.64.0/24"
-      },
-    ]
-
-    subnet-02 = []
+    "${local.subnet_01}" = []
+    "${local.subnet_02}" = []
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,4 +16,12 @@
 
 variable "project_id" {
   description = "The project ID to host the network in"
+}
+
+variable "network_01_name" {
+  description = "The name of the first VPC network being created"
+}
+
+variable "network_02_name" {
+  description = "The name of the second VPC network being created"
 }

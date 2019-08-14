@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,41 +15,57 @@
  */
 
 output "network_name" {
-  value       = "${google_compute_network.network.name}"
+  value       = google_compute_network.network.name
   description = "The name of the VPC being created"
 }
 
 output "network_self_link" {
-  value       = "${google_compute_network.network.self_link}"
+  value       = google_compute_network.network.self_link
   description = "The URI of the VPC being created"
 }
 
+output "svpc_host_project_id" {
+  value       = element(concat(google_compute_shared_vpc_host_project.shared_vpc_host.*.project, list("")), 0)
+  description = "Shared VPC host project id."
+}
+
 output "subnets_names" {
-  value       = ["${google_compute_subnetwork.subnetwork.*.name}", "${google_compute_subnetwork.no_secondary_subnetwork.*.name}"]
+  value       = google_compute_subnetwork.subnetwork.*.name
   description = "The names of the subnets being created"
 }
 
 output "subnets_ips" {
-  value       = ["${google_compute_subnetwork.subnetwork.*.ip_cidr_range}", "${google_compute_subnetwork.no_secondary_subnetwork.*.ip_cidr_range}"]
+  value       = google_compute_subnetwork.subnetwork.*.ip_cidr_range
   description = "The IPs and CIDRs of the subnets being created"
 }
 
+output "subnets_self_links" {
+  value       = google_compute_subnetwork.subnetwork.*.self_link
+  description = "The self-links of subnets being created"
+}
+
 output "subnets_regions" {
-  value       = ["${google_compute_subnetwork.subnetwork.*.region}", "${google_compute_subnetwork.no_secondary_subnetwork.*.region}"]
+  value       = google_compute_subnetwork.subnetwork.*.region
   description = "The region where the subnets will be created"
 }
 
 output "subnets_private_access" {
-  value       = ["${google_compute_subnetwork.subnetwork.*.private_ip_google_access}", "${google_compute_subnetwork.no_secondary_subnetwork.*.private_ip_google_access}"]
+  value       = google_compute_subnetwork.subnetwork.*.private_ip_google_access
   description = "Whether the subnets will have access to Google API's without a public IP"
 }
 
 output "subnets_flow_logs" {
-  value       = ["${google_compute_subnetwork.subnetwork.*.enable_flow_logs}", "${google_compute_subnetwork.no_secondary_subnetwork.*.enable_flow_logs}"]
+  value       = google_compute_subnetwork.subnetwork.*.enable_flow_logs
   description = "Whether the subnets will have VPC flow logs enabled"
 }
 
 output "subnets_secondary_ranges" {
-  value       = "${google_compute_subnetwork.subnetwork.*.secondary_ip_range}"
+  value       = data.google_compute_subnetwork.created_subnets.*.secondary_ip_range
   description = "The secondary ranges associated with these subnets"
 }
+
+output "routes" {
+  value       = google_compute_route.route.*.name
+  description = "The routes associated with this VPC"
+}
+

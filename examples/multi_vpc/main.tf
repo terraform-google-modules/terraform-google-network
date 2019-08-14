@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,71 @@
  * limitations under the License.
  */
 
+provider "google" {
+  version = "~> 2.10.0"
+}
+
+provider "null" {
+  version = "~> 2.1"
+}
+
+locals {
+  network_01_subnet_01 = "${var.network_01_name}-subnet-01"
+  network_01_subnet_02 = "${var.network_01_name}-subnet-02"
+  network_01_subnet_03 = "${var.network_01_name}-subnet-03"
+  network_02_subnet_01 = "${var.network_02_name}-subnet-01"
+  network_02_subnet_02 = "${var.network_02_name}-subnet-02"
+
+  network_01_routes = [
+    {
+      name              = "${var.network_01_name}-egress-inet"
+      description       = "route through IGW to access internet"
+      destination_range = "0.0.0.0/0"
+      tags              = "egress-inet"
+      next_hop_internet = "true"
+    },
+  ]
+
+  network_02_routes = [
+    {
+      name              = "${var.network_02_name}-egress-inet"
+      description       = "route through IGW to access internet"
+      destination_range = "0.0.0.0/0"
+      tags              = "egress-inet"
+      next_hop_internet = "true"
+    },
+    {
+      name              = "${var.network_02_name}-testapp-proxy"
+      description       = "route through proxy to reach app"
+      destination_range = "10.50.10.0/24"
+      tags              = "app-proxy"
+      next_hop_ip       = "10.10.40.10"
+    },
+  ]
+}
+
 module "test-vpc-module-01" {
   source       = "../../"
-  project_id   = "${var.project_id}"
-  network_name = "test-network-01"
+  project_id   = var.project_id
+  network_name = var.network_01_name
 
   subnets = [
     {
-      subnet_name           = "test-network-01-subnet-01"
+      subnet_name           = local.network_01_subnet_01
       subnet_ip             = "10.10.10.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name           = "test-network-01-subnet-02"
+      subnet_name           = local.network_01_subnet_02
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name           = "test-network-01-subnet-03"
+      subnet_name           = local.network_01_subnet_03
       subnet_ip             = "10.10.30.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
@@ -44,43 +87,45 @@ module "test-vpc-module-01" {
   ]
 
   secondary_ranges = {
-    test-network-01-subnet-01 = [
+    "${local.network_01_subnet_01}" = [
       {
-        range_name    = "test-network-01-subnet-01-01"
+        range_name    = "${local.network_01_subnet_01}-01"
         ip_cidr_range = "192.168.64.0/24"
       },
       {
-        range_name    = "test-network-01-subnet-01-02"
+        range_name    = "${local.network_01_subnet_01}-02"
         ip_cidr_range = "192.168.65.0/24"
       },
     ]
 
-    test-network-01-subnet-02 = [
+    "${local.network_01_subnet_02}" = [
       {
-        range_name    = "test-network-01-subnet-02-01"
+        range_name    = "${local.network_02_subnet_01}-01"
         ip_cidr_range = "192.168.74.0/24"
       },
     ]
 
-    test-network-01-subnet-03 = []
+    "${local.network_01_subnet_03}" = []
   }
+
+  routes = "${local.network_01_routes}"
 }
 
 module "test-vpc-module-02" {
   source       = "../../"
-  project_id   = "${var.project_id}"
-  network_name = "test-network-02"
+  project_id   = var.project_id
+  network_name = var.network_02_name
 
   subnets = [
     {
-      subnet_name           = "test-network-02-subnet-01"
+      subnet_name           = "${local.network_02_subnet_01}"
       subnet_ip             = "10.10.40.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name           = "test-network-02-subnet-02"
+      subnet_name           = "${local.network_02_subnet_02}"
       subnet_ip             = "10.10.50.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
@@ -89,13 +134,15 @@ module "test-vpc-module-02" {
   ]
 
   secondary_ranges = {
-    test-network-02-subnet-01 = [
+    "${local.network_02_subnet_01}" = [
       {
-        range_name    = "est-network-02-subnet-02-01"
+        range_name    = "${local.network_02_subnet_02}-01"
         ip_cidr_range = "192.168.75.0/24"
       },
     ]
 
-    test-network-02-subnet-02 = []
+    "${local.network_02_subnet_02}" = []
   }
+
+  routes = local.network_02_routes
 }

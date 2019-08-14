@@ -1,4 +1,4 @@
-# Copyright 2018 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,54 +15,44 @@
 # Make will use bash instead of sh
 SHELL := /usr/bin/env bash
 
-# All is the first target in the file so it will get picked up when you just run 'make' on its own
-all: check_shell check_python check_golang check_terraform check_docker check_base_files test_check_headers check_headers check_trailing_whitespace generate_docs
+DOCKER_TAG_VERSION_DEVELOPER_TOOLS := 0.0.1
+DOCKER_IMAGE_DEVELOPER_TOOLS := cft/developer-tools
+REGISTRY_URL := gcr.io/cloud-foundation-cicd
 
-# The .PHONY directive tells make that this isn't a real target and so
-# the presence of a file named 'check_shell' won't cause this target to stop
-# working
-.PHONY: check_shell
-check_shell:
-	@source test/make.sh && check_shell
+# Enter docker container for local development
+.PHONY: docker_run
+docker_run:
+	docker run --rm -it \
+		-e SERVICE_ACCOUNT_JSON \
+		-v $(CURDIR):/workspace \
+		$(REGISTRY_URL)/${DOCKER_IMAGE_DEVELOPER_TOOLS}:${DOCKER_TAG_VERSION_DEVELOPER_TOOLS} \
+		/bin/bash
 
-.PHONY: check_python
-check_python:
-	@source test/make.sh && check_python
+# Execute integration tests within the docker container
+.PHONY: docker_test_integration
+docker_test_integration:
+	docker run --rm -it \
+		-e SERVICE_ACCOUNT_JSON \
+		-v $(CURDIR):/workspace \
+		$(REGISTRY_URL)/${DOCKER_IMAGE_DEVELOPER_TOOLS}:${DOCKER_TAG_VERSION_DEVELOPER_TOOLS} \
+		/usr/local/bin/test_integration.sh
 
-.PHONY: check_golang
-check_golang:
-	@source test/make.sh && golang
+# Execute lint tests within the docker container
+.PHONY: docker_test_lint
+docker_test_lint:
+	docker run --rm -it \
+		-v $(CURDIR):/workspace \
+		$(REGISTRY_URL)/${DOCKER_IMAGE_DEVELOPER_TOOLS}:${DOCKER_TAG_VERSION_DEVELOPER_TOOLS} \
+		/usr/local/bin/test_lint.sh
 
-.PHONY: check_terraform
-check_terraform:
-	@source test/make.sh && check_terraform
+# Generate documentation
+.PHONY: docker_generate_docs
+docker_generate_docs:
+	docker run --rm -it \
+		-v $(CURDIR):/workspace \
+		$(REGISTRY_URL)/${DOCKER_IMAGE_DEVELOPER_TOOLS}:${DOCKER_TAG_VERSION_DEVELOPER_TOOLS} \
+		/bin/bash -c 'source /usr/local/bin/task_helper_functions.sh && generate_docs'
 
-.PHONY: check_docker
-check_docker:
-	@source test/make.sh && docker
-
-.PHONY: check_base_files
-check_base_files:
-	@source test/make.sh && basefiles
-
-.PHONY: check_shebangs
-check_shebangs:
-	@source test/make.sh && check_bash
-
-.PHONY: check_trailing_whitespace
-check_trailing_whitespace:
-	@source test/make.sh && check_trailing_whitespace
-
-.PHONY: test_check_headers
-test_check_headers:
-	@echo "Testing the validity of the header check"
-	@python test/test_verify_boilerplate.py
-
-.PHONY: check_headers
-check_headers:
-	@echo "Checking file headers"
-	@python test/verify_boilerplate.py
-
+# Alias for backwards compatibility
 .PHONY: generate_docs
-generate_docs:
-	@source test/make.sh && generate_docs
+generate_docs: docker_generate_docs
