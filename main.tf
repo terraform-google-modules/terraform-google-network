@@ -47,7 +47,7 @@ resource "google_compute_subnetwork" "subnetwork" {
   enable_flow_logs         = lookup(var.subnets[count.index], "subnet_flow_logs", "false")
   network                  = google_compute_network.network.name
   project                  = var.project_id
-  secondary_ip_range       = var.secondary_ranges[lookup(var.subnets[count.index], "subnet_name", null)]
+  secondary_ip_range       = [for i in range(length(contains(keys(var.secondary_ranges), var.subnets[count.index]["subnet_name"]) == true ? var.secondary_ranges[var.subnets[count.index]["subnet_name"]] : [])) : var.secondary_ranges[var.subnets[count.index]["subnet_name"]][i]]
 }
 
 data "google_compute_subnetwork" "created_subnets" {
@@ -55,18 +55,6 @@ data "google_compute_subnetwork" "created_subnets" {
   name    = element(google_compute_subnetwork.subnetwork.*.name, count.index)
   region  = element(google_compute_subnetwork.subnetwork.*.region, count.index)
   project = var.project_id
-}
-
-resource "google_compute_subnetwork" "no_secondary_subnetwork" {
-  count = "${length(var.secondary_ranges) > 0 ? 0 : length(var.subnets)}"
-
-  name                     = "${lookup(var.subnets[count.index], "subnet_name")}"
-  ip_cidr_range            = "${lookup(var.subnets[count.index], "subnet_ip")}"
-  region                   = "${lookup(var.subnets[count.index], "subnet_region")}"
-  private_ip_google_access = "${lookup(var.subnets[count.index], "subnet_private_access", "false")}"
-  enable_flow_logs         = "${lookup(var.subnets[count.index], "subnet_flow_logs", "false")}"
-  network                  = "${google_compute_network.network.name}"
-  project                  = "${var.project_id}"
 }
 
 /******************************************
