@@ -20,4 +20,5 @@ variable "project_id" {
 
 variable "random_string_for_testing" {
   description = "A random string of characters to be appended to resource names to ensure uniqueness"
+  default     = "a1"
 }
