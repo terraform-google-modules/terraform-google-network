@@ -37,11 +37,6 @@ module "net-vpc-shared" {
       subnet_region = "europe-west1"
     },
   ]
-
-  secondary_ranges = {
-    first  = []
-    second = []
-  }
 }
 
 module "net-svpc-access" {
