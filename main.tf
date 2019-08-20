@@ -15,7 +15,7 @@
  */
 
 /******************************************
-	VPC configuration
+        VPC configuration
  *****************************************/
 resource "google_compute_network" "network" {
   name                    = var.network_name
@@ -26,7 +26,7 @@ resource "google_compute_network" "network" {
 }
 
 /******************************************
-	Shared VPC
+        Shared VPC
  *****************************************/
 resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
   count      = var.shared_vpc_host == "true" ? 1 : 0
@@ -35,7 +35,7 @@ resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
 }
 
 /******************************************
-	Subnet configuration
+        Subnet configuration
  *****************************************/
 resource "google_compute_subnetwork" "subnetwork" {
   count = length(var.subnets)
@@ -47,7 +47,7 @@ resource "google_compute_subnetwork" "subnetwork" {
   enable_flow_logs         = lookup(var.subnets[count.index], "subnet_flow_logs", "false")
   network                  = google_compute_network.network.name
   project                  = var.project_id
-  secondary_ip_range       = var.secondary_ranges[lookup(var.subnets[count.index], "subnet_name", null)]
+  secondary_ip_range       = contains(keys(var.secondary_ranges), var.subnets[count.index]["subnet_name"])?  var.secondary_ranges[var.subnets[count.index]["subnet_name"]]: []
 }
 
 data "google_compute_subnetwork" "created_subnets" {
@@ -58,7 +58,7 @@ data "google_compute_subnetwork" "created_subnets" {
 }
 
 /******************************************
-	Routes
+        Routes
  *****************************************/
 resource "google_compute_route" "route" {
   count                  = length(var.routes)
@@ -98,4 +98,3 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
     google_compute_route.route,
   ]
 }
-
