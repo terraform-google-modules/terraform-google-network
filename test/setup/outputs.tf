@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Google LLC
+ * Copyright 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,11 @@
  * limitations under the License.
  */
 
-variable "region" {
-  description = "The region to deploy to"
-  default     = "us-west1"
+output "project_id" {
+  value = module.project.project_id
 }
 
-variable "organization_id" {
-  description = "The numeric organization id"
-  type        = "string"
-}
-
-variable "folder_id" {
-  description = "The numeric folder id to create resources"
-  type        = "string"
-}
-
-variable "billing_account" {
-  description = "The billing account id associated with the project, e.g. XXXXXX-YYYYYY-ZZZZZZ"
-  type        = "string"
+output "sa_key" {
+  value     = google_service_account_key.int_test.private_key
+  sensitive = true
 }
