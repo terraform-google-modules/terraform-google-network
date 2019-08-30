@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+### Changed
+
+- Set default value for `next_hop_internet`. [#64]
+
 ### Added
 
 - Add host service agent role management to Shared VPC submodule [#72]
@@ -119,6 +123,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 
+[#64]: https://github.com/terraform-google-modules/terraform-google-network/pull/64
 [#66]: https://github.com/terraform-google-modules/terraform-google-network/pull/66
 [#16]: https://github.com/terraform-google-modules/terraform-google-network/pull/16
 [#57]: https://github.com/terraform-google-modules/terraform-google-network/pull/57
