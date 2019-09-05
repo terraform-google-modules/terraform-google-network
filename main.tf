@@ -48,6 +48,7 @@ resource "google_compute_subnetwork" "subnetwork" {
   network                  = google_compute_network.network.name
   project                  = var.project_id
   secondary_ip_range       = var.secondary_ranges[lookup(var.subnets[count.index], "subnet_name", null)]
+  description              = lookup(var.subnets[count.index], "description", null)
 }
 
 data "google_compute_subnetwork" "created_subnets" {
@@ -98,4 +99,3 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
     google_compute_route.route,
   ]
 }
-
