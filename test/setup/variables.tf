@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Google LLC
+ * Copyright 2018 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-variable "project_id" {
-  description = "The GCP project to use for integration tests"
+variable "org_id" {
+  description = "The numeric organization id"
 }
 
-variable "random_string_for_testing" {
-  description = "A random string of characters to be appended to resource names to ensure uniqueness"
-  default     = "a1"
+variable "folder_id" {
+  description = "The folder to deploy in"
+}
+
+variable "billing_account" {
+  description = "The billing account id associated with the project, e.g. XXXXXX-YYYYYY-ZZZZZZ"
 }
