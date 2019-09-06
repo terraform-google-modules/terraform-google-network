@@ -90,7 +90,7 @@ Then perform the following commands on the root folder:
 | project\_id | The ID of the project where this VPC will be created | string | n/a | yes |
 | routes | List of routes being created in this VPC | list(map(string)) | `<list>` | no |
 | routing\_mode | The network routing mode (default 'GLOBAL') | string | `"GLOBAL"` | no |
-| secondary\_ranges | Secondary ranges that will be used in some of the subnets | object | n/a | yes |
+| secondary\_ranges | Secondary ranges that will be used in some of the subnets | object | `<map>` | no |
 | shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `"false"` | no |
 | subnets | The list of subnets being created | list(map(string)) | n/a | yes |
 

@@ -47,9 +47,4 @@ module "test-vpc-module" {
       subnet_flow_logs      = "true"
     },
   ]
-
-  secondary_ranges = {
-    "${local.subnet_01}" = []
-    "${local.subnet_02}" = []
-  }
 }

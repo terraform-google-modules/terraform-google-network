@@ -104,8 +104,6 @@ module "test-vpc-module-01" {
         ip_cidr_range = "192.168.74.0/24"
       },
     ]
-
-    "${local.network_01_subnet_03}" = []
   }
 
   routes = "${local.network_01_routes}"
@@ -140,8 +138,6 @@ module "test-vpc-module-02" {
         ip_cidr_range = "192.168.75.0/24"
       },
     ]
-
-    "${local.network_02_subnet_02}" = []
   }
 
   routes = local.network_02_routes

@@ -26,6 +26,7 @@ locals {
   subnet_01 = "${var.network_name}-subnet-01"
   subnet_02 = "${var.network_name}-subnet-02"
   subnet_03 = "${var.network_name}-subnet-03"
+  subnet_04 = "${var.network_name}-subnet-04"
 }
 
 module "vpc-secondary-ranges" {
@@ -49,6 +50,11 @@ module "vpc-secondary-ranges" {
     {
       subnet_name   = "${local.subnet_03}"
       subnet_ip     = "10.10.30.0/24"
+      subnet_region = "us-west1"
+    },
+    {
+      subnet_name   = "${local.subnet_04}"
+      subnet_ip     = "10.10.40.0/24"
       subnet_region = "us-west1"
     },
   ]
