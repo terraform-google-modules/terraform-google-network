@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+### Fixed
+
+- Made setting `secondary_ranges` optional. [#16] 
+
 ## [1.1.0] - 2019-07-24
 
 ### Added
@@ -103,6 +107,8 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.3.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
+
+[#16]: https://github.com/terraform-google-modules/terraform-google-network/pull/16
 [#57]: https://github.com/terraform-google-modules/terraform-google-network/pull/57
 [#47]: https://github.com/terraform-google-modules/terraform-google-network/pull/47
 [#45]: https://github.com/terraform-google-modules/terraform-google-network/pull/45
