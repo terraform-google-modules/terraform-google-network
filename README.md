@@ -125,11 +125,10 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | subnet_region         | The region where the subnet will be created                      | string |    -    |    yes   |
 | subnet_private_access | Whether this subnet will have private Google access enabled      | string |  false  |    no    |
 | subnet_flow_logs      | Whether the subnet will record and send flow log data to logging | string |  false  |    no    |
-| description           | The description of the subnet being created                      | string |   null  |    no    |
 
 ### Route Inputs
 
-The routes list contains maps, where each object represents a route. For the next_hop** inputs, only one is possible to be used in each route. Having two next_hop** inputs will produce an error. Each map has the following inputs (please see examples folder for additional references):
+The routes list contains maps, where each object represents a route. For the next_hop__ inputs, only one is possible to be used in each route. Having two next_hop__ inputs will produce an error. Each map has the following inputs (please see examples folder for additional references):
 
 | Name                   | Description                                                                                                                                                                                                                                      |  Type  | Default | Required |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----: | :-----: | :------: |
