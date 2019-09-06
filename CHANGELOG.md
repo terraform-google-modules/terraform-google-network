@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+### Added
+
+- Added `description` variable for subnets. [#66]
+
 ### Fixed
 
 - Made setting `secondary_ranges` optional. [#16] 
@@ -108,6 +112,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 
+[#66]: https://github.com/terraform-google-modules/terraform-google-network/pull/66
 [#16]: https://github.com/terraform-google-modules/terraform-google-network/pull/16
 [#57]: https://github.com/terraform-google-modules/terraform-google-network/pull/57
 [#47]: https://github.com/terraform-google-modules/terraform-google-network/pull/47
