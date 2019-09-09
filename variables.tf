@@ -42,7 +42,6 @@ variable "subnets" {
       subnet_region         = string
       subnet_flow_logs      = string
       subnet_private_access = string
-      description           = string
       secondary_ranges      = list(object({ range_name = string, ip_cidr_range = string }))
     }
   ))
