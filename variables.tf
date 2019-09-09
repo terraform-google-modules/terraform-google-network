@@ -35,24 +35,18 @@ variable "shared_vpc_host" {
 }
 
 variable "subnets" {
-  #type        = list(map(string))
-  type        = list(object(
+  type = list(object(
     {
       subnet_name           = string
       subnet_ip             = string
       subnet_region         = string
       subnet_flow_logs      = string
       subnet_private_access = string
-      secondary_ranges      = list(object({ range_name = string, ip_cidr_range = string })) #list(map(string))
+      description           = string
+      secondary_ranges      = list(object({ range_name = string, ip_cidr_range = string }))
     }
-    )  )
+  ))
   description = "The list of subnets being created"
-}
-
-variable "secondary_ranges" {
-  type        = map(list(object({ range_name = string, ip_cidr_range = string })))
-  description = "Secondary ranges that will be used in some of the subnets"
-  default     = {}
 }
 
 variable "routes" {

@@ -29,6 +29,12 @@ module "vpc" {
             subnet_name           = "subnet-01"
             subnet_ip             = "10.10.10.0/24"
             subnet_region         = "us-west1"
+            secondary_ranges      = [
+            	{
+                	range_name    = "subnet-01-secondary-01"
+                	ip_cidr_range = "192.168.64.0/24"
+            	},
+            ]
         },
         {
             subnet_name           = "subnet-02"
@@ -37,19 +43,9 @@ module "vpc" {
             subnet_private_access = "true"
             subnet_flow_logs      = "true"
             description           = "This subnet has a description"
+            secondary_ranges      = []
         },
     ]
-
-    secondary_ranges = {
-        subnet-01 = [
-            {
-                range_name    = "subnet-01-secondary-01"
-                ip_cidr_range = "192.168.64.0/24"
-            },
-        ]
-
-        subnet-02 = []
-    }
 
     routes = [
         {
@@ -90,9 +86,8 @@ Then perform the following commands on the root folder:
 | project\_id | The ID of the project where this VPC will be created | string | n/a | yes |
 | routes | List of routes being created in this VPC | list(map(string)) | `<list>` | no |
 | routing\_mode | The network routing mode (default 'GLOBAL') | string | `"GLOBAL"` | no |
-| secondary\_ranges | Secondary ranges that will be used in some of the subnets | object | `<map>` | no |
 | shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `"false"` | no |
-| subnets | The list of subnets being created | list(map(string)) | n/a | yes |
+| subnets | The list of subnets being created | list(objet() | n/a | yes |
 
 ## Outputs
 
@@ -120,6 +115,7 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | subnet_name | The name of the subnet being created  | string | - | yes |
 | subnet_ip | The IP and CIDR range of the subnet being created | string | - | yes |
 | subnet_region | The region where the subnet will be created  | string | - | yes |
+| secondary_ranges | Secondary ranges that will be used in some of the subnets | object | `<list>` | yes |
 | subnet_private_access | Whether this subnet will have private Google access enabled | string | false | no |
 | subnet_flow_logs  | Whether the subnet will record and send flow log data to logging | string | false | no |
 | description | The description of the subnet being created | string | null | no |

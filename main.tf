@@ -48,23 +48,7 @@ resource "google_compute_subnetwork" "subnetwork" {
   network                  = google_compute_network.network.name
   project                  = var.project_id
   description              = lookup(var.subnets[count.index], "description", null)
-  #secondary_ip_range       = [for i in range(length(contains(keys(var.secondary_ranges), var.subnets[count.index]["subnet_name"]) == true ? var.secondary_ranges[var.subnets[count.index]["subnet_name"]] : [])) : var.secondary_ranges[var.subnets[count.index]["subnet_name"]][i]]
-
-  secondary_ip_range = var.subnets[count.index]["secondary_ranges"]
-  # secondary_ip_range = [
-  #   for net in var.subnets[count.index]["secondary_ranges"]: {
-  #          range_name = net["range_name"]
-  #          ip_cidr_range = net["ip_cidr_range"]
-  #   }
-  # ]
-   # dynamic "secondary_ip_range" {
-   #   for_each = lookup(var.subnets[count.index], "secondary_ranges", [])
-   #   content {
-   #     range_name = secondary_ip_range.value["range_name"]
-   #     ip_cidr_range = secondary_ip_range.value["ip_cidr_range"]
-   #   }
-   # }
-
+  secondary_ip_range       = var.subnets[count.index]["secondary_ranges"]
 }
 
 data "google_compute_subnetwork" "created_subnets" {
