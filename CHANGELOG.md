@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ### Fixed
 
-- Made setting `secondary_ranges` optional. [#16] 
+- Made setting `secondary_ranges` optional. [#16]
 
 ## [1.1.0] - 2019-07-24
 
