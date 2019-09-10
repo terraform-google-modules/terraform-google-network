@@ -69,6 +69,16 @@ module "test-vpc-module-01" {
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
+      secondary_ranges = [
+        {
+          range_name    = "${local.network_01_subnet_01}-01"
+          ip_cidr_range = "192.168.64.0/24"
+        },
+        {
+          range_name    = "${local.network_01_subnet_01}-02"
+          ip_cidr_range = "192.168.65.0/24"
+        },
+      ]
     },
     {
       subnet_name           = local.network_01_subnet_02
@@ -76,6 +86,12 @@ module "test-vpc-module-01" {
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
+      secondary_ranges = [
+        {
+          range_name    = "${local.network_02_subnet_01}-01"
+          ip_cidr_range = "192.168.74.0/24"
+        },
+      ]
     },
     {
       subnet_name           = local.network_01_subnet_03
@@ -83,28 +99,9 @@ module "test-vpc-module-01" {
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
+      secondary_ranges      = []
     },
   ]
-
-  secondary_ranges = {
-    "${local.network_01_subnet_01}" = [
-      {
-        range_name    = "${local.network_01_subnet_01}-01"
-        ip_cidr_range = "192.168.64.0/24"
-      },
-      {
-        range_name    = "${local.network_01_subnet_01}-02"
-        ip_cidr_range = "192.168.65.0/24"
-      },
-    ]
-
-    "${local.network_01_subnet_02}" = [
-      {
-        range_name    = "${local.network_02_subnet_01}-01"
-        ip_cidr_range = "192.168.74.0/24"
-      },
-    ]
-  }
 
   routes = "${local.network_01_routes}"
 }
@@ -121,6 +118,12 @@ module "test-vpc-module-02" {
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
+      secondary_ranges = [
+        {
+          range_name    = "${local.network_02_subnet_02}-01"
+          ip_cidr_range = "192.168.75.0/24"
+        },
+      ]
     },
     {
       subnet_name           = "${local.network_02_subnet_02}"
@@ -128,17 +131,9 @@ module "test-vpc-module-02" {
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
+      secondary_ranges      = []
     },
   ]
-
-  secondary_ranges = {
-    "${local.network_02_subnet_01}" = [
-      {
-        range_name    = "${local.network_02_subnet_02}-01"
-        ip_cidr_range = "192.168.75.0/24"
-      },
-    ]
-  }
 
   routes = local.network_02_routes
 }

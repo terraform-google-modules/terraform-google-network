@@ -39,6 +39,16 @@ module "vpc-secondary-ranges" {
       subnet_name   = "${local.subnet_01}"
       subnet_ip     = "10.10.10.0/24"
       subnet_region = "us-west1"
+      secondary_ranges = [
+        {
+          range_name    = "${local.subnet_01}-01"
+          ip_cidr_range = "192.168.64.0/24"
+        },
+        {
+          range_name    = "${local.subnet_01}-02"
+          ip_cidr_range = "192.168.65.0/24"
+        },
+      ]
     },
     {
       subnet_name           = "${local.subnet_02}"
@@ -46,38 +56,25 @@ module "vpc-secondary-ranges" {
       subnet_region         = "us-west1"
       subnet_private_access = "true"
       subnet_flow_logs      = "true"
+      secondary_ranges      = []
     },
     {
       subnet_name   = "${local.subnet_03}"
       subnet_ip     = "10.10.30.0/24"
       subnet_region = "us-west1"
+      secondary_ranges = [
+        {
+          range_name    = "${local.subnet_03}-01"
+          ip_cidr_range = "192.168.66.0/24"
+        },
+      ]
     },
     {
-      subnet_name   = "${local.subnet_04}"
-      subnet_ip     = "10.10.40.0/24"
-      subnet_region = "us-west1"
+      subnet_name      = "${local.subnet_04}"
+      subnet_ip        = "10.10.40.0/24"
+      subnet_region    = "us-west1"
+      secondary_ranges = []
     },
   ]
 
-  secondary_ranges = {
-    "${local.subnet_01}" = [
-      {
-        range_name    = "${local.subnet_01}-01"
-        ip_cidr_range = "192.168.64.0/24"
-      },
-      {
-        range_name    = "${local.subnet_01}-02"
-        ip_cidr_range = "192.168.65.0/24"
-      },
-    ]
-
-    "${local.subnet_02}" = []
-
-    "${local.subnet_03}" = [
-      {
-        range_name    = "${local.subnet_03}-01"
-        ip_cidr_range = "192.168.66.0/24"
-      },
-    ]
-  }
 }
