@@ -87,7 +87,7 @@ Then perform the following commands on the root folder:
 | routes | List of routes being created in this VPC | list(map(string)) | `<list>` | no |
 | routing\_mode | The network routing mode (default 'GLOBAL') | string | `"GLOBAL"` | no |
 | shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `"false"` | no |
-| subnets | The list of subnets being created | list(objet() | n/a | yes |
+| subnets | The list of subnets being created | object | n/a | yes |
 
 ## Outputs
 
