@@ -34,10 +34,12 @@ module "test-vpc-module" {
 
   subnets = [
     {
-      subnet_name      = local.subnet_01
-      subnet_ip        = "10.20.30.0/24"
-      subnet_region    = "us-west1"
-      secondary_ranges = []
+      subnet_name           = local.subnet_01
+      subnet_ip             = "10.20.30.0/24"
+      subnet_region         = "us-west1"
+      secondary_ranges      = []
+      subnet_private_access = "false"
+      subnet_flow_logs      = "false"
     },
   ]
 }

@@ -37,10 +37,12 @@ variable "shared_vpc_host" {
 variable "subnets" {
   type = list(object(
     {
-      subnet_name      = string
-      subnet_ip        = string
-      subnet_region    = string
-      secondary_ranges = list(object({ range_name = string, ip_cidr_range = string }))
+      subnet_name           = string
+      subnet_ip             = string
+      subnet_region         = string
+      subnet_flow_logs      = string
+      subnet_private_access = string
+      secondary_ranges      = list(object({ range_name = string, ip_cidr_range = string }))
     }
   ))
   description = "The list of subnets being created"

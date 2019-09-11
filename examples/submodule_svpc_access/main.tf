@@ -27,16 +27,21 @@ module "net-vpc-shared" {
 
   subnets = [
     {
-      subnet_name      = "first"
-      subnet_ip        = "10.10.10.0/24"
-      subnet_region    = "europe-west1"
-      secondary_ranges = []
+      subnet_name           = "first"
+      subnet_ip             = "10.10.10.0/24"
+      subnet_region         = "europe-west1"
+      subnet_private_access = "false"
+      subnet_flow_logs      = "false"
+      secondary_ranges      = []
     },
     {
-      subnet_name      = "second"
-      subnet_ip        = "10.10.20.0/24"
-      subnet_region    = "europe-west1"
-      secondary_ranges = []
+      subnet_name           = "second"
+      subnet_ip             = "10.10.20.0/24"
+      subnet_region         = "europe-west1"
+      secondary_ranges      = []
+      subnet_private_access = "false"
+      subnet_flow_logs      = "false"
+
     },
   ]
 }
