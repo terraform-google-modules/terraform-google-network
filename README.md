@@ -29,6 +29,8 @@ module "vpc" {
             subnet_name           = "subnet-01"
             subnet_ip             = "10.10.10.0/24"
             subnet_region         = "us-west1"
+            subnet_private_access = "false"
+            subnet_flow_logs      = "false"
             secondary_ranges      = [
             	{
                 	range_name    = "subnet-01-secondary-01"
@@ -116,8 +118,8 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | subnet_ip | The IP and CIDR range of the subnet being created | string | - | yes |
 | subnet_region | The region where the subnet will be created  | string | - | yes |
 | secondary_ranges | Secondary ranges that will be used in some of the subnets | object | `<list>` | yes |
-| subnet_private_access | Whether this subnet will have private Google access enabled | string | false | no |
-| subnet_flow_logs  | Whether the subnet will record and send flow log data to logging | string | false | no |
+| subnet_private_access | Whether this subnet will have private Google access enabled | string | - | yes |
+| subnet_flow_logs  | Whether the subnet will record and send flow log data to logging | string | - | yes |
 | description | The description of the subnet being created | string | null | no |
 
 ### Route Inputs
