@@ -58,5 +58,11 @@ control "gcloud" do
         )
       end
     end
+
+    describe "description" do
+      it "should equal 'This subnet has a description'" do
+        expect(data["description"]).to eq 'This subnet has a description'
+      end
+    end
   end
 end
