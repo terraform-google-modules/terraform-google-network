@@ -48,14 +48,14 @@ resource "google_compute_subnetwork" "subnetwork" {
   network                  = google_compute_network.network.name
   project                  = var.project_id
   description              = var.subnets[count.index]["description"]
-  #secondary_ip_range       = var.subnets[count.index]["secondary_ranges"]
+
   dynamic "secondary_ip_range" {
     for_each = var.subnets[count.index]["secondary_ranges"]
     content {
-      range_name    = secondary_ip_range.value["range_name"] #"tf-test-secondary-range-update1"
-      ip_cidr_range = secondary_ip_range.value["ip_cidr_range"] #"192.168.10.0/24"
+      range_name    = secondary_ip_range.value["range_name"]
+      ip_cidr_range = secondary_ip_range.value["ip_cidr_range"]
     }
-}
+  }
 }
 
 data "google_compute_subnetwork" "created_subnets" {
