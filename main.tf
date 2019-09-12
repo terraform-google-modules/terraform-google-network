@@ -43,12 +43,19 @@ resource "google_compute_subnetwork" "subnetwork" {
   name                     = var.subnets[count.index]["subnet_name"]
   ip_cidr_range            = var.subnets[count.index]["subnet_ip"]
   region                   = var.subnets[count.index]["subnet_region"]
-  private_ip_google_access = var.subnets[count.index]["subnet_private_access"]
-  enable_flow_logs         = var.subnets[count.index]["subnet_flow_logs"]
+  private_ip_google_access = lookup(var.subnets[count.index], "subnet_private_access", "false")
+  enable_flow_logs         = lookup(var.subnets[count.index], "subnet_flow_logs", "false")
   network                  = google_compute_network.network.name
   project                  = var.project_id
   description              = lookup(var.subnets[count.index], "description", null)
-  secondary_ip_range       = var.subnets[count.index]["secondary_ranges"]
+  #secondary_ip_range       = var.subnets[count.index]["secondary_ranges"]
+  dynamic "secondary_ip_range" {
+    for_each = var.subnets[count.index]["secondary_ranges"]
+    content {
+      range_name    = secondary_ip_range.value["range_name"] #"tf-test-secondary-range-update1"
+      ip_cidr_range = secondary_ip_range.value["ip_cidr_range"] #"192.168.10.0/24"
+    }
+}
 }
 
 data "google_compute_subnetwork" "created_subnets" {
