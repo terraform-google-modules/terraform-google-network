@@ -85,6 +85,24 @@ module "vpc-secondary-ranges" {
       description           = ""
       secondary_ranges      = []
     },
+    {
+      subnet_name           = "${local.subnet_01}"
+      subnet_ip             = "10.10.50.0/24"
+      subnet_region         = "us-central1"
+      subnet_private_access = "false"
+      subnet_flow_logs      = "false"
+      description           = ""
+      secondary_ranges = [
+        {
+          range_name    = "${local.subnet_01}-01"
+          ip_cidr_range = "192.168.67.0/24"
+        },
+        {
+          range_name    = "${local.subnet_01}-02"
+          ip_cidr_range = "192.168.68.0/24"
+        },
+      ]
+    },
   ]
 
 }
