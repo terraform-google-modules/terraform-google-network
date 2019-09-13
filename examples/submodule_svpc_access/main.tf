@@ -33,7 +33,7 @@ module "net-vpc-shared" {
       subnet_private_access = "false"
       subnet_flow_logs      = "false"
       secondary_ranges      = []
-      description           = ""
+      description           = null
     },
     {
       subnet_name           = "second"
@@ -42,7 +42,7 @@ module "net-vpc-shared" {
       secondary_ranges      = []
       subnet_private_access = "false"
       subnet_flow_logs      = "false"
-      description           = ""
+      description           = null
 
     },
   ]

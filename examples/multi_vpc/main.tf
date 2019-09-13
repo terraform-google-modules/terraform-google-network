@@ -69,7 +69,7 @@ module "test-vpc-module-01" {
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
-      description           = ""
+      description           = null
       secondary_ranges = [
         {
           range_name    = "${local.network_01_subnet_01}-01"
@@ -87,7 +87,7 @@ module "test-vpc-module-01" {
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
-      description           = ""
+      description           = null
       secondary_ranges = [
         {
           range_name    = "${local.network_02_subnet_01}-01"
@@ -102,7 +102,7 @@ module "test-vpc-module-01" {
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
       secondary_ranges      = []
-      description           = ""
+      description           = null
     },
   ]
 
@@ -121,7 +121,7 @@ module "test-vpc-module-02" {
       subnet_region         = "us-west1"
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
-      description           = ""
+      description           = null
       secondary_ranges = [
         {
           range_name    = "${local.network_02_subnet_02}-01"
@@ -136,7 +136,7 @@ module "test-vpc-module-02" {
       subnet_private_access = "false"
       subnet_flow_logs      = "true"
       secondary_ranges      = []
-      description           = ""
+      description           = null
     },
   ]
 

@@ -40,7 +40,7 @@ module "test-vpc-module" {
       secondary_ranges      = []
       subnet_private_access = "false"
       subnet_flow_logs      = "false"
-      description           = ""
+      description           = null
     },
   ]
 }

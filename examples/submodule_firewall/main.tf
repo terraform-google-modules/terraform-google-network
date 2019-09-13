@@ -40,7 +40,7 @@ module "test-vpc-module" {
       subnet_private_access = "false"
       subnet_flow_logs      = "false"
       secondary_ranges      = []
-      description           = ""
+      description           = null
     },
     {
       subnet_name           = local.subnet_02
@@ -49,7 +49,7 @@ module "test-vpc-module" {
       subnet_private_access = "true"
       subnet_flow_logs      = "true"
       secondary_ranges      = []
-      description           = ""
+      description           = null
     },
   ]
 }
