@@ -31,6 +31,7 @@ module "vpc" {
             subnet_region         = "us-west1"
             subnet_private_access = "false"
             subnet_flow_logs      = "false"
+            description           = null
             secondary_ranges      = [
             	{
                 	range_name    = "subnet-01-secondary-01"
@@ -120,7 +121,7 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | secondary_ranges | Secondary ranges that will be used in some of the subnets | object | `<list>` | yes |
 | subnet_private_access | Whether this subnet will have private Google access enabled | string | - | yes |
 | subnet_flow_logs  | Whether the subnet will record and send flow log data to logging | string | - | yes |
-| description | The description of the subnet being created | string | null | no |
+| description | The description of the subnet being created | string | - | yes |
 
 ### Route Inputs
 The routes list contains maps, where each object represents a route. For the next_hop_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each map has the following inputs (please see examples folder for additional references):
