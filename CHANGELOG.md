@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+## [1.2.0] - 2019-09-18
+
 ### Added
 
 - Added `description` variable for subnets. [#66]
@@ -101,6 +103,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Secondary ranges for the subnets (if applicable)
 
 [Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.1.0...HEAD
+[1.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.8.0...v1.0.0
 [0.8.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.7.0...v0.8.0
