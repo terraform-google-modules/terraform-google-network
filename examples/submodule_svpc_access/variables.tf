@@ -28,6 +28,7 @@ variable "service_project_number" {
 
 variable "service_project_owners" {
   description = "Service project owners, in IAM format."
+  default     = []
 }
 
 variable "network_name" {
