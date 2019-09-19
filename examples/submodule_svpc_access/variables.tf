@@ -18,16 +18,16 @@ variable "host_project_id" {
   description = "Id of the host project where the shared VPC will be created."
 }
 
-variable "service_project_id_full_access" {
-  description = "Id of the service project that will get VPC-level access."
+variable "service_project_id" {
+  description = "Service project id."
 }
 
-variable "service_project_number_first_subnet" {
-  description = "Project number to derive service accounts with access to first subnet."
+variable "service_project_number" {
+  description = "Service project number."
 }
 
-variable "service_project_number_multi_subnet" {
-  description = "Project number to derive service accounts with access to first and second subnet."
+variable "service_project_owners" {
+  description = "Service project owners, in IAM format."
 }
 
 variable "network_name" {
