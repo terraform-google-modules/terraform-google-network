@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+### Added
+
+- Add host service agent role management to Shared VPC submodule [#72]
+
 ## [1.2.0] - 2019-09-18
 
 ### Added
@@ -15,7 +19,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ### Fixed
 
-- Made setting `secondary_ranges` optional. [#16] 
+- Made setting `secondary_ranges` optional. [#16]
 
 ## [1.1.0] - 2019-07-24
 
