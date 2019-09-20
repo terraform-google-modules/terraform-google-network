@@ -24,36 +24,36 @@ platforms:
   - name: local
 
 suites:
-  - name: "simple_project"
-    driver:
-      name: "terraform"
-      command_timeout: 1800
-      root_module_directory: test/fixtures/simple_project/
-    verifier:
-      name: terraform
-      color: true
-      systems:
-        - name: inspec-gcp
-          backend: gcp
-          controls:
-            - gcp
-        - name: local
-          backend: local
-          controls:
-            - gcloud
-  - name: "simple_project_with_regional_network"
-    driver:
-      name: "terraform"
-      command_timeout: 1800
-      root_module_directory: test/fixtures/simple_project_with_regional_network/
-    verifier:
-      name: terraform
-      color: true
-      systems:
-        - name: inspec-gcp
-          backend: gcp
-          controls:
-            - gcp
+  # - name: "simple_project"
+  #   driver:
+  #     name: "terraform"
+  #     command_timeout: 1800
+  #     root_module_directory: test/fixtures/simple_project/
+  #   verifier:
+  #     name: terraform
+  #     color: true
+  #     systems:
+  #       - name: inspec-gcp
+  #         backend: gcp
+  #         controls:
+  #           - gcp
+  #       - name: local
+  #         backend: local
+  #         controls:
+  #           - gcloud
+  # - name: "simple_project_with_regional_network"
+  #   driver:
+  #     name: "terraform"
+  #     command_timeout: 1800
+  #     root_module_directory: test/fixtures/simple_project_with_regional_network/
+  #   verifier:
+  #     name: terraform
+  #     color: true
+  #     systems:
+  #       - name: inspec-gcp
+  #         backend: gcp
+  #         controls:
+  #           - gcp
   - name: "secondary_ranges"
     driver:
       name: "terraform"
@@ -64,49 +64,53 @@ suites:
       color: true
       systems:
         - name: local
+          attrs_outputs:
+            customized_inspec_attribute: output_network_name
+            customized_inspec_attribute: output_network_self_link
           backend: local
           controls:
             - gcloud
-  - name: "multi_vpc"
-    driver:
-      name: "terraform"
-      command_timeout: 1800
-      root_module_directory: test/fixtures/multi_vpc/
-    verifier:
-      name: terraform
-      color: true
-      systems:
-        - name: local
-          backend: local
-          controls:
-            - gcloud
-  - name: "delete_default_gateway_routes"
-    driver:
-      name: "terraform"
-      command_timeout: 1800
-      root_module_directory: test/fixtures/delete_default_gateway_routes/
-    verifier:
-      name: terraform
-      color: true
-      systems:
-        - name: local
-          backend: local
-          controls:
-            - gcloud
-  - name: "submodule_firewall"
-    driver:
-      name: "terraform"
-      command_timeout: 1800
-      root_module_directory: test/fixtures/submodule_firewall/
-    verifier:
-      name: terraform
-      color: true
-      systems:
-        - name: inspec-gcp
-          backend: gcp
-          controls:
-            - gcp
-        - name: local
-          backend: local
-          controls:
-            - gcloud
+            - inspec_attributes
+  # - name: "multi_vpc"
+  #   driver:
+  #     name: "terraform"
+  #     command_timeout: 1800
+  #     root_module_directory: test/fixtures/multi_vpc/
+  #   verifier:
+  #     name: terraform
+  #     color: true
+  #     systems:
+  #       - name: local
+  #         backend: local
+  #         controls:
+  #           - gcloud
+  # - name: "delete_default_gateway_routes"
+  #   driver:
+  #     name: "terraform"
+  #     command_timeout: 1800
+  #     root_module_directory: test/fixtures/delete_default_gateway_routes/
+  #   verifier:
+  #     name: terraform
+  #     color: true
+  #     systems:
+  #       - name: local
+  #         backend: local
+  #         controls:
+  #           - gcloud
+  # - name: "submodule_firewall"
+  #   driver:
+  #     name: "terraform"
+  #     command_timeout: 1800
+  #     root_module_directory: test/fixtures/submodule_firewall/
+  #   verifier:
+  #     name: terraform
+  #     color: true
+  #     systems:
+  #       - name: inspec-gcp
+  #         backend: gcp
+  #         controls:
+  #           - gcp
+  #       - name: local
+  #         backend: local
+  #         controls:
+  #           - gcloud

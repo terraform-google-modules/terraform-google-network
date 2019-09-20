@@ -6,3 +6,9 @@ attributes:
   - name: network_name
     required: true
     type: string
+  - name: output_network_name
+    required: true
+    type: string
+  - name: output_network_self_link
+    required: true
+    type: string
