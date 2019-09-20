@@ -35,7 +35,7 @@ output "subnets_names" {
 }
 
 output "subnets_ips" {
-  value       = google_compute_subnetwork.subnetwork[*].ip_cidr_range
+  value       = tolist(google_compute_subnetwork.subnetwork[*].ip_cidr_range)
   description = "The IPs and CIDRs of the subnets being created"
 }
 
