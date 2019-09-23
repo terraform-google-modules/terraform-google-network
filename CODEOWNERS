@@ -1,1 +1,3 @@
 * @morgante @aaron-lane @andreyk-code
+/examples/submodule_svpc_access/ @terraform-google-modules/cft-fabric
+/modules/fabric-net-svpc-access/ @terraform-google-modules/cft-fabric
