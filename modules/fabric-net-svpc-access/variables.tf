@@ -21,17 +21,17 @@ variable "host_project_id" {
 # passed-in values can be dynamic, so variables used in count need to be separate
 
 variable "service_project_num" {
-  description = "Number of service projects that will be granted access to all subnetworks."
+  description = "Number of service projects that will be attached to the Shared VPC."
   default     = 0
 }
 
 variable "service_project_ids" {
-  description = "Ids of the service projects that will be granted access to all subnetworks."
+  description = "Ids of the service projects that will be attached to the Shared VPC."
   type        = "list"
 }
 
 variable "host_subnets" {
-  description = "List of subnet names on which to grant access."
+  description = "List of subnet names on which to grant network user role."
   default     = []
 }
 
@@ -41,6 +41,16 @@ variable "host_subnet_regions" {
 }
 
 variable "host_subnet_users" {
-  description = "Map of comma-delimited IAM-style members, one per subnet."
+  description = "Map of comma-delimited IAM-style members to which network user roles for subnets will be assigned."
   default     = {}
+}
+
+variable "host_service_agent_role" {
+  description = "Assign host service agent role to users in host_service_agent_users variable."
+  default     = false
+}
+
+variable "host_service_agent_users" {
+  description = "List of IAM-style users that will be granted the host service agent role on the host project."
+  default     = []
 }

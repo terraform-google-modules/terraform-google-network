@@ -15,24 +15,26 @@
  */
 
 locals {
-  first_gce_sa  = "serviceAccount:${var.service_project_number_first_subnet}-compute@developer.gserviceaccount.com"
-  second_gce_sa = "serviceAccount:${var.service_project_number_multi_subnet}-compute@developer.gserviceaccount.com"
+  net_data_users = compact(concat(
+    var.service_project_owners,
+    ["serviceAccount:${var.service_project_number}@cloudservices.gserviceaccount.com"]
+  ))
 }
 
 module "net-vpc-shared" {
-  source          = "../../"
+  source          = "../.."
   project_id      = var.host_project_id
   network_name    = var.network_name
   shared_vpc_host = "true"
 
   subnets = [
     {
-      subnet_name   = "first"
+      subnet_name   = "networking"
       subnet_ip     = "10.10.10.0/24"
       subnet_region = "europe-west1"
     },
     {
-      subnet_name   = "second"
+      subnet_name   = "data"
       subnet_ip     = "10.10.20.0/24"
       subnet_region = "europe-west1"
     },
@@ -43,12 +45,10 @@ module "net-svpc-access" {
   source              = "../../modules/fabric-net-svpc-access"
   host_project_id     = module.net-vpc-shared.svpc_host_project_id
   service_project_num = 1
-  service_project_ids = var.service_project_id_full_access
-  host_subnets        = module.net-vpc-shared.subnets_names
-  host_subnet_regions = module.net-vpc-shared.subnets_regions
-
+  service_project_ids = [var.service_project_id]
+  host_subnets        = ["data"]
+  host_subnet_regions = ["europe-west1"]
   host_subnet_users = {
-    first  = "${local.first_gce_sa},${local.second_gce_sa}"
-    second = local.second_gce_sa
+    data = join(",", local.net_data_users)
   }
 }
