@@ -1,3 +1,4 @@
-* @morgante @aaron-lane @andreyk-code
+* @terraform-google-modules/cft-admins @andreyk-code
+/CHANGELOG.md @terraform-google-modules/cft-admins @terraform-google-modules/cft-fabric
 /examples/submodule_svpc_access/ @terraform-google-modules/cft-fabric
 /modules/fabric-net-svpc-access/ @terraform-google-modules/cft-fabric
