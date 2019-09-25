@@ -26,5 +26,6 @@ ranges and the third being given a single secondary range.
 | subnets\_private\_access | Whether the subnets will have access to Google API's without a public IP |
 | subnets\_regions | The region where subnets will be created |
 | subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
+| svpc\_host\_project\_id | Shared VPC host project id. |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
