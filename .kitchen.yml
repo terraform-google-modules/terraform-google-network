@@ -121,6 +121,18 @@ suites:
           controls:
             - gcp
         - name: local
+          attrs_outputs:
+            customized_inspec_attribute: output_network_name
+            customized_inspec_attribute: output_network_self_link
+            customized_inspec_attribute: output_subnets_ips
+            customized_inspec_attribute: output_routes
+            customized_inspec_attribute: output_subnets_flow_logs
+            customized_inspec_attribute: output_subnets_names
+            customized_inspec_attribute: output_subnets_private_access
+            customized_inspec_attribute: output_subnets_regions
+            customized_inspec_attribute: output_subnets_secondary_ranges
+            customized_inspec_attribute: output_svpc_host_project_id
           backend: local
           controls:
             - gcloud
+            - inspec_attributes
