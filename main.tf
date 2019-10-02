@@ -53,8 +53,17 @@ resource "google_compute_subnetwork" "subnetwork" {
   enable_flow_logs         = lookup(each.value, "subnet_flow_logs", "false")
   network                  = google_compute_network.network.name
   project                  = var.project_id
-  secondary_ip_range       = [for i in range(length(contains(keys(var.secondary_ranges), each.value.subnet_name) == true ? var.secondary_ranges[each.value.subnet_name] : [])) : var.secondary_ranges[each.value.subnet_name][i]]
   description              = lookup(each.value, "description", null)
+  secondary_ip_range = [
+    for i in range(
+      length(
+        contains(
+        keys(var.secondary_ranges), each.value.subnet_name) == true
+        ? var.secondary_ranges[each.value.subnet_name]
+        : []
+    )) :
+    var.secondary_ranges[each.value.subnet_name][i]
+  ]
 }
 
 /******************************************
