@@ -7,7 +7,7 @@ Because v2.x changed how the subnet resource is iterated on, resources in Terraf
 
 ## Migration Instructions
 
--   Upgrade to the new version of this module.  
+-   Upgrade to the new version of this module.
 
 if you run `terraform plan` at this point. Terraform will inform you that it will attempt to delete and recreate your existing subnets. This is almost certainly not the behavior you want. For example:
 
