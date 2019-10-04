@@ -16,12 +16,46 @@
 # Output Terraform Commands to migrate to new subnet config
 set -e
 set -o pipefail
+CMD="terraform state"
+
+while (( "$#" )); do
+  # shellcheck disable=SC2221,SC2222
+  case "$1" in
+    -d|--dry-run)
+      DRY_RUN=true
+      shift 1
+      ;;
+    --) # end argument parsing
+      shift
+      break
+      ;;
+    -*|--*=) # unsupported flags
+      echo "Error: Unsupported flag $1" >&2
+      exit 1
+      ;;
+    *) # preserve positional arguments
+      PARAMS="$PARAMS $1"
+      shift
+      ;;
+  esac
+done
+
+eval set -- "$PARAMS"
+
+if [ ! -e "$(command -v terraform)" ]; then
+  echo "can not find terraform"
+  exit 1
+fi
 
 if [[ "$MODULE_NAME" ]]; then
-  NAME=$(terraform state list | grep "${MODULE_NAME}".google_compute_network.network  | sed 's/.google_compute_network.network//')
-  for x in $(terraform state list | grep "${NAME}".google_compute_subnetwork.subnetwork); do
-    ID=$(terraform state show "$x" | grep id | grep -v ip_cidr_range | awk '{ print $3 }'| tr -d '"')
-    echo "terraform state mv $x ${NAME}.google_compute_subnetwork.subnetwork[\\\"${ID}\\\"]"
+  NAME=$(${CMD} list | grep "${MODULE_NAME}".google_compute_network.network  | sed 's/.google_compute_network.network//')
+  for x in $($CMD list | grep "${NAME}".google_compute_subnetwork.subnetwork); do
+    ID=$(${CMD} show "$x" | grep id | grep -v ip_cidr_range | awk '{ print $3 }'| tr -d '"')
+    if [[ $DRY_RUN ]]; then
+      echo "${CMD} mv $x ${NAME}.google_compute_subnetwork.subnetwork[\\\"${ID}\\\"]"
+    else
+      ${CMD} mv "$x" "${NAME}".google_compute_subnetwork.subnetwork[\""${ID}"\"]
+    fi
   done
 else
   echo "MISSING MODULE_NAME: MODULE_NAME env var is required"

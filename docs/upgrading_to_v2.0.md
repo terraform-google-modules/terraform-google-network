@@ -93,7 +93,7 @@ can't guarantee that exactly these actions will be performed if
 
 ### Manual Migration Steps
 
-In this example here are the two commands used migrate the subnets created by the `simple_project` in the examples directory.  _please note the need to escape the quotes on the new resource_.
+In this example here are the two commands used migrate the subnets created by the `simple_project` in the examples directory.  _please note the need to escape the quotes on the new resource_. You may also use the migration script.
 
 -   `terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[0] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]`
 
@@ -132,7 +132,7 @@ actions need to be performed.
 2.  Run the script to output the migration commands:
 
     ```sh
-    $ MODULE_NAME="test-vpc-module" ./migrate.sh
+    $ MODULE_NAME="test-vpc-module" ./migrate.sh --dry-run
     terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[0] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]
     terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[1] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-02\"]
     ```
@@ -140,10 +140,9 @@ actions need to be performed.
 3.  Execute the migration command
 
     ```sh
-    $ terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[0] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]
+    $ MODULE_NAME="test-vpc-module" ./migrate.sh
     Move "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[0]" to "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]"
     Successfully moved 1 object(s).
-    $ terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[1] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-02\"]
     Move "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[1]" to "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-02\"]"
     Successfully moved 1 object(s).
     ```
