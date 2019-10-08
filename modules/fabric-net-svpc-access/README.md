@@ -5,7 +5,7 @@ This module allows configuring service project access to a Shared VPC, created w
 - attaching service projects to the Shared VPC host project
 - assigning IAM roles for each Shared VPC subnet
 
-Full details on service project configuration can be found in the Google Cloud documentation on *[Provisioning Shared VPC](https://cloud.google.com/vpc/docs/provisioning-shared-vpc)*, and to *[Setting up clusters with Shared VPC](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc)*. Details and use cases of using service accounts as role recipients for Shared VPC are in the *[Service accounts as project admins](https://cloud.google.com/vpc/docs/provisioning-shared-vpc#sa-as-spa)* section of the first document above. 
+Full details on service project configuration can be found in the Google Cloud documentation on *[Provisioning Shared VPC](https://cloud.google.com/vpc/docs/provisioning-shared-vpc)*, and to *[Setting up clusters with Shared VPC](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc)*. Details and use cases of using service accounts as role recipients for Shared VPC are in the *[Service accounts as project admins](https://cloud.google.com/vpc/docs/provisioning-shared-vpc#sa-as-spa)* section of the first document above.
 
 The resources created/managed by this module are:
 
