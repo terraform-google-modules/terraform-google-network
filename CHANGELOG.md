@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+## [1.2.1] - 2019-10-09
+
 ### Changed
 
 - Set default value for `next_hop_internet`. [#64]
