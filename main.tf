@@ -56,7 +56,7 @@ data "google_compute_subnetwork" "created_subnets" {
   name       = element(google_compute_subnetwork.subnetwork.*.name, count.index)
   region     = element(google_compute_subnetwork.subnetwork.*.region, count.index)
   project    = var.project_id
-  depends_on = ["google_compute_subnetwork.subnetwork"]
+  depends_on = [google_compute_subnetwork.subnetwork]
 }
 
 /******************************************
