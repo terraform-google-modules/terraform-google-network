@@ -65,3 +65,45 @@ variable "https_source_ranges" {
   description = "List of IP CIDR ranges for tag-based HTTPS rule, defaults to 0.0.0.0/0."
   default     = ["0.0.0.0/0"]
 }
+
+variable "ingress_rules" {
+  description = "List of ingress rule definitions."
+  type = map(object({
+    description   = string
+    source_ranges = list(string)
+    source_tags   = list(string)
+    # target is tags or service_accounts
+    target_type   = string
+    target_values = list(string)
+    allow = list(object({
+      protocol = string
+      ports    = list(string)
+    }))
+    deny = list(object({
+      protocol = string
+      ports    = list(string)
+    }))
+    extra_attributes = map(string)
+  }))
+}
+
+variable "egress_rules" {
+  description = "List of egress rule definitions."
+  type = map(object({
+    description   = string
+    source_ranges = list(string)
+    source_tags   = list(string)
+    # target is tags or service_accounts
+    target_type   = string
+    target_values = list(string)
+    allow = list(object({
+      protocol = string
+      ports    = list(string)
+    }))
+    deny = list(object({
+      protocol = string
+      ports    = list(string)
+    }))
+    extra_attributes = map(string)
+  }))
+}

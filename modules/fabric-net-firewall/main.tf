@@ -104,3 +104,72 @@ resource "google_compute_firewall" "allow-tag-https" {
     ports    = ["443"]
   }
 }
+
+################################################################################
+#                                dynamic rules                                 #
+################################################################################
+
+resource "google_compute_firewall" "ingress-dynamic" {
+  # provider                = "google-beta"
+  for_each                = var.ingress_rules
+  name                    = each.key
+  description             = each.value.description
+  direction               = "INGRESS"
+  network                 = var.network
+  project                 = var.project_id
+  source_ranges           = each.value.source_ranges
+  source_tags             = each.value.target_type == "service_accounts" ? null : each.value.source_tags
+  target_tags             = each.value.target_type == "tags" ? each.value.target_values : null
+  target_service_accounts = each.value.target_type == "service_accounts" ? each.value.target_values : null
+  disabled                = lookup(each.value.extra_attributes, "disabled", false)
+  priority                = lookup(each.value.extra_attributes, "priority", 1000)
+  # enable_logging          = lookup(each.value.extra_attributes, "enable_logging", false)
+
+  dynamic "allow" {
+    for_each = each.value.allow
+    content {
+      protocol = allow.value.protocol
+      ports    = allow.value.ports
+    }
+  }
+
+  dynamic "deny" {
+    for_each = each.value.deny
+    content {
+      protocol = deny.value.protocol
+      ports    = deny.value.ports
+    }
+  }
+}
+
+/* resource "google_compute_firewall" "egress-dynamic" {
+  for_each                = var.ingress_rules
+  name                    = each.key
+  description             = each.value.description
+  network                 = var.network
+  project                 = var.project_id
+  source_ranges           = each.value.source_ranges
+  target_tags             = each.value.target_type == "tags" ? each.value.target_values : null
+  target_service_accounts = each.value.target_type == "service_accounts" ? each.value.target_values : null
+  disabled                = lookup(each.value.extra_attributes, "disabled", false)
+  priority                = lookup(each.value.extra_attributes, "priority", 1000)
+  # logging needs the beta provider
+  # enable_logging          = lookup(each.value.extra_attributes, "enable_logging", false)
+
+  dynamic "allow" {
+    for_each = each.value.allow
+    content {
+      protocol = allow.value.protocol
+      ports    = allow.value.ports
+    }
+  }
+
+  dynamic "deny" {
+    for_each = each.value.deny
+    content {
+      protocol = deny.value.protocol
+      ports    = deny.value.ports
+    }
+  }
+}
+ */
