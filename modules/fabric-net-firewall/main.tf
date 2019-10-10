@@ -109,67 +109,39 @@ resource "google_compute_firewall" "allow-tag-https" {
 #                                dynamic rules                                 #
 ################################################################################
 
-resource "google_compute_firewall" "ingress-dynamic" {
+resource "google_compute_firewall" "dynamic" {
   # provider                = "google-beta"
-  for_each                = var.ingress_rules
+  for_each                = var.dynamic_rules
   name                    = each.key
   description             = each.value.description
-  direction               = "INGRESS"
+  direction               = each.value.direction
   network                 = var.network
   project                 = var.project_id
-  source_ranges           = each.value.source_ranges
-  source_tags             = each.value.target_type == "service_accounts" ? null : each.value.source_tags
-  target_tags             = each.value.target_type == "tags" ? each.value.target_values : null
-  target_service_accounts = each.value.target_type == "service_accounts" ? each.value.target_values : null
+  source_ranges           = each.value.direction == "INGRESS" ? each.value.ranges : null
+  destination_ranges      = each.value.direction == "EGRESS" ? each.value.ranges : null
+  source_tags             = each.value.use_service_accounts ? null : each.value.sources
+  target_tags             = each.value.use_service_accounts ? null : each.value.targets
+  source_service_accounts = each.value.use_service_accounts ? each.value.sources : null
+  target_service_accounts = each.value.use_service_accounts ? each.value.targets : null
   disabled                = lookup(each.value.extra_attributes, "disabled", false)
   priority                = lookup(each.value.extra_attributes, "priority", 1000)
   # enable_logging          = lookup(each.value.extra_attributes, "enable_logging", false)
 
   dynamic "allow" {
-    for_each = each.value.allow
+    for_each = [for rule in each.value.rules : rule if each.value.action == "allow"]
+    iterator = rule
     content {
-      protocol = allow.value.protocol
-      ports    = allow.value.ports
+      protocol = rule.value.protocol
+      ports    = rule.value.ports
     }
   }
 
   dynamic "deny" {
-    for_each = each.value.deny
+    for_each = [for rule in each.value.rules : rule if each.value.action == "deny"]
+    iterator = rule
     content {
-      protocol = deny.value.protocol
-      ports    = deny.value.ports
+      protocol = rule.value.protocol
+      ports    = rule.value.ports
     }
   }
 }
-
-/* resource "google_compute_firewall" "egress-dynamic" {
-  for_each                = var.ingress_rules
-  name                    = each.key
-  description             = each.value.description
-  network                 = var.network
-  project                 = var.project_id
-  source_ranges           = each.value.source_ranges
-  target_tags             = each.value.target_type == "tags" ? each.value.target_values : null
-  target_service_accounts = each.value.target_type == "service_accounts" ? each.value.target_values : null
-  disabled                = lookup(each.value.extra_attributes, "disabled", false)
-  priority                = lookup(each.value.extra_attributes, "priority", 1000)
-  # logging needs the beta provider
-  # enable_logging          = lookup(each.value.extra_attributes, "enable_logging", false)
-
-  dynamic "allow" {
-    for_each = each.value.allow
-    content {
-      protocol = allow.value.protocol
-      ports    = allow.value.ports
-    }
-  }
-
-  dynamic "deny" {
-    for_each = each.value.deny
-    content {
-      protocol = deny.value.protocol
-      ports    = deny.value.ports
-    }
-  }
-}
- */

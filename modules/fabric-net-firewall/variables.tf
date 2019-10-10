@@ -66,41 +66,17 @@ variable "https_source_ranges" {
   default     = ["0.0.0.0/0"]
 }
 
-variable "ingress_rules" {
-  description = "List of ingress rule definitions."
+variable "dynamic_rules" {
+  description = "List of dynamic rule definitions."
   type = map(object({
-    description   = string
-    source_ranges = list(string)
-    source_tags   = list(string)
-    # target is tags or service_accounts
-    target_type   = string
-    target_values = list(string)
-    allow = list(object({
-      protocol = string
-      ports    = list(string)
-    }))
-    deny = list(object({
-      protocol = string
-      ports    = list(string)
-    }))
-    extra_attributes = map(string)
-  }))
-}
-
-variable "egress_rules" {
-  description = "List of egress rule definitions."
-  type = map(object({
-    description   = string
-    source_ranges = list(string)
-    source_tags   = list(string)
-    # target is tags or service_accounts
-    target_type   = string
-    target_values = list(string)
-    allow = list(object({
-      protocol = string
-      ports    = list(string)
-    }))
-    deny = list(object({
+    description          = string
+    direction            = string
+    action               = string # (allow|deny)
+    ranges               = list(string)
+    sources              = list(string)
+    targets              = list(string)
+    use_service_accounts = bool
+    rules = list(object({
       protocol = string
       ports    = list(string)
     }))
