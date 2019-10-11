@@ -36,6 +36,7 @@ module "net-firewall" {
 |------|-------------|:----:|:-----:|:-----:|
 | admin\_ranges | IP CIDR ranges that have complete access to all subnets. | list | `<list>` | no |
 | admin\_ranges\_enabled | Enable admin ranges-based rules. | string | `"false"` | no |
+| custom\_rules | List of custom rule definitions (refer to variables file for syntax). | map | `<map>` | no |
 | http\_source\_ranges | List of IP CIDR ranges for tag-based HTTP rule, defaults to 0.0.0.0/0. | list | `<list>` | no |
 | https\_source\_ranges | List of IP CIDR ranges for tag-based HTTPS rule, defaults to 0.0.0.0/0. | list | `<list>` | no |
 | internal\_allow | Allow rules for internal ranges. | list | `<list>` | no |

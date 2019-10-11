@@ -67,7 +67,8 @@ variable "https_source_ranges" {
 }
 
 variable "custom_rules" {
-  description = "List of custom rule definitions."
+  description = "List of custom rule definitions (refer to variables file for syntax)."
+  default     = {}
   type = map(object({
     description          = string
     direction            = string
