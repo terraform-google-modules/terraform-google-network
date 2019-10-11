@@ -66,8 +66,8 @@ variable "https_source_ranges" {
   default     = ["0.0.0.0/0"]
 }
 
-variable "dynamic_rules" {
-  description = "List of dynamic rule definitions."
+variable "custom_rules" {
+  description = "List of custom rule definitions."
   type = map(object({
     description          = string
     direction            = string
