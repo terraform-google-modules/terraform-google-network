@@ -6,7 +6,7 @@ The HTTP and HTTPS rules use the same network tags that are assigned to instance
 
 All IP source ranges are configurable through variables, and are set by default to `0.0.0.0/0` for tag-based rules. Allowed protocols and/or ports for the intra-VPC rule are also configurable through a variable.
 
-Custom rules are set through a map where key is the rule name, and values must match this custom type:
+Custom rules are set through a map where keys are rule names, and values use this custom type:
 
 ```hcl
 map(object({
