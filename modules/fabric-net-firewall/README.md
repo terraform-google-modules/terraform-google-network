@@ -16,7 +16,7 @@ map(object({
   ranges               = list(string) # list of IP CIDR ranges
   sources              = list(string) # tags or SAs (ignored for EGRESS)
   targets              = list(string) # tags or SAs
-  use_service_accounts = bool         # defaults to false
+  use_service_accounts = bool         # use tags or SAs in sources/targets
   rules = list(object({
     protocol = string
     ports    = list(string)
