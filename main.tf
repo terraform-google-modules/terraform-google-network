@@ -54,6 +54,7 @@ resource "google_compute_subnetwork" "subnetwork" {
   network                  = google_compute_network.network.name
   project                  = var.project_id
   description              = lookup(each.value, "description", null)
+  depends_on               = [google_compute_subnetwork.subnetwork]
   secondary_ip_range = [
     for i in range(
       length(
