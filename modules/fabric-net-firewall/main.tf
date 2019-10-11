@@ -121,7 +121,7 @@ resource "google_compute_firewall" "custom" {
   destination_ranges      = each.value.direction == "EGRESS" ? each.value.ranges : null
   source_tags             = each.value.use_service_accounts || each.value.direction == "EGRESS" ? null : each.value.sources
   target_tags             = each.value.use_service_accounts ? null : each.value.targets
-  source_service_accounts = each.value.use_service_accounts ? each.value.sources : null
+  source_service_accounts = each.value.use_service_accounts && each.value.direction == "INGRESS" ? each.value.sources : null
   target_service_accounts = each.value.use_service_accounts ? each.value.targets : null
   disabled                = lookup(each.value.extra_attributes, "disabled", false)
   priority                = lookup(each.value.extra_attributes, "priority", 1000)
