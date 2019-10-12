@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+## [1.4.0] - 2019-10-14
+
+### Added
+
+- Add dynamic firewall rules support to firewall submodule. [#79]
+
+### Fixed
+
+- Add `depends_on` to `created_subnets` data fetch (fixes issue [#80]). [#81]
+
 ## [1.3.0] - 2019-10-09
 
 ### Changed
@@ -113,6 +123,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Secondary ranges for the subnets (if applicable)
 
 [Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.3.0...HEAD
+[1.4.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.0.0...v1.1.0
@@ -126,6 +137,10 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 
+[#81]: https://github.com/terraform-google-modules/terraform-google-network/pull/81
+[#80]: https://github.com/terraform-google-modules/terraform-google-network/issues/80
+[#79]: https://github.com/terraform-google-modules/terraform-google-network/pull/79
+[#72]: https://github.com/terraform-google-modules/terraform-google-network/pull/72
 [#64]: https://github.com/terraform-google-modules/terraform-google-network/pull/64
 [#66]: https://github.com/terraform-google-modules/terraform-google-network/pull/66
 [#16]: https://github.com/terraform-google-modules/terraform-google-network/pull/16
