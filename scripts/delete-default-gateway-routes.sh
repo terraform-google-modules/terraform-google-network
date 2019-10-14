@@ -36,6 +36,9 @@ function delete_internet_gateway_routes {
   done
 }
 
+if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
 
 if [ -n "${FILTERED_ROUTES}" ]; then
   delete_internet_gateway_routes "${FILTERED_ROUTES}"
