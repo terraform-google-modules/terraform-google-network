@@ -16,6 +16,10 @@
 
 set -e
 
+if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
+fi
+
 PROJECT_ID=$1
 NETWORK_ID=$2
 FILTERED_ROUTES=$(gcloud compute routes list \
@@ -35,10 +39,6 @@ function delete_internet_gateway_routes {
     gcloud compute routes delete "${line}" --quiet --project="${PROJECT_ID}"
   done
 }
-
-if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
-  gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
-fi
 
 if [ -n "${FILTERED_ROUTES}" ]; then
   delete_internet_gateway_routes "${FILTERED_ROUTES}"
