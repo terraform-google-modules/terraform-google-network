@@ -47,8 +47,9 @@ if [ ! -e "$(command -v terraform)" ]; then
   exit 1
 fi
 
-if [[ "$MODULE_NAME" ]]; then
-  NAME=$(${CMD} list | grep "${MODULE_NAME}".google_compute_network.network  | sed 's/.google_compute_network.network//')
+MODULES=$(${CMD} list | grep google_compute_network.network)
+for module in $MODULES; do
+  NAME=$(sed 's/.google_compute_network.network//' <<<"${module}")
   for x in $($CMD list | grep "${NAME}".google_compute_subnetwork.subnetwork); do
     ID=$(${CMD} show "$x" | grep id | grep -v ip_cidr_range | awk '{ print $3 }'| tr -d '"')
     if [[ $DRY_RUN ]]; then
@@ -57,7 +58,4 @@ if [[ "$MODULE_NAME" ]]; then
       ${CMD} mv "$x" "${NAME}".google_compute_subnetwork.subnetwork[\""${ID}"\"]
     fi
   done
-else
-  echo "MISSING MODULE_NAME: MODULE_NAME env var is required"
-  exit 1
-fi
+done

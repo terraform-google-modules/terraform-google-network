@@ -125,14 +125,14 @@ actions need to be performed.
 1.  Download the script
 
     ```sh
-    curl -O https://raw.githubusercontent.com/terraform-google-modules/terraform-google-network/master/scripts/migrate.sh
+    curl -O https://raw.githubusercontent.com/terraform-google-modules/terraform-google-network/master/helpers/migrate.sh
     chmod +x migrate.sh
     ```
 
 2.  Run the script to output the migration commands:
 
     ```sh
-    $ MODULE_NAME="test-vpc-module" ./migrate.sh --dry-run
+    $  ./migrate.sh --dry-run
     terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[0] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]
     terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[1] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-02\"]
     ```
@@ -140,7 +140,7 @@ actions need to be performed.
 3.  Execute the migration command
 
     ```sh
-    $ MODULE_NAME="test-vpc-module" ./migrate.sh
+    $ ./migrate.sh
     Move "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[0]" to "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]"
     Successfully moved 1 object(s).
     Move "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[1]" to "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-02\"]"
