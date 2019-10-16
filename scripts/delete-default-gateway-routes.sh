@@ -16,6 +16,10 @@
 
 set -e
 
+if [ -n "${GOOGLE_APPLICATION_CREDENTIALS}" ]; then
+  CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=${GOOGLE_APPLICATION_CREDENTIALS}
+fi
+
 PROJECT_ID=$1
 NETWORK_ID=$2
 FILTERED_ROUTES=$(gcloud compute routes list \
@@ -35,7 +39,6 @@ function delete_internet_gateway_routes {
     gcloud compute routes delete "${line}" --quiet --project="${PROJECT_ID}"
   done
 }
-
 
 if [ -n "${FILTERED_ROUTES}" ]; then
   delete_internet_gateway_routes "${FILTERED_ROUTES}"
