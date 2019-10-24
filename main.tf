@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+locals {
+  subnets = {
+    for x in var.subnets :
+    "${x.subnet_region}/${x.subnet_name}" => x
+  }
+}
+
 /******************************************
 	VPC configuration
  *****************************************/
@@ -38,25 +45,25 @@ resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
 	Subnet configuration
  *****************************************/
 resource "google_compute_subnetwork" "subnetwork" {
-  count = length(var.subnets)
-
-  name                     = var.subnets[count.index]["subnet_name"]
-  ip_cidr_range            = var.subnets[count.index]["subnet_ip"]
-  region                   = var.subnets[count.index]["subnet_region"]
-  private_ip_google_access = lookup(var.subnets[count.index], "subnet_private_access", "false")
-  enable_flow_logs         = lookup(var.subnets[count.index], "subnet_flow_logs", "false")
+  for_each                 = local.subnets
+  name                     = each.value.subnet_name
+  ip_cidr_range            = each.value.subnet_ip
+  region                   = each.value.subnet_region
+  private_ip_google_access = lookup(each.value, "subnet_private_access", "false")
+  enable_flow_logs         = lookup(each.value, "subnet_flow_logs", "false")
   network                  = google_compute_network.network.name
   project                  = var.project_id
-  secondary_ip_range       = [for i in range(length(contains(keys(var.secondary_ranges), var.subnets[count.index]["subnet_name"]) == true ? var.secondary_ranges[var.subnets[count.index]["subnet_name"]] : [])) : var.secondary_ranges[var.subnets[count.index]["subnet_name"]][i]]
-  description              = lookup(var.subnets[count.index], "description", null)
-}
-
-data "google_compute_subnetwork" "created_subnets" {
-  count      = length(var.subnets)
-  name       = element(google_compute_subnetwork.subnetwork.*.name, count.index)
-  region     = element(google_compute_subnetwork.subnetwork.*.region, count.index)
-  project    = var.project_id
-  depends_on = [google_compute_subnetwork.subnetwork]
+  description              = lookup(each.value, "description", null)
+  secondary_ip_range = [
+    for i in range(
+      length(
+        contains(
+        keys(var.secondary_ranges), each.value.subnet_name) == true
+        ? var.secondary_ranges[each.value.subnet_name]
+        : []
+    )) :
+    var.secondary_ranges[each.value.subnet_name][i]
+  ]
 }
 
 /******************************************

@@ -24,6 +24,11 @@ output "network_self_link" {
   description = "The URI of the VPC being created"
 }
 
+output "svpc_host_project_id" {
+  value       = module.vpc-secondary-ranges.svpc_host_project_id
+  description = "Shared VPC host project id."
+}
+
 output "subnets_names" {
   value       = module.vpc-secondary-ranges.subnets_names
   description = "The names of the subnets being created"
