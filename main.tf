@@ -37,8 +37,7 @@ data "google_compute_network" "network" {
  *****************************************/
 resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
   count      = var.shared_vpc_host == "true" ? 1 : 0
-  project    = var.project_id
-  depends_on = [data.google_compute_network.network]
+  project    = data.google_compute_network.network.project
 }
 
 /******************************************
@@ -56,6 +55,7 @@ resource "google_compute_subnetwork" "subnetwork" {
   project                  = var.project_id
   secondary_ip_range       = [for i in range(length(contains(keys(var.secondary_ranges), var.subnets[count.index]["subnet_name"]) == true ? var.secondary_ranges[var.subnets[count.index]["subnet_name"]] : [])) : var.secondary_ranges[var.subnets[count.index]["subnet_name"]][i]]
   description              = lookup(var.subnets[count.index], "description", null)
+  depends_on               = [google_compute_network.network]
 }
 
 data "google_compute_subnetwork" "created_subnets" {
@@ -101,7 +101,7 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
   }
 
   depends_on = [
-    data.google_compute_network.network,
+    google_compute_network.network,
     google_compute_subnetwork.subnetwork,
     google_compute_route.route,
   ]
