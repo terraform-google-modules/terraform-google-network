@@ -36,8 +36,8 @@ data "google_compute_network" "network" {
 	Shared VPC
  *****************************************/
 resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
-  count      = var.shared_vpc_host == "true" ? 1 : 0
-  project    = data.google_compute_network.network.project
+  count   = var.shared_vpc_host == "true" ? 1 : 0
+  project = data.google_compute_network.network.project
 }
 
 /******************************************
