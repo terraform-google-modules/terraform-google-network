@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+### Added
+
+- Made network creation optional in root module. [#88]
+
 ## [1.4.0] - 2019-10-14
 
 ### Added
@@ -137,6 +141,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 
+[#88]: https://github.com/terraform-google-modules/terraform-google-network/issues/88
 [#81]: https://github.com/terraform-google-modules/terraform-google-network/pull/81
 [#80]: https://github.com/terraform-google-modules/terraform-google-network/issues/80
 [#79]: https://github.com/terraform-google-modules/terraform-google-network/pull/79
