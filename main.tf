@@ -18,6 +18,7 @@
 	VPC configuration
  *****************************************/
 resource "google_compute_network" "network" {
+  count                   = var.create_network == "true" ? 1 : 0
   name                    = var.network_name
   auto_create_subnetworks = var.auto_create_subnetworks
   routing_mode            = var.routing_mode
@@ -25,13 +26,18 @@ resource "google_compute_network" "network" {
   description             = var.description
 }
 
+data "google_compute_network" "network" {
+  name       = var.network_name
+  project    = var.project_id
+  depends_on = [google_compute_network.network]
+}
+
 /******************************************
 	Shared VPC
  *****************************************/
 resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
-  count      = var.shared_vpc_host == "true" ? 1 : 0
-  project    = var.project_id
-  depends_on = [google_compute_network.network]
+  count   = var.shared_vpc_host == "true" ? 1 : 0
+  project = data.google_compute_network.network.project
 }
 
 /******************************************
@@ -45,16 +51,19 @@ resource "google_compute_subnetwork" "subnetwork" {
   region                   = var.subnets[count.index]["subnet_region"]
   private_ip_google_access = lookup(var.subnets[count.index], "subnet_private_access", "false")
   enable_flow_logs         = lookup(var.subnets[count.index], "subnet_flow_logs", "false")
-  network                  = google_compute_network.network.name
+  network                  = data.google_compute_network.network.name
   project                  = var.project_id
   secondary_ip_range       = [for i in range(length(contains(keys(var.secondary_ranges), var.subnets[count.index]["subnet_name"]) == true ? var.secondary_ranges[var.subnets[count.index]["subnet_name"]] : [])) : var.secondary_ranges[var.subnets[count.index]["subnet_name"]][i]]
+  description              = lookup(var.subnets[count.index], "description", null)
+  depends_on               = [google_compute_network.network]
 }
 
 data "google_compute_subnetwork" "created_subnets" {
-  count   = length(var.subnets)
-  name    = element(google_compute_subnetwork.subnetwork.*.name, count.index)
-  region  = element(google_compute_subnetwork.subnetwork.*.region, count.index)
-  project = var.project_id
+  count      = length(var.subnets)
+  name       = element(google_compute_subnetwork.subnetwork.*.name, count.index)
+  region     = element(google_compute_subnetwork.subnetwork.*.region, count.index)
+  project    = var.project_id
+  depends_on = [google_compute_subnetwork.subnetwork]
 }
 
 /******************************************
@@ -63,12 +72,12 @@ data "google_compute_subnetwork" "created_subnets" {
 resource "google_compute_route" "route" {
   count                  = length(var.routes)
   project                = var.project_id
-  network                = var.network_name
+  network                = data.google_compute_network.network.name
   name                   = lookup(var.routes[count.index], "name", format("%s-%s-%d", lower(var.network_name), "route", count.index))
   description            = lookup(var.routes[count.index], "description", "")
   tags                   = compact(split(",", lookup(var.routes[count.index], "tags", "")))
   dest_range             = lookup(var.routes[count.index], "destination_range", "")
-  next_hop_gateway       = lookup(var.routes[count.index], "next_hop_internet", "") == "true" ? "default-internet-gateway" : ""
+  next_hop_gateway       = lookup(var.routes[count.index], "next_hop_internet", "false") == "true" ? "default-internet-gateway" : ""
   next_hop_ip            = lookup(var.routes[count.index], "next_hop_ip", "")
   next_hop_instance      = lookup(var.routes[count.index], "next_hop_instance", "")
   next_hop_instance_zone = lookup(var.routes[count.index], "next_hop_instance_zone", "")
@@ -76,7 +85,6 @@ resource "google_compute_route" "route" {
   priority               = lookup(var.routes[count.index], "priority", "1000")
 
   depends_on = [
-    google_compute_network.network,
     google_compute_subnetwork.subnetwork,
   ]
 }
@@ -98,4 +106,3 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
     google_compute_route.route,
   ]
 }
-

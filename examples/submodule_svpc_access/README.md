@@ -17,8 +17,8 @@ Subnet-level access in this example is only granted to the default GCE service a
 |------|-------------|:----:|:-----:|:-----:|
 | host\_project\_id | Id of the host project where the shared VPC will be created. | string | n/a | yes |
 | network\_name | Name of the shared VPC. | string | `"test-svpc"` | no |
-| service\_project\_id\_full\_access | Id of the service project that will get VPC-level access. | string | n/a | yes |
-| service\_project\_number\_first\_subnet | Project number to derive service accounts with access to first subnet. | string | n/a | yes |
-| service\_project\_number\_multi\_subnet | Project number to derive service accounts with access to first and second subnet. | string | n/a | yes |
+| service\_project\_id | Service project id. | string | n/a | yes |
+| service\_project\_number | Service project number. | string | n/a | yes |
+| service\_project\_owners | Service project owners, in IAM format. | list | `<list>` | no |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

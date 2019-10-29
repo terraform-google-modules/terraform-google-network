@@ -7,9 +7,39 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+### Added
+
+- Made network creation optional in root module. [#88]
+
+## [1.4.0] - 2019-10-14
+
+### Added
+
+- Add dynamic firewall rules support to firewall submodule. [#79]
+
 ### Fixed
 
-- Made setting `secondary_ranges` optional. [#16] 
+- Add `depends_on` to `created_subnets` data fetch (fixes issue [#80]). [#81]
+
+## [1.3.0] - 2019-10-09
+
+### Changed
+
+- Set default value for `next_hop_internet`. [#64]
+
+### Added
+
+- Add host service agent role management to Shared VPC submodule [#72]
+
+## [1.2.0] - 2019-09-18
+
+### Added
+
+- Added `description` variable for subnets. [#66]
+
+### Fixed
+
+- Made setting `secondary_ranges` optional. [#16]
 
 ## [1.1.0] - 2019-07-24
 
@@ -96,7 +126,10 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
-[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.8.0...v1.0.0
 [0.8.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.7.0...v0.8.0
@@ -108,6 +141,13 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 
+[#88]: https://github.com/terraform-google-modules/terraform-google-network/issues/88
+[#81]: https://github.com/terraform-google-modules/terraform-google-network/pull/81
+[#80]: https://github.com/terraform-google-modules/terraform-google-network/issues/80
+[#79]: https://github.com/terraform-google-modules/terraform-google-network/pull/79
+[#72]: https://github.com/terraform-google-modules/terraform-google-network/pull/72
+[#64]: https://github.com/terraform-google-modules/terraform-google-network/pull/64
+[#66]: https://github.com/terraform-google-modules/terraform-google-network/pull/66
 [#16]: https://github.com/terraform-google-modules/terraform-google-network/pull/16
 [#57]: https://github.com/terraform-google-modules/terraform-google-network/pull/57
 [#47]: https://github.com/terraform-google-modules/terraform-google-network/pull/47

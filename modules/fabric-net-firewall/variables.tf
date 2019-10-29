@@ -65,3 +65,22 @@ variable "https_source_ranges" {
   description = "List of IP CIDR ranges for tag-based HTTPS rule, defaults to 0.0.0.0/0."
   default     = ["0.0.0.0/0"]
 }
+
+variable "custom_rules" {
+  description = "List of custom rule definitions (refer to variables file for syntax)."
+  default     = {}
+  type = map(object({
+    description          = string
+    direction            = string
+    action               = string # (allow|deny)
+    ranges               = list(string)
+    sources              = list(string)
+    targets              = list(string)
+    use_service_accounts = bool
+    rules = list(object({
+      protocol = string
+      ports    = list(string)
+    }))
+    extra_attributes = map(string)
+  }))
+}

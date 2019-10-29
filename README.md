@@ -36,6 +36,7 @@ module "vpc" {
             subnet_region         = "us-west1"
             subnet_private_access = "true"
             subnet_flow_logs      = "true"
+            description           = "This subnet has a description"
         },
     ]
 
@@ -83,6 +84,7 @@ Then perform the following commands on the root folder:
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
 | auto\_create\_subnetworks | When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources. | bool | `"false"` | no |
+| create\_network | Specify whether to create a new network or just assume it already exists. | string | `"true"` | no |
 | delete\_default\_internet\_gateway\_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | string | `"false"` | no |
 | description | An optional description of this resource. The resource must be recreated to modify this field. | string | `""` | no |
 | network\_name | The name of the network being created | string | n/a | yes |
@@ -116,27 +118,27 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| subnet_name | The name of the subnet being created  | string | - | yes |
-| subnet_ip | The IP and CIDR range of the subnet being created | string | - | yes |
-| subnet_region | The region where the subnet will be created  | string | - | yes |
-| subnet_private_access | Whether this subnet will have private Google access enabled | string | false | no |
-| subnet_flow_logs  | Whether the subnet will record and send flow log data to logging | string | false | no |
+| subnet\_name | The name of the subnet being created  | string | - | yes |
+| subnet\_ip | The IP and CIDR range of the subnet being created | string | - | yes |
+| subnet\_region | The region where the subnet will be created  | string | - | yes |
+| subnet\_private\_access | Whether this subnet will have private Google access enabled | string | `"false"` | no |
+| subnet\_flow\_logs  | Whether the subnet will record and send flow log data to logging | string | `"false"` | no |
 
 ### Route Inputs
-The routes list contains maps, where each object represents a route. For the next_hop_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each map has the following inputs (please see examples folder for additional references):
+The routes list contains maps, where each object represents a route. For the next\_hop\_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each map has the following inputs (please see examples folder for additional references):
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
 | name | The name of the route being created  | string | - | no |
 | description | The description of the route being created | string | - | no |
 | tags | The network tags assigned to this route. This is a list in string format. Eg. "tag-01,tag-02"| string | - | yes |
-| destination_range | The destination range of outgoing packets that this route applies to. Only IPv4 is supported | string | - | yes
-| next_hop_internet | Whether the next hop to this route will the default internet gateway. Use "true" to enable this as next hop | string | - | yes |
-| next_hop_ip | Network IP address of an instance that should handle matching packets | string | - | yes |
-| next_hop_instance |  URL or name of an instance that should handle matching packets. If just name is specified "next_hop_instance_zone" is required | string | - | yes |
-| next_hop_instance_zone |  The zone of the instance specified in next_hop_instance. Only required if next_hop_instance is specified as a name | string | - | no |
-| next_hop_vpn_tunnel | URL to a VpnTunnel that should handle matching packets | string | - | yes |
-| priority | The priority of this route. Priority is used to break ties in cases where there is more than one matching route of equal prefix length. In the case of two routes with equal prefix length, the one with the lowest-numbered priority value wins | string | 1000 | yes |
+| destination\_range | The destination range of outgoing packets that this route applies to. Only IPv4 is supported | string | - | yes
+| next\_hop\_internet | Whether the next hop to this route will the default internet gateway. Use "true" to enable this as next hop | string | `"false"` | yes |
+| next\_hop\_ip | Network IP address of an instance that should handle matching packets | string | - | yes |
+| next\_hop\_instance |  URL or name of an instance that should handle matching packets. If just name is specified "next\_hop\_instance\_zone" is required | string | - | yes |
+| next\_hop\_instance\_zone |  The zone of the instance specified in next\_hop\_instance. Only required if next\_hop\_instance is specified as a name | string | - | no |
+| next\_hop\_vpn\_tunnel | URL to a VpnTunnel that should handle matching packets | string | - | yes |
+| priority | The priority of this route. Priority is used to break ties in cases where there is more than one matching route of equal prefix length. In the case of two routes with equal prefix length, the one with the lowest-numbered priority value wins | string | `"1000"` | yes |
 
 ## Requirements
 ### Installed Software
