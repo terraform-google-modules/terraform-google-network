@@ -42,7 +42,7 @@ docker_test_prepare:
 
 # Clean up test environment within the docker container
 .PHONY: docker_test_cleanup
-docker_test_prepare:
+docker_test_cleanup:
 	docker run --rm -it \
 		-e SERVICE_ACCOUNT_JSON \
 		-e TF_VAR_org_id \
