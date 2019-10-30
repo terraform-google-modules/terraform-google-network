@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+## [1.4.2] - 2019-10-30
+
+### Fixed
+
+- The outputs `network_name`, `network_self_link`, and
+  `subnets_secondary_ranges` depend on resource attributes rather than
+  data source attributes when `create_network` = `true`. [#94]
+
 ## [1.4.1] - 2019-10-29
 
 ### Added
@@ -132,7 +140,8 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
-[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.2.0...v1.3.0
@@ -148,6 +157,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 
+[#94]: https://github.com/terraform-google-modules/terraform-google-network/pull/94
 [#92]: https://github.com/terraform-google-modules/terraform-google-network/issues/92
 [#88]: https://github.com/terraform-google-modules/terraform-google-network/issues/88
 [#81]: https://github.com/terraform-google-modules/terraform-google-network/pull/81
