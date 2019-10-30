@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+## [1.4.1] - 2019-10-29
+
 ### Added
 
 - Made network creation optional in root module. [#88]
+
+### Fixed
+
+- Fixed issue with depending on outputs introduced in 1.4.0. [#92]
 
 ## [1.4.0] - 2019-10-14
 
@@ -126,7 +132,8 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
-[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.1.0...v1.2.0
@@ -141,6 +148,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 
+[#92]: https://github.com/terraform-google-modules/terraform-google-network/issues/92
 [#88]: https://github.com/terraform-google-modules/terraform-google-network/issues/88
 [#81]: https://github.com/terraform-google-modules/terraform-google-network/pull/81
 [#80]: https://github.com/terraform-google-modules/terraform-google-network/issues/80
