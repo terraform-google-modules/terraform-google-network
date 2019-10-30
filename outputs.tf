@@ -15,12 +15,12 @@
  */
 
 output "network_name" {
-  value       = var.create_network ? google_compute_network.network.name : data.google_compute_network.network.name
+  value       = var.create_network ? google_compute_network.network[0].name : data.google_compute_network.network.name
   description = "The name of the VPC being created"
 }
 
 output "network_self_link" {
-  value       = var.create_network ? google_compute_network.network.self_link : data.google_compute_network.network.self_link
+  value       = var.create_network ? google_compute_network.network[0].self_link : data.google_compute_network.network.self_link
   description = "The URI of the VPC being created"
 }
 
