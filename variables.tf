@@ -19,8 +19,8 @@ variable "project_id" {
 }
 
 variable "create_network" {
-  type        = string
-  default     = "true"
+  type        = bool
+  default     = true
   description = "Specify whether to create a new network or just assume it already exists."
 }
 
