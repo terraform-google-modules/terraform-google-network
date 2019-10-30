@@ -15,12 +15,12 @@
  */
 
 output "network_name" {
-  value       = data.google_compute_network.network.name
+  value       = var.create_network ? google_compute_network.network.name : data.google_compute_network.network.name
   description = "The name of the VPC being created"
 }
 
 output "network_self_link" {
-  value       = data.google_compute_network.network.self_link
+  value       = var.create_network ? google_compute_network.network.self_link : data.google_compute_network.network.self_link
   description = "The URI of the VPC being created"
 }
 
@@ -60,7 +60,7 @@ output "subnets_flow_logs" {
 }
 
 output "subnets_secondary_ranges" {
-  value       = data.google_compute_subnetwork.created_subnets.*.secondary_ip_range
+  value       = google_compute_subnetwork.subnetwork[*].secondary_ip_range
   description = "The secondary ranges associated with these subnets"
 }
 
@@ -68,4 +68,3 @@ output "routes" {
   value       = google_compute_route.route.*.name
   description = "The routes associated with this VPC"
 }
-
