@@ -160,3 +160,8 @@ If you are going to manage a Shared VPC, you must have either:
 In order to operate with the Service Account you must activate the following API on the project where the Service Account was created:
 
 - Compute Engine API - compute.googleapis.com
+
+## Contributing
+
+Refer to the [contribution guidelines](./CONTRIBUTING.md) for
+information on contributing to this module.
