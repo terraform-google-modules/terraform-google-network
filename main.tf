@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+locals {
+  network_self_link = var.create_network ? google_compute_network.network[0].self_link : data.google_compute_network.network[0].self_link
+  network_name      = var.create_network ? google_compute_network.network[0].name : data.google_compute_network.network[0].name
+}
+
 /******************************************
 	VPC configuration
  *****************************************/
@@ -27,9 +32,9 @@ resource "google_compute_network" "network" {
 }
 
 data "google_compute_network" "network" {
-  name       = var.network_name
-  project    = var.project_id
-  depends_on = [google_compute_network.network]
+  count   = var.create_network ? 0 : 1
+  name    = var.network_name
+  project = var.project_id
 }
 
 /******************************************
@@ -37,7 +42,7 @@ data "google_compute_network" "network" {
  *****************************************/
 resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
   count   = var.shared_vpc_host == "true" ? 1 : 0
-  project = data.google_compute_network.network.project
+  project = var.project_id
 }
 
 /******************************************
@@ -51,7 +56,7 @@ resource "google_compute_subnetwork" "subnetwork" {
   region                   = var.subnets[count.index]["subnet_region"]
   private_ip_google_access = lookup(var.subnets[count.index], "subnet_private_access", "false")
   enable_flow_logs         = lookup(var.subnets[count.index], "subnet_flow_logs", "false")
-  network                  = data.google_compute_network.network.name
+  network                  = local.network_self_link
   project                  = var.project_id
   secondary_ip_range       = [for i in range(length(contains(keys(var.secondary_ranges), var.subnets[count.index]["subnet_name"]) == true ? var.secondary_ranges[var.subnets[count.index]["subnet_name"]] : [])) : var.secondary_ranges[var.subnets[count.index]["subnet_name"]][i]]
   description              = lookup(var.subnets[count.index], "description", null)
@@ -71,8 +76,8 @@ data "google_compute_subnetwork" "created_subnets" {
 resource "google_compute_route" "route" {
   count                  = length(var.routes)
   project                = var.project_id
-  network                = data.google_compute_network.network.name
-  name                   = lookup(var.routes[count.index], "name", format("%s-%s-%d", lower(var.network_name), "route", count.index))
+  network                = local.network_name
+  name                   = lookup(var.routes[count.index], "name", format("%s-%s-%d", lower(local.network_name), "route", count.index))
   description            = lookup(var.routes[count.index], "description", "")
   tags                   = compact(split(",", lookup(var.routes[count.index], "tags", "")))
   dest_range             = lookup(var.routes[count.index], "destination_range", "")
@@ -92,7 +97,7 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
   count = var.delete_default_internet_gateway_routes ? 1 : 0
 
   provisioner "local-exec" {
-    command = "${path.module}/scripts/delete-default-gateway-routes.sh ${var.project_id} ${var.network_name}"
+    command = "${path.module}/scripts/delete-default-gateway-routes.sh ${var.project_id} ${local.network_name}"
   }
 
   triggers = {

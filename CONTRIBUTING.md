@@ -1,137 +1,99 @@
-## File structure
-The project has the following folders and files:
+# Contributing
 
-- /: root folder
-- /examples: examples for using this module
-- /test: Folders with files for testing the module (see Testing section on this file)
-- /main.tf: main file for this module, contains all the resources to create
-- /variables.tf: all the variables for the module
-- /output.tf: the outputs of the module
-- /README.md: this file
+This document provides guidelines for contributing to the module.
 
-## Testing and documentation generation
+## Dependencies
 
-### Requirements
-- [docker](https://docker.com/)
+The following dependencies must be installed on the development system:
 
-### Integration testing
-##### Terraform integration tests
+- [Docker Engine][docker-engine]
+- [Google Cloud SDK][google-cloud-sdk]
+- [make]
 
-The module's integration tests are designed to be run within a Docker
-container containing all the dependencies required for testing. The
-`docker_test_integration` make target wraps this behavior but requires the
-following configuration to execute properly:
+## Generating Documentation for Inputs and Outputs
 
-- Configure a service account with the roles documented above and export the JSON key to the `SERVICE_ACCOUNT_JSON` environment variable
+The Inputs and Outputs tables in the READMEs of the root module,
+submodules, and example modules are automatically generated based on
+the `variables` and `outputs` of the respective modules. These tables
+must be refreshed if the module interfaces are changed.
 
-        export SERVICE_ACCOUNT_JSON=$(< /path/to/credentials.json)
+### Execution
 
-- Create `test/fixtures/shared/terraform.tfvars` and populate with the required Terraform input variables (see `test/fixtures/shared/terraform.tfvars.sample` for more information)
+Run `make generate_docs` to generate new Inputs and Outputs tables.
 
-Once those steps have been completed run `make docker_test_integration` from
-the root of the repository to execute the tests within the `project_id`
-provided. Infrastructure from `test/fixtures/*` will be provisioned,
-integration tests from `test/integration/*` will be executed, and the
-infrastructure will be deprovisioned to complete the process.
+## Integration Testing
 
-### Autogeneration of documentation from .tf files
-Run
-```
-make generate_docs
-```
+Integration tests are used to verify the behaviour of the root module,
+submodules, and example modules. Additions, changes, and fixes should
+be accompanied with tests.
 
-### Lint testing
+The integration tests are run using [Kitchen][kitchen],
+[Kitchen-Terraform][kitchen-terraform], and [InSpec][inspec]. These
+tools are packaged within a Docker image for convenience.
 
-Lint testing is also performed within a Docker container containing all the
-dependencies required for lint tests. Execute those tests by running `make
-docker_test_lint` from the root of the repository.
+The general strategy for these tests is to verify the behaviour of the
+[example modules](./examples/), thus ensuring that the root module,
+submodules, and example modules are all functionally correct.
 
-Successful output looks similar to the following:
+### Test Environment
+The easiest way to test the module is in an isolated test project. The setup for such a project is defined in [test/setup](./test/setup/) directory.
+
+To use this setup, you need a service account with Project Creator access on a folder. Export the Service Account credentials to your environment like so:
 
 ```
-Checking for trailing whitespace
-Checking for missing newline at end of file
-Running shellcheck
-Checking file headers
-Running flake8
-Running terraform fmt
-terraform fmt -diff -check=true -write=false .
-terraform fmt -diff -check=true -write=false ./codelabs/simple
-terraform fmt -diff -check=true -write=false ./examples/delete_default_gateway_routes
-terraform fmt -diff -check=true -write=false ./examples/multi_vpc
-terraform fmt -diff -check=true -write=false ./examples/secondary_ranges
-terraform fmt -diff -check=true -write=false ./examples/simple_project
-terraform fmt -diff -check=true -write=false ./examples/simple_project_with_regional_network
-terraform fmt -diff -check=true -write=false ./examples/submodule_firewall
-terraform fmt -diff -check=true -write=false ./examples/submodule_svpc_access
-terraform fmt -diff -check=true -write=false ./modules/fabric-net-firewall
-terraform fmt -diff -check=true -write=false ./modules/fabric-net-svpc-access
-terraform fmt -diff -check=true -write=false ./test/fixtures/all_examples
-terraform fmt -diff -check=true -write=false ./test/fixtures/delete_default_gateway_routes
-terraform fmt -diff -check=true -write=false ./test/fixtures/multi_vpc
-terraform fmt -diff -check=true -write=false ./test/fixtures/secondary_ranges
-terraform fmt -diff -check=true -write=false ./test/fixtures/shared
-terraform fmt -diff -check=true -write=false ./test/fixtures/simple_project
-terraform fmt -diff -check=true -write=false ./test/fixtures/simple_project_with_regional_network
-terraform fmt -diff -check=true -write=false ./test/fixtures/simulated_ci_environment
-terraform fmt -diff -check=true -write=false ./test/fixtures/submodule_firewall
-Running terraform validate
-terraform_validate .
-Success! The configuration is valid.
-
-terraform_validate ./codelabs/simple
-Success! The configuration is valid.
-
-terraform_validate ./examples/delete_default_gateway_routes
-Success! The configuration is valid.
-
-terraform_validate ./examples/multi_vpc
-Success! The configuration is valid.
-
-terraform_validate ./examples/secondary_ranges
-Success! The configuration is valid.
-
-terraform_validate ./examples/simple_project
-Success! The configuration is valid.
-
-terraform_validate ./examples/simple_project_with_regional_network
-Success! The configuration is valid.
-
-terraform_validate ./examples/submodule_firewall
-Success! The configuration is valid.
-
-terraform_validate ./examples/submodule_svpc_access
-Success! The configuration is valid.
-
-terraform_validate ./modules/fabric-net-firewall
-Success! The configuration is valid.
-
-terraform_validate ./modules/fabric-net-svpc-access
-Success! The configuration is valid.
-
-terraform_validate ./test/fixtures/all_examples
-Success! The configuration is valid.
-
-terraform_validate ./test/fixtures/delete_default_gateway_routes
-Success! The configuration is valid.
-
-terraform_validate ./test/fixtures/multi_vpc
-Success! The configuration is valid.
-
-terraform_validate ./test/fixtures/secondary_ranges
-Success! The configuration is valid.
-
-terraform_validate ./test/fixtures/simple_project
-Success! The configuration is valid.
-
-terraform_validate ./test/fixtures/simple_project_with_regional_network
-Success! The configuration is valid.
-
-terraform_validate ./test/fixtures/simulated_ci_environment
-Success! The configuration is valid.
-
-terraform_validate ./test/fixtures/submodule_firewall
-Success! The configuration is valid.
+export SERVICE_ACCOUNT_JSON=$(< credentials.json)
 ```
 
-[terraform-provider-google]: https://github.com/terraform-providers/terraform-provider-google
+You will also need to set a few environment variables:
+```
+export TF_VAR_org_id="your_org_id"
+export TF_VAR_folder_id="your_folder_id"
+export TF_VAR_billing_account="your_billing_account_id"
+```
+
+With these settings in place, you can prepare a test project using Docker:
+```
+make docker_test_prepare
+```
+
+### Noninteractive Execution
+
+Run `make docker_test_integration` to test all of the example modules
+noninteractively, using the prepared test project.
+
+### Interactive Execution
+
+1. Run `make docker_run` to start the testing Docker container in
+   interactive mode.
+
+1. Run `kitchen_do create <EXAMPLE_NAME>` to initialize the working
+   directory for an example module.
+
+1. Run `kitchen_do converge <EXAMPLE_NAME>` to apply the example module.
+
+1. Run `kitchen_do verify <EXAMPLE_NAME>` to test the example module.
+
+1. Run `kitchen_do destroy <EXAMPLE_NAME>` to destroy the example module
+   state.
+
+## Linting and Formatting
+
+Many of the files in the repository can be linted or formatted to
+maintain a standard of quality.
+
+### Execution
+
+Run `make docker_test_lint`.
+
+[docker-engine]: https://www.docker.com/products/docker-engine
+[flake8]: http://flake8.pycqa.org/en/latest/
+[gofmt]: https://golang.org/cmd/gofmt/
+[google-cloud-sdk]: https://cloud.google.com/sdk/install
+[hadolint]: https://github.com/hadolint/hadolint
+[inspec]: https://inspec.io/
+[kitchen-terraform]: https://github.com/newcontext-oss/kitchen-terraform
+[kitchen]: https://kitchen.ci/
+[make]: https://en.wikipedia.org/wiki/Make_(software)
+[shellcheck]: https://www.shellcheck.net/
+[terraform-docs]: https://github.com/segmentio/terraform-docs
+[terraform]: https://terraform.io/
