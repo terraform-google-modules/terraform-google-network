@@ -1,0 +1,15 @@
+name: submodule_network_peering
+depends:
+  - name: inspec-gcp
+    git: https://github.com/inspec/inspec-gcp.git
+    tag: v0.11.0
+attributes:
+  - name: project_id
+    required: true
+    type: string
+  - name: prefix
+    type: string
+  - name: local_network_name
+    type: string
+  - name: peer_network_name
+    type: string
