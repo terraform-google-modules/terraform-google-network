@@ -20,7 +20,7 @@ peer_network_name  = attribute('peer_network_name')
 control "gcloud" do
   title "gcloud configuration"
 
-  describe command("gcloud compute networks peerings list --project=#{project_id} --format=json") do
+  describe command("gcloud compute networks peerings list --project=#{project_id} --network=#{local_network_name} --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
@@ -34,30 +34,54 @@ control "gcloud" do
 
     describe "local VPC peering" do
       it "should exist" do
-        expect(data)[0].to include(
-          "name" => "#{prefix}-#{local_network_name}-#{peer_network_name}"
+        expect(data[0]['peerings'][0]['name']).to eq( 
+          "#{prefix}-#{local_network_name}-#{peer_network_name}"
         )
       end
       it "should be active" do
-        expect(data)[0].to include(
-          "state" => "ACTIVE"
+        expect(data[0]['peerings'][0]['state']).to eq(
+          "ACTIVE"
         )
       end
-    end
-
-    describe "peer VPC peering" do
-      it "should exist" do
-        expect(data)[1].to include(
-          "name" => "#{prefix}-#{peer_network_name}-#{local_network_name}"
-        )
-      end
-      it "should be active" do
-        expect(data)[1].to include(
-          "state" => "ACTIVE"
+      it "should be connected to #{peer_network_name} network" do
+        expect(data[0]['peerings'][0]['network']).to end_with(
+          "#{peer_network_name}"
         )
       end
     end
 
   end
+
+describe command("gcloud compute networks peerings list --project=#{project_id} --network=#{peer_network_name} --format=json") do
+  its(:exit_status) { should eq 0 }
+  its(:stderr) { should eq '' }
+
+  let(:data) do
+    if subject.exit_status == 0
+      JSON.parse(subject.stdout)
+    else
+      {}
+    end
+  end
+
+  describe "peer VPC peering" do
+    it "should exist" do
+      expect(data[0]['peerings'][0]['name']).to eq( 
+        "#{prefix}-#{peer_network_name}-#{local_network_name}"
+      )
+    end
+    it "should be active" do
+      expect(data[0]['peerings'][0]['state']).to eq(
+        "ACTIVE"
+      )
+    end
+    it "should be connected to #{local_network_name} network" do
+      expect(data[0]['peerings'][0]['network']).to end_with(
+        "#{local_network_name}"
+      )
+    end
+  end
+
+end
 
 end

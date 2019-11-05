@@ -5,7 +5,7 @@ This module allows creation of a [VPC Network Peering](https://cloud.google.com/
 The resources created/managed by this module are:
 
 - one network peering from `local network` to `peer network`
-- one network peering from `peer network` to `local network` 
+- one network peering from `peer network` to `local network`
 
 ## Usage
 
@@ -21,7 +21,7 @@ module "peering" {
 }
 ```
 
-If you need to create more than one peering for the same VPC Network `(A -> B, A -> C)` you have to use output from the first module as an input to the second one in order to keep order of peering creation (It is not currently possible to create more than one peering connection for a VPC Network at the same time). 
+If you need to create more than one peering for the same VPC Network `(A -> B, A -> C)` you have to use output from the first module as an input to the second one in order to keep order of peering creation (It is not currently possible to create more than one peering connection for a VPC Network at the same time).
 
 ```hcl
 module "peering-a-b" {

@@ -119,10 +119,6 @@ suites:
       name: terraform
       color: true
       systems:
-        - name: inspec-gcp
-          backend: gcp
-          controls:
-            - gcp
         - name: local
           backend: local
           controls:

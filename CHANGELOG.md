@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+## [1.5.0] - 2019-11-06
+
+### Added
+
+- Added submodule `network-peering` [#101]
+
 ## [1.4.3] - 2019-10-31
 
 ### Fixed
@@ -146,7 +152,8 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
-[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.3...HEAD
+[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.3...v1.5.0
 [1.4.3]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.0...v1.4.1
@@ -164,6 +171,7 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 
+[#101]: https://github.com/terraform-google-modules/terraform-google-network/pull/101
 [#95]: https://github.com/terraform-google-modules/terraform-google-network/issues/95
 [#94]: https://github.com/terraform-google-modules/terraform-google-network/pull/94
 [#92]: https://github.com/terraform-google-modules/terraform-google-network/issues/92
