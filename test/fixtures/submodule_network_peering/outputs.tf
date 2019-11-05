@@ -26,7 +26,7 @@ output "prefix" {
 
 output "local_network_name" {
   description = "Local network name."
-  value = var.local_network_name
+  value       = var.local_network_name
 }
 
 output "peer_network_name" {
