@@ -34,7 +34,7 @@ control "gcloud" do
 
     describe "local VPC peering" do
       it "should exist" do
-        expect(data[0]['peerings'][0]['name']).to eq( 
+        expect(data[0]['peerings'][0]['name']).to eq(
           "#{prefix}-#{local_network_name}-#{peer_network_name}"
         )
       end
@@ -66,7 +66,7 @@ describe command("gcloud compute networks peerings list --project=#{project_id} 
 
   describe "peer VPC peering" do
     it "should exist" do
-      expect(data[0]['peerings'][0]['name']).to eq( 
+      expect(data[0]['peerings'][0]['name']).to eq(
         "#{prefix}-#{peer_network_name}-#{local_network_name}"
       )
     end
