@@ -17,21 +17,3 @@
 variable "project_id" {
   description = "The GCP project to use for integration tests"
 }
-
-variable "prefix" {
-  description = "Name prefix for the network peerings"
-  type        = string
-  default     = "network-peering"
-}
-
-variable "local_network_name" {
-  description = "The name of the local VPC network being created"
-  type        = string
-  default     = "local-network"
-}
-
-variable "peer_network_name" {
-  description = "The name of the peer VPC network being created"
-  type        = string
-  default     = "peer-network"
-}

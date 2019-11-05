@@ -7,9 +7,6 @@ This example creates a VPC Network peering between two VPCs.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| local\_network\_name | The name of the local VPC network being created | string | `"local-network"` | no |
-| peer\_network\_name | The name of the peer VPC network being created | string | `"peer-network"` | no |
-| prefix | Name prefix for the network peerings | string | `"network-peering"` | no |
 | project\_id | The project ID to put the resources in | string | n/a | yes |
 
 ## Outputs

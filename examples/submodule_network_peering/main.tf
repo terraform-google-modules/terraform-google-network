@@ -17,7 +17,7 @@
 module "local-network" {
   source       = "../../"
   project_id   = var.project_id
-  network_name = var.local_network_name
+  network_name = "local-network"
 
   subnets = [
     {
@@ -31,7 +31,7 @@ module "local-network" {
 module "peer-network" {
   source       = "../../"
   project_id   = var.project_id
-  network_name = var.peer_network_name
+  network_name = "peer-network"
 
   subnets = [
     {

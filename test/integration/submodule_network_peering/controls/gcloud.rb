@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project_id         = attribute('project_id')
-prefix             = attribute('prefix')
-local_network_name = attribute('local_network_name')
-peer_network_name  = attribute('peer_network_name')
+project_id              = attribute('project_id')
+prefix                  = attribute('prefix')
+local_network_self_link = attribute('local_network_self_link')
+peer_network_self_link  = attribute('peer_network_self_link')
+local_network_name      = local_network_self_link.split('/')[-1]
+peer_network_name       = peer_network_self_link.split('/')[-1]
+
 
 control "gcloud" do
   title "gcloud configuration"
@@ -44,8 +47,8 @@ control "gcloud" do
         )
       end
       it "should be connected to #{peer_network_name} network" do
-        expect(data[0]['peerings'][0]['network']).to end_with(
-          "#{peer_network_name}"
+        expect(data[0]['peerings'][0]['network']).to eq(
+          "#{peer_network_self_link}"
         )
       end
     end
@@ -76,8 +79,8 @@ describe command("gcloud compute networks peerings list --project=#{project_id} 
       )
     end
     it "should be connected to #{local_network_name} network" do
-      expect(data[0]['peerings'][0]['network']).to end_with(
-        "#{local_network_name}"
+      expect(data[0]['peerings'][0]['network']).to eq(
+        "#{local_network_self_link}"
       )
     end
   end

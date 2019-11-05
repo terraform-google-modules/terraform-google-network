@@ -21,15 +21,15 @@ output "project_id" {
 
 output "prefix" {
   description = "The name prefix being used."
-  value       = var.prefix
+  value       = "network-peering"
 }
 
-output "local_network_name" {
-  description = "Local network name."
-  value       = var.local_network_name
+output "local_network_self_link" {
+  description = "Local network self link."
+  value       = module.peering.local_network_peering.network
 }
 
-output "peer_network_name" {
-  description = "Peer network name."
-  value       = var.peer_network_name
+output "peer_network_self_link" {
+  description = "Peer network self link."
+  value       = module.peering.peer_network_peering.network
 }

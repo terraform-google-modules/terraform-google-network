@@ -5,7 +5,10 @@ attributes:
     type: string
   - name: prefix
     type: string
-  - name: local_network_name
+    required: true
+  - name: local_network_self_link
     type: string
-  - name: peer_network_name
+    required: true
+  - name: peer_network_self_link
     type: string
+    required: true

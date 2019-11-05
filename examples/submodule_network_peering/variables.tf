@@ -18,21 +18,3 @@ variable "project_id" {
   description = "The project ID to put the resources in"
   type        = string
 }
-
-variable "prefix" {
-  description = "Name prefix for the network peerings"
-  type        = string
-  default     = "network-peering"
-}
-
-variable "local_network_name" {
-  description = "The name of the local VPC network being created"
-  type        = string
-  default     = "local-network"
-}
-
-variable "peer_network_name" {
-  description = "The name of the peer VPC network being created"
-  type        = string
-  default     = "peer-network"
-}

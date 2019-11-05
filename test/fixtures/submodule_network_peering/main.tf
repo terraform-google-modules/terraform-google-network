@@ -15,9 +15,6 @@
  */
 
 module "peering" {
-  source             = "../../../examples/submodule_network_peering"
-  project_id         = var.project_id
-  prefix             = var.prefix
-  local_network_name = var.local_network_name
-  peer_network_name  = var.peer_network_name
+  source     = "../../../examples/submodule_network_peering"
+  project_id = var.project_id
 }
