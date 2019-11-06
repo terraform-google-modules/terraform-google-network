@@ -46,9 +46,9 @@ module "peering-a-c" {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| exchange\_custom\_routes\_to\_local | Export custom routes to local network from peer network | bool | `"false"` | no |
-| exchange\_custom\_routes\_to\_peer | Export custom routes to peer network from local network | bool | `"false"` | no |
+| local\_custom\_routes | Export custom routes to peer network from local network | bool | `"false"` | no |
 | local\_network | Resource link of the network to add a peering to. | string | n/a | yes |
+| peer\_custom\_routes | Export custom routes to local network from peer network | bool | `"false"` | no |
 | peer\_network | Resource link of the peer network. | string | n/a | yes |
 | prefix | Name prefix for the network peerings | string | `"network-peering"` | no |
 
