@@ -29,3 +29,15 @@ variable "peer_network" {
   description = "Resource link of the peer network."
   type        = string
 }
+
+variable "exchange_custom_routes_to_local" {
+  description = "Export custom routes to local network from peer network"
+  type        = bool
+  default     = false
+}
+
+variable "exchange_custom_routes_to_peer" {
+  description = "Export custom routes to peer network from local network"
+  type        = bool
+  default     = false
+}

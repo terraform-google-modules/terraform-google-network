@@ -43,7 +43,9 @@ module "peer-network" {
 }
 
 module "peering" {
-  source        = "../../modules/network-peering"
-  local_network = module.local-network.network_self_link
-  peer_network  = module.peer-network.network_self_link
+  source = "../../modules/network-peering"
+
+  local_network                  = module.local-network.network_self_link
+  peer_network                   = module.peer-network.network_self_link
+  exchange_custom_routes_to_peer = true
 }

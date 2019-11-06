@@ -51,6 +51,16 @@ control "gcloud" do
           "#{peer_network_self_link}"
         )
       end
+      it "should export custom routes" do
+        expect(data[0]['peerings'][0]['export_custom_routes']).to eq(
+          true
+        )
+      end
+      it "should not import custom routes" do
+        expect(data[0]['peerings'][0]['import_custom_routes']).to eq(
+          false
+        )
+      end
     end
 
   end
@@ -81,6 +91,16 @@ describe command("gcloud compute networks peerings list --project=#{project_id} 
     it "should be connected to #{local_network_name} network" do
       expect(data[0]['peerings'][0]['network']).to eq(
         "#{local_network_self_link}"
+      )
+    end
+    it "should not export custom routes" do
+      expect(data[0]['peerings'][0]['export_custom_routes']).to eq(
+        false
+      )
+    end
+    it "should import custom routes" do
+      expect(data[0]['peerings'][0]['import_custom_routes']).to eq(
+        true
       )
     end
   end

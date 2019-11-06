@@ -15,21 +15,26 @@
  */
 
 locals {
-  # TODO: replace with regex("\\/([a-z][-a-z0-9]*[a-z0-9])$", var.local_network)[0] once we use terraform >= 0.12.7
-  local_network_name = split("/", var.local_network)[length(split("/", var.local_network)) - 1]
-  peer_network_name  = split("/", var.peer_network)[length(split("/", var.peer_network)) - 1]
+  local_network_name = element(reverse(split("/", var.local_network)), 0)
+  peer_network_name  = element(reverse(split("/", var.peer_network)), 0)
 }
 
 resource "google_compute_network_peering" "local_network_peering" {
-  name         = "${var.prefix}-${local.local_network_name}-${local.peer_network_name}"
-  network      = var.local_network
-  peer_network = var.peer_network
+  provider             = "google-beta"
+  name                 = "${var.prefix}-${local.local_network_name}-${local.peer_network_name}"
+  network              = var.local_network
+  peer_network         = var.peer_network
+  export_custom_routes = var.exchange_custom_routes_to_peer
+  import_custom_routes = var.exchange_custom_routes_to_local
 }
 
 resource "google_compute_network_peering" "peer_network_peering" {
-  name         = "${var.prefix}-${local.peer_network_name}-${local.local_network_name}"
-  network      = var.peer_network
-  peer_network = var.local_network
+  provider             = "google-beta"
+  name                 = "${var.prefix}-${local.peer_network_name}-${local.local_network_name}"
+  network              = var.peer_network
+  peer_network         = var.local_network
+  export_custom_routes = var.exchange_custom_routes_to_local
+  import_custom_routes = var.exchange_custom_routes_to_peer
 
   depends_on = ["google_compute_network_peering.local_network_peering"]
 }
