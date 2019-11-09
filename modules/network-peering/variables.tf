@@ -30,13 +30,13 @@ variable "peer_network" {
   type        = string
 }
 
-variable "peer_custom_routes" {
+variable "export_peer_custom_routes" {
   description = "Export custom routes to local network from peer network"
   type        = bool
   default     = false
 }
 
-variable "local_custom_routes" {
+variable "export_local_custom_routes" {
   description = "Export custom routes to peer network from local network"
   type        = bool
   default     = false

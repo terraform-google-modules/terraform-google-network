@@ -47,5 +47,5 @@ module "peering" {
 
   local_network       = module.local-network.network_self_link
   peer_network        = module.peer-network.network_self_link
-  local_custom_routes = true
+  export_local_custom_routes = true
 }
