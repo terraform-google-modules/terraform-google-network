@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-output "local_network_peering" {
-  description = "Network peering resource."
-  value       = module.peering.local_network_peering
+output "peering1" {
+  description = "Peering1 module output."
+  value       = module.peering-1
 }
 
-output "peer_network_peering" {
-  description = "Peer network peering resource."
-  value       = module.peering.peer_network_peering
+output "peering2" {
+  description = "Peering2 module output."
+  value       = module.peering-2
 }

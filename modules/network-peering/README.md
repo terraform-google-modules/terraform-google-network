@@ -21,7 +21,7 @@ module "peering" {
 }
 ```
 
-If you need to create more than one peering for the same VPC Network `(A -> B, A -> C)` you have to use output from the first module as an input to the second one in order to keep order of peering creation (It is not currently possible to create more than one peering connection for a VPC Network at the same time).
+If you need to create more than one peering for the same VPC Network `(A -> B, A -> C)` you have to use output from the first module as a dependency for the second one to keep order of peering creation (It is not currently possible to create more than one peering connection for a VPC Network at the same time).
 
 ```hcl
 module "peering-a-b" {
@@ -36,8 +36,10 @@ module "peering-a-c" {
   source = "terraform-google-modules/terraform-google-network/google//modules/network-peering"
 
   prefix        = "name-prefix"
-  local_network = module.peering-a-b.local_network_peering.network
+  local_network = "<A NETWORK SELF LINK>"
   peer_network  = "<C NETWORK SELF LINK>"
+
+  module_depends_on = module.peering-a-b.complete
 }
 ```
 
@@ -46,9 +48,10 @@ module "peering-a-c" {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| local\_custom\_routes | Export custom routes to peer network from local network | bool | `"false"` | no |
+| export\_local\_custom\_routes | Export custom routes to peer network from local network. | bool | `"false"` | no |
+| export\_peer\_custom\_routes | Export custom routes to local network from peer network. | bool | `"false"` | no |
 | local\_network | Resource link of the network to add a peering to. | string | n/a | yes |
-| peer\_custom\_routes | Export custom routes to local network from peer network | bool | `"false"` | no |
+| module\_depends\_on | List of modules or resources this module depends on. | list | `<list>` | no |
 | peer\_network | Resource link of the peer network. | string | n/a | yes |
 | prefix | Name prefix for the network peerings | string | `"network-peering"` | no |
 
@@ -56,6 +59,7 @@ module "peering-a-c" {
 
 | Name | Description |
 |------|-------------|
+| complete | Output to be used as a module dependency. |
 | local\_network\_peering | Network peering resource. |
 | peer\_network\_peering | Peer network peering resource. |
 

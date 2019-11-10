@@ -13,7 +13,7 @@ This example creates a VPC Network peering between two VPCs.
 
 | Name | Description |
 |------|-------------|
-| local\_network\_peering | Network peering resource. |
-| peer\_network\_peering | Peer network peering resource. |
+| peering1 | Peering1 module output. |
+| peering2 | Peering2 module output. |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

@@ -18,34 +18,37 @@ module "local-network" {
   source       = "../../"
   project_id   = var.project_id
   network_name = "local-network"
-
-  subnets = [
-    {
-      subnet_name   = "subnet1"
-      subnet_ip     = "10.10.10.0/24"
-      subnet_region = "us-west1"
-    }
-  ]
+  subnets      = []
 }
 
-module "peer-network" {
+module "peer-network-1" {
   source       = "../../"
   project_id   = var.project_id
-  network_name = "peer-network"
-
-  subnets = [
-    {
-      subnet_name   = "subnet2"
-      subnet_ip     = "10.10.20.0/24"
-      subnet_region = "us-west1"
-    }
-  ]
+  network_name = "peer-network-1"
+  subnets      = []
 }
 
-module "peering" {
+module "peer-network-2" {
+  source       = "../../"
+  project_id   = var.project_id
+  network_name = "peer-network-2"
+  subnets      = []
+}
+
+module "peering-1" {
   source = "../../modules/network-peering"
 
-  local_network       = module.local-network.network_self_link
-  peer_network        = module.peer-network.network_self_link
+  local_network              = module.local-network.network_self_link
+  peer_network               = module.peer-network-1.network_self_link
   export_local_custom_routes = true
+}
+
+module "peering-2" {
+  source = "../../modules/network-peering"
+
+  local_network              = module.local-network.network_self_link
+  peer_network               = module.peer-network-2.network_self_link
+  export_local_custom_routes = true
+
+  module_depends_on = [module.peering-1.complete]
 }

@@ -3,12 +3,6 @@ attributes:
   - name: project_id
     required: true
     type: string
-  - name: prefix
-    type: string
-    required: true
-  - name: local_network_self_link
-    type: string
-    required: true
-  - name: peer_network_self_link
-    type: string
+  - name: peerings
+    type: hash
     required: true

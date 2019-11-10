@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-module "peering" {
+module "peerings" {
   source     = "../../../examples/submodule_network_peering"
   project_id = var.project_id
 }
