@@ -1,4 +1,4 @@
-name: simple_project
+name: submodule_firewall
 depends:
   - name: inspec-gcp
     git: https://github.com/inspec/inspec-gcp.git
