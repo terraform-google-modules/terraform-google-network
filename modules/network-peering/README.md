@@ -39,7 +39,7 @@ module "peering-a-c" {
   local_network = "<A NETWORK SELF LINK>"
   peer_network  = "<C NETWORK SELF LINK>"
 
-  module_depends_on = module.peering-a-b.complete
+  module_depends_on = [module.peering-a-b.complete]
 }
 ```
 
