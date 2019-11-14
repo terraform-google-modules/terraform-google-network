@@ -30,12 +30,16 @@ control "gcloud" do
       end
     end
 
-    describe "enableFlowLogs" do
-      it "should be false" do
-        expect(data).to include(
-          "enableFlowLogs" => false
-        )
-      end
+    it "enableFlowLogs should not exist" do
+      expect(data).to_not include(
+        "enableFlowLogs"
+      )
+    end
+
+    it "logConfig should not exist" do
+      expect(data).to_not include(
+        "logConfig"
+      )
     end
   end
 
@@ -51,12 +55,51 @@ control "gcloud" do
       end
     end
 
-    describe "enableFlowLogs" do
-      it "should be true" do
-        expect(data).to include(
-          "enableFlowLogs" => true
-        )
+    it "enableFlowLogs should be true" do
+      expect(data).to include(
+        "enableFlowLogs" => true
+      )
+    end
+
+    it "Log config should be correct" do
+      expect(data).to include(
+        "logConfig" => {
+          "aggregationInterval" => "INTERVAL_5_SEC",
+          "enable" => true,
+          "flowSampling" => 0.5,
+          "metadata" => "INCLUDE_ALL_METADATA"
+        }
+      )
+    end
+  end
+
+  describe  command("gcloud compute networks subnets describe #{network_name}-subnet-03 --project=#{project_id} --region=us-west1 --format=json") do
+    its(:exit_status) { should eq 0 }
+    its(:stderr) { should eq '' }
+
+    let(:data) do
+      if subject.exit_status == 0
+        JSON.parse(subject.stdout)
+      else
+        {}
       end
+    end
+
+    it "enableFlowLogs should be true" do
+      expect(data).to include(
+        "enableFlowLogs" => true
+      )
+    end
+
+    it "Log config should be correct" do
+      expect(data).to include(
+        "logConfig" => {
+          "aggregationInterval" => "INTERVAL_10_MIN",
+          "enable" => true,
+          "flowSampling" => 0.7,
+          "metadata" => "INCLUDE_ALL_METADATA"
+        }
+      )
     end
   end
 end
