@@ -18,7 +18,7 @@ Basic usage of this module is as follows:
 
 ```hcl
 module "net-shared-vpc-access" {
-  source              = "terraform-google-modules/terraform-google-network/google//modules/fabric-net-svpc-access"
+  source              = "terraform-google-modules/network/google//modules/fabric-net-svpc-access"
   host_project_id     = "my-host-project-id"
   service_project_num = 1
   service_project_ids = ["my-service-project-id"]
