@@ -30,12 +30,6 @@ control "gcloud" do
       end
     end
 
-    it "enableFlowLogs should not exist" do
-      expect(data).to_not include(
-        "enableFlowLogs"
-      )
-    end
-
     it "logConfig should not exist" do
       expect(data).to_not include(
         "logConfig"
@@ -53,12 +47,6 @@ control "gcloud" do
       else
         {}
       end
-    end
-
-    it "enableFlowLogs should be true" do
-      expect(data).to include(
-        "enableFlowLogs" => true
-      )
     end
 
     it "Log config should be correct" do
@@ -83,12 +71,6 @@ control "gcloud" do
       else
         {}
       end
-    end
-
-    it "enableFlowLogs should be true" do
-      expect(data).to include(
-        "enableFlowLogs" => true
-      )
     end
 
     it "Log config should be correct" do
