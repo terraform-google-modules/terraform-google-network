@@ -151,7 +151,7 @@ The routes list contains maps, where each object represents a route. For the nex
 ## Requirements
 ### Installed Software
 - [Terraform](https://www.terraform.io/downloads.html) ~> 0.12.0
-- [Terraform Provider for GCP][terraform-provider-google] ~> 2.10.0
+- [Terraform Provider for GCP][terraform-provider-google] ~> 2.19.0
 - [gcloud](https://cloud.google.com/sdk/gcloud/) >243.0.0
 
 ### Configure a Service Account
