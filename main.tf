@@ -89,10 +89,10 @@ resource "google_compute_route" "route" {
   tags                   = compact(split(",", lookup(var.routes[count.index], "tags", "")))
   dest_range             = lookup(var.routes[count.index], "destination_range", "")
   next_hop_gateway       = lookup(var.routes[count.index], "next_hop_internet", "false") == "true" ? "default-internet-gateway" : ""
-  next_hop_ip            = lookup(var.routes[count.index], "next_hop_ip", "")
-  next_hop_instance      = lookup(var.routes[count.index], "next_hop_instance", "")
-  next_hop_instance_zone = lookup(var.routes[count.index], "next_hop_instance_zone", "")
-  next_hop_vpn_tunnel    = lookup(var.routes[count.index], "next_hop_vpn_tunnel", "")
+  next_hop_ip            = lookup(var.routes[count.index], "next_hop_ip", null)
+  next_hop_instance      = lookup(var.routes[count.index], "next_hop_instance", null)
+  next_hop_instance_zone = lookup(var.routes[count.index], "next_hop_instance_zone", null)
+  next_hop_vpn_tunnel    = lookup(var.routes[count.index], "next_hop_vpn_tunnel", null)
   priority               = lookup(var.routes[count.index], "priority", "1000")
 
   depends_on = [
