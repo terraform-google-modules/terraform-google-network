@@ -42,41 +42,12 @@ module "subnets" {
 /******************************************
 	Routes
  *****************************************/
-resource "google_compute_route" "route" {
-  count                  = length(var.routes)
-  project                = var.project_id
-  network                = var.network_name
-  name                   = lookup(var.routes[count.index], "name", format("%s-%s-%d", lower(var.network_name), "route", count.index))
-  description            = lookup(var.routes[count.index], "description", "")
-  tags                   = compact(split(",", lookup(var.routes[count.index], "tags", "")))
-  dest_range             = lookup(var.routes[count.index], "destination_range", "")
-  next_hop_gateway       = lookup(var.routes[count.index], "next_hop_internet", "false") == "true" ? "default-internet-gateway" : ""
-  next_hop_ip            = lookup(var.routes[count.index], "next_hop_ip", "")
-  next_hop_instance      = lookup(var.routes[count.index], "next_hop_instance", "")
-  next_hop_instance_zone = lookup(var.routes[count.index], "next_hop_instance_zone", "")
-  next_hop_vpn_tunnel    = lookup(var.routes[count.index], "next_hop_vpn_tunnel", "")
-  priority               = lookup(var.routes[count.index], "priority", "1000")
-
-  depends_on = [
-    module.vpc.network,
-    module.subnets.subnets,
-  ]
-}
-
-resource "null_resource" "delete_default_internet_gateway_routes" {
-  count = var.delete_default_internet_gateway_routes ? 1 : 0
-
-  provisioner "local-exec" {
-    command = "${path.module}/scripts/delete-default-gateway-routes.sh ${var.project_id} ${var.network_name}"
-  }
-
-  triggers = {
-    number_of_routes = length(var.routes)
-  }
-
-  depends_on = [
-    module.vpc.network,
-    module.subnets.subnets,
-    google_compute_route.route,
-  ]
+module "routes" {
+  source                                 = "./modules/routes"
+  project_id                             = var.project_id
+  network_name                           = module.vpc.network_name
+  routes                                 = var.routes
+  delete_default_internet_gateway_routes = var.delete_default_internet_gateway_routes
+  network                                = module.vpc.network
+  subnets                                = module.subnets.subnets
 }

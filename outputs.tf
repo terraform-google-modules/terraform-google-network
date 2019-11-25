@@ -65,6 +65,6 @@ output "subnets_secondary_ranges" {
 }
 
 output "routes" {
-  value       = google_compute_route.route.*.name
+  value       = module.routes.routes
   description = "The routes associated with this VPC"
 }
