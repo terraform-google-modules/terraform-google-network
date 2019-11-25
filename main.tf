@@ -24,21 +24,14 @@ locals {
 /******************************************
 	VPC configuration
  *****************************************/
-resource "google_compute_network" "network" {
-  name                    = var.network_name
+module "vpc" {
+  source                  = "./modules/vpc"
+  network_name            = var.network_name
   auto_create_subnetworks = var.auto_create_subnetworks
   routing_mode            = var.routing_mode
-  project                 = var.project_id
+  project_id              = var.project_id
   description             = var.description
-}
-
-/******************************************
-	Shared VPC
- *****************************************/
-resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
-  count      = var.shared_vpc_host == "true" ? 1 : 0
-  project    = var.project_id
-  depends_on = [google_compute_network.network]
+  shared_vpc_host         = var.shared_vpc_host
 }
 
 /******************************************
@@ -62,7 +55,7 @@ resource "google_compute_subnetwork" "subnetwork" {
       metadata             = log_config.value.metadata
     }
   }
-  network     = google_compute_network.network.name
+  network     = module.vpc.network_name
   project     = var.project_id
   description = lookup(each.value, "description", null)
   secondary_ip_range = [
@@ -96,7 +89,7 @@ resource "google_compute_route" "route" {
   priority               = lookup(var.routes[count.index], "priority", "1000")
 
   depends_on = [
-    google_compute_network.network,
+    module.vpc.network,
     google_compute_subnetwork.subnetwork,
   ]
 }
@@ -113,7 +106,7 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
   }
 
   depends_on = [
-    google_compute_network.network,
+    module.vpc.network,
     google_compute_subnetwork.subnetwork,
     google_compute_route.route,
   ]

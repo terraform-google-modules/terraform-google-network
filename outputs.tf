@@ -15,17 +15,17 @@
  */
 
 output "network_name" {
-  value       = google_compute_network.network.name
+  value       = module.vpc.network_name
   description = "The name of the VPC being created"
 }
 
 output "network_self_link" {
-  value       = google_compute_network.network.self_link
+  value       = module.vpc.network_self_link
   description = "The URI of the VPC being created"
 }
 
 output "svpc_host_project_id" {
-  value       = element(concat(google_compute_shared_vpc_host_project.shared_vpc_host.*.project, list("")), 0)
+  value       = module.vpc.svpc_host_project_id
   description = "Shared VPC host project id."
 }
 
