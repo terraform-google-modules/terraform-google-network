@@ -18,19 +18,21 @@
 	Routes
  *****************************************/
 resource "google_compute_route" "route" {
-  count                  = length(var.routes)
+  for_each = var.routes
+
   project                = var.project_id
   network                = var.network_name
-  name                   = lookup(var.routes[count.index], "name", format("%s-%s-%d", lower(var.network_name), "route", count.index))
-  description            = lookup(var.routes[count.index], "description", "")
-  tags                   = compact(split(",", lookup(var.routes[count.index], "tags", "")))
-  dest_range             = lookup(var.routes[count.index], "destination_range", "")
-  next_hop_gateway       = lookup(var.routes[count.index], "next_hop_internet", "false") == "true" ? "default-internet-gateway" : ""
-  next_hop_ip            = lookup(var.routes[count.index], "next_hop_ip", "")
-  next_hop_instance      = lookup(var.routes[count.index], "next_hop_instance", "")
-  next_hop_instance_zone = lookup(var.routes[count.index], "next_hop_instance_zone", "")
-  next_hop_vpn_tunnel    = lookup(var.routes[count.index], "next_hop_vpn_tunnel", "")
-  priority               = lookup(var.routes[count.index], "priority", "1000")
+
+  name                   = each.key
+  description            = lookup(each.value, "description", "")
+  tags                   = compact(split(",", lookup(each.value, "tags", "")))
+  dest_range             = lookup(each.value, "destination_range", "")
+  next_hop_gateway       = lookup(each.value, "next_hop_internet", "false") == "true" ? "default-internet-gateway" : ""
+  next_hop_ip            = lookup(each.value, "next_hop_ip", "")
+  next_hop_instance      = lookup(each.value, "next_hop_instance", "")
+  next_hop_instance_zone = lookup(each.value, "next_hop_instance_zone", "")
+  next_hop_vpn_tunnel    = lookup(each.value, "next_hop_vpn_tunnel", "")
+  priority               = lookup(each.value, "priority", "1000")
 
   depends_on = [
     var.network,

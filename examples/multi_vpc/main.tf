@@ -29,32 +29,29 @@ locals {
   network_02_subnet_01 = "${var.network_02_name}-subnet-01"
   network_02_subnet_02 = "${var.network_02_name}-subnet-02"
 
-  network_01_routes = [
-    {
-      name              = "${var.network_01_name}-egress-inet"
+  network_01_routes = {
+    "${var.network_01_name}-egress-inet" = {
       description       = "route through IGW to access internet"
       destination_range = "0.0.0.0/0"
       tags              = "egress-inet"
       next_hop_internet = "true"
-    },
-  ]
+    }
+  }
 
-  network_02_routes = [
-    {
-      name              = "${var.network_02_name}-egress-inet"
+  network_02_routes = {
+    "${var.network_02_name}-egress-inet" = {
       description       = "route through IGW to access internet"
       destination_range = "0.0.0.0/0"
       tags              = "egress-inet"
       next_hop_internet = "true"
-    },
-    {
-      name              = "${var.network_02_name}-testapp-proxy"
+    }
+    "${var.network_02_name}-testapp-proxy" = {
       description       = "route through proxy to reach app"
       destination_range = "10.50.10.0/24"
       tags              = "app-proxy"
       next_hop_ip       = "10.10.40.10"
-    },
-  ]
+    }
+  }
 }
 
 module "test-vpc-module-01" {
