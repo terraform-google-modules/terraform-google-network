@@ -20,8 +20,8 @@
 resource "google_compute_route" "route" {
   for_each = var.routes
 
-  project                = var.project_id
-  network                = var.network_name
+  project = var.project_id
+  network = var.network_name
 
   name                   = each.key
   description            = lookup(each.value, "description", "")
