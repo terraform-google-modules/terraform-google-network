@@ -8,6 +8,8 @@ It supports creating:
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
+Sub modules are provided for creating individual vpc, subnets, and routes. See the modules directory for the various sub modules usage.
+
 ## Compatibility
 
 This module is meant for use with Terraform 0.12. If you haven't [upgraded](https://www.terraform.io/upgrade-guides/0-12.html) and need a Terraform 0.11.x-compatible version of this module, the last released version intended for Terraform 0.11.x is [0.8.0](https://registry.terraform.io/modules/terraform-google-modules/network/google/0.8.0).
@@ -120,6 +122,7 @@ Then perform the following commands on the root folder:
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 
 ### Subnet Inputs
+
 The subnets list contains maps, where each object represents a subnet. Each map has the following inputs (please see examples folder for additional references):
 
 | Name | Description | Type | Default | Required |
@@ -131,7 +134,8 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | subnet\_flow\_logs  | Whether the subnet will record and send flow log data to logging | string | `"false"` | no |
 
 ### Route Inputs
-The routes map contains objects, where each object represents a route. For the next\_hop\_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each route has the following inputs (please see examples folder for additional references):
+
+The `routes` map `key` is the unique route `name` and the `value` object represents the route input options. For the next\_hop\_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each route has the following inputs (please see examples folder for additional references):
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|

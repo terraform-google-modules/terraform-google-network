@@ -34,8 +34,8 @@ module "subnets" {
   source           = "./modules/subnets"
   project_id       = var.project_id
   network_name     = module.vpc.network_name
-  subnets          = var.subnets
   description      = var.description
+  subnets          = var.subnets
   secondary_ranges = var.secondary_ranges
 }
 
