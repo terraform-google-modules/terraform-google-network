@@ -60,23 +60,21 @@ module "vpc" {
         subnet-02 = []
     }
 
-    routes = [
-        {
-            name                   = "egress-internet"
+    routes = {
+        "egress-internet" = {
             description            = "route through IGW to access internet"
             destination_range      = "0.0.0.0/0"
             tags                   = "egress-inet"
             next_hop_internet      = "true"
-        },
-        {
-            name                   = "app-proxy"
+        }
+        "app-proxy" = {
             description            = "route through proxy to reach app"
             destination_range      = "10.50.10.0/24"
             tags                   = "app-proxy"
             next_hop_instance      = "app-proxy-instance"
             next_hop_instance_zone = "us-west1-a"
-        },
-    ]
+        }
+    }
 }
 ```
 
@@ -97,7 +95,7 @@ Then perform the following commands on the root folder:
 | description | An optional description of this resource. The resource must be recreated to modify this field. | string | `""` | no |
 | network\_name | The name of the network being created | string | n/a | yes |
 | project\_id | The ID of the project where this VPC will be created | string | n/a | yes |
-| routes | List of routes being created in this VPC | list(map(string)) | `<list>` | no |
+| routes | Map of routes being created in this VPC | map(any) | `<map>` | no |
 | routing\_mode | The network routing mode (default 'GLOBAL') | string | `"GLOBAL"` | no |
 | secondary\_ranges | Secondary ranges that will be used in some of the subnets | object | `<map>` | no |
 | shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `"false"` | no |
@@ -133,11 +131,11 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | subnet\_flow\_logs  | Whether the subnet will record and send flow log data to logging | string | `"false"` | no |
 
 ### Route Inputs
-The routes list contains maps, where each object represents a route. For the next\_hop\_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each map has the following inputs (please see examples folder for additional references):
+The routes map contains objects, where each object represents a route. For the next\_hop\_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each route has the following inputs (please see examples folder for additional references):
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| name | The name of the route being created  | string | - | no |
+| key | The name of the route being created  | string | - | yes |
 | description | The description of the route being created | string | - | no |
 | tags | The network tags assigned to this route. This is a list in string format. Eg. "tag-01,tag-02"| string | - | yes |
 | destination\_range | The destination range of outgoing packets that this route applies to. Only IPv4 is supported | string | - | yes
