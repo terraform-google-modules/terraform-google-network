@@ -17,3 +17,7 @@
 terraform {
   required_version = "~> 0.12.0"
 }
+
+provider "google" {
+  version = "~> 2.18.0"
+}
