@@ -10,7 +10,7 @@ v2.0.0 is a backwards-incompatible release. Please see the [upgrading guide](./d
 
 ### Added
 
-- Split main module up into vpc, subnets, and routes submodules. Changed `routes` input to be comptiable with `for_each` `maps` [#103]
+- Split main module up into vpc, subnets, and routes submodules. Changed `routes` input to be compatible with `for_each` `maps` [#103]
 
 ### Fixed
 
