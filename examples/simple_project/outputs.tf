@@ -25,7 +25,7 @@ output "network_self_link" {
 }
 
 output "project_id" {
-  value       = module.vpc-secondary-ranges.project_id
+  value       = module.test-vpc-module.project_id
   description = "VPC project id"
 }
 

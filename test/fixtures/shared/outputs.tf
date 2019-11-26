@@ -34,11 +34,6 @@ output "output_network_self_link" {
   description = "The URI of the VPC being created"
 }
 
-output "project_id" {
-  value       = module.vpc-secondary-ranges.project_id
-  description = "VPC project id"
-}
-
 output "output_subnets_names" {
   value       = module.example.subnets_names
   description = "The names of the subnets being created"
@@ -48,7 +43,6 @@ output "output_subnets_ips" {
   value       = module.example.subnets_ips
   description = "The IP and cidrs of the subnets being created"
 }
-
 
 output "output_subnets_regions" {
   value       = module.example.subnets_regions
