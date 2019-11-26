@@ -41,9 +41,7 @@ resource "google_compute_route" "route" {
   next_hop_vpn_tunnel    = lookup(each.value, "next_hop_vpn_tunnel", null)
   priority               = lookup(each.value, "priority", null)
 
-  depends_on = [
-    var.subnets,
-  ]
+  depends_on = [var.module_depends_on]
 }
 
 resource "null_resource" "delete_default_internet_gateway_routes" {
@@ -58,7 +56,6 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
   }
 
   depends_on = [
-    var.subnets,
     google_compute_route.route,
   ]
 }

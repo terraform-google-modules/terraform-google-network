@@ -22,11 +22,6 @@ variable "network_name" {
   description = "The name of the network where routes will be created"
 }
 
-variable "subnets" {
-  description = "The subnet resources that we depend on being created first"
-  default     = []
-}
-
 variable "routes" {
   type        = list(map(string))
   description = "List of routes being created in this VPC"
@@ -36,4 +31,10 @@ variable "routes" {
 variable "delete_default_internet_gateway_routes" {
   description = "If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted"
   default     = "false"
+}
+
+variable "module_depends_on" {
+  description = "List of modules or resources this module depends on."
+  type        = list
+  default     = []
 }
