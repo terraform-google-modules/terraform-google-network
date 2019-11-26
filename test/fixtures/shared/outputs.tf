@@ -71,6 +71,6 @@ output "output_subnets_secondary_ranges" {
 }
 
 output "output_routes" {
-  value       = module.example.routes
-  description = "The routes associated with this VPC"
+  value       = module.example.route_names
+  description = "The route names associated with this VPC"
 }

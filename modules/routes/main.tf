@@ -39,7 +39,7 @@ resource "google_compute_route" "route" {
   next_hop_instance      = lookup(each.value, "next_hop_instance", null)
   next_hop_instance_zone = lookup(each.value, "next_hop_instance_zone", null)
   next_hop_vpn_tunnel    = lookup(each.value, "next_hop_vpn_tunnel", null)
-  priority               = lookup(each.value, "priority",null)
+  priority               = lookup(each.value, "priority", null)
 
   depends_on = [
     var.network,
