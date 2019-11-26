@@ -32,9 +32,3 @@ variable "secondary_ranges" {
   description = "Secondary ranges that will be used in some of the subnets"
   default     = {}
 }
-
-variable "description" {
-  type        = string
-  description = "An optional description of this resource. The resource must be recreated to modify this field."
-  default     = ""
-}
