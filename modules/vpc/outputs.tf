@@ -29,7 +29,7 @@ output "network_self_link" {
   description = "The URI of the VPC being created"
 }
 
-output "svpc_host_project_id" {
-  value       = var.shared_vpc_host ? var.project_id : ""
-  description = "Shared VPC host project id."
+output "project_id" {
+  value       = var.project_id
+  description = "VPC project id"
 }

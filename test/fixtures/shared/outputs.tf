@@ -34,9 +34,9 @@ output "output_network_self_link" {
   description = "The URI of the VPC being created"
 }
 
-output "output_svpc_host_project_id" {
-  value       = module.example.svpc_host_project_id
-  description = "Shared VPC host project id."
+output "project_id" {
+  value       = module.vpc-secondary-ranges.project_id
+  description = "VPC project id"
 }
 
 output "output_subnets_names" {

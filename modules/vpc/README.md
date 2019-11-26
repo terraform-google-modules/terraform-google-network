@@ -41,6 +41,6 @@ module "vpc" {
 | network | The VPC resource being created |
 | network\_name | The name of the VPC being created |
 | network\_self\_link | The URI of the VPC being created |
-| svpc\_host\_project\_id | Shared VPC host project id. |
+| project\_id | VPC project id |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

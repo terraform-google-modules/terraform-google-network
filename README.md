@@ -111,6 +111,7 @@ Then perform the following commands on the root folder:
 |------|-------------|
 | network\_name | The name of the VPC being created |
 | network\_self\_link | The URI of the VPC being created |
+| project\_id | VPC project id |
 | route\_names | The route names associated with this VPC |
 | subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |
@@ -119,7 +120,6 @@ Then perform the following commands on the root folder:
 | subnets\_regions | The region where the subnets will be created |
 | subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
 | subnets\_self\_links | The self-links of subnets being created |
-| svpc\_host\_project\_id | Shared VPC host project id. |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 
