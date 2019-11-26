@@ -46,9 +46,9 @@ variable "secondary_ranges" {
 }
 
 variable "routes" {
-  type        = map(any)
-  description = "Map of routes being created in this VPC"
-  default     = {}
+  type        = list(map(string))
+  description = "List of routes being created in this VPC"
+  default     = []
 }
 
 variable "delete_default_internet_gateway_routes" {

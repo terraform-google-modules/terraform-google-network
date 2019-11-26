@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
+locals {
+  routes = {
+    for i, route in var.routes :
+    lookup(route, "name", format("%s-%s-%d", lower(var.network_name), "route", i)) => route
+  }
+}
+
 /******************************************
 	Routes
  *****************************************/
 resource "google_compute_route" "route" {
-  for_each = var.routes
+  for_each = local.routes
 
   project = var.project_id
   network = var.network_name
