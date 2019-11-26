@@ -7,10 +7,6 @@ It supports creating:
 - Routes within vpc network.
 - Optionally deletes the default internet gateway routes.
 
-## Compatibility
-
-This module is meant for use with Terraform 0.12. If you haven't [upgraded](https://www.terraform.io/upgrade-guides/0-12.html) and need a Terraform 0.11.x-compatible version of this module, the last released version intended for Terraform 0.11.x is [0.8.0](https://registry.terraform.io/modules/terraform-google-modules/network/google/0.8.0).
-
 ## Usage
 
 Basic usage of this submodule is as follows:
