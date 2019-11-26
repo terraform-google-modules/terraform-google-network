@@ -62,8 +62,8 @@ module "vpc" {
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
 | description | An optional description of this resource. The resource must be recreated to modify this field. | string | `""` | no |
-| network\_name | The name of the network being created | string | n/a | yes |
-| project\_id | The ID of the project where this VPC will be created | string | n/a | yes |
+| network\_name | The name of the network where subnets will be created | string | n/a | yes |
+| project\_id | The ID of the project where subnets will be created | string | n/a | yes |
 | secondary\_ranges | Secondary ranges that will be used in some of the subnets | object | `<map>` | no |
 | subnets | The list of subnets being created | list(map(string)) | n/a | yes |
 
