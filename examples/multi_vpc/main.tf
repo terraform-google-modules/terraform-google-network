@@ -68,21 +68,33 @@ module "test-vpc-module-01" {
       subnet_ip             = "10.10.10.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
-      subnet_flow_logs      = "true"
+      subnet_log_config     = {
+        aggregation_interval = "INTERVAL_10_MIN"
+        flow_sampling        = 0.5
+        metadata             = "INCLUDE_ALL_METADATA"
+      }
     },
     {
       subnet_name           = local.network_01_subnet_02
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
-      subnet_flow_logs      = "true"
+      subnet_log_config     = {
+        aggregation_interval = "INTERVAL_10_MIN"
+        flow_sampling        = 0.5
+        metadata             = "INCLUDE_ALL_METADATA"
+      }
     },
     {
       subnet_name           = local.network_01_subnet_03
       subnet_ip             = "10.10.30.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
-      subnet_flow_logs      = "true"
+      subnet_log_config     = {
+        aggregation_interval = "INTERVAL_10_MIN"
+        flow_sampling        = 0.5
+        metadata             = "INCLUDE_ALL_METADATA"
+      }
     },
   ]
 
@@ -120,14 +132,22 @@ module "test-vpc-module-02" {
       subnet_ip             = "10.10.40.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
-      subnet_flow_logs      = "true"
+      subnet_log_config     = {
+        aggregation_interval = "INTERVAL_10_MIN"
+        flow_sampling        = 0.5
+        metadata             = "INCLUDE_ALL_METADATA"
+      }
     },
     {
       subnet_name           = "${local.network_02_subnet_02}"
       subnet_ip             = "10.10.50.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "false"
-      subnet_flow_logs      = "true"
+      subnet_log_config     = {
+        aggregation_interval = "INTERVAL_10_MIN"
+        flow_sampling        = 0.5
+        metadata             = "INCLUDE_ALL_METADATA"
+      }
     },
   ]
 

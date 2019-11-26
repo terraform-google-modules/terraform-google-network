@@ -43,7 +43,11 @@ module "test-vpc-module" {
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "true"
-      subnet_flow_logs      = "true"
+      subnet_log_config     = {
+        aggregation_interval = "INTERVAL_10_MIN"
+        flow_sampling        = 0.5
+        metadata             = "INCLUDE_ALL_METADATA"
+      }
     },
   ]
 }

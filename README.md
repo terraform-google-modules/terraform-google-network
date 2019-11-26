@@ -93,6 +93,7 @@ Then perform the following commands on the root folder:
 | routing\_mode | The network routing mode (default 'GLOBAL') | string | `"GLOBAL"` | no |
 | secondary\_ranges | Secondary ranges that will be used in some of the subnets | object | `<map>` | no |
 | shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `"false"` | no |
+| subnet\_log\_config | If a value is set, flow logging for this subnetwork will be enabled. | map | `<map>` | no |
 | subnets | The list of subnets being created | list(map(string)) | n/a | yes |
 
 ## Outputs
