@@ -55,12 +55,21 @@ resource "google_compute_subnetwork" "subnetwork" {
   ip_cidr_range            = var.subnets[count.index]["subnet_ip"]
   region                   = var.subnets[count.index]["subnet_region"]
   private_ip_google_access = lookup(var.subnets[count.index], "subnet_private_access", "false")
-  enable_flow_logs         = lookup(var.subnets[count.index], "subnet_flow_logs", "false")
   network                  = local.network_self_link
   project                  = var.project_id
   secondary_ip_range       = [for i in range(length(contains(keys(var.secondary_ranges), var.subnets[count.index]["subnet_name"]) == true ? var.secondary_ranges[var.subnets[count.index]["subnet_name"]] : [])) : var.secondary_ranges[var.subnets[count.index]["subnet_name"]][i]]
   description              = lookup(var.subnets[count.index], "description", null)
   depends_on               = [google_compute_network.network]
+
+  dynamic "log_config" {
+    for_each = var.subnet_log_config
+
+    content {
+      aggregation_interval = lookup(log_config.value, "aggregation_interval", null)
+      flow_sampling        = lookup(log_config.value, "flow_sampling", null)
+      metadata             = lookup(log_config.value, "metadata", null)
+    }
+  }
 }
 
 data "google_compute_subnetwork" "created_subnets" {
@@ -81,11 +90,11 @@ resource "google_compute_route" "route" {
   description            = lookup(var.routes[count.index], "description", "")
   tags                   = compact(split(",", lookup(var.routes[count.index], "tags", "")))
   dest_range             = lookup(var.routes[count.index], "destination_range", "")
-  next_hop_gateway       = lookup(var.routes[count.index], "next_hop_internet", "false") == "true" ? "default-internet-gateway" : ""
-  next_hop_ip            = lookup(var.routes[count.index], "next_hop_ip", "")
-  next_hop_instance      = lookup(var.routes[count.index], "next_hop_instance", "")
-  next_hop_instance_zone = lookup(var.routes[count.index], "next_hop_instance_zone", "")
-  next_hop_vpn_tunnel    = lookup(var.routes[count.index], "next_hop_vpn_tunnel", "")
+  next_hop_gateway       = lookup(var.routes[count.index], "next_hop_internet", "false") == "true" ? "default-internet-gateway" : null
+  next_hop_ip            = lookup(var.routes[count.index], "next_hop_ip", null)
+  next_hop_instance      = lookup(var.routes[count.index], "next_hop_instance", null)
+  next_hop_instance_zone = lookup(var.routes[count.index], "next_hop_instance_zone", null)
+  next_hop_vpn_tunnel    = lookup(var.routes[count.index], "next_hop_vpn_tunnel", null)
   priority               = lookup(var.routes[count.index], "priority", "1000")
 
   depends_on = [

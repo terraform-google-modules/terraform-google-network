@@ -45,6 +45,12 @@ variable "subnets" {
   description = "The list of subnets being created"
 }
 
+variable "subnet_log_config" {
+  type        = "map"
+  description = "If a value is set, flow logging for this subnetwork will be enabled."
+  default     = {}
+}
+
 variable "secondary_ranges" {
   type        = map(list(object({ range_name = string, ip_cidr_range = string })))
   description = "Secondary ranges that will be used in some of the subnets"
