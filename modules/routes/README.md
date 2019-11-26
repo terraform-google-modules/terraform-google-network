@@ -64,11 +64,11 @@ module "vpc" {
 
 ### Routes Input
 
-The `routes` map `key` is the unique route `name` and the `value` object represents the route input options. For the next\_hop\_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each route has the following inputs (please see examples folder for additional references):
+The routes list contains maps, where each object represents a route. For the next_hop_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each map has the following inputs (please see examples folder for additional references):
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| key | The name of the route being created  | string | - | yes |
+| name | The name of the route being created  | string | - | yes |
 | description | The description of the route being created | string | - | no |
 | tags | The network tags assigned to this route. This is a list in string format. Eg. "tag-01,tag-02"| string | - | yes |
 | destination\_range | The destination range of outgoing packets that this route applies to. Only IPv4 is supported | string | - | yes
