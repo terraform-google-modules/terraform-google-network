@@ -111,7 +111,7 @@ Then perform the following commands on the root folder:
 |------|-------------|
 | network\_name | The name of the VPC being created |
 | network\_self\_link | The URI of the VPC being created |
-| routes | The routes associated with this VPC |
+| route\_names | The route names associated with this VPC |
 | subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |
 | subnets\_names | The names of the subnets being created |

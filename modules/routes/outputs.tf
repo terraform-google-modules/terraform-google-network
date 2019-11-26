@@ -15,6 +15,6 @@
  */
 
 output "routes" {
-  value       = [for route in google_compute_route.route : route.name]
-  description = "The routes associated with this VPC"
+  value       = google_compute_route.route
+  description = "The created routes resources"
 }

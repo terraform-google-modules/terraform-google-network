@@ -59,7 +59,7 @@ output "subnets_secondary_ranges" {
   description = "The secondary ranges associated with these subnets"
 }
 
-output "routes" {
-  value       = module.vpc-secondary-ranges.routes
+output "route_names" {
+  value       = module.vpc-secondary-ranges.route_names
   description = "The routes associated with this VPC"
 }

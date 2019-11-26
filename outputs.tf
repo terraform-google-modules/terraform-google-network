@@ -30,41 +30,41 @@ output "svpc_host_project_id" {
 }
 
 output "subnets_names" {
-  value       = module.subnets.subnets_names
+  value       = [for network in module.subnets.subnets : network.name]
   description = "The names of the subnets being created"
 }
 
 output "subnets_ips" {
-  value       = module.subnets.subnets_ips
+  value       = [for network in module.subnets.subnets : network.ip_cidr_range]
   description = "The IPs and CIDRs of the subnets being created"
 }
 
 output "subnets_self_links" {
-  value       = module.subnets.subnets_self_links
+  value       = [for network in module.subnets.subnets : network.self_link]
   description = "The self-links of subnets being created"
 }
 
 output "subnets_regions" {
-  value       = module.subnets.subnets_regions
+  value       = [for network in module.subnets.subnets : network.region]
   description = "The region where the subnets will be created"
 }
 
 output "subnets_private_access" {
-  value       = module.subnets.subnets_private_access
+  value       = [for network in module.subnets.subnets : network.private_ip_google_access]
   description = "Whether the subnets will have access to Google API's without a public IP"
 }
 
 output "subnets_flow_logs" {
-  value       = module.subnets.subnets_flow_logs
+  value       = [for network in module.subnets.subnets : network.enable_flow_logs]
   description = "Whether the subnets will have VPC flow logs enabled"
 }
 
 output "subnets_secondary_ranges" {
-  value       = module.subnets.subnets_secondary_ranges
+  value       = [for network in module.subnets.subnets : network.secondary_ip_range]
   description = "The secondary ranges associated with these subnets"
 }
 
-output "routes" {
-  value       = module.routes.routes
-  description = "The routes associated with this VPC"
+output "route_names" {
+  value       = [for route in module.routes.routes : route.name]
+  description = "The route names associated with this VPC"
 }

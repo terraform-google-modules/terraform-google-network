@@ -71,14 +71,7 @@ module "vpc" {
 
 | Name | Description |
 |------|-------------|
-| subnets | The subnet resources |
-| subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
-| subnets\_ips | The IPs and CIDRs of the subnets being created |
-| subnets\_names | The names of the subnets being created |
-| subnets\_private\_access | Whether the subnets will have access to Google API's without a public IP |
-| subnets\_regions | The region where the subnets will be created |
-| subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
-| subnets\_self\_links | The self-links of subnets being created |
+| subnets | The created subnet resources |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 

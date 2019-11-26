@@ -57,7 +57,7 @@ module "vpc" {
 
 | Name | Description |
 |------|-------------|
-| routes | The routes associated with this VPC |
+| routes | The created routes resources |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 
