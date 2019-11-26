@@ -48,6 +48,5 @@ module "routes" {
   network_name                           = module.vpc.network_name
   routes                                 = var.routes
   delete_default_internet_gateway_routes = var.delete_default_internet_gateway_routes
-  network                                = module.vpc.network
   subnets                                = module.subnets.subnets
 }

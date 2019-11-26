@@ -47,7 +47,6 @@ module "vpc" {
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
 | delete\_default\_internet\_gateway\_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | string | `"false"` | no |
-| network | The network resource that we depend on being created first | string | `"null"` | no |
 | network\_name | The name of the network where routes will be created | string | n/a | yes |
 | project\_id | The ID of the project where the routes will be created | string | n/a | yes |
 | routes | List of routes being created in this VPC | list(map(string)) | `<list>` | no |

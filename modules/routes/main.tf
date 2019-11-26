@@ -42,7 +42,6 @@ resource "google_compute_route" "route" {
   priority               = lookup(each.value, "priority", null)
 
   depends_on = [
-    var.network,
     var.subnets,
   ]
 }
@@ -59,7 +58,6 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
   }
 
   depends_on = [
-    var.network,
     var.subnets,
     google_compute_route.route,
   ]

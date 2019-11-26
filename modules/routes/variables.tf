@@ -22,11 +22,6 @@ variable "network_name" {
   description = "The name of the network where routes will be created"
 }
 
-variable "network" {
-  description = "The network resource that we depend on being created first"
-  default     = null
-}
-
 variable "subnets" {
   description = "The subnet resources that we depend on being created first"
   default     = []
