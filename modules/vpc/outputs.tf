@@ -30,6 +30,6 @@ output "network_self_link" {
 }
 
 output "svpc_host_project_id" {
-  value       = var.shared_vpc_host ? var.project_id : null
+  value       = var.shared_vpc_host ? var.project_id : ""
   description = "Shared VPC host project id."
 }
