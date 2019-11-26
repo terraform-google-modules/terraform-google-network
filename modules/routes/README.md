@@ -68,7 +68,7 @@ The routes list contains maps, where each object represents a route. For the nex
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| name | The name of the route being created  | string | - | yes |
+| name | The name of the route being created  | string | - | no |
 | description | The description of the route being created | string | - | no |
 | tags | The network tags assigned to this route. This is a list in string format. Eg. "tag-01,tag-02"| string | - | yes |
 | destination\_range | The destination range of outgoing packets that this route applies to. Only IPv4 is supported | string | - | yes
