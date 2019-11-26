@@ -32,7 +32,7 @@ module "vpc" {
 | network\_name | The name of the network being created | string | n/a | yes |
 | project\_id | The ID of the project where this VPC will be created | string | n/a | yes |
 | routing\_mode | The network routing mode (default 'GLOBAL') | string | `"GLOBAL"` | no |
-| shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `"false"` | no |
+| shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | bool | `"false"` | no |
 
 ## Outputs
 

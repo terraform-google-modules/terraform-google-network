@@ -29,9 +29,9 @@ variable "routing_mode" {
 }
 
 variable "shared_vpc_host" {
-  type        = string
+  type        = bool
   description = "Makes this project a Shared VPC host if 'true' (default 'false')"
-  default     = "false"
+  default     = false
 }
 
 variable "subnets" {

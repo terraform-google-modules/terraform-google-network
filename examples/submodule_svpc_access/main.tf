@@ -25,7 +25,7 @@ module "net-vpc-shared" {
   source          = "../.."
   project_id      = var.host_project_id
   network_name    = var.network_name
-  shared_vpc_host = "true"
+  shared_vpc_host = true
 
   subnets = [
     {
