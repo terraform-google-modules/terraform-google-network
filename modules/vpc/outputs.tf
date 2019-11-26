@@ -30,6 +30,6 @@ output "network_self_link" {
 }
 
 output "svpc_host_project_id" {
-  value       = element(concat(google_compute_shared_vpc_host_project.shared_vpc_host.*.project, list("")), 0)
+  value       = var.shared_vpc_host ? var.project_id : null
   description = "Shared VPC host project id."
 }
