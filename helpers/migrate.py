@@ -85,26 +85,28 @@ class ModuleMigration:
             old.plural = migration.get("old_plural", True)
             new.plural = migration.get("new_plural", True)
 
-            if migration.get("for_each_migration", False) and migration.get("old_plural", True):
+            if (migration.get("for_each_migration", False) and
+                    migration.get("old_plural", True)):
                 for_each_migrations.append((old, new, migration))
             else:
                 pair = (old.path(), new.path())
                 moves.append(pair)
-
 
         for_each_moves = self.for_each_moves(for_each_migrations)
         return moves + for_each_moves
 
     def for_each_moves(self, for_each_migrations):
         """
-        When migrating from count to for_each we need to move the whole collection first
+        When migrating from count to for_each we need to move the
+        whole collection first
         https://github.com/hashicorp/terraform/issues/22301
         """
         for_each_initial_migration = {}
         moves = []
 
         for (old, new, migration) in for_each_migrations:
-            # Do the initial migration of the whole collection only once if it hasn't been done yet
+            # Do the initial migration of the whole collection
+            # only once if it hasn't been done yet
             key = old.resource_type + "." + old.name
             if key not in for_each_initial_migration:
                 for_each_initial_migration[key] = True
@@ -117,12 +119,12 @@ class ModuleMigration:
             # Whole collection is moved to new location. Now needs right index
             new.plural = True
             new_indexed = copy.deepcopy(new)
-            new_indexed.key = self.state.resource_value(old, migration["for_each_migration_key"])
+            new_indexed.key = self.state.resource_value(
+                old, migration["for_each_migration_key"])
             pair = (new.path(), new_indexed.path())
             moves.append(pair)
 
         return moves
-
 
     def targets(self):
         """
@@ -253,14 +255,15 @@ class TerraformResource:
             self.resource_type,
             self.name)
 
+
 class TerraformState:
     """
     A Terraform state representation, pulled from terraform state pull
     Used for getting values out of individual resources
     """
+
     def __init__(self):
         self.read_state()
-
 
     def read_state(self):
         """
@@ -277,21 +280,26 @@ class TerraformState:
     def resource_value(self, resource, key):
         # Find the resource in the state
         state_resource_list = [r for r in self.state["resources"] if
-            r["module"] == resource.module and
-            r["type"] == resource.resource_type and
-            r["name"] == resource.name ]
+                               r["module"] == resource.module and
+                               r["type"] == resource.resource_type and
+                               r["name"] == resource.name]
 
         if (len(state_resource_list) != 1):
-            raise ValueError("Could not find resource list in state for {}".format(resource))
+            raise ValueError(
+                "Could not find resource list in state for {}"
+                .format(resource))
 
         index = int(resource.index)
-        # If this a collection use the index to find the right resource, otherwise use the first
+        # If this a collection use the index to find the right resource,
+        # otherwise use the first
         if (index >= 0):
             state_resource = [r for r in state_resource_list[0]["instances"] if
-                r["index_key"] == index]
+                              r["index_key"] == index]
 
             if (len(state_resource) != 1):
-                raise ValueError("Could not find resource in state for {} key {}".format(resource, resource.index))
+                raise ValueError(
+                    "Could not find resource in state for {} key {}"
+                    .format(resource, resource.index))
         else:
             state_resource = state_resource_list[0]["instances"]
 
@@ -372,7 +380,7 @@ def migrate(state=None, dryrun=False):
     # `terraform-google-network` resource type and names
     modules_to_migrate = [
         module for module in modules
-         if module.has_resource("google_compute_network", "network")
+        if module.has_resource("google_compute_network", "network")
     ]
 
     print("---- Migrating the following modules:")
@@ -400,6 +408,7 @@ def main(argv):
     state = TerraformState()
 
     migrate(state=state, dryrun=args.dryrun)
+
 
 def argparser():
     parser = argparse.ArgumentParser(description='Migrate Terraform state')
