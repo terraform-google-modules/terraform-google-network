@@ -19,27 +19,39 @@ import copy
 import subprocess
 import sys
 import re
+import json
 
 MIGRATIONS = [
     {
-        "resource_type": "google_container_cluster",
-        "name": "zonal_primary",
-        "rename": "primary",
-        "module": ""
+        "resource_type": "google_compute_network",
+        "name": "network",
+        "module": ".module.vpc",
+        "new_plural": False
     },
     {
-        "resource_type": "google_container_node_pool",
-        "name": "zonal_pools",
-        "rename": "pools",
-        "module": ""
+        "resource_type": "google_compute_shared_vpc_host_project",
+        "name": "shared_vpc_host",
+        "module": ".module.vpc"
+    },
+    {
+        "resource_type": "google_compute_subnetwork",
+        "name": "subnetwork",
+        "module": ".module.subnets",
+        "for_each_migration": True,
+        "for_each_migration_key": "id"
+    },
+    {
+        "resource_type": "google_compute_route",
+        "name": "route",
+        "module": ".module.routes",
+        "for_each_migration": True,
+        "for_each_migration_key": "id"
     },
     {
         "resource_type": "null_resource",
-        "name": "wait_for_zonal_cluster",
-        "rename": "wait_for_cluster",
-        "module": "",
-        "plural": False
-    },
+        "name": "delete_default_internet_gateway_routes",
+        "module": ".module.routes"
+    }
 ]
 
 
@@ -49,8 +61,9 @@ class ModuleMigration:
     module structure created by the G Suite refactor.
     """
 
-    def __init__(self, source_module):
+    def __init__(self, source_module, state):
         self.source_module = source_module
+        self.state = state
 
     def moves(self):
         """
@@ -58,6 +71,8 @@ class ModuleMigration:
         to the `destination` module.
         """
         resources = self.targets()
+        for_each_migrations = []
+
         moves = []
         for (old, migration) in resources:
             new = copy.deepcopy(old)
@@ -67,12 +82,47 @@ class ModuleMigration:
             if "rename" in migration:
                 new.name = migration["rename"]
 
-            old.plural = migration.get("plural", True)
-            new.plural = migration.get("plural", True)
+            old.plural = migration.get("old_plural", True)
+            new.plural = migration.get("new_plural", True)
 
-            pair = (old.path(), new.path())
+            if migration.get("for_each_migration", False) and migration.get("old_plural", True):
+                for_each_migrations.append((old, new, migration))
+            else:
+                pair = (old.path(), new.path())
+                moves.append(pair)
+
+
+        for_each_moves = self.for_each_moves(for_each_migrations)
+        return moves + for_each_moves
+
+    def for_each_moves(self, for_each_migrations):
+        """
+        When migrating from count to for_each we need to move the whole collection first
+        https://github.com/hashicorp/terraform/issues/22301
+        """
+        for_each_initial_migration = {}
+        moves = []
+
+        for (old, new, migration) in for_each_migrations:
+            # Do the initial migration of the whole collection only once if it hasn't been done yet
+            key = old.resource_type + "." + old.name
+            if key not in for_each_initial_migration:
+                for_each_initial_migration[key] = True
+                old.plural = False
+                new.plural = False
+
+                pair = (old.path(), new.path())
+                moves.append(pair)
+
+            # Whole collection is moved to new location. Now needs right index
+            new.plural = True
+            new_indexed = copy.deepcopy(new)
+            new_indexed.key = self.state.resource_value(old, migration["for_each_migration_key"])
+            pair = (new.path(), new_indexed.path())
             moves.append(pair)
+
         return moves
+
 
     def targets(self):
         """
@@ -155,7 +205,7 @@ class TerraformResource:
         Generate a new Terraform resource, based on the fully qualified
         Terraform resource path.
         """
-        if re.match(r'\A[\w.\[\]-]+\Z', path) is None:
+        if re.match(r'\A[\w.\["/\]-]+\Z', path) is None:
             raise ValueError(
                 "Invalid Terraform resource path {!r}".format(path))
 
@@ -171,6 +221,8 @@ class TerraformResource:
         """
         self.module = module
         self.resource_type = resource_type
+        self.key = None
+        self.plural = True
 
         find_suffix = re.match(r'(^.+)\[(\d+)\]', name)
         if find_suffix:
@@ -188,7 +240,9 @@ class TerraformResource:
         if parts[0] == '':
             del parts[0]
         path = ".".join(parts)
-        if self.index != -1 and self.plural:
+        if self.key is not None:
+            path = "{0}[\"{1}\"]".format(path, self.key)
+        elif self.index != -1 and self.plural:
             path = "{0}[{1}]".format(path, self.index)
         return path
 
@@ -198,6 +252,50 @@ class TerraformResource:
             self.module,
             self.resource_type,
             self.name)
+
+class TerraformState:
+    """
+    A Terraform state representation, pulled from terraform state pull
+    Used for getting values out of individual resources
+    """
+    def __init__(self):
+        self.read_state()
+
+
+    def read_state(self):
+        """
+        Read the terraform state
+        """
+        argv = ["terraform", "state", "pull"]
+        result = subprocess.run(argv,
+                                capture_output=True,
+                                check=True,
+                                encoding='utf-8')
+
+        self.state = json.loads(result.stdout)
+
+    def resource_value(self, resource, key):
+        # Find the resource in the state
+        state_resource_list = [r for r in self.state["resources"] if
+            r["module"] == resource.module and
+            r["type"] == resource.resource_type and
+            r["name"] == resource.name ]
+
+        if (len(state_resource_list) != 1):
+            raise ValueError("Could not find resource list in state for {}".format(resource))
+
+        index = int(resource.index)
+        # If this a collection use the index to find the right resource, otherwise use the first
+        if (index >= 0):
+            state_resource = [r for r in state_resource_list[0]["instances"] if
+                r["index_key"] == index]
+
+            if (len(state_resource) != 1):
+                raise ValueError("Could not find resource in state for {} key {}".format(resource, resource.index))
+        else:
+            state_resource = state_resource_list[0]["instances"]
+
+        return state_resource[0]["attributes"][key]
 
 
 def group_by_module(resources):
@@ -218,7 +316,7 @@ def group_by_module(resources):
     ]
 
 
-def read_state(statefile=None):
+def read_resources():
     """
     Read the terraform state at the given path.
     """
@@ -232,17 +330,17 @@ def read_state(statefile=None):
     return elements
 
 
-def state_changes_for_module(module, statefile=None):
+def state_changes_for_module(module, state):
     """
     Compute the Terraform state changes (deletions and moves) for a single
     module.
     """
     commands = []
 
-    migration = ModuleMigration(module)
+    migration = ModuleMigration(module, state)
 
     for (old, new) in migration.moves():
-        wrapper = '"{0}"'
+        wrapper = "'{0}'"
         argv = ["terraform",
                 "state",
                 "mv",
@@ -253,29 +351,28 @@ def state_changes_for_module(module, statefile=None):
     return commands
 
 
-def migrate(statefile=None, dryrun=False):
+def migrate(state=None, dryrun=False):
     """
-    Migrate the terraform state in `statefile` to match the post-refactor
-    resource structure.
+    Generate and run terraform state mv commands to migrate resources from one
+    state structure to another
     """
 
     # Generate a list of Terraform resource states from the output of
     # `terraform state list`
     resources = [
         TerraformResource.from_path(path)
-        for path in read_state(statefile)
+        for path in read_resources()
     ]
 
     # Group resources based on the module where they're defined.
     modules = group_by_module(resources)
 
     # Filter our list of Terraform modules down to anything that looks like a
-    # zonal GKE module. We key this off the presence off of
-    # `google_container_cluster.zonal_primary` since that should almost always
-    # be unique to a GKE module.
+    # google network original module. We key this off the presence off of
+    # `terraform-google-network` resource type and names
     modules_to_migrate = [
         module for module in modules
-        if module.has_resource("google_container_cluster", "zonal_primary")
+         if module.has_resource("google_compute_network", "network")
     ]
 
     print("---- Migrating the following modules:")
@@ -285,14 +382,14 @@ def migrate(statefile=None, dryrun=False):
     # Collect a list of resources for each module
     commands = []
     for module in modules_to_migrate:
-        commands += state_changes_for_module(module, statefile)
+        commands += state_changes_for_module(module, state)
 
     print("---- Commands to run:")
     for argv in commands:
         if dryrun:
             print(" ".join(argv))
         else:
-            argv = [arg.strip('"') for arg in argv]
+            argv = [arg.strip("'") for arg in argv]
             subprocess.run(argv, check=True, encoding='utf-8')
 
 
@@ -300,11 +397,9 @@ def main(argv):
     parser = argparser()
     args = parser.parse_args(argv[1:])
 
-    # print("cp {} {}".format(args.oldstate, args.newstate))
-    # shutil.copy(args.oldstate, args.newstate)
+    state = TerraformState()
 
-    migrate(dryrun=args.dryrun)
-
+    migrate(state=state, dryrun=args.dryrun)
 
 def argparser():
     parser = argparse.ArgumentParser(description='Migrate Terraform state')
