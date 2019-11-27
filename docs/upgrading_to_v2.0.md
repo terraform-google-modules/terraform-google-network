@@ -125,26 +125,46 @@ actions need to be performed.
 1.  Download the script
 
     ```sh
-    curl -O https://raw.githubusercontent.com/terraform-google-modules/terraform-google-network/master/helpers/migrate.sh
-    chmod +x migrate.sh
+    curl -O https://raw.githubusercontent.com/terraform-google-modules/terraform-google-network/master/helpers/migrate.py
+    chmod +x migrate.py
     ```
 
 2.  Run the script to output the migration commands:
 
     ```sh
-    $  ./migrate.sh --dry-run
-    terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[0] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]
-    terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[1] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-02\"]
+    $  ./migrate.py --dry-run
+    terraform state mv 'module.example.module.test-vpc-module-02.google_compute_network.network[0]' 'module.example.module.test-vpc-module-02.module.vpc.google_compute_network.network'
+    terraform state mv 'module.example.module.test-vpc-module-02.google_compute_subnetwork.subnetwork' 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork'
+    terraform state mv 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[0]' 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork["us-west1/multi-vpc-a1-02-subnet-01"]'
+    terraform state mv 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[1]' 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork["us-west1/multi-vpc-a1-02-subnet-02"]'
+    terraform state mv 'module.example.module.test-vpc-module-02.google_compute_route.route' 'module.example.module.test-vpc-module-02.module.routes.google_compute_route.route'
+    terraform state mv 'module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[0]' 'module.example.module.test-vpc-module-02.module.routes.google_compute_route.route["multi-vpc-a1-02-egress-inet"]'
+    terraform state mv 'module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[1]' 'module.example.module.test-vpc-module-02.module.routes.google_compute_route.route["multi-vpc-a1-02-testapp-proxy"]'
+
     ```
 
 3.  Execute the migration command
 
     ```sh
-    $ ./migrate.sh
-    Move "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[0]" to "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]"
+    $ ./migrate.py
+    ---- Migrating the following modules:
+    -- module.example.module.test-vpc-module-02
+    ---- Commands to run:
+    Move "module.example.module.test-vpc-module-02.google_compute_network.network[0]" to "module.example.module.test-vpc-module-02.module.vpc.google_compute_network.network"
     Successfully moved 1 object(s).
-    Move "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[1]" to "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-02\"]"
+    Move "module.example.module.test-vpc-module-02.google_compute_subnetwork.subnetwork" to "module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork"
     Successfully moved 1 object(s).
+    Move "module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[0]" to "module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[\"us-west1/multi-vpc-a1-02-subnet-01\"]"
+    Successfully moved 1 object(s).
+    Move "module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[1]" to "module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[\"us-west1/multi-vpc-a1-02-subnet-02\"]"
+    Successfully moved 1 object(s).
+    Move "module.example.module.test-vpc-module-02.google_compute_route.route" to "module.example.module.test-vpc-module-02.module.routes.google_compute_route.route"
+    Successfully moved 1 object(s).
+    Move "module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[0]" to "module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[\"multi-vpc-a1-02-egress-inet\"]"
+    Successfully moved 1 object(s).
+    Move "module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[1]" to "module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[\"multi-vpc-a1-02-testapp-proxy\"]"
+    Successfully moved 1 object(s).
+
     ```
 
 4.  Run `terraform plan` to confirm no changes are expected.
