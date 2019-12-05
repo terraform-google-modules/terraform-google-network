@@ -54,8 +54,12 @@ resource "google_compute_subnetwork" "subnetwork" {
   name                     = var.subnets[count.index]["subnet_name"]
   ip_cidr_range            = var.subnets[count.index]["subnet_ip"]
   region                   = var.subnets[count.index]["subnet_region"]
-  private_ip_google_access = lookup(var.subnets[count.index], "subnet_private_access", "false")
-  enable_flow_logs         = lookup(var.subnets[count.index], "subnet_flow_logs", "false")
+  private_ip_google_access = lookup(var.subnets[count.index], "subnet_private_access", "true")
+  log_config {
+    aggregation_interval = "INTERVAL_5_SEC"
+    flow_sampling        = 0.5
+    metadata             = "INCLUDE_ALL_METADATA"
+  }
   network                  = local.network_self_link
   project                  = var.project_id
   secondary_ip_range       = [for i in range(length(contains(keys(var.secondary_ranges), var.subnets[count.index]["subnet_name"]) == true ? var.secondary_ranges[var.subnets[count.index]["subnet_name"]] : [])) : var.secondary_ranges[var.subnets[count.index]["subnet_name"]][i]]
