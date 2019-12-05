@@ -117,7 +117,7 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
 
 resource "google_compute_firewall" "deny-egress-all" {
   name = "deny-egress-all"
-  network = module.network.network_name
+  network = google_compute_network.network.network_name
   allow {
     protocol = "all"
   }
