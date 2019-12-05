@@ -55,14 +55,17 @@ module "test-firewall-submodule" {
   internal_ranges_enabled = true
   internal_ranges         = module.test-vpc-module.subnets_ips
 
-  internal_allow = [{
-    protocol = "icmp"
+  internal_allow = [
+    {
+      protocol = "icmp"
     },
     {
-      protocol = "tcp"
+      protocol = "tcp",
+      ports    = ["80", "8080", "1000-2000"]
     },
     {
       protocol = "udp"
+      # all ports will opened if `ports` key isn't specified
     },
   ]
 }

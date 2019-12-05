@@ -27,13 +27,23 @@ resource "google_compute_firewall" "allow-internal" {
   source_ranges = var.internal_ranges
 
   dynamic "allow" {
-    for_each = [var.internal_allow]
+    for_each = [for rule in var.internal_allow :
+      {
+        protocol = lookup(rule, "protocol", null)
+        ports    = lookup(rule, "ports", null)
+      }
+    ]
     content {
-      protocol = lookup(allow.value[count.index], "protocol", null)
-      ports    = lookup(allow.value[count.index], "ports", null)
+      protocol = allow.value.protocol
+      ports    = allow.value.ports
     }
   }
+
 }
+
+
+
+
 
 resource "google_compute_firewall" "allow-admins" {
   count         = var.admin_ranges_enabled == true ? 1 : 0
