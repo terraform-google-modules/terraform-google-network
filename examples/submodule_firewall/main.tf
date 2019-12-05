@@ -65,7 +65,7 @@ module "test-firewall-submodule" {
     },
     {
       protocol = "udp"
-      # all ports will opened if `ports` key isn't specified
+      # all ports will be opened if `ports` key isn't specified
     },
   ]
 }
