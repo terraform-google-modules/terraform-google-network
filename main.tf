@@ -118,6 +118,7 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
 resource "google_compute_firewall" "deny-egress-all" {
   count = var.create_network ? 1 : 0
   name = "deny-egress-all"
+  project = var.project_id
   network = google_compute_network.network[0].name
   allow {
     protocol = "all"
