@@ -115,24 +115,10 @@ resource "null_resource" "delete_default_internet_gateway_routes" {
   ]
 }
 
-module "test-firewall-submodule" {
-  source                  = "./modules/fabric-net-firewall"
-  project_id              = var.project_id
-  network                 = module.network.network_name
-
-  custom_rules = {
-    deny-egress-all = {
-      description          = "Deny all egress traffic"
-      direction            = "EGRESS"
-      action               = "deny"
-      ranges               = ["0.0.0.0/0"]
-      use_service_accounts = false
-      rules = [
-        {
-          protocol = "all"
-        }
-      ]
-      extra_attributes = {}
-    }
+resource "google_compute_firewall" "deny-egress-all" {
+  name = "deny-egress-all"
+  network = module.network.network_name
+  allow {
+    protocol = "all"
   }
 }
