@@ -14,9 +14,22 @@
  * limitations under the License.
  */
 
-terraform {
-  required_version = "~> 0.12.0"
-  required_providers {
-    google = "~> 2.19.0"
-  }
+output "network" {
+  value       = google_compute_network.network
+  description = "The VPC resource being created"
+}
+
+output "network_name" {
+  value       = google_compute_network.network.name
+  description = "The name of the VPC being created"
+}
+
+output "network_self_link" {
+  value       = google_compute_network.network.self_link
+  description = "The URI of the VPC being created"
+}
+
+output "project_id" {
+  value       = var.project_id
+  description = "VPC project id"
 }

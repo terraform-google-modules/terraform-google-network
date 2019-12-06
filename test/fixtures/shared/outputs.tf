@@ -34,11 +34,6 @@ output "output_network_self_link" {
   description = "The URI of the VPC being created"
 }
 
-output "output_svpc_host_project_id" {
-  value       = module.example.svpc_host_project_id
-  description = "Shared VPC host project id."
-}
-
 output "output_subnets_names" {
   value       = module.example.subnets_names
   description = "The names of the subnets being created"
@@ -48,7 +43,6 @@ output "output_subnets_ips" {
   value       = module.example.subnets_ips
   description = "The IP and cidrs of the subnets being created"
 }
-
 
 output "output_subnets_regions" {
   value       = module.example.subnets_regions
@@ -71,6 +65,6 @@ output "output_subnets_secondary_ranges" {
 }
 
 output "output_routes" {
-  value       = module.example.routes
-  description = "The routes associated with this VPC"
+  value       = module.example.route_names
+  description = "The route names associated with this VPC"
 }

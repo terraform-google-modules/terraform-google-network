@@ -56,7 +56,7 @@ output "network_01_subnets_secondary_ranges" {
 }
 
 output "network_01_routes" {
-  value       = module.test-vpc-module-01.routes
+  value       = module.test-vpc-module-01.route_names
   description = "The routes associated with network-01"
 }
 
@@ -102,6 +102,6 @@ output "network_02_subnets_secondary_ranges" {
 }
 
 output "network_02_routes" {
-  value       = module.test-vpc-module-02.routes
+  value       = module.test-vpc-module-02.route_names
   description = "The routes associated with network-02"
 }

@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-terraform {
-  required_version = "~> 0.12.0"
-  required_providers {
-    google = "~> 2.19.0"
-  }
+output "routes" {
+  value       = google_compute_route.route
+  description = "The created routes resources"
 }

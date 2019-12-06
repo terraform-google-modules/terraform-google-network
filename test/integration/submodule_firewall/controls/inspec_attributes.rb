@@ -55,7 +55,7 @@ control "inspec_attributes" do
     it { should eq [[],[]] }
   end
 
-  describe attribute("output_svpc_host_project_id") do
-    it { should eq "" }
+  describe attribute("output_project_id") do
+    it { should eq project_id }
   end
 end

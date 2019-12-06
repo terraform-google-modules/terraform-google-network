@@ -55,7 +55,7 @@ control "inspec_attributes" do
     it { should eq [{"ip_cidr_range"=>"192.168.64.0/24", "range_name"=>"#{network_name}-subnet-01-01"}, {"ip_cidr_range"=>"192.168.65.0/24", "range_name"=>"#{network_name}-subnet-01-02"}, {"ip_cidr_range"=>"192.168.66.0/24", "range_name"=>"#{network_name}-subnet-03-01"}] }
   end
 
-  describe attribute("output_svpc_host_project_id") do
-    it { should eq "" }
+  describe attribute("project_id") do
+    it { should eq project_id }
   end
 end

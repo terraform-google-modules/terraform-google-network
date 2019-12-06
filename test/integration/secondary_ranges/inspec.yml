@@ -26,5 +26,5 @@ attributes:
     required: true
   - name: output_subnets_secondary_ranges
     required: true
-  - name: output_svpc_host_project_id
+  - name: output_project_id
     required: true

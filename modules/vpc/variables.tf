@@ -34,29 +34,6 @@ variable "shared_vpc_host" {
   default     = false
 }
 
-variable "subnets" {
-  type        = list(map(string))
-  description = "The list of subnets being created"
-}
-
-variable "secondary_ranges" {
-  type        = map(list(object({ range_name = string, ip_cidr_range = string })))
-  description = "Secondary ranges that will be used in some of the subnets"
-  default     = {}
-}
-
-variable "routes" {
-  type        = list(map(string))
-  description = "List of routes being created in this VPC"
-  default     = []
-}
-
-variable "delete_default_internet_gateway_routes" {
-  description = "If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted"
-  default     = "false"
-}
-
-
 variable "description" {
   type        = string
   description = "An optional description of this resource. The resource must be recreated to modify this field."
