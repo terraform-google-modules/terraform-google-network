@@ -41,7 +41,7 @@ Basic usage of this module is as follows:
 
 ```hcl
 module "net-firewall" {
-  source                  = "terraform-google-modules/terraform-google-network/google//modules/fabric-net-firewall"
+  source                  = "terraform-google-modules/network/google//modules/fabric-net-firewall"
   project_id              = "my-project"
   network                 = "my-vpc"
   internal_ranges_enabled = true
