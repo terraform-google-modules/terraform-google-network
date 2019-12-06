@@ -24,6 +24,9 @@ control "gcp" do
     its('firewall_names') { should include "#{network_name}-ingress-tag-https" }
     its('firewall_names') { should include "#{network_name}-ingress-tag-ssh" }
     its('firewall_names') { should_not include "default-ingress-admins" }
+    its('firewall_names') { should include "deny-ingress-6534-6566" }
+    its('firewall_names') { should include "allow-backend-to-databases" }
+    its('firewall_names') { should include "allow-all-admin-sa" }
   end
 
 end

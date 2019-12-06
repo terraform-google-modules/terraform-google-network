@@ -42,19 +42,144 @@ control "gcloud" do
       it "should contain ICMP rule" do
         expect(data["allowed"]).to include({"IPProtocol" => "icmp"})
       end
-    end
 
-    describe "allowed internal rules" do
       it "should contain UDP rule" do
         expect(data["allowed"]).to include({"IPProtocol" => "udp"})
       end
-    end
 
-    describe "allowed internal rules" do
-      it "should contain TCP rules" do
+      it "should contain TCP rule" do
         expect(data["allowed"]).to include({"IPProtocol"=>"tcp", "ports"=>["8080", "1000-2000"]})
       end
     end
   end
 
+  # Custom rules
+  describe command("gcloud compute firewall-rules describe allow-backend-to-databases --project=#{project_id} --format=json") do
+    its(:exit_status) { should eq 0 }
+    its(:stderr) { should eq '' }
+
+    let(:data) do
+      if subject.exit_status == 0
+        JSON.parse(subject.stdout)
+      else
+        {}
+      end
+    end
+
+    describe "Custom TAG rule" do
+      it "has backend tag as source" do
+        expect(data).to include(
+          "sourceTags" => ["backed"]
+        )
+      end
+
+      it "has databases tag as target" do
+        expect(data).to include(
+          "targetTags" => ["databases"]
+        )
+      end
+
+      it "has expected TCP rule" do
+        expect(data["allowed"]).to include(
+            {
+              "IPProtocol" => "tcp",
+              "ports" => ["3306", "5432", "1521", "1433"]
+            }
+        )
+      end
+    end
+  end
+
+describe command("gcloud compute firewall-rules describe deny-ingress-6534-6566 --project=#{project_id} --format=json") do
+    its(:exit_status) { should eq 0 }
+    its(:stderr) { should eq '' }
+
+    let(:data) do
+      if subject.exit_status == 0
+        JSON.parse(subject.stdout)
+      else
+        {}
+      end
+    end
+
+    describe "deny-ingress-6534-6566" do
+      it "should be disabled" do
+        expect(data).to include(
+          "disabled" => true
+        )
+      end
+
+      it "has 0.0.0.0/0 source range" do
+        expect(data).to include(
+          "sourceRanges" => ["0.0.0.0/0"]
+        )
+      end
+
+      it "has expected TCP rules" do
+        expect(data["denied"]).to include(
+            {
+              "IPProtocol" => "tcp",
+              "ports" => ["6534-6566"]
+            }
+        )
+      end
+
+      it "has expected UDP rules" do
+        expect(data["denied"]).to include(
+            {
+              "IPProtocol" => "udp",
+              "ports" => ["6534-6566"]
+            }
+        )
+      end
+    end
+  end
+
+
+describe command("gcloud compute firewall-rules describe allow-all-admin-sa --project=#{project_id} --format=json") do
+    its(:exit_status) { should eq 0 }
+    its(:stderr) { should eq '' }
+
+    let(:data) do
+      if subject.exit_status == 0
+        JSON.parse(subject.stdout)
+      else
+        {}
+      end
+    end
+
+    describe "allow-all-admin-sa" do
+      it "should be enabled" do
+        expect(data).to include(
+          "disabled" => false
+        )
+      end
+
+      it "should has correct source SA" do
+        expect(data["sourceServiceAccounts"]).to eq(["admin@my-shiny-org.iam.gserviceaccount.com"])
+      end
+
+      it "should has priority 30" do
+        expect(data["priority"]).to eq(30)
+      end
+
+      it "has expected TCP rules" do
+        expect(data["allowed"]).to include(
+            {
+              "IPProtocol" => "tcp"
+            }
+        )
+      end
+
+      it "has expected UDP rules" do
+        expect(data["allowed"]).to include(
+            {
+              "IPProtocol" => "udp"
+            }
+        )
+      end
+    end
+  end
+
 end
+
