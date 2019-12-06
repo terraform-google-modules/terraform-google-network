@@ -49,22 +49,12 @@ output "output_subnets_regions" {
   description = "The region where subnets will be created"
 }
 
-output "output_subnets_private_access" {
-  value       = module.example.subnets_private_access
-  description = "Whether the subnets will have access to Google API's without a public IP"
-}
-
-output "output_subnets_flow_logs" {
-  value       = module.example.subnets_flow_logs
-  description = "Whether the subnets will have VPC flow logs enabled"
-}
-
-output "output_subnets_secondary_ranges" {
-  value       = module.example.subnets_secondary_ranges
-  description = "The secondary ranges associated with these subnets"
-}
-
 output "output_routes" {
   value       = module.example.route_names
   description = "The route names associated with this VPC"
+}
+
+output "forwarding_rule" {
+  value       = module.example.forwarding_rule
+  description = "Forwarding rule link"
 }

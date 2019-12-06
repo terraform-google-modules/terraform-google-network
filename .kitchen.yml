@@ -147,3 +147,16 @@ suites:
           backend: local
           controls:
             - gcloud
+  - name: "ilb_routing"
+    driver:
+      name: "terraform"
+      command_timeout: 1800
+      root_module_directory: test/fixtures/ilb_routing/
+    verifier:
+      name: terraform
+      color: true
+      systems:
+        - name: local
+          backend: local
+          controls:
+            - gcloud

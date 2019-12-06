@@ -15,10 +15,9 @@
  */
 
 variable "project_id" {
-  description = "The GCP project to use for integration tests"
+  description = "The project ID to host the network in"
 }
 
-variable "random_string_for_testing" {
-  description = "A random string of characters to be appended to resource names to ensure uniqueness"
-  default     = "a1"
+variable "network_name" {
+  description = "The name of the VPC network being created"
 }

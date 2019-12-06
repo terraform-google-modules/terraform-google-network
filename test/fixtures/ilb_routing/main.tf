@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-variable "project_id" {
-  description = "The GCP project to use for integration tests"
+locals {
+  network_name = "ilb-routing-${var.random_string_for_testing}"
 }
 
-variable "random_string_for_testing" {
-  description = "A random string of characters to be appended to resource names to ensure uniqueness"
-  default     = "a1"
+module "example" {
+  source       = "../../../examples/ilb_routing"
+  project_id   = var.project_id
+  network_name = local.network_name
 }
