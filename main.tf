@@ -14,11 +14,6 @@
  * limitations under the License.
  */
 
-locals {
-  network_self_link = var.create_network ? google_compute_network.network[0].self_link : data.google_compute_network.network[0].self_link
-  network_name      = var.create_network ? google_compute_network.network[0].name : data.google_compute_network.network[0].name
-}
-
 /******************************************
 	VPC configuration
  *****************************************/
