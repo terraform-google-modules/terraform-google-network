@@ -38,6 +38,23 @@ control "gcloud" do
       end
     end
 
+    describe "allowed internal rules" do
+      it "should contain ICMP rule" do
+        expect(data["allowed"]).to include({"IPProtocol" => "icmp"})
+      end
+    end
+
+    describe "allowed internal rules" do
+      it "should contain UDP rule" do
+        expect(data["allowed"]).to include({"IPProtocol" => "udp"})
+      end
+    end
+
+    describe "allowed internal rules" do
+      it "should contain TCP rules" do
+        expect(data["allowed"]).to include({"IPProtocol"=>"tcp", "ports"=>["8080", "1000-2000"]})
+      end
+    end
   end
 
 end
