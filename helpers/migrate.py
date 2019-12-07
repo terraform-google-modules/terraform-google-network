@@ -31,7 +31,8 @@ MIGRATIONS = [
     {
         "resource_type": "google_compute_shared_vpc_host_project",
         "name": "shared_vpc_host",
-        "module": ".module.vpc"
+        "module": ".module.vpc",
+        "new_plural": False
     },
     {
         "resource_type": "google_compute_subnetwork",
@@ -280,7 +281,7 @@ class TerraformState:
     def resource_value(self, resource, key):
         # Find the resource in the state
         state_resource_list = [r for r in self.state["resources"] if
-                               r["module"] == resource.module and
+                               r.get("module", "none") == resource.module and
                                r["type"] == resource.resource_type and
                                r["name"] == resource.name]
 
