@@ -41,7 +41,7 @@ You will need to migrate your state, either [manually](#manual-migration-steps) 
 2.  Run the script to output the migration commands:
 
     ```sh
-    $  ./migrate.py --dry-run
+    $  ./migrate.py --dryrun
     terraform state mv 'module.example.module.test-vpc-module-02.google_compute_network.network[0]' 'module.example.module.test-vpc-module-02.module.vpc.google_compute_network.network'
     terraform state mv 'module.example.module.test-vpc-module-02.google_compute_subnetwork.subnetwork' 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork'
     terraform state mv 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[0]' 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork["us-west1/multi-vpc-a1-02-subnet-01"]'
