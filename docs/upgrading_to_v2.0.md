@@ -7,97 +7,90 @@ Because v2.x changed how the subnet resource is iterated on, resources in Terraf
 
 ## Migration Instructions
 
--   Upgrade to the new version of this module.
+First, upgrade to the new version of this module.
 
-if you run `terraform plan` at this point. Terraform will inform you that it will attempt to delete and recreate your existing subnets. This is almost certainly not the behavior you want. For example:
+```diff
+ module "kubernetes_engine_private_cluster" {
+   source  = "terraform-google-modules/network/google"
+-  version = "~> 1.5"
++  version = "~> 2.0"
 
-```Shell
-Terraform will perform the following actions:
-
-  # module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork will be destroyed
-  - resource "google_compute_subnetwork" "subnetwork" {
-      - creation_timestamp       = "2019-10-02T08:40:26.282-07:00" -> null
-      - enable_flow_logs         = false -> null
-      - fingerprint              = "f8LZx006zY4=" -> null
-      - gateway_address          = "10.10.10.1" -> null
-      - id                       = "us-west1/simple-project-timh-subnet-01" -> null
-      - ip_cidr_range            = "10.10.10.0/24" -> null
-      - name                     = "simple-project-timh-subnet-01" -> null
-      - network                  = "https://www.googleapis.com/compute/v1/projects/dev-xpn-networking/global/networks/simple-project-timh" -> null
-      - private_ip_google_access = false -> null
-      - project                  = "dev-xpn-networking" -> null
-      - region                   = "us-west1" -> null
-      - secondary_ip_range       = [] -> null
-      - self_link                = "https://www.googleapis.com/compute/v1/projects/dev-xpn-networking/regions/us-west1/subnetworks/simple-project-timh-subnet-01" -> null
-    }
-
-  # module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[1] will be destroyed
-  - resource "google_compute_subnetwork" "subnetwork" {
-      - creation_timestamp       = "2019-10-02T08:40:26.292-07:00" -> null
-      - enable_flow_logs         = true -> null
-      - fingerprint              = "wOwStN9lK-Q=" -> null
-      - gateway_address          = "10.10.20.1" -> null
-      - id                       = "us-west1/simple-project-timh-subnet-02" -> null
-      - ip_cidr_range            = "10.10.20.0/24" -> null
-      - name                     = "simple-project-timh-subnet-02" -> null
-      - network                  = "https://www.googleapis.com/compute/v1/projects/dev-xpn-networking/global/networks/simple-project-timh" -> null
-      - private_ip_google_access = true -> null
-      - project                  = "dev-xpn-networking" -> null
-      - region                   = "us-west1" -> null
-      - secondary_ip_range       = [] -> null
-      - self_link                = "https://www.googleapis.com/compute/v1/projects/dev-xpn-networking/regions/us-west1/subnetworks/simple-project-timh-subnet-02" -> null
-    }
-
-  # module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork["us-west1/simple-project-timh-subnet-01"] will be created
-  + resource "google_compute_subnetwork" "subnetwork" {
-      + creation_timestamp       = (known after apply)
-      + enable_flow_logs         = false
-      + fingerprint              = (known after apply)
-      + gateway_address          = (known after apply)
-      + id                       = (known after apply)
-      + ip_cidr_range            = "10.10.10.0/24"
-      + name                     = "simple-project-timh-subnet-01"
-      + network                  = "simple-project-timh"
-      + private_ip_google_access = false
-      + project                  = "dev-xpn-networking"
-      + region                   = "us-west1"
-      + secondary_ip_range       = []
-      + self_link                = (known after apply)
-    }
-
-  # module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork["us-west1/simple-project-timh-subnet-02"] will be created
-  + resource "google_compute_subnetwork" "subnetwork" {
-      + creation_timestamp       = (known after apply)
-      + enable_flow_logs         = true
-      + fingerprint              = (known after apply)
-      + gateway_address          = (known after apply)
-      + id                       = (known after apply)
-      + ip_cidr_range            = "10.10.20.0/24"
-      + name                     = "simple-project-timh-subnet-02"
-      + network                  = "simple-project-timh"
-      + private_ip_google_access = true
-      + project                  = "dev-xpn-networking"
-      + region                   = "us-west1"
-      + secondary_ip_range       = []
-      + self_link                = (known after apply)
-    }
-
-Plan: 2 to add, 0 to change, 2 to destroy.
-
-------------------------------------------------------------------------
-
-Note: You didn't specify an "-out" parameter to save this plan, so Terraform
-can't guarantee that exactly these actions will be performed if
-"terraform apply" is subsequently run.
+   # ...
+ }
 ```
+
+If you run `terraform plan` at this point, Terraform will inform you that it will attempt to delete and recreate your existing subnets. This is almost certainly not the behavior you want.
+
+You will need to migrate your state, either [manually](#manual-migration-steps) or [automatically](#migration-script).
+
+### Migration Script
+
+1.  Download the script:
+
+    ```sh
+    curl -O https://raw.githubusercontent.com/terraform-google-modules/terraform-google-network/master/helpers/migrate.py
+    chmod +x migrate.py
+    ```
+
+2.  Back up your Terraform state:
+
+    ```sh
+    terraform state pull >> state.bak
+    ```
+
+2.  Run the script to output the migration commands:
+
+    ```sh
+    $  ./migrate.py --dryrun
+    terraform state mv 'module.example.module.test-vpc-module-02.google_compute_network.network[0]' 'module.example.module.test-vpc-module-02.module.vpc.google_compute_network.network'
+    terraform state mv 'module.example.module.test-vpc-module-02.google_compute_subnetwork.subnetwork' 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork'
+    terraform state mv 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[0]' 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork["us-west1/multi-vpc-a1-02-subnet-01"]'
+    terraform state mv 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[1]' 'module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork["us-west1/multi-vpc-a1-02-subnet-02"]'
+    terraform state mv 'module.example.module.test-vpc-module-02.google_compute_route.route' 'module.example.module.test-vpc-module-02.module.routes.google_compute_route.route'
+    terraform state mv 'module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[0]' 'module.example.module.test-vpc-module-02.module.routes.google_compute_route.route["multi-vpc-a1-02-egress-inet"]'
+    terraform state mv 'module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[1]' 'module.example.module.test-vpc-module-02.module.routes.google_compute_route.route["multi-vpc-a1-02-testapp-proxy"]'
+
+    ```
+
+3.  Execute the migration script:
+
+    ```sh
+    $ ./migrate.py
+    ---- Migrating the following modules:
+    -- module.example.module.test-vpc-module-02
+    ---- Commands to run:
+    Move "module.example.module.test-vpc-module-02.google_compute_network.network[0]" to "module.example.module.test-vpc-module-02.module.vpc.google_compute_network.network"
+    Successfully moved 1 object(s).
+    Move "module.example.module.test-vpc-module-02.google_compute_subnetwork.subnetwork" to "module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork"
+    Successfully moved 1 object(s).
+    Move "module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[0]" to "module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[\"us-west1/multi-vpc-a1-02-subnet-01\"]"
+    Successfully moved 1 object(s).
+    Move "module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[1]" to "module.example.module.test-vpc-module-02.module.subnets.google_compute_subnetwork.subnetwork[\"us-west1/multi-vpc-a1-02-subnet-02\"]"
+    Successfully moved 1 object(s).
+    Move "module.example.module.test-vpc-module-02.google_compute_route.route" to "module.example.module.test-vpc-module-02.module.routes.google_compute_route.route"
+    Successfully moved 1 object(s).
+    Move "module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[0]" to "module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[\"multi-vpc-a1-02-egress-inet\"]"
+    Successfully moved 1 object(s).
+    Move "module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[1]" to "module.example.module.test-vpc-module-02.module.routes.google_compute_route.route[\"multi-vpc-a1-02-testapp-proxy\"]"
+    Successfully moved 1 object(s).
+
+    ```
+
+4.  Run `terraform plan` to confirm no changes are expected.
 
 ### Manual Migration Steps
 
-In this example here are the two commands used migrate the subnets created by the `simple_project` in the examples directory.  _please note the need to escape the quotes on the new resource_. You may also use the migration script.
+In this example here are the commands used migrate the vpc and subnets created by the `simple_project` in the examples directory.  _please note the need to escape the quotes on the new resource_. You may also use the migration script.
 
--   `terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[0] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]`
+-   `terraform state mv module.example.module.test-vpc-module.google_compute_network.network module.example.module.test-vpc-module.module.vpc.google_compute_subnetwork.network`
 
--   `terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[1] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-02\"]`
+-   `terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork module.example.module.test-vpc-module.module.subnets.google_compute_subnetwork.subnetwork`
+
+-   `terraform state mv module.example.module.test-vpc-module.module.subnets.google_compute_subnetwork.subnetwork[0] module.example.module.test-vpc-module.module.subnets.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]`
+
+-   `terraform state mv module.example.module.test-vpc-module.module.subnets.google_compute_subnetwork.subnetwork[1] module.example.module.test-vpc-module.module.subnets.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-02\"]`
+
+*You'll notice that because of a terraform [issue](https://github.com/hashicorp/terraform/issues/22301), we need to move the whole resource collection first before renaming to the `for_each` keys*
 
 `terraform plan` should now return a no-op and show no new changes.
 
@@ -120,31 +113,22 @@ configuration and real physical resources that exist. As a result, no
 actions need to be performed.
 ```
 
-### Migration Script
+### Known Issues
 
-1.  Download the script
+If your previous state only contains a **single** subnet or route then `terraform mv` will throw an error similar to the following during migration:
 
-    ```sh
-    curl -O https://raw.githubusercontent.com/terraform-google-modules/terraform-google-network/master/helpers/migrate.sh
-    chmod +x migrate.sh
-    ```
+```
+Error: Invalid target address
 
-2.  Run the script to output the migration commands:
+Cannot move to
+module.example.module.test-vpc-module-01.module.routes.google_compute_route.route["multi-vpc-a1-01-egress-inet"]:
+module.example.module.test-vpc-module-01.module.routes.google_compute_route.route
+does not exist in the current state.
+```
 
-    ```sh
-    $  ./migrate.sh --dry-run
-    terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[0] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]
-    terraform state mv module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[1] module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-02\"]
-    ```
+This is due to a terraform mv [issue](https://github.com/hashicorp/terraform/issues/22301)
 
-3.  Execute the migration command
+The workaround is to either
 
-    ```sh
-    $ ./migrate.sh
-    Move "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[0]" to "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-01\"]"
-    Successfully moved 1 object(s).
-    Move "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[1]" to "module.example.module.test-vpc-module.google_compute_subnetwork.subnetwork[\"us-west1/simple-project-timh-subnet-02\"]"
-    Successfully moved 1 object(s).
-    ```
-
-4.  Run `terraform plan` to confirm no changes are expected.
+1. Create a temporary subnet or route prior to migration
+2. Manually updating the state file. Update the `index_key` of the appropriate user and push the to the remote state if necessary.

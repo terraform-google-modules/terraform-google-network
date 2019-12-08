@@ -74,9 +74,7 @@ suites:
             customized_inspec_attribute: output_subnets_private_access
             customized_inspec_attribute: output_subnets_regions
             customized_inspec_attribute: output_subnets_secondary_ranges
-            customized_inspec_attribute: output_svpc_host_project_id
-
-
+            customized_inspec_attribute: output_project_id
           backend: local
           controls:
             - gcloud
@@ -131,8 +129,21 @@ suites:
             customized_inspec_attribute: output_subnets_private_access
             customized_inspec_attribute: output_subnets_regions
             customized_inspec_attribute: output_subnets_secondary_ranges
-            customized_inspec_attribute: output_svpc_host_project_id
+            customized_inspec_attribute: output_project_id
           backend: local
           controls:
             - gcloud
             - inspec_attributes
+  - name: "submodule_network_peering"
+    driver:
+      name: "terraform"
+      command_timeout: 1800
+      root_module_directory: test/fixtures/submodule_network_peering/
+    verifier:
+      name: terraform
+      color: true
+      systems:
+        - name: local
+          backend: local
+          controls:
+            - gcloud

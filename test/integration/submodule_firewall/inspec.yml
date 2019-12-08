@@ -1,4 +1,4 @@
-name: simple_project
+name: submodule_firewall
 depends:
   - name: inspec-gcp
     git: https://github.com/inspec/inspec-gcp.git
@@ -30,5 +30,5 @@ attributes:
     required: true
   - name: output_subnets_secondary_ranges
     required: true
-  - name: output_svpc_host_project_id
+  - name: output_project_id
     required: true
