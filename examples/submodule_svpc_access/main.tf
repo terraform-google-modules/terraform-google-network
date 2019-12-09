@@ -25,7 +25,7 @@ module "net-vpc-shared" {
   source          = "../.."
   project_id      = var.host_project_id
   network_name    = var.network_name
-  shared_vpc_host = "true"
+  shared_vpc_host = true
 
   subnets = [
     {
@@ -43,7 +43,7 @@ module "net-vpc-shared" {
 
 module "net-svpc-access" {
   source              = "../../modules/fabric-net-svpc-access"
-  host_project_id     = module.net-vpc-shared.svpc_host_project_id
+  host_project_id     = module.net-vpc-shared.project_id
   service_project_num = 1
   service_project_ids = [var.service_project_id]
   host_subnets        = ["data"]

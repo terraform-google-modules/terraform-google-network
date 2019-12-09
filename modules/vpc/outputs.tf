@@ -14,29 +14,22 @@
  * limitations under the License.
  */
 
-provider "google" {
-  version = "~> 2.19.0"
+output "network" {
+  value       = google_compute_network.network
+  description = "The VPC resource being created"
 }
 
-provider "null" {
-  version = "~> 2.1"
+output "network_name" {
+  value       = google_compute_network.network.name
+  description = "The name of the VPC being created"
 }
 
-locals {
-  subnet_01 = "${var.network_name}-subnet-01"
+output "network_self_link" {
+  value       = google_compute_network.network.self_link
+  description = "The URI of the VPC being created"
 }
 
-module "test-vpc-module" {
-  source                                 = "../../"
-  project_id                             = var.project_id
-  network_name                           = var.network_name
-  delete_default_internet_gateway_routes = "true"
-
-  subnets = [
-    {
-      subnet_name   = local.subnet_01
-      subnet_ip     = "10.20.30.0/24"
-      subnet_region = "us-west1"
-    },
-  ]
+output "project_id" {
+  value       = var.project_id
+  description = "VPC project id"
 }

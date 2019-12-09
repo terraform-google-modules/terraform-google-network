@@ -15,56 +15,56 @@
  */
 
 output "network_name" {
-  value       = local.network_name
+  value       = module.vpc.network_name
   description = "The name of the VPC being created"
 }
 
 output "network_self_link" {
-  value       = local.network_self_link
+  value       = module.vpc.network_self_link
   description = "The URI of the VPC being created"
 }
 
-output "svpc_host_project_id" {
-  value       = element(concat(google_compute_shared_vpc_host_project.shared_vpc_host.*.project, list("")), 0)
-  description = "Shared VPC host project id."
+output "project_id" {
+  value       = module.vpc.project_id
+  description = "VPC project id"
 }
 
 output "subnets_names" {
-  value       = google_compute_subnetwork.subnetwork.*.name
+  value       = [for network in module.subnets.subnets : network.name]
   description = "The names of the subnets being created"
 }
 
 output "subnets_ips" {
-  value       = google_compute_subnetwork.subnetwork.*.ip_cidr_range
+  value       = [for network in module.subnets.subnets : network.ip_cidr_range]
   description = "The IPs and CIDRs of the subnets being created"
 }
 
 output "subnets_self_links" {
-  value       = google_compute_subnetwork.subnetwork.*.self_link
+  value       = [for network in module.subnets.subnets : network.self_link]
   description = "The self-links of subnets being created"
 }
 
 output "subnets_regions" {
-  value       = google_compute_subnetwork.subnetwork.*.region
+  value       = [for network in module.subnets.subnets : network.region]
   description = "The region where the subnets will be created"
 }
 
 output "subnets_private_access" {
-  value       = google_compute_subnetwork.subnetwork.*.private_ip_google_access
+  value       = [for network in module.subnets.subnets : network.private_ip_google_access]
   description = "Whether the subnets will have access to Google API's without a public IP"
 }
 
 output "subnets_flow_logs" {
-  value       = google_compute_subnetwork.subnetwork.*.enable_flow_logs
+  value       = [for network in module.subnets.subnets : network.enable_flow_logs]
   description = "Whether the subnets will have VPC flow logs enabled"
 }
 
 output "subnets_secondary_ranges" {
-  value       = google_compute_subnetwork.subnetwork[*].secondary_ip_range
+  value       = [for network in module.subnets.subnets : network.secondary_ip_range]
   description = "The secondary ranges associated with these subnets"
 }
 
-output "routes" {
-  value       = google_compute_route.route.*.name
-  description = "The routes associated with this VPC"
+output "route_names" {
+  value       = [for route in module.routes.routes : route.name]
+  description = "The route names associated with this VPC"
 }

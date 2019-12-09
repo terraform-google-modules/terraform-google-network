@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog][keepachangelog-site],
 and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
+v2.0.0 is a backwards-incompatible release. Please see the [upgrading guide](./docs/upgrading_to_v2.0.md).
+
+### Added
+
+- Split main module up into vpc, subnets, and routes submodules. [#103]
+
+### Fixed
+
+- Fixes subnet recreation when a subnet is updated. [#73]
+
 
 ## [1.5.0] - 2019-11-06
 
