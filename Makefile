@@ -15,7 +15,7 @@
 # Make will use bash instead of sh
 SHELL := /usr/bin/env bash
 
-DOCKER_TAG_VERSION_DEVELOPER_TOOLS := 0.1.0
+DOCKER_TAG_VERSION_DEVELOPER_TOOLS := 0.6.0
 DOCKER_IMAGE_DEVELOPER_TOOLS := cft/developer-tools
 REGISTRY_URL := gcr.io/cloud-foundation-cicd
 
@@ -42,7 +42,7 @@ docker_test_prepare:
 
 # Clean up test environment within the docker container
 .PHONY: docker_test_cleanup
-docker_test_prepare:
+docker_test_cleanup:
 	docker run --rm -it \
 		-e SERVICE_ACCOUNT_JSON \
 		-e TF_VAR_org_id \

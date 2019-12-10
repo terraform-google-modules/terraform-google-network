@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+## [2.0.0] - 2019-12-09
+v2.0.0 is a backwards-incompatible release. Please see the [upgrading guide](./docs/upgrading_to_v2.0.md).
+
+### Added
+
+- Split main module up into vpc, subnets, and routes submodules. [#103]
+
+### Fixed
+
+- Fixes subnet recreation when a subnet is updated. [#73]
+
+
+## [1.5.0] - 2019-11-06
+
+### Added
+
+- Added submodule `network-peering` [#101]
+
+## [1.4.3] - 2019-10-31
+
+### Fixed
+
+- Fixed issue with depending on outputs introduced in 1.4.1. [#95]
+
+## [1.4.2] - 2019-10-30
+
+### Fixed
+
+- The outputs `network_name`, `network_self_link`, and
+  `subnets_secondary_ranges` depend on resource attributes rather than
+  data source attributes when `create_network` = `true`. [#94]
+
+## [1.4.1] - 2019-10-29
+
+### Added
+
+- Made network creation optional in root module. [#88]
+
+### Fixed
+
+- Fixed issue with depending on outputs introduced in 1.4.0. [#92]
+
+## [1.4.0] - 2019-10-14
+
+### Added
+
+- Add dynamic firewall rules support to firewall submodule. [#79]
+
+### Fixed
+
+- Add `depends_on` to `created_subnets` data fetch (fixes issue [#80]). [#81]
+
 ## [1.3.0] - 2019-10-09
 
 ### Changed
@@ -112,7 +164,13 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
-[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.5.0...v2.0.0
+[1.5.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.3...v1.5.0
+[1.4.3]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.2...v1.4.3
+[1.4.2]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.1...v1.4.2
+[1.4.1]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.0.0...v1.1.0
@@ -126,6 +184,15 @@ and this project adheres to [Semantic Versioning][semver-site].
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 
+[#101]: https://github.com/terraform-google-modules/terraform-google-network/pull/101
+[#95]: https://github.com/terraform-google-modules/terraform-google-network/issues/95
+[#94]: https://github.com/terraform-google-modules/terraform-google-network/pull/94
+[#92]: https://github.com/terraform-google-modules/terraform-google-network/issues/92
+[#88]: https://github.com/terraform-google-modules/terraform-google-network/issues/88
+[#81]: https://github.com/terraform-google-modules/terraform-google-network/pull/81
+[#80]: https://github.com/terraform-google-modules/terraform-google-network/issues/80
+[#79]: https://github.com/terraform-google-modules/terraform-google-network/pull/79
+[#72]: https://github.com/terraform-google-modules/terraform-google-network/pull/72
 [#64]: https://github.com/terraform-google-modules/terraform-google-network/pull/64
 [#66]: https://github.com/terraform-google-modules/terraform-google-network/pull/66
 [#16]: https://github.com/terraform-google-modules/terraform-google-network/pull/16
