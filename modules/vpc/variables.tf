@@ -18,12 +18,6 @@ variable "project_id" {
   description = "The ID of the project where this VPC will be created"
 }
 
-variable "create_network" {
-  type        = bool
-  default     = true
-  description = "Specify whether to create a new network or just assume it already exists."
-}
-
 variable "network_name" {
   description = "The name of the network being created"
 }
@@ -39,29 +33,6 @@ variable "shared_vpc_host" {
   description = "Makes this project a Shared VPC host if 'true' (default 'false')"
   default     = false
 }
-
-variable "subnets" {
-  type        = list(map(string))
-  description = "The list of subnets being created"
-}
-
-variable "secondary_ranges" {
-  type        = map(list(object({ range_name = string, ip_cidr_range = string })))
-  description = "Secondary ranges that will be used in some of the subnets"
-  default     = {}
-}
-
-variable "routes" {
-  type        = list(map(string))
-  description = "List of routes being created in this VPC"
-  default     = []
-}
-
-variable "delete_default_internet_gateway_routes" {
-  description = "If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted"
-  default     = "false"
-}
-
 
 variable "description" {
   type        = string

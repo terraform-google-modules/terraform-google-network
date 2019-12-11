@@ -8,6 +8,8 @@ It supports creating:
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
+Sub modules are provided for creating individual vpc, subnets, and routes. See the modules directory for the various sub modules usage.
+
 ## Compatibility
 
 This module is meant for use with Terraform 0.12. If you haven't [upgraded](https://www.terraform.io/upgrade-guides/0-12.html) and need a Terraform 0.11.x-compatible version of this module, the last released version intended for Terraform 0.11.x is [0.8.0](https://registry.terraform.io/modules/terraform-google-modules/network/google/0.8.0).
@@ -18,7 +20,7 @@ You can go to the examples folder, however the usage of the module could be like
 ```hcl
 module "vpc" {
     source  = "terraform-google-modules/network/google"
-    version = "~> 1.0.0"
+    version = "~> 2.0.0"
 
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"
@@ -38,6 +40,15 @@ module "vpc" {
             subnet_flow_logs      = "true"
             description           = "This subnet has a description"
         },
+        {
+            subnet_name               = "subnet-03"
+            subnet_ip                 = "10.10.30.0/24"
+            subnet_region             = "us-west1"
+            subnet_flow_logs          = "true"
+            subnet_flow_logs_interval = "INTERVAL_10_MIN"
+            subnet_flow_logs_sampling = 0.7
+            subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
+        }
     ]
 
     secondary_ranges = {
@@ -92,7 +103,7 @@ Then perform the following commands on the root folder:
 | routes | List of routes being created in this VPC | list(map(string)) | `<list>` | no |
 | routing\_mode | The network routing mode (default 'GLOBAL') | string | `"GLOBAL"` | no |
 | secondary\_ranges | Secondary ranges that will be used in some of the subnets | object | `<map>` | no |
-| shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | string | `"false"` | no |
+| shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | bool | `"false"` | no |
 | subnets | The list of subnets being created | list(map(string)) | n/a | yes |
 
 ## Outputs
@@ -101,7 +112,8 @@ Then perform the following commands on the root folder:
 |------|-------------|
 | network\_name | The name of the VPC being created |
 | network\_self\_link | The URI of the VPC being created |
-| routes | The routes associated with this VPC |
+| project\_id | VPC project id |
+| route\_names | The route names associated with this VPC |
 | subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |
 | subnets\_names | The names of the subnets being created |
@@ -109,11 +121,11 @@ Then perform the following commands on the root folder:
 | subnets\_regions | The region where the subnets will be created |
 | subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
 | subnets\_self\_links | The self-links of subnets being created |
-| svpc\_host\_project\_id | Shared VPC host project id. |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 
 ### Subnet Inputs
+
 The subnets list contains maps, where each object represents a subnet. Each map has the following inputs (please see examples folder for additional references):
 
 | Name | Description | Type | Default | Required |
@@ -125,7 +137,8 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | subnet\_flow\_logs  | Whether the subnet will record and send flow log data to logging | string | `"false"` | no |
 
 ### Route Inputs
-The routes list contains maps, where each object represents a route. For the next\_hop\_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each map has the following inputs (please see examples folder for additional references):
+
+The routes list contains maps, where each object represents a route. For the next_hop_* inputs, only one is possible to be used in each route. Having two next_hop_* inputs will produce an error. Each map has the following inputs (please see examples folder for additional references):
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
@@ -143,7 +156,7 @@ The routes list contains maps, where each object represents a route. For the nex
 ## Requirements
 ### Installed Software
 - [Terraform](https://www.terraform.io/downloads.html) ~> 0.12.0
-- [Terraform Provider for GCP][terraform-provider-google] ~> 2.10.0
+- [Terraform Provider for GCP][terraform-provider-google] ~> 2.19.0
 - [gcloud](https://cloud.google.com/sdk/gcloud/) >243.0.0
 
 ### Configure a Service Account

@@ -24,6 +24,11 @@ output "network_self_link" {
   description = "The URI of the VPC being created"
 }
 
+output "project_id" {
+  value       = module.test-vpc-module.project_id
+  description = "VPC project id"
+}
+
 output "subnets_names" {
   value       = module.test-vpc-module.subnets_names
   description = "The names of the subnets being created"
@@ -54,7 +59,7 @@ output "subnets_secondary_ranges" {
   description = "The secondary ranges associated with these subnets"
 }
 
-output "routes" {
-  value       = module.test-vpc-module.routes
+output "route_names" {
+  value       = module.test-vpc-module.route_names
   description = "The routes associated with this VPC"
 }

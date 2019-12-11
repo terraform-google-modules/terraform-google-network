@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning][semver-site].
 
 ## [Unreleased]
 
+## [2.0.0] - 2019-12-09
+v2.0.0 is a backwards-incompatible release. Please see the [upgrading guide](./docs/upgrading_to_v2.0.md).
+
+### Added
+
+- Split main module up into vpc, subnets, and routes submodules. [#103]
+
+### Fixed
+
+- Fixes subnet recreation when a subnet is updated. [#73]
+
+
 ## [1.5.0] - 2019-11-06
 
 ### Added
@@ -152,7 +164,8 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
 
-[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/terraform-google-modules/terraform-google-network/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.5.0...v2.0.0
 [1.5.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.3...v1.5.0
 [1.4.3]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/terraform-google-modules/terraform-google-network/compare/v1.4.1...v1.4.2

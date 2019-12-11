@@ -15,7 +15,7 @@
  */
 
 provider "google" {
-  version = "~> 2.10.0"
+  version = "~> 2.19.0"
 }
 
 provider "null" {
@@ -25,6 +25,7 @@ provider "null" {
 locals {
   subnet_01 = "${var.network_name}-subnet-01"
   subnet_02 = "${var.network_name}-subnet-02"
+  subnet_03 = "${var.network_name}-subnet-03"
 }
 
 module "test-vpc-module" {
@@ -45,5 +46,14 @@ module "test-vpc-module" {
       subnet_private_access = "true"
       subnet_flow_logs      = "true"
     },
+    {
+      subnet_name               = "${local.subnet_03}"
+      subnet_ip                 = "10.10.30.0/24"
+      subnet_region             = "us-west1"
+      subnet_flow_logs          = "true"
+      subnet_flow_logs_interval = "INTERVAL_10_MIN"
+      subnet_flow_logs_sampling = 0.7
+      subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
+    }
   ]
 }
