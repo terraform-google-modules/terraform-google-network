@@ -114,7 +114,7 @@ Then perform the following commands on the root folder:
 | network\_self\_link | The URI of the VPC being created |
 | project\_id | VPC project id |
 | route\_names | The route names associated with this VPC |
-| subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
+| subnets\_flow\_logs | If the subnets  have VPC flow logs enabled, config object is returned, else empty array |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |
 | subnets\_names | The names of the subnets being created |
 | subnets\_private\_access | Whether the subnets will have access to Google API's without a public IP |

@@ -15,7 +15,7 @@
  */
 
 provider "google" {
-  version = "~> 2.19.0"
+  version = "~> 3.3.0"
 }
 
 provider "null" {
@@ -48,9 +48,13 @@ module "vpc-secondary-ranges" {
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name   = "${local.subnet_03}"
-      subnet_ip     = "10.10.30.0/24"
-      subnet_region = "us-west1"
+      subnet_name               = "${local.subnet_03}"
+      subnet_ip                 = "10.10.30.0/24"
+      subnet_region             = "us-west1"
+      subnet_flow_logs          = "true"
+      subnet_flow_logs_interval = "INTERVAL_15_MIN"
+      subnet_flow_logs_sampling = 0.9
+      subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
     },
     {
       subnet_name   = "${local.subnet_04}"

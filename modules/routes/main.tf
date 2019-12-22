@@ -34,7 +34,7 @@ resource "google_compute_route" "route" {
   description            = lookup(each.value, "description", null)
   tags                   = compact(split(",", lookup(each.value, "tags", "")))
   dest_range             = lookup(each.value, "destination_range", null)
-  next_hop_gateway       = lookup(each.value, "next_hop_internet", "false") == "true" ? "default-internet-gateway" : ""
+  next_hop_gateway       = lookup(each.value, "next_hop_internet", "false") == "true" ? "default-internet-gateway" : null
   next_hop_ip            = lookup(each.value, "next_hop_ip", null)
   next_hop_instance      = lookup(each.value, "next_hop_instance", null)
   next_hop_instance_zone = lookup(each.value, "next_hop_instance_zone", null)
