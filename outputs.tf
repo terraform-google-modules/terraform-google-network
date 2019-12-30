@@ -55,8 +55,8 @@ output "subnets_private_access" {
 }
 
 output "subnets_flow_logs" {
-  value       = [for network in module.subnets.subnets : network.log_config]
-  description = "If the subnets  have VPC flow logs enabled, config object is returned, else empty array"
+  value       = [for network in module.subnets.subnets : length(network.log_config) != 0 ? true : false]
+  description = "Whether the subnets will have VPC flow logs enabled"
 }
 
 output "subnets_secondary_ranges" {

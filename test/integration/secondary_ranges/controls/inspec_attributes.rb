@@ -36,25 +36,7 @@ control "inspec_attributes" do
   end
 
   describe attribute("output_subnets_flow_logs") do
-    it { should eq [
-      [],
-        [
-      {
-        "aggregation_interval" => "INTERVAL_5_SEC",
-        "flow_sampling" => 0.5,
-        "metadata" => "INCLUDE_ALL_METADATA"
-      },
-    ],
-    [
-      {
-        "aggregation_interval" => "INTERVAL_15_MIN",
-        "flow_sampling" => 0.9,
-        "metadata" => "INCLUDE_ALL_METADATA"
-      },
-    ],
-      []
-      ]
-    }
+    it { should eq [false, true, true, false] }
   end
 
   describe attribute("output_subnets_names") do
