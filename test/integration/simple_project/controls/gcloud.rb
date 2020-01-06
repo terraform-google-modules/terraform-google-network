@@ -30,9 +30,11 @@ control "gcloud" do
       end
     end
 
-    it "logConfig should not exist" do
-      expect(data).to_not include(
-        "logConfig"
+    it "logConfig should not be enabled" do
+      expect(data).to include(
+        "logConfig" => {
+          "enable" => false,
+        }
       )
     end
   end
@@ -49,7 +51,7 @@ control "gcloud" do
       end
     end
 
-    it "Log config should be correct" do
+    it "Default log config should be correct" do
       expect(data).to include(
         "logConfig" => {
           "aggregationInterval" => "INTERVAL_5_SEC",

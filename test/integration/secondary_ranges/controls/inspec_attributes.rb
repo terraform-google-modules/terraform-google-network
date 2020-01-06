@@ -36,7 +36,7 @@ control "inspec_attributes" do
   end
 
   describe attribute("output_subnets_flow_logs") do
-    it { should eq [false, true, false, false] }
+    it { should eq [false, true, true, false] }
   end
 
   describe attribute("output_subnets_names") do
