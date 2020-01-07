@@ -25,9 +25,9 @@ module "net-shared-vpc-access" {
   service_project_ids = ["my-service-project-id"]
   host_subnets        = ["my-subnet"]
   host_subnet_regions = ["europe-west1"]
-  host_subnet_users   = [
-    "group:my-service-owners@example.org,serviceAccount:1234567890@cloudservices.gserviceaccount.com"
-  ]
+  host_subnet_users   = {
+    my-subnet = "group:my-service-owners@example.org,serviceAccount:1234567890@cloudservices.gserviceaccount.com"
+  }
   host_service_agent_role = true
   host_service_agent_users = [
     "serviceAccount:service-123456789@container-engine-robot.iam.gserviceaccount.com"
