@@ -5,6 +5,12 @@ release.
 
 Because v2.x changed how the subnet resource is iterated on, resources in Terraform state need to be migrated in order to avoid the resources from getting destroyed and recreated.
 
+## Output Changes
+In version 2.x, a few output names were [changed](https://github.com/terraform-google-modules/terraform-google-network/compare/v1.5.0...v2.0.0#diff-c09d00f135e3672d079ff6e0556d957d):
+
+- `svpc_host_project_id` was renamed to `project_id`.
+- `routes` was renamed to `route_names`
+
 ## Migration Instructions
 
 First, upgrade to the new version of this module.
