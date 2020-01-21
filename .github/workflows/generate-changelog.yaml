@@ -1,0 +1,40 @@
+name: Generate new release changelog
+on:
+  push:
+    branches:
+      - master
+  repository_dispatch:
+    types: generate-pr
+  schedule:
+    - cron: '0 2 * * *'
+jobs:
+  createPullRequest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '10.x'
+      - name: Update dependencies
+        run: npm install -g standard-version
+      - name: Generate changelog
+        run: |
+          standard-version
+      - run: git checkout "${GITHUB_REF:11}"
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          labels: chore
+          team-reviewers: terraform-google-modules/cft-admins
+          commit-message: 'chore(release): generate CHANGELOG for new version'
+          title: '[Release] New version notes'
+          body: |
+            Update changelog with information on next version.
+          branch: chore/changelog-generation
+      - name: Check outputs
+        run: |
+          echo "Pull Request Number - ${{ env.PULL_REQUEST_NUMBER }}"
+          echo "Pull Request Number - ${{ steps.cpr.outputs.pr_number }}"
