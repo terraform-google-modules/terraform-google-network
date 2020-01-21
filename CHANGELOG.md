@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning][semver-site].
 - Fixed bug for allowing internal firewall rules. [#123](https://github.com/terraform-google-modules/terraform-google-network/pull/123)
 - Provided Terraform provider versions and relaxed version constraints. [#131](https://github.com/terraform-google-modules/terraform-google-network/pull/131)
 
-## [2.0.0] - 2019-12-09
+## [2.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v1.5.0...v2.0.0) (2019-12-09)
+
 v2.0.0 is a backwards-incompatible release. Please see the [upgrading guide](./docs/upgrading_to_v2.0.md).
 
 ### Added
@@ -26,7 +27,7 @@ v2.0.0 is a backwards-incompatible release. Please see the [upgrading guide](./d
 - Fixes subnet recreation when a subnet is updated. [#73]
 
 
-## [1.5.0] - 2019-11-06
+## [1.5.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v1.3.0...v1.5.0) (2019-11-12)
 
 ### Added
 
@@ -66,7 +67,7 @@ v2.0.0 is a backwards-incompatible release. Please see the [upgrading guide](./d
 
 - Add `depends_on` to `created_subnets` data fetch (fixes issue [#80]). [#81]
 
-## [1.3.0] - 2019-10-09
+## [1.3.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v1.2.0...v1.3.0) (2019-10-10)
 
 ### Changed
 
@@ -76,7 +77,7 @@ v2.0.0 is a backwards-incompatible release. Please see the [upgrading guide](./d
 
 - Add host service agent role management to Shared VPC submodule [#72]
 
-## [1.2.0] - 2019-09-18
+## 1.2.0 (2019-09-18)
 
 ### Added
 
