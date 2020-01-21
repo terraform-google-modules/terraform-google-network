@@ -9,14 +9,6 @@ All notable changes to this project will be documented in this file. See [standa
 
 * relax version constraint in README ([1a39c7d](https://github.com/terraform-google-modules/terraform-google-network/commit/1a39c7df1d9d12e250500c3321e82ff78b0cd900))
 
-## [2.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v1.5.0...v2.0.0) (2019-12-09)
-
-## [1.5.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v1.3.0...v1.5.0) (2019-11-12)
-
-## [1.3.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v1.2.0...v1.3.0) (2019-10-10)
-
-## 1.2.0 (2019-09-18)
-
 ## [2.0.1] - 2019-12-18
 
 ### Fixed
