@@ -114,6 +114,7 @@ Then perform the following commands on the root folder:
 | network\_self\_link | The URI of the VPC being created |
 | project\_id | VPC project id |
 | route\_names | The route names associated with this VPC |
+| subnets | A map with keys of form subnet_region/subnet_name and values being the outputs of the google_compute_subnetwork resources used to create corresponding subnets. |
 | subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |
 | subnets\_names | The names of the subnets being created |
