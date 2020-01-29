@@ -1,6 +1,0 @@
-{
-    "skip": {
-        "commit": true,
-        "tag": true
-    }
-}
