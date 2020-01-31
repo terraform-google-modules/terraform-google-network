@@ -195,6 +195,8 @@ v2.0.0 is a backwards-incompatible release. Please see the [upgrading guide](./d
 [0.2.0]: https://github.com/terraform-google-modules/terraform-google-network/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/terraform-google-modules/terraform-google-network/releases/tag/v0.1.0
 
+[#73]: https://github.com/terraform-google-modules/terraform-google-network/pull/73
+[#103]: https://github.com/terraform-google-modules/terraform-google-network/pull/103
 [#101]: https://github.com/terraform-google-modules/terraform-google-network/pull/101
 [#95]: https://github.com/terraform-google-modules/terraform-google-network/issues/95
 [#94]: https://github.com/terraform-google-modules/terraform-google-network/pull/94
