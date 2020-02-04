@@ -27,7 +27,7 @@ variable "service_project_num" {
 
 variable "service_project_ids" {
   description = "Ids of the service projects that will be attached to the Shared VPC."
-  type        = "list"
+  type        = list(string)
 }
 
 variable "host_subnets" {
