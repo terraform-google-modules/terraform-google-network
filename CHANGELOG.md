@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.1.0...v2.1.1) (2020-02-04)
+
+
+### Bug Fixes
+
+* Correct the service_project_ids type ([#152](https://www.github.com/terraform-google-modules/terraform-google-network/issues/152)) ([80b6f54](https://www.github.com/terraform-google-modules/terraform-google-network/commit/80b6f54c007bc5b89709a9eebe330af058ca2260))
+* Resolve "Invalid expanding argument value" issue with the newer versions of terraform ([#153](https://www.github.com/terraform-google-modules/terraform-google-network/issues/153)) ([5f61ffb](https://www.github.com/terraform-google-modules/terraform-google-network/commit/5f61ffb3cb03a4d0ddb02dde1a3085aa428aeb38))
+
 ## [2.1.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.0.2...v2.1.0) (2020-01-31)
 
 
