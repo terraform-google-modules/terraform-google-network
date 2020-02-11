@@ -135,7 +135,7 @@ resource "google_compute_firewall" "custom" {
   target_service_accounts = each.value.use_service_accounts ? each.value.targets : null
   disabled                = lookup(each.value.extra_attributes, "disabled", false)
   priority                = lookup(each.value.extra_attributes, "priority", 1000)
-  enable_logging          = lookup(each.value.extra_attributes, "enable_logging", false)
+  enable_logging          = lookup(each.value.extra_attributes, "enable_logging", null)
 
   dynamic "allow" {
     for_each = [for rule in each.value.rules : rule if each.value.action == "allow"]
