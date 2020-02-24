@@ -53,16 +53,19 @@ variable "admin_ranges" {
 
 variable "ssh_source_ranges" {
   description = "List of IP CIDR ranges for tag-based SSH rule, defaults to 0.0.0.0/0."
+  type        = set(string)
   default     = ["0.0.0.0/0"]
 }
 
 variable "http_source_ranges" {
   description = "List of IP CIDR ranges for tag-based HTTP rule, defaults to 0.0.0.0/0."
+  type        = set(string)
   default     = ["0.0.0.0/0"]
 }
 
 variable "https_source_ranges" {
   description = "List of IP CIDR ranges for tag-based HTTPS rule, defaults to 0.0.0.0/0."
+  type        = set(string)
   default     = ["0.0.0.0/0"]
 }
 
