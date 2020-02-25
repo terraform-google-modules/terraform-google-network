@@ -18,12 +18,6 @@ variable "project_id" {
   description = "The ID of the project where this VPC will be created"
 }
 
-variable "create_network" {
-  type        = bool
-  default     = true
-  description = "Specify whether to create a new network or just assume it already exists."
-}
-
 variable "network_name" {
   description = "The name of the network being created"
 }
