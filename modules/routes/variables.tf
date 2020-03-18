@@ -16,20 +16,23 @@
 
 variable "project_id" {
   description = "The ID of the project where the routes will be created"
+  type        = string
 }
 
 variable "network_name" {
   description = "The name of the network where routes will be created"
+  type        = string
 }
 
 variable "routes" {
-  type        = list(map(string))
   description = "List of routes being created in this VPC"
+  type        = list(map(string))
   default     = []
 }
 
 variable "delete_default_internet_gateway_routes" {
   description = "If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted"
+  type        = string
   default     = "false"
 }
 
