@@ -38,7 +38,7 @@ variable "internal_ranges" {
 
 variable "internal_allow" {
   description = "Allow rules for internal ranges."
-  type        = list(string)
+  type        = list(object({ protocol = string, ports = list(string) }))
   default = [
     {
       protocol = "icmp"
