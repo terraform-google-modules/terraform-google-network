@@ -38,12 +38,8 @@ variable "internal_ranges" {
 
 variable "internal_allow" {
   description = "Allow rules for internal ranges."
-  type        = list(string)
-  default = [
-    {
-      protocol = "icmp"
-    },
-  ]
+  type        = list(object({ protocol = string, ports = list(string) }))
+  default     = []
 }
 
 variable "admin_ranges_enabled" {
