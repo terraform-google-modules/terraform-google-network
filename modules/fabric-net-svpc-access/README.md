@@ -41,13 +41,13 @@ module "net-shared-vpc-access" {
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
 | host\_project\_id | Project id of the shared VPC host project. | string | n/a | yes |
-| host\_service\_agent\_role | Assign host service agent role to users in host_service_agent_users variable. | string | `"false"` | no |
-| host\_service\_agent\_users | List of IAM-style users that will be granted the host service agent role on the host project. | list | `<list>` | no |
-| host\_subnet\_regions | List of subnet regions, one per subnet. | list | `<list>` | no |
+| host\_service\_agent\_role | Assign host service agent role to users in host_service_agent_users variable. | bool | `"false"` | no |
+| host\_service\_agent\_users | List of IAM-style users that will be granted the host service agent role on the host project. | list(string) | `<list>` | no |
+| host\_subnet\_regions | List of subnet regions, one per subnet. | list(string) | `<list>` | no |
 | host\_subnet\_users | Map of comma-delimited IAM-style members to which network user roles for subnets will be assigned. | map | `<map>` | no |
-| host\_subnets | List of subnet names on which to grant network user role. | list | `<list>` | no |
+| host\_subnets | List of subnet names on which to grant network user role. | list(string) | `<list>` | no |
 | service\_project\_ids | Ids of the service projects that will be attached to the Shared VPC. | list(string) | n/a | yes |
-| service\_project\_num | Number of service projects that will be attached to the Shared VPC. | string | `"0"` | no |
+| service\_project\_num | Number of service projects that will be attached to the Shared VPC. | number | `"0"` | no |
 
 ## Outputs
 
