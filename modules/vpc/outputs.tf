@@ -30,6 +30,6 @@ output "network_self_link" {
 }
 
 output "project_id" {
-  value       = var.shared_vpc_host ? google_compute_shared_vpc_host_project.shared_vpc_host.project : google_compute_network.network.project
+  value       = var.shared_vpc_host ? google_compute_shared_vpc_host_project.shared_vpc_host.*.project[0] : google_compute_network.network.project
   description = "VPC project id"
 }
