@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.2](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.1.1...v2.1.2) (2020-04-02)
+
+
+### Bug Fixes
+
+* Add support for enable_logging on firewall rules ([#155](https://www.github.com/terraform-google-modules/terraform-google-network/issues/155)) ([febec4e](https://www.github.com/terraform-google-modules/terraform-google-network/commit/febec4ef4b2d6080b18429106b19a8fbc5452bec))
+* Add variables type as first parameter on all variables ([#167](https://www.github.com/terraform-google-modules/terraform-google-network/issues/167)) ([2fff1e7](https://www.github.com/terraform-google-modules/terraform-google-network/commit/2fff1e7cd5188e24a413bc302c8a061c4f3bb19b))
+* remove invalid/outdated create_network variable ([#159](https://www.github.com/terraform-google-modules/terraform-google-network/issues/159)) ([6fac78e](https://www.github.com/terraform-google-modules/terraform-google-network/commit/6fac78e5b25a2ab72824b0ebefff6704a46fd984))
+* Resolve error with destroy and shared VPC host config ([#168](https://www.github.com/terraform-google-modules/terraform-google-network/issues/168)) ([683ae07](https://www.github.com/terraform-google-modules/terraform-google-network/commit/683ae072382c03f8b032944e539e9fa8601bad1f)), closes [#163](https://www.github.com/terraform-google-modules/terraform-google-network/issues/163)
+
 ### [2.1.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.1.0...v2.1.1) (2020-02-04)
 
 
