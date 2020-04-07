@@ -14,6 +14,16 @@
  * limitations under the License.
  */
 
+output "network" {
+  value       = module.vpc
+  description = "The created network"
+}
+
+output "subnets" {
+  value       = module.subnets.subnets
+  description = "A map with keys of form subnet_region/subnet_name and values being the outputs of the google_compute_subnetwork resources used to create corresponding subnets."
+}
+
 output "network_name" {
   value       = module.vpc.network_name
   description = "The name of the VPC being created"
@@ -67,9 +77,4 @@ output "subnets_secondary_ranges" {
 output "route_names" {
   value       = [for route in module.routes.routes : route.name]
   description = "The route names associated with this VPC"
-}
-
-output "subnets" {
-  value       = module.subnets.subnets
-  description = "A map with keys of form subnet_region/subnet_name and values being the outputs of the google_compute_subnetwork resources used to create corresponding subnets."
 }
