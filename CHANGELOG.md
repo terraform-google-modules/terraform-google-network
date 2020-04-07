@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.2.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.1.2...v2.2.0) (2020-04-07)
+
+
+### Features
+
+* add network output ([#169](https://www.github.com/terraform-google-modules/terraform-google-network/issues/169)) ([0dc6965](https://www.github.com/terraform-google-modules/terraform-google-network/commit/0dc6965ab52f946b9e3d16dc8f8e3557d369da01))
+
 ### [2.1.2](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.1.1...v2.1.2) (2020-04-02)
 
 
