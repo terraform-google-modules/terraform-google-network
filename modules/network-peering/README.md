@@ -13,7 +13,7 @@ Basic usage of this module is as follows:
 
 ```hcl
 module "peering" {
-  source = "terraform-google-modules/terraform-google-network/google//modules/network-peering"
+  source = "terraform-google-modules/network/google//modules/network-peering"
 
   prefix        = "name-prefix"
   local_network = "<FIRST NETWORK SELF LINK>"
