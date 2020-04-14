@@ -13,7 +13,7 @@ Basic usage of this module is as follows:
 
 ```hcl
 module "peering" {
-  source = "terraform-google-modules/terraform-google-network/google//modules/network-peering"
+  source = "terraform-google-modules/network/google//modules/network-peering"
 
   prefix        = "name-prefix"
   local_network = "<FIRST NETWORK SELF LINK>"
@@ -25,7 +25,7 @@ If you need to create more than one peering for the same VPC Network `(A -> B, A
 
 ```hcl
 module "peering-a-b" {
-  source = "terraform-google-modules/terraform-google-network/google//modules/network-peering"
+  source = "terraform-google-modules/network/google//modules/network-peering"
 
   prefix        = "name-prefix"
   local_network = "<A NETWORK SELF LINK>"
@@ -33,7 +33,7 @@ module "peering-a-b" {
 }
 
 module "peering-a-c" {
-  source = "terraform-google-modules/terraform-google-network/google//modules/network-peering"
+  source = "terraform-google-modules/network/google//modules/network-peering"
 
   prefix        = "name-prefix"
   local_network = "<A NETWORK SELF LINK>"
