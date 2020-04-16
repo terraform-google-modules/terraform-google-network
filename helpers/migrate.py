@@ -304,7 +304,7 @@ class TerraformState:
         else:
             state_resource = state_resource_list[0]["instances"]
 
-        return state_resource[0]["attributes"][key]
+        return state_resource[0]["attributes_flat"][key]
 
 
 def group_by_module(resources):
