@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.3.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.3.0...v2.3.1) (2020-04-28)
+
+
+### Bug Fixes
+
+* Resolve Invalid index error on shared vpc destroy ([#177](https://www.github.com/terraform-google-modules/terraform-google-network/issues/177)) ([b799266](https://www.github.com/terraform-google-modules/terraform-google-network/commit/b799266146daffa3ba75f3fb5c7920c5f1df165c))
+
 ## [2.3.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.2.0...v2.3.0) (2020-04-16)
 
 
