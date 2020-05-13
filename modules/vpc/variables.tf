@@ -38,7 +38,7 @@ variable "shared_vpc_host" {
 variable "description" {
   type        = string
   description = "An optional description of this resource. The resource must be recreated to modify this field."
-  default     = "mike"
+  default     = "mikefons"
 }
 
 variable "auto_create_subnetworks" {
