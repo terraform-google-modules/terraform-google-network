@@ -16,6 +16,7 @@
 
 variable "project_id" {
   description = "The ID of the project where this VPC will be created"
+  default     = "p-tfvqgk41jf32nwkxrs5uzj5e67r2"
 }
 
 variable "network_name" {
@@ -37,7 +38,7 @@ variable "shared_vpc_host" {
 variable "description" {
   type        = string
   description = "An optional description of this resource. The resource must be recreated to modify this field."
-  default     = ""
+  default     = "mike"
 }
 
 variable "auto_create_subnetworks" {
