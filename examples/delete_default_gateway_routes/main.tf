@@ -30,7 +30,7 @@ module "test-vpc-module" {
   source                                 = "../../"
   project_id                             = var.project_id
   network_name                           = var.network_name
-  delete_default_internet_gateway_routes = "true"
+  delete_default_routes_on_create        = "true"
 
   subnets = [
     {
