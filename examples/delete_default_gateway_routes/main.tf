@@ -27,10 +27,10 @@ locals {
 }
 
 module "test-vpc-module" {
-  source                                 = "../../"
-  project_id                             = var.project_id
-  network_name                           = var.network_name
-  delete_default_routes_on_create        = "true"
+  source                          = "../../"
+  project_id                      = var.project_id
+  network_name                    = var.network_name
+  delete_default_routes_on_create = "false"
 
   subnets = [
     {
