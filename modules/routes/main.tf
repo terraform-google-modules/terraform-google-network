@@ -43,19 +43,3 @@ resource "google_compute_route" "route" {
 
   depends_on = [var.module_depends_on]
 }
-
-resource "null_resource" "delete_default_internet_gateway_routes" {
-  count = var.delete_default_internet_gateway_routes ? 1 : 0
-
-  provisioner "local-exec" {
-    command = "${path.module}/scripts/delete-default-gateway-routes.sh ${var.project_id} ${var.network_name}"
-  }
-
-  triggers = {
-    number_of_routes = length(var.routes)
-  }
-
-  depends_on = [
-    google_compute_route.route,
-  ]
-}
