@@ -46,7 +46,8 @@ variable "auto_create_subnetworks" {
   default     = false
 }
 
-variable "delete_default_routes_on_create" {
+variable "delete_default_internet_gateway_routes" {
+  type        = bool
   description = "If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted"
-  default     = "false"
+  default     = false
 }
