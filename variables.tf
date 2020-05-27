@@ -52,7 +52,7 @@ variable "routes" {
 }
 
 variable "delete_default_routes_on_create" {
-  description = "If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted"
+  description = "If set, ensure that all default routes default routes (0.0.0.0/0) are deleted immediately after network creation"
   default     = "false"
 }
 
