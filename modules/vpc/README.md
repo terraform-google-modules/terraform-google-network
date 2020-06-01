@@ -20,6 +20,7 @@ module "vpc" {
     network_name = "example-vpc"
 
     shared_vpc_host = false
+}
 ```
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
