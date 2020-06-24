@@ -19,8 +19,6 @@ module "vpc" {
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"
 
-    delete_default_internet_gateway_routes = false
-
     routes = [
         {
             name                   = "egress-internet"

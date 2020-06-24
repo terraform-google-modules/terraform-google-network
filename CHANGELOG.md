@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file. See [standa
 ### Features
 
 * Switch default route deletion to use native method. ([#185](https://www.github.com/terraform-google-modules/terraform-google-network/issues/185)) ([c1d786f](https://www.github.com/terraform-google-modules/terraform-google-network/commit/c1d786fe0743d205911d7c592b8f7c406ad45be2))
+  - Route deletion has now been moved to the VPC module. Hence, you must *remove* calls to `delete_default_internet_gateway_routes` from
+  any usage of the routes submodule
 
 
 ### Bug Fixes
