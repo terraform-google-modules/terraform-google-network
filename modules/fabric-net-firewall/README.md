@@ -29,9 +29,9 @@ The resources created/managed by this module are:
 
 - one optional ingress rule from internal CIDR ranges, only allowing ICMP by default
 - one optional ingress rule from admin CIDR ranges, allowing all protocols on all ports
-- one optional ingress rule for SSH on network tag `ssh`
-- one optional ingress rule for HTTP on network tag `http-server`
-- one optional ingress rule for HTTPS on network tag `https-server`
+- one optional ingress rule for SSH on network tag `ssh` by default
+- one optional ingress rule for HTTP on network tag `http-server` by default
+- one optional ingress rule for HTTPS on network tag `https-server` by default
 - one or more optional custom rules
 
 
@@ -46,6 +46,7 @@ module "net-firewall" {
   network                 = "my-vpc"
   internal_ranges_enabled = true
   internal_ranges         = ["10.0.0.0/0"]
+  internal_target_tags    = ["internal"]
   custom_rules = {
     ingress-sample = {
       description          = "Dummy sample ingress rule, tag-based."
@@ -76,13 +77,17 @@ module "net-firewall" {
 | admin\_ranges\_enabled | Enable admin ranges-based rules. | string | `"false"` | no |
 | custom\_rules | List of custom rule definitions (refer to variables file for syntax). | object | `<map>` | no |
 | http\_source\_ranges | List of IP CIDR ranges for tag-based HTTP rule, defaults to 0.0.0.0/0. | list | `<list>` | no |
+| http\_target\_tags | List of target tags for tag-based HTTP rule, defaults to http-server. | list | `<list>` | no |
 | https\_source\_ranges | List of IP CIDR ranges for tag-based HTTPS rule, defaults to 0.0.0.0/0. | list | `<list>` | no |
+| https\_target\_tags | List of target tags for tag-based HTTPS rule, defaults to https-server. | list | `<list>` | no |
 | internal\_allow | Allow rules for internal ranges. | list | `<list>` | no |
 | internal\_ranges | IP CIDR ranges for intra-VPC rules. | list | `<list>` | no |
 | internal\_ranges\_enabled | Create rules for intra-VPC ranges. | string | `"false"` | no |
+| internal\_target\_tags | List of target tags for intra-VPC rules. | list | `<list>` | no |
 | network | Name of the network this set of firewall rules applies to. | string | n/a | yes |
 | project\_id | Project id of the project that holds the network. | string | n/a | yes |
 | ssh\_source\_ranges | List of IP CIDR ranges for tag-based SSH rule, defaults to 0.0.0.0/0. | list | `<list>` | no |
+| ssh\_target\_tags | List of target tags for tag-based SSH rule, defaults to ssh. | list | `<list>` | no |
 
 ## Outputs
 

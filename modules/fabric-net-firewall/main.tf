@@ -25,6 +25,7 @@ resource "google_compute_firewall" "allow-internal" {
   network       = var.network
   project       = var.project_id
   source_ranges = var.internal_ranges
+  target_tags   = var.internal_target_tags
 
   dynamic "allow" {
     for_each = [for rule in var.internal_allow :
@@ -38,12 +39,7 @@ resource "google_compute_firewall" "allow-internal" {
       ports    = allow.value.ports
     }
   }
-
 }
-
-
-
-
 
 resource "google_compute_firewall" "allow-admins" {
   count         = var.admin_ranges_enabled == true ? 1 : 0
@@ -77,7 +73,7 @@ resource "google_compute_firewall" "allow-tag-ssh" {
   network       = var.network
   project       = var.project_id
   source_ranges = var.ssh_source_ranges
-  target_tags   = ["ssh"]
+  target_tags   = var.ssh_target_tags
 
   allow {
     protocol = "tcp"
@@ -92,7 +88,7 @@ resource "google_compute_firewall" "allow-tag-http" {
   network       = var.network
   project       = var.project_id
   source_ranges = var.http_source_ranges
-  target_tags   = ["http-server"]
+  target_tags   = var.http_target_tags
 
   allow {
     protocol = "tcp"
@@ -107,7 +103,7 @@ resource "google_compute_firewall" "allow-tag-https" {
   network       = var.network
   project       = var.project_id
   source_ranges = var.https_source_ranges
-  target_tags   = ["https-server"]
+  target_tags   = var.https_target_tags
 
   allow {
     protocol = "tcp"
