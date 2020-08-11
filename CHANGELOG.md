@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.5.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.4.0...v2.5.0) (2020-08-11)
+
+
+### Features
+
+* Allow passing target_tags to configure the default firewall rules ([#191](https://www.github.com/terraform-google-modules/terraform-google-network/issues/191)) ([996b4f1](https://www.github.com/terraform-google-modules/terraform-google-network/commit/996b4f179e4ac2751e1690a43b41e687759dff8d))
+
+
+### Bug Fixes
+
+* Add support for 3.x provider to beta subnets module ([#194](https://www.github.com/terraform-google-modules/terraform-google-network/issues/194)) ([4957536](https://www.github.com/terraform-google-modules/terraform-google-network/commit/49575366d3a57ded474f0417e14eb13875eda304))
+* Relax Terraform version to allow 0.13  ([#197](https://www.github.com/terraform-google-modules/terraform-google-network/issues/197)) ([1a77919](https://www.github.com/terraform-google-modules/terraform-google-network/commit/1a77919fadd46c658adb9e94da0b121b4b924aaf))
+
 ## [2.4.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.3.0...v2.4.0) (2020-06-01)
 
 
