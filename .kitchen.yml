@@ -16,6 +16,7 @@
 driver:
   name: "terraform"
   command_timeout: 1800
+  verify_version: false
 
 provisioner:
   name: "terraform"
