@@ -22,46 +22,10 @@ provider "null" {
   version = "~> 2.1"
 }
 
-locals {
-  subnet_01 = "${var.network_name}-subnet-01"
-  subnet_02 = "${var.network_name}-subnet-02"
-  subnet_03 = "${var.network_name}-subnet-03"
-  subnet_04 = "${var.network_name}-subnet-04"
-}
-
 module "vpc" {
   source       = "../../"
   project_id   = var.project_id
   network_name = var.network_name
-
-  subnets = [
-    {
-      subnet_name   = "${local.subnet_01}"
-      subnet_ip     = "10.10.10.0/24"
-      subnet_region = "us-west1"
-    },
-    {
-      subnet_name           = "${local.subnet_02}"
-      subnet_ip             = "10.10.20.0/24"
-      subnet_region         = "us-west1"
-      subnet_private_access = "true"
-      subnet_flow_logs      = "true"
-    },
-    {
-      subnet_name               = "${local.subnet_03}"
-      subnet_ip                 = "10.10.30.0/24"
-      subnet_region             = "us-west1"
-      subnet_flow_logs          = "true"
-      subnet_flow_logs_interval = "INTERVAL_15_MIN"
-      subnet_flow_logs_sampling = 0.9
-      subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
-    },
-    {
-      subnet_name   = "${local.subnet_04}"
-      subnet_ip     = "10.10.40.0/24"
-      subnet_region = "us-west1"
-    },
-  ]
 
   firewall_rules = [{
     name = "allow-ssh-ingress"
@@ -76,33 +40,3 @@ module "vpc" {
     }
   }]
 }
-
-# module "firewall_rules" {
-#   source       = "../../modules/firewall-rules"
-#   project_id   = var.project_id
-#   network_name = module.vpc.network_name
-
-#   rules = [{
-#     name = "allow-ssh-ingress"
-#     priority = null
-#     description = null
-#     direction = "INGRESS"
-#     ranges = ["0.0.0.0/0"]
-#     source = {
-#       tags = null
-#       service_accounts = null
-#     }
-#     target = {
-#       tags = null
-#       service_accounts = null
-#     }
-#     allow = [{
-#       protocol = "tcp"
-#       ports = ["22"]
-#     }]
-#     deny = []
-#   }]
-#   # log_config = {
-#   #   metadata = "INCLUDE_ALL_METADATA"
-#   # }
-# }
