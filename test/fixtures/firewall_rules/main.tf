@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-output "network_name" {
-  value       = module.vpc-secondary-ranges.network_name
-  description = "The name of the VPC being created"
+locals {
+  network_name = "secondary-ranges-${var.random_string_for_testing}"
 }
 
-output "network_self_link" {
-  value       = module.vpc-secondary-ranges.network_self_link
-  description = "The URI of the VPC being created"
-}
-
-output "project_id" {
-  value       = module.vpc-secondary-ranges.project_id
-  description = "VPC project id"
+module "example" {
+  source       = "../../../examples/firewall_rules"
+  project_id   = var.project_id
+  network_name = local.network_name
 }

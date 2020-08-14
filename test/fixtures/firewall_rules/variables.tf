@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-output "network_name" {
-  value       = module.vpc-secondary-ranges.network_name
-  description = "The name of the VPC being created"
+variable "project_id" {
+  description = "The GCP project to use for integration tests"
 }
 
-output "network_self_link" {
-  value       = module.vpc-secondary-ranges.network_self_link
-  description = "The URI of the VPC being created"
-}
-
-output "project_id" {
-  value       = module.vpc-secondary-ranges.project_id
-  description = "VPC project id"
+variable "random_string_for_testing" {
+  description = "A random string of characters to be appended to resource names to ensure uniqueness"
+  default     = "a1"
 }
