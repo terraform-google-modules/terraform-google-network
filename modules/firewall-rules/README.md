@@ -47,4 +47,10 @@ module "firewall_rules" {
 | project\_id | Project id of the project that holds the network. | string | n/a | yes |
 | rules | List of custom rule definitions (refer to variables file for syntax). | object | `<list>` | no |
 
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| firewall\_rules | The created firewall rule resources |
+
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
