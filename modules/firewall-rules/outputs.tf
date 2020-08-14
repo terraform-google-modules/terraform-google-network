@@ -14,35 +14,7 @@
  * limitations under the License.
  */
 
-provider "google" {
-  version = "~> 3.3.0"
-}
-
-provider "null" {
-  version = "~> 2.1"
-}
-
-module "vpc" {
-  source       = "../../"
-  project_id   = var.project_id
-  network_name = var.network_name
-
-  subnets = [{
-    subnet_name   = "${var.network_name}-subnet-01"
-    subnet_ip     = "10.10.10.0/24"
-    subnet_region = "us-west1"
-  }]
-
-  firewall_rules = [{
-    name = "allow-ssh-ingress"
-    direction = "INGRESS"
-    ranges    = ["0.0.0.0/0"]
-    allow = [{
-      protocol = "tcp"
-      ports    = ["22"]
-    }]
-    log_config = {
-      metadata = "INCLUDE_METADATA"
-    }
-  }]
+output "firewall_rules" {
+  value       = google_compute_firewall.rules
+  description = "The created firewall rule resources"
 }

@@ -1,4 +1,4 @@
-name: secondary_ranges
+name: firewall_rules
 attributes:
   - name: project_id
     required: true
@@ -12,19 +12,5 @@ attributes:
   - name: output_network_self_link
     required: true
     type: string
-  - name: output_subnets_ips
-    required: true
-  - name: output_routes
-    required: true
-  - name: output_subnets_flow_logs
-    required: true
-  - name: output_subnets_names
-    required: true
-  - name: output_subnets_private_access
-    required: true
-  - name: output_subnets_regions
-    required: true
-  - name: output_subnets_secondary_ranges
-    required: true
   - name: output_project_id
     required: true
