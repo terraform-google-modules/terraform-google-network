@@ -34,7 +34,7 @@ module "vpc" {
   }]
 
   firewall_rules = [{
-    name = "allow-ssh-ingress"
+    name      = "allow-ssh-ingress"
     direction = "INGRESS"
     ranges    = ["0.0.0.0/0"]
     allow = [{
