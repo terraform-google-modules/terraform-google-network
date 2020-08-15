@@ -13,12 +13,11 @@
 # limitations under the License.
 
 project_id         = attribute('project_id')
-firewall_rule_name = attribute('firewall_rule_name')
 
 control "gcloud" do
   title "gcloud configuration"
 
-  describe command("gcloud compute firewall-rules describe #{firewall_rule_name} --project=#{project_id} --format=json") do
+  describe command("gcloud compute firewall-rules describe allow-ssh-ingress --project=#{project_id} --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
@@ -34,6 +33,25 @@ control "gcloud" do
       expect(data["allow"][0]).to include(
         "protocol" => "tcp",
         "ports"    => ["22"]
+      )
+    end
+  end
+
+  describe command("gcloud compute firewall-rules describe deny-udp-egress --project=#{project_id} --format=json") do
+    its(:exit_status) { should eq 0 }
+    its(:stderr) { should eq '' }
+
+    let(:data) do
+      if subject.exit_status == 0
+        JSON.parse(subject.stdout)
+      else
+        {}
+      end
+    end
+
+    it "should have the correct allow rules" do
+      expect(data["deny"][0]).to include(
+        "protocol" => "udp",
       )
     end
   end

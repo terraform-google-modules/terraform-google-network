@@ -33,15 +33,15 @@ resource "google_compute_firewall" "rules" {
     for_each = lookup(each.value, "allow", [])
     content {
       protocol = allow.value.protocol
-      ports    = allow.value.ports
+      ports    = lookup(allow.value, "ports", null)
     }
   }
 
   dynamic "deny" {
     for_each = lookup(each.value, "deny", [])
     content {
-      protocol = allow.value.protocol
-      ports    = allow.value.ports
+      protocol = deny.value.protocol
+      ports    = lookup(deny.value, "ports", null)
     }
   }
 }

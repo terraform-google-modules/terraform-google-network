@@ -52,7 +52,7 @@ variable "routes" {
 }
 
 variable "firewall_rules" {
-  type        = list(any)
+  type        = any
   description = "List of firewall rules"
   default     = []
 }
