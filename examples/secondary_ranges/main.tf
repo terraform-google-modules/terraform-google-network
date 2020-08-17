@@ -84,4 +84,31 @@ module "vpc-secondary-ranges" {
       },
     ]
   }
+
+  firewall_rules = [
+    {
+      name      = "allow-ssh-ingress"
+      direction = "INGRESS"
+      ranges    = ["0.0.0.0/0"]
+      allow = [{
+        protocol = "tcp"
+        ports    = ["22"]
+      }]
+      log_config = {
+        metadata = "INCLUDE_METADATA"
+      }
+    },
+    {
+      name      = "deny-udp-egress"
+      direction = "INGRESS"
+      ranges    = ["0.0.0.0/0"]
+      deny = [{
+        protocol = "udp"
+        ports    = null
+      }]
+      log_config = {
+        metadata = "INCLUDE_METADATA"
+      }
+    },
+  ]
 }
