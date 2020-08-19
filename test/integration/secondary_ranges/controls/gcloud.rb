@@ -100,22 +100,23 @@ control "gcloud" do
   end
 
   describe command("gcloud compute firewall-rules describe allow-ssh-ingress --project=#{project_id} --format=json") do
-  its(:exit_status) { should eq 0 }
-  its(:stderr) { should eq '' }
+    its(:exit_status) { should eq 0 }
+    its(:stderr) { should eq '' }
 
-  let(:data) do
-    if subject.exit_status == 0
-      JSON.parse(subject.stdout)
-    else
-      {}
+    let(:data) do
+      if subject.exit_status == 0
+        JSON.parse(subject.stdout)
+      else
+        {}
+      end
     end
-  end
 
-  it "should have the correct allow rules" do
-    expect(data["allow"][0]).to include(
-      "protocol" => "tcp",
-      "ports"    => ["22"]
-    )
+    it "should have the correct allow rules" do
+      expect(data["allow"][0]).to include(
+        "protocol" => "tcp",
+        "ports"    => ["22"]
+      )
+    end
   end
 
   describe command("gcloud compute firewall-rules describe deny-udp-egress --project=#{project_id} --format=json") do
