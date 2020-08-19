@@ -113,7 +113,7 @@ control "gcloud" do
 
     it "should have the correct allow rules" do
       expect(data["allowed"][0]).to include(
-        "protocol" => "tcp",
+        "IPProtocol" => "tcp",
         "ports"    => ["22"]
       )
     end
@@ -133,7 +133,7 @@ control "gcloud" do
 
     it "should have the correct allow rules" do
       expect(data["denied"][0]).to include(
-        "protocol" => "udp",
+        "IPProtocol" => "udp",
       )
     end
   end
