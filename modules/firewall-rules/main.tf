@@ -29,6 +29,13 @@ resource "google_compute_firewall" "rules" {
   target_service_accounts = each.value.target_service_accounts
   priority                = each.value.priority
 
+  dynamic "log_config" {
+    for_each = lookup(each.value, "log_config") == null ? [] : [each.value.log_config]
+    content {
+      metadata = log_config.value.metadata
+    }
+  }
+
   dynamic "allow" {
     for_each = lookup(each.value, "allow", [])
     content {

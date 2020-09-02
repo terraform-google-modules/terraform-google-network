@@ -15,7 +15,7 @@
  */
 
 provider "google" {
-  version = "~> 3.3.0"
+  version = "~> 3.0"
 }
 
 provider "null" {
@@ -95,7 +95,7 @@ module "vpc-secondary-ranges" {
         ports    = ["22"]
       }]
       log_config = {
-        metadata = "INCLUDE_METADATA"
+        metadata = "INCLUDE_ALL_METADATA"
       }
     },
     {
@@ -106,9 +106,6 @@ module "vpc-secondary-ranges" {
         protocol = "udp"
         ports    = null
       }]
-      log_config = {
-        metadata = "INCLUDE_METADATA"
-      }
     },
   ]
 }
