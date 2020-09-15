@@ -30,8 +30,8 @@ resource "google_compute_firewall" "allow-internal" {
   dynamic "allow" {
     for_each = [for rule in var.internal_allow :
       {
-        protocol = lookup(rule, "protocol", null)
-        ports    = lookup(rule, "ports", null)
+        protocol = rule.protocol
+        ports    = rule.ports
       }
     ]
     content {

@@ -128,7 +128,8 @@ module "test-firewall-submodule" {
 
   internal_allow = [
     {
-      protocol = "icmp"
+      protocol = "icmp",
+      ports    = [] # all ports
     },
     {
       protocol = "tcp",
@@ -136,7 +137,7 @@ module "test-firewall-submodule" {
     },
     {
       protocol = "udp"
-      # all ports will be opened if `ports` key isn't specified
+      ports    = null # all ports
     },
   ]
   custom_rules = local.custom_rules

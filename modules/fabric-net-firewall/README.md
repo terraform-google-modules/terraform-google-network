@@ -73,21 +73,21 @@ module "net-firewall" {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|:----:|:-----:|:-----:|
-| admin\_ranges | IP CIDR ranges that have complete access to all subnets. | list | `<list>` | no |
-| admin\_ranges\_enabled | Enable admin ranges-based rules. | string | `"false"` | no |
+| admin\_ranges | IP CIDR ranges that have complete access to all subnets. | list(string) | `<list>` | no |
+| admin\_ranges\_enabled | Enable admin ranges-based rules. | bool | `"false"` | no |
 | custom\_rules | List of custom rule definitions (refer to variables file for syntax). | object | `<map>` | no |
-| http\_source\_ranges | List of IP CIDR ranges for tag-based HTTP rule, defaults to 0.0.0.0/0. | list | `<list>` | no |
-| http\_target\_tags | List of target tags for tag-based HTTP rule, defaults to http-server. | list | `<list>` | no |
-| https\_source\_ranges | List of IP CIDR ranges for tag-based HTTPS rule, defaults to 0.0.0.0/0. | list | `<list>` | no |
-| https\_target\_tags | List of target tags for tag-based HTTPS rule, defaults to https-server. | list | `<list>` | no |
-| internal\_allow | Allow rules for internal ranges. | list | `<list>` | no |
-| internal\_ranges | IP CIDR ranges for intra-VPC rules. | list | `<list>` | no |
-| internal\_ranges\_enabled | Create rules for intra-VPC ranges. | string | `"false"` | no |
-| internal\_target\_tags | List of target tags for intra-VPC rules. | list | `<list>` | no |
+| http\_source\_ranges | List of IP CIDR ranges for tag-based HTTP rule, defaults to 0.0.0.0/0. | list(string) | `<list>` | no |
+| http\_target\_tags | List of target tags for tag-based HTTP rule, defaults to http-server. | list(string) | `<list>` | no |
+| https\_source\_ranges | List of IP CIDR ranges for tag-based HTTPS rule, defaults to 0.0.0.0/0. | list(string) | `<list>` | no |
+| https\_target\_tags | List of target tags for tag-based HTTPS rule, defaults to https-server. | list(string) | `<list>` | no |
+| internal\_allow | Allow rules for internal ranges. | object | `<list>` | no |
+| internal\_ranges | IP CIDR ranges for intra-VPC rules. | list(string) | `<list>` | no |
+| internal\_ranges\_enabled | Create rules for intra-VPC ranges. | bool | `"false"` | no |
+| internal\_target\_tags | List of target tags for intra-VPC rules. | list(string) | `<list>` | no |
 | network | Name of the network this set of firewall rules applies to. | string | n/a | yes |
 | project\_id | Project id of the project that holds the network. | string | n/a | yes |
-| ssh\_source\_ranges | List of IP CIDR ranges for tag-based SSH rule, defaults to 0.0.0.0/0. | list | `<list>` | no |
-| ssh\_target\_tags | List of target tags for tag-based SSH rule, defaults to ssh. | list | `<list>` | no |
+| ssh\_source\_ranges | List of IP CIDR ranges for tag-based SSH rule, defaults to 0.0.0.0/0. | list(string) | `<list>` | no |
+| ssh\_target\_tags | List of target tags for tag-based SSH rule, defaults to ssh. | list(string) | `<list>` | no |
 
 ## Outputs
 
