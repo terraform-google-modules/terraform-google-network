@@ -34,9 +34,9 @@ resource "google_compute_subnetwork" "subnetwork" {
   private_ip_google_access = lookup(each.value, "subnet_private_access", "false")
   dynamic "log_config" {
     for_each = lookup(each.value, "subnet_flow_logs", false) ? [{
-      aggregation_interval = lookup(each.value, "subnet_flow_logs_interval", null)
-      flow_sampling        = lookup(each.value, "subnet_flow_logs_sampling", null)
-      metadata             = lookup(each.value, "subnet_flow_logs_metadata", null)
+      aggregation_interval = lookup(each.value, "subnet_flow_logs_interval", "INTERVAL_5_SEC")
+      flow_sampling        = lookup(each.value, "subnet_flow_logs_sampling", "0.5")
+      metadata             = lookup(each.value, "subnet_flow_logs_metadata", "INCLUDE_ALL_METADATA")
     }] : []
     content {
       aggregation_interval = log_config.value.aggregation_interval
