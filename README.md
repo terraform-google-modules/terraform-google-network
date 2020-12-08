@@ -93,17 +93,17 @@ Then perform the following commands on the root folder:
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|:----:|:-----:|:-----:|
-| auto\_create\_subnetworks | When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources. | bool | `"false"` | no |
-| delete\_default\_internet\_gateway\_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | bool | `"false"` | no |
-| description | An optional description of this resource. The resource must be recreated to modify this field. | string | `""` | no |
-| network\_name | The name of the network being created | string | n/a | yes |
-| project\_id | The ID of the project where this VPC will be created | string | n/a | yes |
-| routes | List of routes being created in this VPC | list(map(string)) | `<list>` | no |
-| routing\_mode | The network routing mode (default 'GLOBAL') | string | `"GLOBAL"` | no |
-| secondary\_ranges | Secondary ranges that will be used in some of the subnets | object | `<map>` | no |
-| shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | bool | `"false"` | no |
-| subnets | The list of subnets being created | list(map(string)) | n/a | yes |
+|------|-------------|------|---------|:--------:|
+| auto\_create\_subnetworks | When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources. | `bool` | `false` | no |
+| delete\_default\_internet\_gateway\_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | `bool` | `false` | no |
+| description | An optional description of this resource. The resource must be recreated to modify this field. | `string` | `""` | no |
+| network\_name | The name of the network being created | `any` | n/a | yes |
+| project\_id | The ID of the project where this VPC will be created | `any` | n/a | yes |
+| routes | List of routes being created in this VPC | `list(map(string))` | `[]` | no |
+| routing\_mode | The network routing mode (default 'GLOBAL') | `string` | `"GLOBAL"` | no |
+| secondary\_ranges | Secondary ranges that will be used in some of the subnets | `map(list(object({ range_name = string, ip_cidr_range = string })))` | `{}` | no |
+| shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | `bool` | `false` | no |
+| subnets | The list of subnets being created | `list(map(string))` | n/a | yes |
 
 ## Outputs
 
@@ -114,7 +114,7 @@ Then perform the following commands on the root folder:
 | network\_self\_link | The URI of the VPC being created |
 | project\_id | VPC project id |
 | route\_names | The route names associated with this VPC |
-| subnets | A map with keys of form subnet_region/subnet_name and values being the outputs of the google_compute_subnetwork resources used to create corresponding subnets. |
+| subnets | A map with keys of form subnet\_region/subnet\_name and values being the outputs of the google\_compute\_subnetwork resources used to create corresponding subnets. |
 | subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |
 | subnets\_names | The names of the subnets being created |
