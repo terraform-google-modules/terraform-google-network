@@ -43,11 +43,11 @@ module "vpc" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|:----:|:-----:|:-----:|
-| module\_depends\_on | List of modules or resources this module depends on. | list | `<list>` | no |
-| network\_name | The name of the network where routes will be created | string | n/a | yes |
-| project\_id | The ID of the project where the routes will be created | string | n/a | yes |
-| routes | List of routes being created in this VPC | list(map(string)) | `<list>` | no |
+|------|-------------|------|---------|:--------:|
+| module\_depends\_on | List of modules or resources this module depends on. | `list(any)` | `[]` | no |
+| network\_name | The name of the network where routes will be created | `any` | n/a | yes |
+| project\_id | The ID of the project where the routes will be created | `any` | n/a | yes |
+| routes | List of routes being created in this VPC | `list(map(string))` | `[]` | no |
 
 ## Outputs
 

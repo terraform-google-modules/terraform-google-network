@@ -1,4 +1,8 @@
 name: secondary_ranges
+depends:
+  - name: inspec-gcp
+    git: https://github.com/inspec/inspec-gcp.git
+    tag: v1.8.0
 attributes:
   - name: project_id
     required: true
@@ -25,6 +29,4 @@ attributes:
   - name: output_subnets_regions
     required: true
   - name: output_subnets_secondary_ranges
-    required: true
-  - name: output_project_id
     required: true

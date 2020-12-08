@@ -14,11 +14,15 @@ Subnet-level access in this example is only granted to the default GCE service a
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|:----:|:-----:|:-----:|
-| host\_project\_id | Id of the host project where the shared VPC will be created. | string | n/a | yes |
-| network\_name | Name of the shared VPC. | string | `"test-svpc"` | no |
-| service\_project\_id | Service project id. | string | n/a | yes |
-| service\_project\_number | Service project number. | string | n/a | yes |
-| service\_project\_owners | Service project owners, in IAM format. | list | `<list>` | no |
+|------|-------------|------|---------|:--------:|
+| host\_project\_id | Id of the host project where the shared VPC will be created. | `any` | n/a | yes |
+| network\_name | Name of the shared VPC. | `string` | `"test-svpc"` | no |
+| service\_project\_id | Service project id. | `any` | n/a | yes |
+| service\_project\_number | Service project number. | `any` | n/a | yes |
+| service\_project\_owners | Service project owners, in IAM format. | `list` | `[]` | no |
+
+## Outputs
+
+No output.
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
