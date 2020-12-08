@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. See [standa
 ### Features
 
 * Setting default values for Flow logs on beta submodule ([#209](https://www.github.com/terraform-google-modules/terraform-google-network/issues/209)) ([1a2d1b5](https://www.github.com/terraform-google-modules/terraform-google-network/commit/1a2d1b5c3badb58a87ae845afa2123f26f64d093))
+* Added support for Terraform 0.14 ([#217](https://github.com/terraform-google-modules/terraform-google-network/pull/217))
 
 ## [2.5.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.4.0...v2.5.0) (2020-08-11)
 
