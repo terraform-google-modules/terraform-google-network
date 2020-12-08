@@ -68,7 +68,7 @@ module "vpc" {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| module\_depends\_on | List of modules or resources this module depends on. | `list` | `[]` | no |
+| module\_depends\_on | List of modules or resources this module depends on. | `list(any)` | `[]` | no |
 | network\_name | The name of the network where subnets will be created | `any` | n/a | yes |
 | project\_id | The ID of the project where subnets will be created | `any` | n/a | yes |
 | secondary\_ranges | Secondary ranges that will be used in some of the subnets | `map(list(object({ range_name = string, ip_cidr_range = string })))` | `{}` | no |

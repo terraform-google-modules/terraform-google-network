@@ -24,7 +24,6 @@ control "gcloud" do
     peer_network_self_link  = peer_network_peering[:network]
     local_network_name      = local_network_self_link.split('/')[-1]
     peer_network_name       = peer_network_self_link.split('/')[-1]
-    
 
     describe command("gcloud compute networks peerings list --project=#{project_id} --network=#{local_network_name} --format=json") do
       its(:exit_status) { should eq 0 }
