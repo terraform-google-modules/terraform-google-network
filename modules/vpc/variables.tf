@@ -51,3 +51,9 @@ variable "delete_default_internet_gateway_routes" {
   description = "If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted"
   default     = false
 }
+
+variable "mtu" {
+  type        = number
+  description = "The network MTU (default '1460'). Must be a value between 1460 and 1500 inclusive."
+  default     = 1460
+}
