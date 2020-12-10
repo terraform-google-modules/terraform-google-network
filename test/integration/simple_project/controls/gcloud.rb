@@ -57,7 +57,8 @@ control "gcloud" do
           "aggregationInterval" => "INTERVAL_5_SEC",
           "enable" => true,
           "flowSampling" => 0.5,
-          "metadata" => "INCLUDE_ALL_METADATA"
+          "metadata" => "INCLUDE_ALL_METADATA",
+          "filterExpr" => "true"
         }
       )
     end
@@ -81,7 +82,8 @@ control "gcloud" do
           "aggregationInterval" => "INTERVAL_10_MIN",
           "enable" => true,
           "flowSampling" => 0.7,
-          "metadata" => "INCLUDE_ALL_METADATA"
+          "metadata" => "INCLUDE_ALL_METADATA",
+          "filterExpr" => "true"
         }
       )
     end
