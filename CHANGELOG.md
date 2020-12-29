@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.0.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.6.0...v3.0.0) (2020-12-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* Minimum Terraform version increased to 0.13.
+* Minimum Google provider version increased to 3.45.0.
+
+### Features
+
+* Add support for custom MTU on VPCs ([#221](https://www.github.com/terraform-google-modules/terraform-google-network/issues/221)) ([bb31529](https://www.github.com/terraform-google-modules/terraform-google-network/commit/bb315290b84a06302b9fd844915853a373cf5abc))
+
+
+### Miscellaneous Chores
+
+* add Terraform 0.13 constraint and module attribution ([#224](https://www.github.com/terraform-google-modules/terraform-google-network/issues/224)) ([6c835be](https://www.github.com/terraform-google-modules/terraform-google-network/commit/6c835be46fe154d3e90211c503fe671174da9551))
+
 ## [2.6.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.5.0...v2.6.0) (2020-12-08)
 
 
