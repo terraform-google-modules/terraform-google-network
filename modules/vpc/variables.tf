@@ -54,6 +54,6 @@ variable "delete_default_internet_gateway_routes" {
 
 variable "mtu" {
   type        = number
-  description = "The network MTU (default '1460'). Must be a value between 1460 and 1500 inclusive."
-  default     = 1460
+  description = "The network MTU. Must be a value between 1460 and 1500 inclusive. If set to 0 (meaning MTU is unset), the network will default to 1460 automatically."
+  default     = 0
 }
