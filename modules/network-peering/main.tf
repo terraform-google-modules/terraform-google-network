@@ -17,11 +17,11 @@
 locals {
   local_network_name = element(reverse(split("/", var.local_network)), 0)
   peer_network_name  = element(reverse(split("/", var.peer_network)), 0)
-  
-  local_network_peering = "${var.prefix}-${local.local_network_name}-${local.peer_network_name}"
+
+  local_network_peering      = "${var.prefix}-${local.local_network_name}-${local.peer_network_name}"
   local_network_peering_name = var.local_network_peering_name != "" ? var.local_network_peering_name : length(local.local_network_peering) < 63 ? local.local_network_peering : "${substr(local.local_network_peering, 0, min(58, length(local.local_network_peering)))}-${random_string.network_peering_suffix.result}"
-  peer_network_peering = "${var.prefix}-${local.peer_network_name}-${local.local_network_name}"
-  peer_network_peering_name = var.peer_network_peering_name != "" ? var.peer_network_peering_name : length(local.peer_network_peering) < 63 ? local.peer_network_peering : "${substr(local.peer_network_peering, 0, min(58, length(local.peer_network_peering)))}-${random_string.network_peering_suffix.result}"
+  peer_network_peering       = "${var.prefix}-${local.peer_network_name}-${local.local_network_name}"
+  peer_network_peering_name  = var.peer_network_peering_name != "" ? var.peer_network_peering_name : length(local.peer_network_peering) < 63 ? local.peer_network_peering : "${substr(local.peer_network_peering, 0, min(58, length(local.peer_network_peering)))}-${random_string.network_peering_suffix.result}"
 }
 
 resource "random_string" "network_peering_suffix" {
