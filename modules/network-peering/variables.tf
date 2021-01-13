@@ -47,15 +47,3 @@ variable "module_depends_on" {
   type        = list(any)
   default     = []
 }
-
-variable "local_network_peering_name" {
-  description = "Name of local network peering"
-  type        = string
-  default     = ""
-}
-
-variable "peer_network_peering_name" {
-  description = "Name peered network peering"
-  type        = string
-  default     = ""
-}
