@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.0.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.0.0...v3.0.1) (2021-01-15)
+
+
+### Bug Fixes
+
+* Automatically truncate VPC peering name if necessary ([#229](https://www.github.com/terraform-google-modules/terraform-google-network/issues/229)) ([67e833a](https://www.github.com/terraform-google-modules/terraform-google-network/commit/67e833a701fb4bc36aaeebbf88daea9a6f5e97b0))
+* By default, accept standard API MTU configuration of 1460 ([#226](https://www.github.com/terraform-google-modules/terraform-google-network/issues/226)) ([26507ba](https://www.github.com/terraform-google-modules/terraform-google-network/commit/26507ba861c24e190bf52d02c483786e7b660faa))
+
 ## [3.0.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.6.0...v3.0.0) (2020-12-29)
 
 
