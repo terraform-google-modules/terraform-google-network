@@ -15,7 +15,7 @@
  */
 
 variable "project_id" {
-  description = "The ID of the project where this VPC will be created"
+  description = "The ID test of the project where this VPC will be created"
 }
 
 variable "network_name" {
