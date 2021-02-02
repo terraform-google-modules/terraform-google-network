@@ -133,8 +133,8 @@ resource "google_compute_firewall" "custom" {
   priority                = lookup(each.value.extra_attributes, "priority", 1000)
 
   dynamic "log_config" {
-    for_each = lookup(each.value, "flow_logs", false) ? [{
-      metadata = lookup(each.value, "flow_logs_metadata", "INCLUDE_ALL_METADATA")
+    for_each = lookup(each.value.extra_attributes, "flow_logs", false) ? [{
+      metadata = lookup(each.value.extra_attributes, "flow_logs_metadata", "INCLUDE_ALL_METADATA")
     }] : []
     content {
       metadata = log_config.value.metadata
