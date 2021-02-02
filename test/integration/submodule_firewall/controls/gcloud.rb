@@ -87,6 +87,14 @@ control "gcloud" do
             }
         )
       end
+
+      it "has logging disabled" do
+        expect(data["logConfig"]).to include(
+            {
+              "enable" => false
+            }
+        )
+      end
     end
   end
 
@@ -129,6 +137,22 @@ describe command("gcloud compute firewall-rules describe deny-ingress-6534-6566 
             {
               "IPProtocol" => "udp",
               "ports" => ["6534-6566"]
+            }
+        )
+      end
+
+      it "has logging enabled" do
+        expect(data["logConfig"]).to include(
+            {
+              "enable" => true
+            }
+        )
+      end
+
+      it "has expected logging metadata" do
+        expect(data["logConfig"]).to include(
+            {
+              "metadata" => "EXCLUDE_ALL_METADATA"
             }
         )
       end
@@ -175,6 +199,22 @@ describe command("gcloud compute firewall-rules describe allow-all-admin-sa --pr
         expect(data["allowed"]).to include(
             {
               "IPProtocol" => "udp"
+            }
+        )
+      end
+
+      it "has logging enabled" do
+        expect(data["logConfig"]).to include(
+            {
+              "enable" => true
+            }
+        )
+      end
+
+      it "has expected logging metadata" do
+        expect(data["logConfig"]).to include(
+            {
+              "metadata" => "INCLUDE_ALL_METADATA"
             }
         )
       end
