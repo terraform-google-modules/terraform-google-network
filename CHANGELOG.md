@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.0.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.0.0...v3.0.1) (2021-01-15)
+
+
+### Bug Fixes
+
+* Automatically truncate VPC peering name if necessary ([#229](https://www.github.com/terraform-google-modules/terraform-google-network/issues/229)) ([67e833a](https://www.github.com/terraform-google-modules/terraform-google-network/commit/67e833a701fb4bc36aaeebbf88daea9a6f5e97b0))
+* By default, accept standard API MTU configuration of 1460 ([#226](https://www.github.com/terraform-google-modules/terraform-google-network/issues/226)) ([26507ba](https://www.github.com/terraform-google-modules/terraform-google-network/commit/26507ba861c24e190bf52d02c483786e7b660faa))
+
+## [3.0.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.6.0...v3.0.0) (2020-12-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* Minimum Terraform version increased to 0.13.
+* Minimum Google provider version increased to 3.45.0.
+
+### Features
+
+* Add support for custom MTU on VPCs ([#221](https://www.github.com/terraform-google-modules/terraform-google-network/issues/221)) ([bb31529](https://www.github.com/terraform-google-modules/terraform-google-network/commit/bb315290b84a06302b9fd844915853a373cf5abc))
+
+
+### Miscellaneous Chores
+
+* add Terraform 0.13 constraint and module attribution ([#224](https://www.github.com/terraform-google-modules/terraform-google-network/issues/224)) ([6c835be](https://www.github.com/terraform-google-modules/terraform-google-network/commit/6c835be46fe154d3e90211c503fe671174da9551))
+
+## [2.6.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.5.0...v2.6.0) (2020-12-08)
+
+
+### Features
+
+* Setting default values for Flow logs on beta submodule ([#209](https://www.github.com/terraform-google-modules/terraform-google-network/issues/209)) ([1a2d1b5](https://www.github.com/terraform-google-modules/terraform-google-network/commit/1a2d1b5c3badb58a87ae845afa2123f26f64d093))
+* Added support for Terraform 0.14 ([#217](https://github.com/terraform-google-modules/terraform-google-network/pull/217))
+
+## [2.5.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.4.0...v2.5.0) (2020-08-11)
+
+
+### Features
+
+* Allow passing target_tags to configure the default firewall rules ([#191](https://www.github.com/terraform-google-modules/terraform-google-network/issues/191)) ([996b4f1](https://www.github.com/terraform-google-modules/terraform-google-network/commit/996b4f179e4ac2751e1690a43b41e687759dff8d))
+
+
+### Bug Fixes
+
+* Add support for 3.x provider to beta subnets module ([#194](https://www.github.com/terraform-google-modules/terraform-google-network/issues/194)) ([4957536](https://www.github.com/terraform-google-modules/terraform-google-network/commit/49575366d3a57ded474f0417e14eb13875eda304))
+* Relax Terraform version to allow 0.13  ([#197](https://www.github.com/terraform-google-modules/terraform-google-network/issues/197)) ([1a77919](https://www.github.com/terraform-google-modules/terraform-google-network/commit/1a77919fadd46c658adb9e94da0b121b4b924aaf))
+
 ## [2.4.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v2.3.0...v2.4.0) (2020-06-01)
 
 

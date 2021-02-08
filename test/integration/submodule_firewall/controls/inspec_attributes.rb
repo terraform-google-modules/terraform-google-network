@@ -54,8 +54,4 @@ control "inspec_attributes" do
   describe attribute("output_subnets_secondary_ranges") do
     it { should eq [[],[]] }
   end
-
-  describe attribute("output_project_id") do
-    it { should eq project_id }
-  end
 end

@@ -44,6 +44,6 @@ variable "export_local_custom_routes" {
 
 variable "module_depends_on" {
   description = "List of modules or resources this module depends on."
-  type        = list
+  type        = list(any)
   default     = []
 }

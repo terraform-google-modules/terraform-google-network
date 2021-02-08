@@ -9,9 +9,9 @@ ranges and the third being given a single secondary range.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|:----:|:-----:|:-----:|
-| network\_name | The name of the VPC network being created | string | n/a | yes |
-| project\_id | The project ID to host the network in | string | n/a | yes |
+|------|-------------|------|---------|:--------:|
+| network\_name | The name of the VPC network being created | `any` | n/a | yes |
+| project\_id | The project ID to host the network in | `any` | n/a | yes |
 
 ## Outputs
 

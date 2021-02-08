@@ -24,6 +24,7 @@ resource "google_compute_network" "network" {
   project                         = var.project_id
   description                     = var.description
   delete_default_routes_on_create = var.delete_default_internet_gateway_routes
+  mtu                             = var.mtu
 }
 
 /******************************************

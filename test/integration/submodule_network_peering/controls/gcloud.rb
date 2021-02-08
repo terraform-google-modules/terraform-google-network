@@ -18,10 +18,10 @@ peerings   = attribute('peerings')
 control "gcloud" do
   title "gcloud configuration"
   peerings.each do |key, value|
-    local_network_peering   = value['local_network_peering']
-    peer_network_peering    = value['peer_network_peering']
-    local_network_self_link = local_network_peering['network']
-    peer_network_self_link  = peer_network_peering['network']
+    local_network_peering   = value[:local_network_peering]
+    peer_network_peering    = value[:peer_network_peering]
+    local_network_self_link = local_network_peering[:network]
+    peer_network_self_link  = peer_network_peering[:network]
     local_network_name      = local_network_self_link.split('/')[-1]
     peer_network_name       = peer_network_self_link.split('/')[-1]
 
@@ -39,25 +39,25 @@ control "gcloud" do
 
       describe "local VPC peering" do
         it "should exist" do
-          expect(data[0]['peerings'].select{|x| x['name'] == local_network_peering['name']}).not_to be_empty
+          expect(data[0]['peerings'].select{|x| x['name'] == local_network_peering[:name]}).not_to be_empty
         end
         it "should be active" do
-          expect(data[0]['peerings'].select{|x| x['name'] == local_network_peering['name']}[0]['state']).to eq(
+          expect(data[0]['peerings'].select{|x| x['name'] == local_network_peering[:name]}[0]["state"]).to eq(
             "ACTIVE"
           )
         end
         it "should be connected to #{peer_network_name} network" do
-          expect(data[0]['peerings'].select{|x| x['name'] == local_network_peering['name']}[0]['network']).to eq(
+          expect(data[0]['peerings'].select{|x| x['name'] == local_network_peering[:name]}[0]["network"]).to eq(
             peer_network_self_link
           )
         end
         it "should export custom routes" do
-          expect(data[0]['peerings'].select{|x| x['name'] == local_network_peering['name']}[0]['exportCustomRoutes']).to eq(
+          expect(data[0]['peerings'].select{|x| x['name'] == local_network_peering[:name]}[0]["exportCustomRoutes"]).to eq(
             true
           )
         end
         it "should not import custom routes" do
-          expect(data[0]['peerings'].select{|x| x['name'] == local_network_peering['name']}[0]['importCustomRoutes']).to eq(
+          expect(data[0]['peerings'].select{|x| x['name'] == local_network_peering[:name]}[0]["importCustomRoutes"]).to eq(
             false
           )
         end
@@ -79,25 +79,25 @@ control "gcloud" do
 
       describe "peer VPC peering" do
         it "should exist" do
-          expect(data[0]['peerings'].select{|x| x['name'] == peer_network_peering['name']}).not_to be_empty
+          expect(data[0]['peerings'].select{|x| x['name'] == peer_network_peering[:name]}).not_to be_empty
         end
         it "should be active" do
-          expect(data[0]['peerings'].select{|x| x['name'] == peer_network_peering['name']}[0]['state']).to eq(
+          expect(data[0]['peerings'].select{|x| x['name'] == peer_network_peering[:name]}[0]["state"]).to eq(
             "ACTIVE"
           )
         end
         it "should be connected to #{local_network_name} network" do
-          expect(data[0]['peerings'].select{|x| x['name'] == peer_network_peering['name']}[0]['network']).to eq(
+          expect(data[0]['peerings'].select{|x| x['name'] == peer_network_peering[:name]}[0]["network"]).to eq(
             local_network_self_link
           )
         end
         it "should not export custom routes" do
-          expect(data[0]['peerings'].select{|x| x['name'] == peer_network_peering['name']}[0]['exportCustomRoutes']).to eq(
+          expect(data[0]['peerings'].select{|x| x['name'] == peer_network_peering[:name]}[0]["exportCustomRoutes"]).to eq(
             false
           )
         end
         it "should import custom routes" do
-          expect(data[0]['peerings'].select{|x| x['name'] == peer_network_peering['name']}[0]['importCustomRoutes']).to eq(
+          expect(data[0]['peerings'].select{|x| x['name'] == peer_network_peering[:name]}[0]["importCustomRoutes"]).to eq(
             true
           )
         end

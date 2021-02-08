@@ -15,7 +15,7 @@
  */
 
 provider "google" {
-  version = "~> 3.0"
+  version = "~> 3.45.0"
 }
 
 provider "null" {
@@ -70,8 +70,10 @@ locals {
       }]
 
       extra_attributes = {
-        disabled = true
-        priority = 95
+        disabled           = true
+        priority           = 95
+        flow_logs          = true
+        flow_logs_metadata = "EXCLUDE_ALL_METADATA"
       }
     }
 
@@ -111,7 +113,8 @@ locals {
         }
       ]
       extra_attributes = {
-        priority = 30
+        priority  = 30
+        flow_logs = true
       }
     }
   }

@@ -26,6 +26,7 @@ module "vpc" {
   description                            = var.description
   shared_vpc_host                        = var.shared_vpc_host
   delete_default_internet_gateway_routes = var.delete_default_internet_gateway_routes
+  mtu                                    = var.mtu
 }
 
 /******************************************

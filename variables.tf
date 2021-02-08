@@ -75,3 +75,9 @@ variable "auto_create_subnetworks" {
   description = "When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources."
   default     = false
 }
+
+variable "mtu" {
+  type        = number
+  description = "The network MTU. Must be a value between 1460 and 1500 inclusive. If set to 0 (meaning MTU is unset), the network will default to 1460 automatically."
+  default     = 0
+}

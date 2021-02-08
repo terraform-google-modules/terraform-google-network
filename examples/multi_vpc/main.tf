@@ -15,7 +15,7 @@
  */
 
 provider "google" {
-  version = "~> 3.0"
+  version = "~> 3.45.0"
 }
 
 provider "null" {
@@ -106,7 +106,7 @@ module "test-vpc-module-01" {
     ]
   }
 
-  routes = "${local.network_01_routes}"
+  routes = local.network_01_routes
 }
 
 module "test-vpc-module-02" {

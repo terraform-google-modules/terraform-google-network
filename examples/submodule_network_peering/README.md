@@ -6,8 +6,8 @@ This example creates a VPC Network peering between two VPCs.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|:----:|:-----:|:-----:|
-| project\_id | The project ID to put the resources in | string | n/a | yes |
+|------|-------------|------|---------|:--------:|
+| project\_id | The project ID to put the resources in | `string` | n/a | yes |
 
 ## Outputs
 

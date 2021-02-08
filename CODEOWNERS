@@ -1,4 +1,4 @@
-* @terraform-google-modules/cft-admins @andreyk-code @jeanno
+* @terraform-google-modules/cft-admins @andreyk-code
 
 # CFT Fabric
 /examples/submodule_svpc_access/ @terraform-google-modules/cft-fabric
