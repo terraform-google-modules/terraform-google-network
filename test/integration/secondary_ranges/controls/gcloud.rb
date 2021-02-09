@@ -98,4 +98,43 @@ control "gcloud" do
       expect(data).not_to include("secondaryIpRanges")
     end
   end
+
+  describe command("gcloud compute firewall-rules describe allow-ssh-ingress --project=#{project_id} --format=json") do
+    its(:exit_status) { should eq 0 }
+    its(:stderr) { should eq '' }
+
+    let(:data) do
+      if subject.exit_status == 0
+        JSON.parse(subject.stdout)
+      else
+        {}
+      end
+    end
+
+    it "should have the correct allow rules" do
+      expect(data["allowed"][0]).to include(
+        "IPProtocol" => "tcp",
+        "ports"    => ["22"]
+      )
+    end
+  end
+
+  describe command("gcloud compute firewall-rules describe deny-udp-egress --project=#{project_id} --format=json") do
+    its(:exit_status) { should eq 0 }
+    its(:stderr) { should eq '' }
+
+    let(:data) do
+      if subject.exit_status == 0
+        JSON.parse(subject.stdout)
+      else
+        {}
+      end
+    end
+
+    it "should have the correct allow rules" do
+      expect(data["denied"][0]).to include(
+        "IPProtocol" => "udp",
+      )
+    end
+  end
 end
