@@ -42,6 +42,18 @@ variable "export_local_custom_routes" {
   default     = false
 }
 
+variable "export_peer_public_ip_subnet_routes" {
+  description = "Export custom routes to local network from peer network."
+  type        = bool
+  default     = false
+}
+
+variable "export_local_public_ip_subnet_routes" {
+  description = "Export custom routes to peer network from local network."
+  type        = bool
+  default     = false
+}
+
 variable "module_depends_on" {
   description = "List of modules or resources this module depends on."
   type        = list(any)
