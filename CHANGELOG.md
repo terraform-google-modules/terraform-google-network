@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.1.2](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.1.1...v3.1.2) (2021-02-25)
+
+
+### Bug Fixes
+
+* Eliminate deprecation warning due to pre-0.12 string interpolation syntax ([#249](https://www.github.com/terraform-google-modules/terraform-google-network/issues/249)) ([1d833dc](https://www.github.com/terraform-google-modules/terraform-google-network/commit/1d833dc85cbea9052f239f328951c8f19ad4a382))
+
 ### [3.1.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.1.0...v3.1.1) (2021-02-16)
 
 
