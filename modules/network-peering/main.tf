@@ -30,6 +30,7 @@ resource "random_string" "network_peering_suffix" {
   special = false
   length  = 4
 }
+
 resource "google_compute_network_peering" "local_network_peering" {
   provider             = google-beta
   name                 = local.local_network_peering_name
@@ -38,8 +39,8 @@ resource "google_compute_network_peering" "local_network_peering" {
   export_custom_routes = var.export_local_custom_routes
   import_custom_routes = var.export_peer_custom_routes
 
-  export_subnet_routes_with_public_ip = var.export_local_public_ip_subnet_routes
-  import_subnet_routes_with_public_ip = var.export_peer_public_ip_subnet_routes
+  export_subnet_routes_with_public_ip = var.export_local_subnet_routes_with_public_ip
+  import_subnet_routes_with_public_ip = var.export_peer_subnet_routes_with_public_ip
 
   depends_on = [null_resource.module_depends_on]
 }
@@ -52,8 +53,8 @@ resource "google_compute_network_peering" "peer_network_peering" {
   export_custom_routes = var.export_peer_custom_routes
   import_custom_routes = var.export_local_custom_routes
 
-  export_subnet_routes_with_public_ip = var.export_peer_public_ip_subnet_routes
-  import_subnet_routes_with_public_ip = var.export_local_public_ip_subnet_routes
+  export_subnet_routes_with_public_ip = var.export_peer_subnet_routes_with_public_ip
+  import_subnet_routes_with_public_ip = var.export_local_subnet_routes_with_public_ip
 
   depends_on = [null_resource.module_depends_on, google_compute_network_peering.local_network_peering]
 }
