@@ -15,7 +15,7 @@
  */
 
 resource "google_compute_firewall" "rules" {
-  for_each                = { for r in var.rules : "${r.name}" => r }
+  for_each                = { for r in var.rules : r.name => r }
   name                    = each.value.name
   description             = each.value.description
   direction               = each.value.direction
