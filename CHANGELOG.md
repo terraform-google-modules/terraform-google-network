@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.2.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.1.2...v3.2.0) (2021-03-04)
+
+
+### Features
+
+* Add support for export_local_subnet_routes_with_public_ip and export_peer_subnet_routes_with_public_ip ([#255](https://www.github.com/terraform-google-modules/terraform-google-network/issues/255)) ([8666553](https://www.github.com/terraform-google-modules/terraform-google-network/commit/8666553e0912af92e072eef9fa8c75e754af6f1b))
+
 ### [3.1.2](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.1.1...v3.1.2) (2021-02-25)
 
 
