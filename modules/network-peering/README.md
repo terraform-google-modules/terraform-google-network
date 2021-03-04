@@ -49,7 +49,9 @@ module "peering-a-c" {
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | export\_local\_custom\_routes | Export custom routes to peer network from local network. | `bool` | `false` | no |
+| export\_local\_subnet\_routes\_with\_public\_ip | Export custom routes to peer network from local network (defaults to true; causes the Local Peering Connection to align with the [provider default](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_network_peering#export_subnet_routes_with_public_ip), and the Remote Peering Connection to be opposite the provider default). | `bool` | `true` | no |
 | export\_peer\_custom\_routes | Export custom routes to local network from peer network. | `bool` | `false` | no |
+| export\_peer\_subnet\_routes\_with\_public\_ip | Export custom routes to local network from peer network (defaults to false; causes the Local Peering Connection to align with the [provider default](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_network_peering#import_subnet_routes_with_public_ip), and the Remote Peering Connection to be opposite the provider default). | `bool` | `false` | no |
 | local\_network | Resource link of the network to add a peering to. | `string` | n/a | yes |
 | module\_depends\_on | List of modules or resources this module depends on. | `list(any)` | `[]` | no |
 | peer\_network | Resource link of the peer network. | `string` | n/a | yes |
