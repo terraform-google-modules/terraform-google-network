@@ -34,6 +34,7 @@ module "test-vpc-module" {
   version = "~> 3.2.0"
   project_id   = var.project_id
   network_name = var.network_name
+  mtu = var.mtu
 
   subnets = [
     {
