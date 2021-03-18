@@ -1,4 +1,4 @@
-# Terraform Network Beta Module
+# Terraform Subnets Beta Module
 
 This submodule is part of the the `terraform-google-network` module. It creates the individual vpc subnets.
 

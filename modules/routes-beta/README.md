@@ -1,4 +1,4 @@
-# Terraform Network Beta Module
+# Terraform Routes Beta Module
 
 This submodule is part of the the `terraform-google-network` module. It creates the individual vpc routes and optionally deletes the default internet gateway routes.
 

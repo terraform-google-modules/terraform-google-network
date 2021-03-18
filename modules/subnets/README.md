@@ -1,4 +1,4 @@
-# Terraform Network Module
+# Terraform Subnets Module
 
 This submodule is part of the the `terraform-google-network` module. It creates the individual vpc subnets.
 
