@@ -28,10 +28,13 @@ locals {
   subnet_03 = "${var.network_name}-subnet-03"
 }
 
+# [START vpc_custom_create]
 module "test-vpc-module" {
-  source       = "../../"
+  source       = "terraform-google-modules/network/google"
+  version      = "~> 3.2.0"
   project_id   = var.project_id
   network_name = var.network_name
+  mtu          = 1460
 
   subnets = [
     {
@@ -57,3 +60,4 @@ module "test-vpc-module" {
     }
   ]
 }
+# [END vpc_custom_create]
