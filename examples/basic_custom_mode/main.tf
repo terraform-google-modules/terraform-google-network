@@ -26,7 +26,7 @@ provider "google" {
 # [START vpc_custom_create]
 resource "google_compute_network" "vpc_network" {
   project                 = var.project_id
-  name                    = var.network_name
+  name                    = my-custom-mode-vpc-network
   auto_create_subnetworks = false
   mtu                     = 1460
 }
