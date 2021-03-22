@@ -32,4 +32,4 @@ integration tests from your machine.
 
 Alternatively, to run the integration tests directly from the Docker
 container used by the module's CI pipeline, perform the above steps and then
-run the `make test_integration_docker` target
+run the `make docker_test_integration` target

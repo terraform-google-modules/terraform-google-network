@@ -15,13 +15,16 @@
  */
 
 locals {
+  default_prefix = "network-peering"
+  
   local_network_name = element(reverse(split("/", var.local_network)), 0)
   peer_network_name  = element(reverse(split("/", var.peer_network)), 0)
 
-  local_network_peering      = "${var.prefix}-${local.local_network_name}-${local.peer_network_name}"
-  local_network_peering_name = length(local.local_network_peering) < 63 ? local.local_network_peering : "${substr(local.local_network_peering, 0, min(58, length(local.local_network_peering)))}-${random_string.network_peering_suffix.result}"
-  peer_network_peering       = "${var.prefix}-${local.peer_network_name}-${local.local_network_name}"
-  peer_network_peering_name  = length(local.peer_network_peering) < 63 ? local.peer_network_peering : "${substr(local.peer_network_peering, 0, min(58, length(local.peer_network_peering)))}-${random_string.network_peering_suffix.result}"
+  local_network_peering = "${local.default_prefix}-${local.local_network_name}-${local.peer_network_name}"
+  local_peering_name    = var.local_peering_name != "" && length(var.local_peering_name) < 63 ? var.local_peering_name : "${substr(local.local_network_peering, 0, min(58, length(local.local_network_peering)))}-${random_string.network_peering_suffix.result}"
+
+  peer_network_peering = "${local.default_prefix}-${local.peer_network_name}-${local.local_network_name}"
+  peer_peering_name    = var.peer_peering_name != "" && length(var.peer_peering_name) < 63 ? var.peer_peering_name : "${substr(local.peer_network_peering, 0, min(58, length(local.peer_network_peering)))}-${random_string.network_peering_suffix.result}"
 }
 
 resource "random_string" "network_peering_suffix" {
@@ -33,7 +36,7 @@ resource "random_string" "network_peering_suffix" {
 
 resource "google_compute_network_peering" "local_network_peering" {
   provider             = google-beta
-  name                 = local.local_network_peering_name
+  name                 = local.local_peering_name
   network              = var.local_network
   peer_network         = var.peer_network
   export_custom_routes = var.export_local_custom_routes
@@ -47,7 +50,7 @@ resource "google_compute_network_peering" "local_network_peering" {
 
 resource "google_compute_network_peering" "peer_network_peering" {
   provider             = google-beta
-  name                 = local.peer_network_peering_name
+  name                 = local.peer_peering_name
   network              = var.peer_network
   peer_network         = var.local_network
   export_custom_routes = var.export_peer_custom_routes

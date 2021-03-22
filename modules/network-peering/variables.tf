@@ -14,10 +14,16 @@
  * limitations under the License.
  */
 
-variable "prefix" {
-  description = "Name prefix for the network peerings"
+variable "local_peering_name" {
+  description = "Name for the local peering"
   type        = string
-  default     = "network-peering"
+  default     = ""
+}
+
+variable "peer_peering_name" {
+  description = "Name for the peer peering"
+  type        = string
+  default     = ""
 }
 
 variable "local_network" {
