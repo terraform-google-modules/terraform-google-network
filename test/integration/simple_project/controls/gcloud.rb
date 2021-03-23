@@ -30,6 +30,18 @@ control "gcloud" do
       end
     end
 
+    it "should have the right CIDR" do
+      expect(data).to include(
+        "ipCidrRange" => "10.10.10.0/24"
+      )
+    end
+
+    it "should not have Private Google Access" do
+      expect(data).to include(
+        "privateIpGoogleAccess" => false
+      )
+    end
+
     it "logConfig should not be enabled" do
       expect(data).to include(
         "logConfig" => {
@@ -49,6 +61,18 @@ control "gcloud" do
       else
         {}
       end
+    end
+
+    it "should have the right CIDR" do
+      expect(data).to include(
+        "ipCidrRange" => "10.10.20.0/24"
+      )
+    end
+
+    it "should have Private Google Access" do
+      expect(data).to include(
+        "privateIpGoogleAccess" => true
+      )
     end
 
     it "Default log config should be correct" do
@@ -74,6 +98,18 @@ control "gcloud" do
       else
         {}
       end
+    end
+
+    it "should have the right CIDR" do
+      expect(data).to include(
+        "ipCidrRange" => "10.10.30.0/24"
+      )
+    end
+
+    it "should not have Private Google Access" do
+      expect(data).to include(
+        "privateIpGoogleAccess" => false
+      )
     end
 
     it "Log config should be correct" do
