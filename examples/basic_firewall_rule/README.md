@@ -14,8 +14,8 @@ This example configures a single firewall rule inside of a project.
 | Name | Description |
 |------|-------------|
 | name | The name of the firewall rule being created |
-| network\_name | The name of the VPC network where the firewall is applied |
-| project\_id | VPC project id |
-| rule\_self\_link | The URI of the VPC being created |
+| network\_name | The name of the VPC network where the firewall rule will be applied |
+| project\_id | Google Cloud project ID |
+| rule\_self\_link | The URI of the firewall rule  being created |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
