@@ -18,7 +18,7 @@ network_name = attribute('network_name')
 control "gcloud" do
   title "gcloud configuration"
 
-  describe command("gcloud compute networks subnets describe #{network_name}-subnet-01 --project=#{project_id} --region=us-west1 --format=json") do
+  describe command("gcloud compute networks subnets describe subnet-01 --project=#{project_id} --region=us-west1 --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
@@ -51,7 +51,7 @@ control "gcloud" do
     end
   end
 
-  describe command("gcloud compute networks subnets describe #{network_name}-subnet-02 --project=#{project_id} --region=us-west1 --format=json") do
+  describe command("gcloud compute networks subnets describe subnet-02 --project=#{project_id} --region=us-west1 --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
@@ -88,7 +88,7 @@ control "gcloud" do
     end
   end
 
-  describe  command("gcloud compute networks subnets describe #{network_name}-subnet-03 --project=#{project_id} --region=us-west1 --format=json") do
+  describe  command("gcloud compute networks subnets describe subnet-03 --project=#{project_id} --region=us-west1 --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
