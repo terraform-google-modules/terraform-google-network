@@ -15,6 +15,8 @@
  */
 
 resource "google_compute_shared_vpc_service_project" "projects" {
+  provider = google-beta
+
   count           = var.service_project_num
   host_project    = var.host_project_id
   service_project = element(var.service_project_ids, count.index)
