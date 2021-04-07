@@ -23,7 +23,7 @@ provider "google" {
   version = "~> 3.45.0"
 }
 
-# [START firewall_create]
+# [START vpc_firewall_create]
 resource "google_compute_firewall" "rules" {
   project     = var.project_id # Replace this with your project ID in quotes
   name        = "my-firewall-rule"
@@ -36,4 +36,4 @@ resource "google_compute_firewall" "rules" {
   }
   target_tags = ["web"]
 }
-# [END firewall_create]
+# [END vpc_firewall_create]
