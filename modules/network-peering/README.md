@@ -4,8 +4,8 @@ This module allows creation of a [VPC Network Peering](https://cloud.google.com/
 
 The resources created/managed by this module are:
 
-- one network peering from `local network` to `peer network`
-- one network peering from `peer network` to `local network`
+- one network peering from `local network` to `peer network`, which will be named `<prefix>-<local network name>-<peer network name>`
+- one network peering from `peer network` to `local network`, which will be named `<prefix>-<peer network name>-<local network name>`
 
 ## Usage
 
