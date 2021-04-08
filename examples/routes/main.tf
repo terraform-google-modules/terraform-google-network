@@ -14,26 +14,29 @@
  * limitations under the License.
  */
 
+provider "google" {
+  version = "~> 3.45.0"
+}
 
 provider "null" {
   version = "~> 2.1"
 }
 
-provider "google" {
-  version = "~> 3.45.0"
-}
+# [START routes_create]
+module "google_compute_route" {
+  source       = "terraform-google-modules/network/google//modules/routes"
+  version      = "~> 3.2.0"
+  project_id   = var.project_id # Replace this with your project ID in quotes
+  network_name = "default"
 
-# [START vpc_firewall_create]
-resource "google_compute_firewall" "rules" {
-  project     = var.project_id # Replace this with your project ID in quotes
-  name        = "my-firewall-rule"
-  network     = "default"
-  description = "Creates firewall rule targeting tagged instances"
-
-  allow {
-    protocol = "tcp"
-    ports    = ["80", "8080", "1000-2000"]
-  }
-  target_tags = ["web"]
+  routes = [
+    {
+      name              = "egress-internet"
+      description       = "route through IGW to access internet"
+      destination_range = "0.0.0.0/0"
+      tags              = "egress-inet"
+      next_hop_internet = "true"
+    }
+  ]
 }
-# [END vpc_firewall_create]
+# [END routes_create]
