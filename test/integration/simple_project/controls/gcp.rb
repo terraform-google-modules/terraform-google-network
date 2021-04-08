@@ -24,34 +24,4 @@ control "gcp" do
   ) do
     it { should exist }
   end
-
-  describe google_compute_subnetwork(
-    project: project_id,
-    name: "#{network_name}-subnet-01",
-    region: "us-west1"
-  ) do
-    it { should exist }
-    its('ip_cidr_range') { should eq "10.10.10.0/24" }
-    its('private_ip_google_access') { should be false }
-  end
-
-  describe google_compute_subnetwork(
-    project: project_id,
-    name: "#{network_name}-subnet-02",
-    region: "us-west1"
-  ) do
-    it { should exist }
-    its('ip_cidr_range') { should eq "10.10.20.0/24" }
-    its('private_ip_google_access') { should be true }
-  end
-
-  describe google_compute_subnetwork(
-    project: project_id,
-    name: "#{network_name}-subnet-03",
-    region: "us-west1"
-  ) do
-    it { should exist }
-    its('ip_cidr_range') { should eq "10.10.30.0/24" }
-    its('private_ip_google_access') { should be false }
-  end
 end

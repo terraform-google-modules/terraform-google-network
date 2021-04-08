@@ -18,7 +18,7 @@ network_name = attribute('network_name')
 control "gcloud" do
   title "gcloud configuration"
 
-  describe command("gcloud compute networks subnets describe #{network_name}-subnet-01 --project=#{project_id} --region=us-west1 --format=json") do
+  describe command("gcloud compute networks subnets describe subnet-01 --project=#{project_id} --region=us-west1 --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
@@ -28,6 +28,18 @@ control "gcloud" do
       else
         {}
       end
+    end
+
+    it "should have the right CIDR" do
+      expect(data).to include(
+        "ipCidrRange" => "10.10.10.0/24"
+      )
+    end
+
+    it "should not have Private Google Access" do
+      expect(data).to include(
+        "privateIpGoogleAccess" => false
+      )
     end
 
     it "logConfig should not be enabled" do
@@ -39,7 +51,7 @@ control "gcloud" do
     end
   end
 
-  describe command("gcloud compute networks subnets describe #{network_name}-subnet-02 --project=#{project_id} --region=us-west1 --format=json") do
+  describe command("gcloud compute networks subnets describe subnet-02 --project=#{project_id} --region=us-west1 --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
@@ -49,6 +61,18 @@ control "gcloud" do
       else
         {}
       end
+    end
+
+    it "should have the right CIDR" do
+      expect(data).to include(
+        "ipCidrRange" => "10.10.20.0/24"
+      )
+    end
+
+    it "should have Private Google Access" do
+      expect(data).to include(
+        "privateIpGoogleAccess" => true
+      )
     end
 
     it "Default log config should be correct" do
@@ -64,7 +88,7 @@ control "gcloud" do
     end
   end
 
-  describe  command("gcloud compute networks subnets describe #{network_name}-subnet-03 --project=#{project_id} --region=us-west1 --format=json") do
+  describe  command("gcloud compute networks subnets describe subnet-03 --project=#{project_id} --region=us-west1 --format=json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
@@ -74,6 +98,18 @@ control "gcloud" do
       else
         {}
       end
+    end
+
+    it "should have the right CIDR" do
+      expect(data).to include(
+        "ipCidrRange" => "10.10.30.0/24"
+      )
+    end
+
+    it "should not have Private Google Access" do
+      expect(data).to include(
+        "privateIpGoogleAccess" => false
+      )
     end
 
     it "Log config should be correct" do

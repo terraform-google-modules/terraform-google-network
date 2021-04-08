@@ -14,16 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_version = ">= 0.13.0"
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "<4.0,>= 2.12"
-    }
-  }
-
-  provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:network-peering/v3.2.0"
-  }
+variable "project_id" {
+  description = "The project ID to host the network in"
 }

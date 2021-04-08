@@ -14,16 +14,22 @@
  * limitations under the License.
  */
 
-terraform {
-  required_version = ">= 0.13.0"
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "<4.0,>= 2.12"
-    }
-  }
+output "name" {
+  value       = google_compute_firewall.rules.name
+  description = "The name of the firewall rule being created"
+}
 
-  provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:network-peering/v3.2.0"
-  }
+output "network_name" {
+  value       = google_compute_firewall.rules.network
+  description = "The name of the VPC network where the firewall rule will be applied"
+}
+
+output "rule_self_link" {
+  value       = google_compute_firewall.rules.self_link
+  description = "The URI of the firewall rule  being created"
+}
+
+output "project_id" {
+  value       = google_compute_firewall.rules.project
+  description = "Google Cloud project ID"
 }

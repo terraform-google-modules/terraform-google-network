@@ -14,16 +14,22 @@
  * limitations under the License.
  */
 
-terraform {
-  required_version = ">= 0.13.0"
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "<4.0,>= 2.12"
-    }
-  }
+output "network_name" {
+  value       = google_compute_network.vpc_network.name
+  description = "The name of the VPC being created"
+}
 
-  provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:network-peering/v3.2.0"
-  }
+output "network_self_link" {
+  value       = google_compute_network.vpc_network.self_link
+  description = "The URI of the VPC being created"
+}
+
+output "project_id" {
+  value       = google_compute_network.vpc_network.project
+  description = "VPC project id"
+}
+
+output "auto" {
+  value       = google_compute_network.vpc_network.auto_create_subnetworks
+  description = "The value of the auto mode setting"
 }
