@@ -1,6 +1,6 @@
 # Simple Project
 
-This example configures a single custom mode VPC inside of a project.
+This example enables shared VPC on a host project and attaches a service project.
 
 #  Custom mode network
 
