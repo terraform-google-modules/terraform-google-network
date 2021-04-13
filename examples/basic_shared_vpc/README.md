@@ -1,4 +1,4 @@
-# Simple Project
+# Simple shared VPC Project
 
 This example enables shared VPC on a host project and attaches a service project.
 
