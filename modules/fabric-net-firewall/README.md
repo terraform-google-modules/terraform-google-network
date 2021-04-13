@@ -77,7 +77,7 @@ module "net-firewall" {
 | admin\_ranges\_enabled | Enable admin ranges-based rules. | `bool` | `false` | no |
 | custom\_rules | List of custom rule definitions (refer to variables file for syntax). | <pre>map(object({<br>    description          = string<br>    direction            = string<br>    action               = string # (allow|deny)<br>    ranges               = list(string)<br>    sources              = list(string)<br>    targets              = list(string)<br>    use_service_accounts = bool<br>    rules = list(object({<br>      protocol = string<br>      ports    = list(string)<br>    }))<br>    extra_attributes = map(string)<br>  }))</pre> | `{}` | no |
 | http\_source\_ranges | List of IP CIDR ranges for tag-based HTTP rule, defaults to 0.0.0.0/0. | `list(string)` | <pre>[<br>  "0.0.0.0/0"<br>]</pre> | no |
-| http\_target\_tags | List of target tags for tag-based HTTP rule, defaults to http-server. | `list` | <pre>[<br>  "http-server"<br>]</pre> | no |
+| http\_target\_tags | List of target tags for tag-based HTTP rule, defaults to http-server. | `list(string)` | <pre>[<br>  "http-server"<br>]</pre> | no |
 | https\_source\_ranges | List of IP CIDR ranges for tag-based HTTPS rule, defaults to 0.0.0.0/0. | `list(string)` | <pre>[<br>  "0.0.0.0/0"<br>]</pre> | no |
 | https\_target\_tags | List of target tags for tag-based HTTPS rule, defaults to https-server. | `list(string)` | <pre>[<br>  "https-server"<br>]</pre> | no |
 | internal\_allow | Allow rules for internal ranges. | `list` | <pre>[<br>  {<br>    "protocol": "icmp"<br>  }<br>]</pre> | no |
