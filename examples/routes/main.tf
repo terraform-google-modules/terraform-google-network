@@ -22,7 +22,7 @@ provider "null" {
   version = "~> 2.1"
 }
 
-# [START routes_create]
+# [START vpc_static_route_create]
 module "google_compute_route" {
   source       = "terraform-google-modules/network/google//modules/routes"
   version      = "~> 3.2.0"
@@ -39,4 +39,4 @@ module "google_compute_route" {
     }
   ]
 }
-# [END routes_create]
+# [END vpc_static_route_create]
