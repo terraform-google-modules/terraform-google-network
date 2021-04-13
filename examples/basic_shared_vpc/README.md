@@ -26,7 +26,10 @@ This example configures a single simple custom mode VPC network inside of a proj
 
 | Name | Description |
 |------|-------------|
+| ip\_address | The internal IP address |
+| ip\_address\_name | The name of the internal IP |
 | project | Host project ID |
 | service\_project | Service project ID |
+| subnet | Name of the host subnet |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
