@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.2.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.2.0...v3.2.1) (2021-04-08)
+
+
+### Bug Fixes
+
+* Switch shared_vpc resources to beta provider in access submodule ([#269](https://www.github.com/terraform-google-modules/terraform-google-network/issues/269)) ([5b00673](https://www.github.com/terraform-google-modules/terraform-google-network/commit/5b006736344bb125c2416c7a5d37038798112374))
+
 ## [3.2.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.1.2...v3.2.0) (2021-03-04)
 
 

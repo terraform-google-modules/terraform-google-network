@@ -14,29 +14,25 @@
  * limitations under the License.
  */
 
-provider "google" {
-  version = "~> 3.45.0"
-}
 
 provider "null" {
   version = "~> 2.1"
 }
 
-# [START vpc_static_route_create]
-module "google_compute_route" {
-  source       = "terraform-google-modules/network/google//modules/routes"
-  version      = "~> 3.2.0"
-  project_id   = var.project_id # Replace this with your project ID in quotes
-  network_name = "default"
-
-  routes = [
-    {
-      name              = "egress-internet"
-      description       = "route through IGW to access internet"
-      destination_range = "0.0.0.0/0"
-      tags              = "egress-inet"
-      next_hop_internet = "true"
-    }
-  ]
+provider "google" {
+  version = "~> 3.45.0"
 }
-# [END vpc_static_route_create]
+
+# [START vpc_shared_vpc_host_project_enable]
+resource "google_compute_shared_vpc_host_project" "host" {
+  project = var.project # Replace this with your host project ID in quotes
+}
+# [END vpc_shared_vpc_host_project_enable]
+
+# [START vpc_shared_vpc_service_project_attach]
+resource "google_compute_shared_vpc_service_project" "service1" {
+  host_project    = google_compute_shared_vpc_host_project.host.project
+  service_project = var.service_project # Replace this with your service project ID in quotes
+}
+# [END vpc_shared_vpc_service_project_attach]
+
