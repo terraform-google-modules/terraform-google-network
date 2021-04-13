@@ -36,3 +36,20 @@ resource "google_compute_shared_vpc_service_project" "service1" {
 }
 # [END vpc_shared_vpc_service_project_attach]
 
+
+# [START compute_shared_internal_ip_create]
+data "google_compute_subnetwork" "subnet" {
+  name    = "default"
+  project = var.project
+  region  = "us-west1"
+}
+
+resource "google_compute_address" "internal" {
+  name         = "int-ip"
+  address_type = "INTERNAL"
+  address      = "10.0.0.1"
+  subnetwork   = data.google_compute_subnetwork.subnet.self_link
+}
+# [END compute_shared_internal_ip_create]
+
+

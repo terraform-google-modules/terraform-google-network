@@ -1,6 +1,14 @@
 # Simple shared VPC Project
 
-This example enables shared VPC on a host project and attaches a service project.
+This example:
+
+* Enables shared VPC on a host project
+* Attaches a service project
+* Reserves an internal IP address in a subnet of a Shared VPC network
+
+Note that the IP address configuration object is created in the service
+project, while its value comes from the range of available addresses in
+the chosen shared subnet.
 
 #  Custom mode network
 
