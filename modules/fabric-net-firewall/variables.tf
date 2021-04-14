@@ -82,6 +82,7 @@ variable "http_source_ranges" {
 
 variable "http_target_tags" {
   description = "List of target tags for tag-based HTTP rule, defaults to http-server."
+  type        = list(string)
   default     = ["http-server"]
 }
 
