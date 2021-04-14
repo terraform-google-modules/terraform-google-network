@@ -41,19 +41,3 @@ attributes:
   - name: output_connector_ids
     required: true
     type: array
-
-
-  # - name: vpc_connector
-  #   required: true
-  #   type: array
-  #   value: [{
-  #     "name" => "central-serverless"
-  #     region          = string
-  #     subnet_name     = string
-  #     host_project_id = string
-  #     machine_type    = string
-  #     min_instances   = number
-  #     max_instances   = number
-  #     min_throughput  = number
-  #     max_throughput  = number
-  #   }]
