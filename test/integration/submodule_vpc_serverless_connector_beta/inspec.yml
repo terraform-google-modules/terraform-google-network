@@ -1,0 +1,59 @@
+name: submodule_vpc_serverless_connector_beta
+depends:
+  - name: inspec-gcp
+    git: https://github.com/inspec/inspec-gcp.git
+    tag: v1.8.8
+supports:
+  - platform: gcp
+attributes:
+  - name: project_id
+    required: true
+    type: string
+    value: scrum-team-coolkids-service
+  - name: host_project_id
+    required: true
+    type: string
+    value: scrum-team-admins-host
+  - name: name
+    required: true
+    type: string
+    value: central-serverless
+  - name: region
+    required: true
+    type: string
+    value: us-central1
+  - name: subnet_name
+    required: true
+    type: string
+    value: serverless-reserve-central
+  - name: machine_type
+    required: true
+    type: string
+    value: e2-standard-4
+  - name: min_instances
+    required: true
+    type: numeric
+    value: 2
+  - name: max_instances
+    required: true
+    type: numeric
+    value: 7
+  - name: output_connector_ids
+    required: true
+    type: array
+
+
+  # - name: vpc_connector
+  #   required: true
+  #   type: array
+  #   value: [{
+  #     "name" => "central-serverless"
+  #     region          = string
+  #     subnet_name     = string
+  #     host_project_id = string
+  #     machine_type    = string
+  #     min_instances   = number
+  #     max_instances   = number
+  #     min_throughput  = number
+  #     max_throughput  = number
+  #   }]
