@@ -1,10 +1,15 @@
-# Simple Project
+# Simple shared VPC Project
 
-This example enables shared VPC on a host project and attaches a service project.
+This example:
 
-#  Custom mode network
+* Enables shared VPC on a host project
+* Attaches a service project
+* Reserves an internal IP address in a subnet of a Shared VPC network
 
-This example configures a single simple custom mode VPC network inside of a project.
+Note that the IP address configuration object is created in the service
+project, while its value comes from the range of available addresses in
+the chosen shared subnet.
+
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
@@ -18,7 +23,10 @@ This example configures a single simple custom mode VPC network inside of a proj
 
 | Name | Description |
 |------|-------------|
+| ip\_address | The internal IP address |
+| ip\_address\_name | The name of the internal IP |
 | project | Host project ID |
 | service\_project | Service project ID |
+| subnet | Name of the host subnet |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
