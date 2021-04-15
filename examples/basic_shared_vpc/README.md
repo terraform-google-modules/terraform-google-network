@@ -10,9 +10,6 @@ Note that the IP address configuration object is created in the service
 project, while its value comes from the range of available addresses in
 the chosen shared subnet.
 
-#  Custom mode network
-
-This example configures a single simple custom mode VPC network inside of a project.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
