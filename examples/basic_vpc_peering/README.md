@@ -15,6 +15,5 @@ This example configures VPC network peering.
 | Name | Description |
 |------|-------------|
 | local\_network | The local network peering information |
-| peer\_network | The peer network peering information |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
