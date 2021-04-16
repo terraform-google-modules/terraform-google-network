@@ -54,12 +54,6 @@ resource "google_compute_address" "internal" {
 # [END compute_shared_internal_ip_create]
 
 # [START compute_shared_instance_create]
-data "google_compute_subnetwork" "subnet" {
-  name    = "my-subnet-123"
-  project = var.project
-  region  = "us-central1"
-}
-
 resource "google_compute_instance" "default" {
   project      = var.service_project
   zone         = "us-central1-a"

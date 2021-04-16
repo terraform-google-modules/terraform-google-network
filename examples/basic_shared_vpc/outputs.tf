@@ -19,11 +19,6 @@ output "project" {
   description = "Host project ID"
 }
 
-output "service_project" {
-  value       = google_compute_shared_vpc_service_project.service1.service_project
-  description = "Service project ID"
-}
-
 output "ip_address_name" {
   value       = google_compute_address.internal.name
   description = "The name of the internal IP"
