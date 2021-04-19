@@ -53,3 +53,19 @@ resource "google_compute_address" "internal" {
 }
 # [END compute_shared_internal_ip_create]
 
+# [START compute_shared_instance_create]
+resource "google_compute_instance" "default" {
+  project      = var.service_project
+  zone         = "us-central1-a"
+  name         = "my-vm"
+  machine_type = "e2-medium"
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-9"
+    }
+  }
+  network_interface {
+    subnetwork = data.google_compute_subnetwork.subnet.self_link
+  }
+}
+# [END compute_shared_instance_create]
