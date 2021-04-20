@@ -5,10 +5,11 @@ This example:
 * Enables shared VPC on a host project
 * Attaches a service project
 * Reserves an internal IP address in a subnet of a Shared VPC network
+* Creates a VM instance
 
-Note that the IP address configuration object is created in the service
-project, while its value comes from the range of available addresses in
-the chosen shared subnet.
+The IP address configuration object is created in the service
+project. Its value can come from the range of available addresses in
+the chosen shared subnet, or you can specify an address.
 
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
