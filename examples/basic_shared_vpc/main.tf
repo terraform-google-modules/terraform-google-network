@@ -59,7 +59,7 @@ resource "google_compute_address" "internal" {
 resource "google_compute_instance" "reserved_ip" {
   project      = var.service_project
   zone         = "us-central1-a"
-  name         = "my-vm"
+  name         = google_compute_address.internal.self_link
   machine_type = "e2-medium"
   boot_disk {
     initialize_params {
@@ -89,3 +89,19 @@ resource "google_compute_instance" "ephemeral_ip" {
   }
 }
 # [END compute_shared_instance_with_ephemeral_ip_create]
+
+
+# [START compute_shared_instance_template_create]
+resource "google_compute_instance_template" "default" {
+  project      = var.service_project
+  name        = "appserver-template"
+  description = "This template is used to create app server instances."
+  machine_type = "n1-standard-1"
+  disk {
+    source_image = "debian-cloud/debian-9"
+  }
+  network_interface {
+    subnetwork = data.google_compute_subnetwork.subnet.self_link
+  }
+}
+# [END compute_shared_instance_template_create]
