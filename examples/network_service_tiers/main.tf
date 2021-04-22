@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 provider "null" {
   version = "~> 2.1"
 }
@@ -29,3 +28,4 @@ resource "google_compute_project_default_network_tier" "project-tier" {
   network_tier = "STANDARD"
 }
 # [END networkservicetiers_project_tier_set]
+
