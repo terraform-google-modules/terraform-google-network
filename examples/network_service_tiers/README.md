@@ -11,7 +11,9 @@ This example configures the Network Service Tier for a project.
 
 ## Outputs
 
-No output.
+| Name | Description |
+|------|-------------|
+| project\_id | Google Cloud project ID |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 
