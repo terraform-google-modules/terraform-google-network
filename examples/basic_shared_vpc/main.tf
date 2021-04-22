@@ -94,8 +94,8 @@ resource "google_compute_instance" "ephemeral_ip" {
 # [START compute_shared_instance_template_create]
 resource "google_compute_instance_template" "default" {
   project      = var.service_project
-  name        = "appserver-template"
-  description = "This template is used to create app server instances."
+  name         = "appserver-template"
+  description  = "This template is used to create app server instances."
   machine_type = "n1-standard-1"
   disk {
     source_image = "debian-cloud/debian-9"
