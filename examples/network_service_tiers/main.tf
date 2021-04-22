@@ -24,7 +24,7 @@ provider "google" {
 
 # [START networkservicetiers_project_tier_set]
 resource "google_compute_project_default_network_tier" "project-tier" {
-  project     = var.project_id # Replace this with your project ID in quotes
+  project      = var.project_id # Replace this with your project ID in quotes
   network_tier = "STANDARD"
 }
 # [END networkservicetiers_project_tier_set]
