@@ -50,7 +50,7 @@ resource "google_compute_address" "internal" {
   region       = "us-central1"
   name         = "int-ip"
   address_type = "INTERNAL"
-  address      = "10.0.0.1"
+  address      = "10.0.0.8"
   subnetwork   = data.google_compute_subnetwork.subnet.self_link
 }
 # [END compute_shared_internal_ip_create]
