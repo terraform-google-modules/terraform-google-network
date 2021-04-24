@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.2.2](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.2.1...v3.2.2) (2021-04-24)
+
+
+### Bug Fixes
+
+* Add variable type for http_target_tags variable ([#276](https://www.github.com/terraform-google-modules/terraform-google-network/issues/276)) ([08842fa](https://www.github.com/terraform-google-modules/terraform-google-network/commit/08842fab8810f1d304a82328f145fac4bc2d10cf))
+
 ### [3.2.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.2.0...v3.2.1) (2021-04-08)
 
 
