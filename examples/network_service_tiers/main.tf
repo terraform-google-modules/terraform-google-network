@@ -29,3 +29,11 @@ resource "google_compute_project_default_network_tier" "project-tier" {
 }
 # [END networkservicetiers_project_tier_set]
 
+# [START networkservicetiers_address_create]
+resource "google_compute_address" "ip-address" {
+  project      = var.project_id # Replace this with your project ID in quotes
+  name         = "my-standard-tier-ip-address"
+  region       = "us-central1"
+  network_tier = "STANDARD"
+}
+# [END networkservicetiers_address_create]

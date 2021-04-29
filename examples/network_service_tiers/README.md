@@ -1,6 +1,7 @@
 #  Network Service Tier
 
-This example configures the Network Service Tier for a project.
+This example configures the Network Service Tier for a project and creates an
+external IP address.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
