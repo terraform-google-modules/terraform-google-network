@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-provider "null" {
-  version = "~> 2.1"
-}
-
-provider "google" {
-  version = "~> 3.45.0"
+terraform {
+  required_providers {
+    google = {
+      version = ">= 3.45.0"
+    }
+    null = {
+      version = ">= 2.1.0"
+    }
+  }
 }
 
 # [START networkservicetiers_project_tier_set]
