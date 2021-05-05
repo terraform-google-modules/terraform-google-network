@@ -3,7 +3,7 @@
 This example creates a single simple VPC network inside of a project.
 
 This VPC network has three subnets. The first subnet has two secondary
-ranges and the third has a single secondary range.
+ranges, and the third has a single secondary range.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
