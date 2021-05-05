@@ -26,13 +26,13 @@ locals {
   subnet_01 = "${var.network_name}-subnet-01"
   subnet_02 = "${var.network_name}-subnet-02"
   subnet_03 = "${var.network_name}-subnet-03"
-  subnet_04 = "${var.network_name}-subnet-04"
 }
 
 module "vpc-secondary-ranges" {
-  source       = "../../"
-  project_id   = var.project_id
-  network_name = var.network_name
+  source       = "terraform-google-modules/network/google"
+  version      = "~> 3.2.0"
+  project_id   = var.project_id   # Replace this with your project ID in quotes
+  network_name = var.network_name # Replace this with the VPC network to create in quotes
 
   subnets = [
     {
@@ -41,24 +41,13 @@ module "vpc-secondary-ranges" {
       subnet_region = "us-west1"
     },
     {
-      subnet_name           = "${local.subnet_02}"
-      subnet_ip             = "10.10.20.0/24"
-      subnet_region         = "us-west1"
-      subnet_private_access = "true"
-      subnet_flow_logs      = "true"
+      subnet_name   = "${local.subnet_02}"
+      subnet_ip     = "10.10.20.0/24"
+      subnet_region = "us-west1"
     },
     {
-      subnet_name               = "${local.subnet_03}"
-      subnet_ip                 = "10.10.30.0/24"
-      subnet_region             = "us-west1"
-      subnet_flow_logs          = "true"
-      subnet_flow_logs_interval = "INTERVAL_15_MIN"
-      subnet_flow_logs_sampling = 0.9
-      subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
-    },
-    {
-      subnet_name   = "${local.subnet_04}"
-      subnet_ip     = "10.10.40.0/24"
+      subnet_name   = "${local.subnet_03}"
+      subnet_ip     = "10.10.30.0/24"
       subnet_region = "us-west1"
     },
   ]
@@ -84,28 +73,4 @@ module "vpc-secondary-ranges" {
       },
     ]
   }
-
-  firewall_rules = [
-    {
-      name      = "allow-ssh-ingress"
-      direction = "INGRESS"
-      ranges    = ["0.0.0.0/0"]
-      allow = [{
-        protocol = "tcp"
-        ports    = ["22"]
-      }]
-      log_config = {
-        metadata = "INCLUDE_ALL_METADATA"
-      }
-    },
-    {
-      name      = "deny-udp-egress"
-      direction = "INGRESS"
-      ranges    = ["0.0.0.0/0"]
-      deny = [{
-        protocol = "udp"
-        ports    = null
-      }]
-    },
-  ]
 }
