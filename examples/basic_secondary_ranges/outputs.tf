@@ -15,7 +15,7 @@
  */
 
 output "project_id" {
-  value       = google_compute_network.custom-test.project
+  value       = google_compute_subnetwork.network-with-private-secondary-ip-ranges.project
   description = "Google Cloud project ID"
 }
 
