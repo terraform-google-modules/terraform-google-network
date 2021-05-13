@@ -57,7 +57,7 @@ resource "google_compute_global_address" "default" {
 }
 # [END compute_internal_ip_private_access]
 
-# [START compute_internal_ip_private_access]
+# [START compute_forwarding_rule_private_access]
 resource "google_compute_global_forwarding_rule" "default" {
   provider              = google-beta
   project               = google_compute_network.network.project
@@ -67,4 +67,4 @@ resource "google_compute_global_forwarding_rule" "default" {
   ip_address            = google_compute_global_address.default.id
   load_balancing_scheme = ""
 }
-# [START compute_internal_ip_private_access]
+# [START compute_forwarding_rule_private_access]
