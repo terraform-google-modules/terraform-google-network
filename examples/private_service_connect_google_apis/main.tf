@@ -15,17 +15,6 @@
  */
 
 
-terraform {
-  required_providers {
-    google = {
-      version = ">= 3.45.0"
-    }
-    null = {
-      version = ">= 2.1.0"
-    }
-  }
-}
-
 # [START vpc_subnet_private_access]
 resource "google_compute_network" "network" {
   provider                = google-beta
