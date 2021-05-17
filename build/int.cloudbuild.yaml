@@ -161,6 +161,26 @@ steps:
     - verify submodule-network-peering-local
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'source /usr/local/bin/task_helper_functions.sh && kitchen_do destroy submodule-network-peering-local']
+- id: create submodule-vpc-serverless-connector-beta
+  waitFor:
+    - prepare
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'source /usr/local/bin/task_helper_functions.sh && kitchen_do create submodule-vpc-serverless-connector-beta']
+- id: converge submodule-vpc-serverless-connector-beta
+  waitFor:
+    - create submodule-vpc-serverless-connector-beta
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'source /usr/local/bin/task_helper_functions.sh && kitchen_do converge submodule-vpc-serverless-connector-beta']
+- id: verify submodule-vpc-serverless-connector-beta
+  waitFor:
+    - converge submodule-vpc-serverless-connector-beta
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'source /usr/local/bin/task_helper_functions.sh && kitchen_do verify submodule-vpc-serverless-connector-beta']
+- id: destroy submodule-vpc-serverless-connector-beta
+  waitFor:
+    - verify submodule-vpc-serverless-connector-beta
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'source /usr/local/bin/task_helper_functions.sh && kitchen_do destroy submodule-vpc-serverless-connector-beta']
 tags:
 - 'ci'
 - 'integration'

@@ -9,11 +9,9 @@ attributes:
   - name: project_id
     required: true
     type: string
-    value: scrum-team-coolkids-service
   - name: host_project_id
     required: true
     type: string
-    value: scrum-team-admins-host
   - name: name
     required: true
     type: string

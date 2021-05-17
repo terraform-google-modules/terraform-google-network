@@ -20,15 +20,7 @@ variable "project_id" {
 }
 
 variable "vpc_connectors" {
-  type = list(object({
-    name            = string
-    region          = string
-    subnet_name     = string
-    host_project_id = string
-    machine_type    = string
-    min_instances   = number
-    max_instances   = number
-  }))
+  type        = list(map(string))
   default     = []
   description = "List of VPC serverless connectors."
 }

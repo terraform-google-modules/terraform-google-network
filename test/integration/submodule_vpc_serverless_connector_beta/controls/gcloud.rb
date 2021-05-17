@@ -24,7 +24,7 @@ max_instances  = attribute('max_instances')
 control "gcloud" do
   title "gcloud configuration"
 
-  describe command("gcloud beta compute networks vpc-access connectors describe #{name} --region #{region} --project #{project_id} --format json") do
+  describe command("gcloud beta compute networks my-serverless-network connectors describe #{name} --region #{region} --project #{project_id} --format json") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 

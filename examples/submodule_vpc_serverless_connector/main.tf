@@ -22,16 +22,32 @@ provider "google-beta" {
   version = "~> 3.62"
 }
 
+module "test-vpc-module" {
+  source       = "terraform-google-modules/network/google"
+  version      = "~> 3.2.0"
+  project_id   = var.project_id # Replace this with your project ID in quotes
+  network_name = "my-serverless-network"
+  mtu          = 1460
+
+  subnets = [
+    {
+      subnet_name   = "serverless-subnet"
+      subnet_ip     = "10.10.10.0/28"
+      subnet_region = "us-central1"
+    }
+  ]
+}
+
 module "serverless-connector" {
   source     = "../../modules/vpc-serverless-connector-beta"
   project_id = var.project_id
   vpc_connectors = [{
-    name            = "central-serverless"
-    region          = "us-central1"
-    subnet_name     = var.subnet_name
-    host_project_id = var.host_project_id
-    machine_type    = "e2-standard-4"
-    min_instances   = 2
-    max_instances   = 7
+    name        = "central-serverless"
+    region      = "us-central1"
+    subnet_name = module.test-vpc-module.subnets["us-central1/serverless-subnet"].name
+    # host_project_id = var.host_project_id # Leverage host_project_id if using a shared VPC
+    machine_type  = "e2-standard-4"
+    min_instances = 2
+    max_instances = 7
   }]
 }
