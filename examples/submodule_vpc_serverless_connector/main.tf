@@ -51,14 +51,14 @@ module "serverless-connector" {
     max_instances = 7
     }
     # Uncomment below to leverage ip_cidr_range
-  #   , {
-  #     name          = "central-serverless2"
-  #     region        = "us-central1"
-  #     network       = module.test-vpc-module.network_name
-  #     ip_cidr_range = "10.10.11.0/28"
-  #     subnet_name   = null
-  #     machine_type  = "e2-standard-4"
-  #     min_instances = 2
-  #   max_instances = 7 }
-  # ]
+    #   , {
+    #     name          = "central-serverless2"
+    #     region        = "us-central1"
+    #     network       = module.test-vpc-module.network_name
+    #     ip_cidr_range = "10.10.11.0/28"
+    #     subnet_name   = null
+    #     machine_type  = "e2-standard-4"
+    #     min_instances = 2
+    #   max_instances = 7 }
+  ]
 }
