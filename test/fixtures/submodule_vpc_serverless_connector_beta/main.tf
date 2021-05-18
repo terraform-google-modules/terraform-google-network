@@ -15,8 +15,6 @@
  */
 
 module "example" {
-  source          = "../../../examples/submodule_vpc_serverless_connector"
-  project_id      = var.project_id
-  subnet_name     = var.subnet_name
-  host_project_id = var.host_project_id
+  source     = "../../../examples/submodule_vpc_serverless_connector"
+  project_id = var.project_id
 }

@@ -19,6 +19,18 @@ variable "project_id" {
   description = "Project in which the vpc connector will be deployed."
 }
 
+variable "ip_cidr_range" {
+  type        = string
+  default     = null
+  description = "Reserved range for serverless connector."
+}
+
+variable "network" {
+  type        = string
+  default     = null
+  description = "Network to deploy serverless connector."
+}
+
 variable "vpc_connectors" {
   type        = list(map(string))
   default     = []

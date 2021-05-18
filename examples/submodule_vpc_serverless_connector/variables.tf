@@ -18,13 +18,3 @@ variable "project_id" {
   type        = string
   description = "Project in which the vpc connector will be deployed."
 }
-
-variable "host_project_id" {
-  type        = string
-  description = "Host Project in which the shared vpc network exists."
-}
-
-variable "subnet_name" {
-  type        = string
-  description = "Name of the existing /28 subnet to reserve for the connector."
-}
