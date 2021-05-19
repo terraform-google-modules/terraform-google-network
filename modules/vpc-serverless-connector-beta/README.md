@@ -33,7 +33,7 @@ module "serverless-connector" {
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | project\_id | Project in which the vpc connector will be deployed. | `string` | n/a | yes |
-| vpc\_connectors | List of VPC serverless connectors. | <pre>list(object({<br>    name            = string<br>    region          = string<br>    subnet_name     = string<br>    host_project_id = string<br>    machine_type    = string<br>    min_instances   = number<br>    max_instances   = number<br>  }))</pre> | `[]` | no |
+| vpc\_connectors | List of VPC serverless connectors. | `list(map(string))` | `[]` | no |
 
 ## Outputs
 

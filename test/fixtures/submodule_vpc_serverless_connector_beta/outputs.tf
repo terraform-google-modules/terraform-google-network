@@ -18,3 +18,8 @@ output "output_connector_ids" {
   value       = module.example.connector_ids
   description = "ID of the vpc serverless connector that was deployed."
 }
+
+output "project_id" {
+  value       = var.project_id
+  description = "The ID of the project being used"
+}
