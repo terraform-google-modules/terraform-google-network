@@ -7,7 +7,9 @@ This example configures a packet mirroring policy.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| network | The network's self-link | `string` | n/a | yes |
 | project\_id | The Google Cloud project ID | `string` | n/a | yes |
+| subnet | The subnet's self-link | `string` | n/a | yes |
 
 ## Outputs
 
