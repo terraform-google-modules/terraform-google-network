@@ -25,22 +25,8 @@ terraform {
   }
 }
 
-resource "google_compute_network" "default" {
-  project                 = var.project_id # Replace this with your project ID in quotes
-  name                    = "new-network"
-  auto_create_subnetworks = false
-}
-
-resource "google_compute_subnetwork" "default" {
-  project       = google_compute_network.default.project
-  name          = "my-subnet"
-  ip_cidr_range = "10.2.0.0/16"
-  region        = "us-central1"
-  network       = "new-network"
-}
-
 resource "google_compute_instance" "mirror" {
-  project      = google_compute_network.default.project
+  project      = var.project_id # Replace this with your project ID in quotes
   zone         = "us-central1-a"
   name         = "my-instance"
   machine_type = "e2-medium"
@@ -52,14 +38,13 @@ resource "google_compute_instance" "mirror" {
   }
 
   network_interface {
-    subnetwork = google_compute_subnetwork.default.id
-    access_config {
-    }
+    network    = var.network # Replace with the VPC network's self-link, in quotes
+    subnetwork = var.subnet # Replace with the subnet's self-link, in quotes
   }
 }
 
 resource "google_compute_health_check" "default" {
-  project            = google_compute_network.default.project
+  project            = google_compute_instance.mirror.project
   name               = "my-healthcheck"
   check_interval_sec = 1
   timeout_sec        = 1
@@ -69,7 +54,7 @@ resource "google_compute_health_check" "default" {
 }
 
 resource "google_compute_region_backend_service" "default" {
-  project       = google_compute_network.default.project
+  project       = google_compute_instance.mirror.project
   region        = "us-central1"
   name          = "my-service"
   health_checks = [google_compute_health_check.default.id]
@@ -77,26 +62,26 @@ resource "google_compute_region_backend_service" "default" {
 
 resource "google_compute_forwarding_rule" "default" {
   name                   = "my-ilb"
-  project                = google_compute_network.default.project
+  project                = google_compute_instance.mirror.project
   region                 = "us-central1"
   is_mirroring_collector = true
   ip_protocol            = "TCP"
   load_balancing_scheme  = "INTERNAL"
   backend_service        = google_compute_region_backend_service.default.id
   all_ports              = true
-  network                = google_compute_network.default.id
-  subnetwork             = google_compute_subnetwork.default.id
+  network                = var.network # Replace with the network's self-link, in quotes
+  subnetwork             = var.subnet # Replace with the subnet's self-link, in quotes
   network_tier           = "PREMIUM"
 }
 
 # [START compute_vm_packet_mirror]
 resource "google_compute_packet_mirroring" "default" {
-  project     = google_compute_network.default.project # Replace this with a reference to your project ID
+  project     = google_compute_instance.mirror.project # Replace this with a reference to your project ID
   region      = "us-central1"
   name        = "my-mirroring"
   description = "My packet mirror"
   network {
-    url = google_compute_network.default.id # Replace this with a reference to your VPC network
+    url = var.network # Replace this with a reference to your VPC network
   }
   collector_ilb {
     url = google_compute_forwarding_rule.default.id # Replace this with a reference to your forwarding rule
