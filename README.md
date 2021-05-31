@@ -118,6 +118,7 @@ Then perform the following commands on the root folder:
 | route\_names | The route names associated with this VPC |
 | subnets | A map with keys of form subnet\_region/subnet\_name and values being the outputs of the google\_compute\_subnetwork resources used to create corresponding subnets. |
 | subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
+| subnets\_ids | The IDs of the subnets being created |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |
 | subnets\_names | The names of the subnets being created |
 | subnets\_private\_access | Whether the subnets will have access to Google API's without a public IP |
