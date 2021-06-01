@@ -56,4 +56,4 @@ resource "google_compute_global_forwarding_rule" "default" {
   ip_address            = google_compute_global_address.default.id
   load_balancing_scheme = ""
 }
-# [END compute_forwarding_rule_private_access]
+# [START compute_forwarding_rule_private_access]
