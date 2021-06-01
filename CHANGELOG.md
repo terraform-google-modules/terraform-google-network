@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.3.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.2.2...v3.3.0) (2021-06-01)
+
+
+### Features
+
+* Adding vpc-serverless-connector-submodule-beta ([#280](https://www.github.com/terraform-google-modules/terraform-google-network/issues/280)) ([3f720fa](https://www.github.com/terraform-google-modules/terraform-google-network/commit/3f720fa5d44639f5605b1b5b07a92bedad0f67ca))
+
+
+### Bug Fixes
+
+* adds `subnet_ids` as an output ([#299](https://www.github.com/terraform-google-modules/terraform-google-network/issues/299)) ([fe89ce6](https://www.github.com/terraform-google-modules/terraform-google-network/commit/fe89ce6e0b7155cc481c95359eb1b5b78310d1bc))
+
 ### [3.2.2](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.2.1...v3.2.2) (2021-04-24)
 
 
