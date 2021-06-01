@@ -22,6 +22,7 @@ provider "google-beta" {
   version = "~> 3.62"
 }
 
+# [START vpc_serverless_connector]
 module "test-vpc-module" {
   source       = "terraform-google-modules/network/google"
   version      = "~> 3.2.0"
@@ -39,7 +40,8 @@ module "test-vpc-module" {
 }
 
 module "serverless-connector" {
-  source     = "../../modules/vpc-serverless-connector-beta"
+  source     = "terraform-google-modules/network/google//modules/vpc-serverless-connector-beta"
+  version    = "~> 3.2.0"
   project_id = var.project_id
   vpc_connectors = [{
     name        = "central-serverless"
@@ -62,3 +64,4 @@ module "serverless-connector" {
     #   max_instances = 7 }
   ]
 }
+# [END vpc_serverless_connector]

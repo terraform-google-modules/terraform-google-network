@@ -13,7 +13,7 @@ This example deploys a single vpc serverless connector in the us-central1 region
 
 | Name | Description |
 |------|-------------|
-| connector\_ids | ID of the vpc serverless connector that was deployed. |
-| project\_id | The ID of the project being used |
+| connector\_ids | ID of the VPC serverless connector that was deployed. |
+| project\_id | The ID of the Google Cloud project being used |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
