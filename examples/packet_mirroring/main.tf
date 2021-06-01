@@ -39,7 +39,7 @@ resource "google_compute_instance" "mirror" {
 
   network_interface {
     network    = var.network # Replace with the VPC network's self-link, in quotes
-    subnetwork = var.subnet # Replace with the subnet's self-link, in quotes
+    subnetwork = var.subnet  # Replace with the subnet's self-link, in quotes
   }
 }
 
@@ -70,7 +70,7 @@ resource "google_compute_forwarding_rule" "default" {
   backend_service        = google_compute_region_backend_service.default.id
   all_ports              = true
   network                = var.network # Replace with the network's self-link, in quotes
-  subnetwork             = var.subnet # Replace with the subnet's self-link, in quotes
+  subnetwork             = var.subnet  # Replace with the subnet's self-link, in quotes
   network_tier           = "PREMIUM"
 }
 
