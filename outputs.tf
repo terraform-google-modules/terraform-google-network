@@ -44,6 +44,11 @@ output "subnets_names" {
   description = "The names of the subnets being created"
 }
 
+output "subnets_ids" {
+  value       = [for network in module.subnets.subnets : network.id]
+  description = "The IDs of the subnets being created"
+}
+
 output "subnets_ips" {
   value       = [for network in module.subnets.subnets : network.ip_cidr_range]
   description = "The IPs and CIDRs of the subnets being created"
