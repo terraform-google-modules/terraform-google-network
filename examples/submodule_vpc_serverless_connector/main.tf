@@ -14,17 +14,24 @@
  * limitations under the License.
  */
 
-provider "google" {
-  version = "~> 3.62"
-}
-
-provider "google-beta" {
-  version = "~> 3.62"
-}
+#terraform {
+#  required_providers {
+#    google = {
+#      version = ">= 3.62"
+#    }
+#    google-beta = {
+#      version = ">= 3.62"
+#    }
+#    null = {
+#      version = ">= 2.1.0"
+#    }
+#  }
+#}
 
 # [START vpc_serverless_connector]
 module "test-vpc-module" {
   source       = "terraform-google-modules/network/google"
+#  provider     = google-beta
   version      = "~> 3.2.0"
   project_id   = var.project_id # Replace this with your project ID in quotes
   network_name = "my-serverless-network"
@@ -40,8 +47,10 @@ module "test-vpc-module" {
 }
 
 module "serverless-connector" {
-  source     = "terraform-google-modules/network/google//modules/vpc-serverless-connector-beta"
-  version    = "~> 3.2.0"
+  source   = "../../modules/vpc-serverless-connector-beta"
+#  provider = google-beta
+  #  source     = "terraform-google-modules/network/google//modules/vpc-serverless-connector-beta"
+  #  version    = "~> 3.2.0"
   project_id = var.project_id
   vpc_connectors = [{
     name        = "central-serverless"
