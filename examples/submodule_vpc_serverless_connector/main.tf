@@ -32,13 +32,6 @@ terraform {
 resource "google_project_service" "project" {
   project = var.project_id # Replace this with your project ID in quotes
   service = "vpcaccess.googleapis.com"
-
-  timeouts {
-    create = "30m"
-    update = "40m"
-  }
-
-  disable_dependent_services = true
 }
 # [END vpc_serverless_connector_enable_api]
 
