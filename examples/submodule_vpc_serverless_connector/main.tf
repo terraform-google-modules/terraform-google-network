@@ -14,25 +14,24 @@
  * limitations under the License.
  */
 
-#terraform {
-#  required_providers {
-#    google = {
-#      version = ">= 3.62"
-#    }
-#    google-beta = {
-#      version = ">= 3.62"
-#    }
-#    null = {
-#      version = ">= 2.1.0"
-#    }
-#  }
-#}
+terraform {
+  required_providers {
+    google = {
+      version = ">= 3.62"
+    }
+    google-beta = {
+      version = ">= 3.62"
+    }
+    null = {
+      version = ">= 2.1.0"
+    }
+  }
+}
 
 # [START vpc_serverless_connector]
 module "test-vpc-module" {
   source       = "terraform-google-modules/network/google"
-#  provider     = google-beta
-  version      = "~> 3.2.0"
+  version      = "~> 3.3.0"
   project_id   = var.project_id # Replace this with your project ID in quotes
   network_name = "my-serverless-network"
   mtu          = 1460
@@ -47,21 +46,18 @@ module "test-vpc-module" {
 }
 
 module "serverless-connector" {
-  source   = "../../modules/vpc-serverless-connector-beta"
-#  provider = google-beta
-  #  source     = "terraform-google-modules/network/google//modules/vpc-serverless-connector-beta"
-  #  version    = "~> 3.2.0"
+  source     = "terraform-google-modules/network/google//modules/vpc-serverless-connector-beta"
   project_id = var.project_id
   vpc_connectors = [{
     name        = "central-serverless"
     region      = "us-central1"
     subnet_name = module.test-vpc-module.subnets["us-central1/serverless-subnet"].name
-    # host_project_id = var.host_project_id # Leverage host_project_id if using a shared VPC
+    # host_project_id = var.host_project_id # Specify a host_project_id for shared VPC
     machine_type  = "e2-standard-4"
     min_instances = 2
     max_instances = 7
     }
-    # Uncomment below to leverage ip_cidr_range
+    # Uncomment to specify an ip_cidr_range
     #   , {
     #     name          = "central-serverless2"
     #     region        = "us-central1"
