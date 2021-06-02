@@ -28,6 +28,20 @@ terraform {
   }
 }
 
+# [START vpc_serverless_connector_enable_api]
+resource "google_project_service" "project" {
+  project = var.project_id # Replace this with your project ID in quotes
+  service = "vpcaccess.googleapis.com"
+
+  timeouts {
+    create = "30m"
+    update = "40m"
+  }
+
+  disable_dependent_services = true
+}
+# [END vpc_serverless_connector_enable_api]
+
 # [START vpc_serverless_connector]
 module "test-vpc-module" {
   source       = "terraform-google-modules/network/google"
