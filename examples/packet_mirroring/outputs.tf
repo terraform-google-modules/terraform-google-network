@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-terraform {
-  required_version = ">= 0.13.0"
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "<4.0,>= 2.12"
-    }
-  }
 
-  provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network/v3.3.0"
-  }
+output "packet_mirror" {
+  value       = google_compute_packet_mirroring.default.name
+  description = "The name of the packet mirroring policy"
+}
+
+output "collector_ilb" {
+  value       = google_compute_packet_mirroring.default.collector_ilb[0].url
+  description = "The internal load balancer"
+}
+
+output "instance" {
+  value       = google_compute_packet_mirroring.default.mirrored_resources[0].instances[0].url
+  description = "The VM instance"
 }

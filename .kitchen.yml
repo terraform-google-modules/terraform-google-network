@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -155,6 +155,26 @@ suites:
       name: terraform
       color: true
       systems:
+        - name: local
+          backend: local
+          controls:
+            - gcloud
+  - name: "submodule_vpc_serverless_connector_beta"
+    driver:
+      name: "terraform"
+      command_timeout: 1800
+      root_module_directory: test/fixtures/submodule_vpc_serverless_connector_beta/
+    verifier:
+      name: terraform
+      color: true
+      systems:
+        - name: inspec-gcp
+          attrs_outputs:
+            customized_inspec_attribute: output_connector_ids
+          backend: gcp
+          controls:
+            - gcp
+            - inspec_attributes
         - name: local
           backend: local
           controls:

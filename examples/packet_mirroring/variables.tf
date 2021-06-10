@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-terraform {
-  required_version = ">= 0.13.0"
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "<4.0,>= 2.12"
-    }
-  }
+variable "project_id" {
+  description = "The Google Cloud project ID"
+  type        = string
+}
 
-  provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network/v3.3.0"
-  }
+variable "network" {
+  description = "The network's self-link"
+  type        = string
+}
+
+
+variable "subnet" {
+  description = "The subnet's self-link"
+  type        = string
 }

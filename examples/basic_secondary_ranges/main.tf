@@ -14,16 +14,28 @@
  * limitations under the License.
  */
 
+
 terraform {
-  required_version = ">= 0.13.0"
   required_providers {
     google = {
-      source  = "hashicorp/google"
-      version = "<4.0,>= 2.12"
+      version = ">= 3.45.0"
+    }
+    null = {
+      version = ">= 2.1.0"
     }
   }
+}
 
-  provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network/v3.3.0"
+# [START vpc_secondary_range_create]
+resource "google_compute_subnetwork" "network-with-private-secondary-ip-ranges" {
+  project       = var.project_id # Replace this with your project ID in quotes
+  name          = "test-subnetwork"
+  ip_cidr_range = "10.2.0.0/16"
+  region        = "us-central1"
+  network       = "test-vpc-network"
+  secondary_ip_range {
+    range_name    = "tf-test-secondary-range-update1"
+    ip_cidr_range = "192.168.10.0/24"
   }
 }
+# [END vpc_secondary_range_create]
