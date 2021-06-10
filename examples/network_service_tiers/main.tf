@@ -40,3 +40,23 @@ resource "google_compute_address" "ip-address" {
   network_tier = "STANDARD"
 }
 # [END networkservicetiers_address_create]
+
+# [START networkservicetiers_vm_create]
+resource "google_compute_instance" "vm" {
+  project      = var.project_id # Replace this with your project ID in quotes
+  zone         = "us-east4-c"
+  name         = "my-standard-tier-instance"
+  machine_type = "e2-medium"
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-10"
+    }
+  }
+  network_interface {
+    network    = "default"
+    access_config {
+      network_tier = "STANDARD"
+    }
+  }
+}
+# [END networkservicetiers_vm_create]
