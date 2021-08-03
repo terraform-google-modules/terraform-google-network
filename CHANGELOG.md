@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.3.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.3.0...v3.3.1) (2021-08-03)
+
+
+### Bug Fixes
+
+* **fabric:** Replaced `count` with `for_each` on `google_compute_subnetwork_iam_binding` to prevent destroy/recreate when the list changes. ([#311](https://www.github.com/terraform-google-modules/terraform-google-network/issues/311)) ([ead88f8](https://www.github.com/terraform-google-modules/terraform-google-network/commit/ead88f802123be56dfc9f8ee7b06a3d67d9f7017))
+
 ## [3.3.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.2.2...v3.3.0) (2021-06-01)
 
 
