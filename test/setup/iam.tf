@@ -19,7 +19,8 @@ locals {
     "roles/compute.networkAdmin",
     "roles/compute.securityAdmin",
     "roles/iam.serviceAccountUser",
-    "roles/vpcaccess.admin"
+    "roles/vpcaccess.admin",
+    "roles/serviceusage.serviceUsageAdmin"
   ]
 }
 
