@@ -25,7 +25,7 @@ resource "google_project_service" "compute" {
 # Create the network
 module "vpc" {
   source  = "terraform-google-modules/network/google"
-  version = "~> 2.5.0"
+  version = "~> 3.0"
 
   # Give the network a name and project
   project_id   = google_project_service.compute.project
