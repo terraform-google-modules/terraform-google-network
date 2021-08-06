@@ -29,7 +29,7 @@ terraform {
 }
 
 # [START vpc_serverless_connector_enable_api]
-resource "google_project_service" "project" {
+resource "google_project_service" "vpcaccess-api" {
   project = var.project_id # Replace this with your project ID in quotes
   service = "vpcaccess.googleapis.com"
 }
@@ -74,6 +74,9 @@ module "serverless-connector" {
     #     machine_type  = "e2-standard-4"
     #     min_instances = 2
     #   max_instances = 7 }
+  ]
+  depends_on = [
+    google_project_service.vpcaccess-api
   ]
 }
 # [END vpc_serverless_connector]
