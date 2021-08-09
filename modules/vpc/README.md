@@ -42,6 +42,7 @@ module "vpc" {
 | Name | Description |
 |------|-------------|
 | network | The VPC resource being created |
+| network\_id | The ID of the VPC being created |
 | network\_name | The name of the VPC being created |
 | network\_self\_link | The URI of the VPC being created |
 | project\_id | VPC project id |
