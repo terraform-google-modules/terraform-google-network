@@ -15,7 +15,7 @@
 # Make will use bash instead of sh
 SHELL := /usr/bin/env bash
 
-DOCKER_TAG_VERSION_DEVELOPER_TOOLS := 0.13
+DOCKER_TAG_VERSION_DEVELOPER_TOOLS := 1.0
 DOCKER_IMAGE_DEVELOPER_TOOLS := cft/developer-tools
 REGISTRY_URL := gcr.io/cloud-foundation-cicd
 
@@ -68,6 +68,22 @@ docker_test_lint:
 		-v $(CURDIR):/workspace \
 		$(REGISTRY_URL)/${DOCKER_IMAGE_DEVELOPER_TOOLS}:${DOCKER_TAG_VERSION_DEVELOPER_TOOLS} \
 		/usr/local/bin/test_lint.sh
+
+# Swap upstream registry refs to local refs
+.PHONY: docker_swap_examples
+docker_swap_examples:
+	docker run --rm -it \
+		-v $(CURDIR):/workspace \
+		$(REGISTRY_URL)/${DOCKER_IMAGE_DEVELOPER_TOOLS}:${DOCKER_TAG_VERSION_DEVELOPER_TOOLS} \
+		module-swapper
+
+# Restore local refs to upstream registry refs
+.PHONY: docker_restore_examples
+docker_restore_examples:
+	docker run --rm -it \
+		-v $(CURDIR):/workspace \
+		$(REGISTRY_URL)/${DOCKER_IMAGE_DEVELOPER_TOOLS}:${DOCKER_TAG_VERSION_DEVELOPER_TOOLS} \
+		module-swapper -restore && terraform fmt -recursive
 
 # Generate documentation
 .PHONY: docker_generate_docs

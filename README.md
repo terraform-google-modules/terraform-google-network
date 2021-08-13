@@ -12,7 +12,12 @@ Sub modules are provided for creating individual vpc, subnets, and routes. See t
 
 ## Compatibility
 
-This module is meant for use with Terraform 0.12. If you haven't [upgraded](https://www.terraform.io/upgrade-guides/0-12.html) and need a Terraform 0.11.x-compatible version of this module, the last released version intended for Terraform 0.11.x is [0.8.0](https://registry.terraform.io/modules/terraform-google-modules/network/google/0.8.0).
+This module is meant for use with Terraform 0.13+ and tested using Terraform 1.0+.
+If you find incompatibilities using Terraform `>=0.13`, please open an issue.
+
+If you haven't [upgraded][terraform-0.13-upgrade] and need a Terraform
+0.12.x-compatible version of this module, the last released version
+intended for Terraform 0.12.x is [2.6.0].
 
 ## Usage
 You can go to the examples folder, however the usage of the module could be like this in your own main.tf file:
@@ -185,3 +190,6 @@ In order to operate with the Service Account you must activate the following API
 
 Refer to the [contribution guidelines](./CONTRIBUTING.md) for
 information on contributing to this module.
+
+[terraform-0.13-upgrade]: https://www.terraform.io/upgrade-guides/0-13.html
+[2.6.0]: https://registry.terraform.io/modules/terraform-google-modules/network/google/2.6.0
