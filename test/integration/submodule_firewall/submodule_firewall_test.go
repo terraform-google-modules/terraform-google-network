@@ -35,10 +35,8 @@ func TestSubmoduleFirewall(t *testing.T) {
 
 			// check all expected FWs
 			expectedFWs := []string{WithNetPrefix("-ingress-internal"), WithNetPrefix("-ingress-tag-http"), WithNetPrefix("-ingress-tag-https"), WithNetPrefix("-ingress-tag-ssh"), "deny-ingress-6534-6566", "allow-backend-to-databases", "allow-all-admin-sa"}
-			fws := gcloud.Run(t, fmt.Sprintf("compute firewall-rules list --project %s", projectID)).Array()
-			assert.Equal(len(expectedFWs), len(fws), "should have the correct number of FW rules")
-			for _, fw := range fws {
-				assert.Contains(expectedFWs, fw.Get("name").String(), "should be an expected FW rule")
+			for _, fw := range expectedFWs {
+				gcloud.Run(t, fmt.Sprintf("compute firewall-rules describe %s --project %s", fw, projectID)).Array()
 			}
 
 			fwIngress := gcloud.Run(t, fmt.Sprintf("compute firewall-rules describe %s-ingress-internal --project %s", networkName, projectID))
