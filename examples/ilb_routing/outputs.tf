@@ -30,17 +30,17 @@ output "project_id" {
 }
 
 output "subnets_names" {
-  value       = [for network in concat(module.subnets.subnets, module.subnets-backup.subnets) : network.name]
+  value       = [for network in merge(module.subnets.subnets, module.subnets-backup.subnets) : network.name]
   description = "The names of the subnets being created"
 }
 
 output "subnets_ips" {
-  value       = [for network in concat(module.subnets.subnets, module.subnets-backup.subnets) : network.ip_cidr_range]
+  value       = [for network in merge(module.subnets.subnets, module.subnets-backup.subnets) : network.ip_cidr_range]
   description = "The IP and cidrs of the subnets being created"
 }
 
 output "subnets_regions" {
-  value       = [for network in concat(module.subnets.subnets, module.subnets-backup.subnets) : network.region]
+  value       = [for network in merge(module.subnets.subnets, module.subnets-backup.subnets) : network.region]
   description = "The region where subnets will be created"
 }
 
