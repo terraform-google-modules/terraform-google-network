@@ -15,5 +15,6 @@ This example creates a VPC Network peering between two VPCs.
 |------|-------------|
 | peering1 | Peering1 module output. |
 | peering2 | Peering2 module output. |
+| project\_id | n/a |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
