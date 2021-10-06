@@ -1,7 +1,7 @@
 # Integration Testing
 
 Use this directory to create resources reflecting the same resource fixtures
-created for use by the CI environment CI integration test pipelines.  The intent
+created for use by the CI environment CI integration test pipelines. The intent
 of these resources is to run the integration tests locally as closely as
 possible to how they will run in the CI system.
 
@@ -26,10 +26,5 @@ export PROJECT_ID="network-module"
 ```
 
 With these variables set, change to the root of the module and execute the
-`make test_integration` task. This make target is the same that is executed
-by this module's CI pipeline during integration testing, and will run the
-integration tests from your machine.
-
-Alternatively, to run the integration tests directly from the Docker
-container used by the module's CI pipeline, perform the above steps and then
-run the `make test_integration_docker` target
+`make docker_test_integration` task. This make target will run the integration
+tests on the the Docker container used by the module's CI pipeline.
