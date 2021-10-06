@@ -15,7 +15,7 @@ For example:
 terraform init
 terraform apply
 mkdir -p ~/.credentials
-terraform output sa_key | base64 --decode > ~/.credentials/network-sa.json
+terraform output sa_key | base64 --decode --ignore-garbage > ~/.credentials/network-sa.json
 ```
 
 Then, configure the environment (suggest using direnv) like so:
