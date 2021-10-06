@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.5.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.4.0...v3.5.0) (2021-10-06)
+
+
+### Features
+
+* Add max_throughput to vpc-serverless-connector-beta ([#322](https://www.github.com/terraform-google-modules/terraform-google-network/issues/322)) ([1cc50ca](https://www.github.com/terraform-google-modules/terraform-google-network/commit/1cc50ca5c9ce5a1c33b30e4f24fa6b562688afd2))
+
 ## [3.4.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.3.0...v3.4.0) (2021-08-13)
 
 
