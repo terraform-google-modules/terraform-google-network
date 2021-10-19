@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-output "service_projects" {
+utput "service_projects" {
   description = "Project ids of the services with access to all subnets."
-  value       = google_compute_shared_vpc_service_project.projects.*.service_project
+  value = {
+    for i, k in google_compute_shared_vpc_service_project.projects : i => k.service_project
+  }
 }
