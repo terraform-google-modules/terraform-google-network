@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.5.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.5.0...v3.5.1) (2021-10-21)
+
+
+### Bug Fixes
+
+* require google-beta also in the root module, not just in vpc module ([#327](https://www.github.com/terraform-google-modules/terraform-google-network/issues/327)) ([e28f1e5](https://www.github.com/terraform-google-modules/terraform-google-network/commit/e28f1e511c42587b4e1cd64b43e6ffe925be423e))
+
 ## [3.5.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.4.0...v3.5.0) (2021-10-06)
 
 
