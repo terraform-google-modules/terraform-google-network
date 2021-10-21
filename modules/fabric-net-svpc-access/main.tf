@@ -15,11 +15,10 @@
  */
 
 resource "google_compute_shared_vpc_service_project" "projects" {
-  provider = google-beta
-
-  count           = var.service_project_num
+  provider        = google-beta
+  for_each        = { for i, k in toset(var.service_project_ids) : k => i }
   host_project    = var.host_project_id
-  service_project = element(var.service_project_ids, count.index)
+  service_project = each.key
 }
 
 resource "google_compute_subnetwork_iam_binding" "network_users" {
