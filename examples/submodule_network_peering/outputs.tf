@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+output "project_id" {
+  value = var.project_id
+}
+
 output "peering1" {
   description = "Peering1 module output."
   value       = module.peering-1
