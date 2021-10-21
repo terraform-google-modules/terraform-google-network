@@ -19,4 +19,4 @@ output "service_projects" {
   value = [
       for i, k in google_compute_shared_vpc_service_project.projects : k.service_project
   ]
- 
+ }
