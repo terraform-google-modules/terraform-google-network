@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.0.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.5.0...v4.0.0) (2021-10-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* shared_vpc attachments in the `fabric-net-svpc-access` submodule have been refactored, changing the state location.
+
+### Bug Fixes
+
+* require google-beta also in the root module, not just in vpc module ([#327](https://www.github.com/terraform-google-modules/terraform-google-network/issues/327)) ([e28f1e5](https://www.github.com/terraform-google-modules/terraform-google-network/commit/e28f1e511c42587b4e1cd64b43e6ffe925be423e))
+* use for_each for shared VPC service project connections ([#329](https://www.github.com/terraform-google-modules/terraform-google-network/issues/329)) ([3f400af](https://www.github.com/terraform-google-modules/terraform-google-network/commit/3f400aff1c4ae91569d9357415960380a0d2036a))
+
 ## [3.5.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.4.0...v3.5.0) (2021-10-06)
 
 
