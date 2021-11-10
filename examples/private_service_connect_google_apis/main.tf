@@ -14,8 +14,12 @@
  * limitations under the License.
  */
 
-provider "google-beta" {
-  version = "~> 4.0"
+terraform {
+  required_providers {
+    google-beta = {
+      version = "~> 4.0"
+    }
+  }
 }
 
 # [START vpc_subnet_private_access]

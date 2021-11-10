@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-provider "google" {
-  version = "~> 4.0"
-}
-
-provider "null" {
-  version = "~> 2.1"
+terraform {
+  required_providers {
+    google = {
+      version = "~> 4.0"
+    }
+    null = {
+      version = "~> 2.1"
+    }
+  }
 }
 
 # [START vpc_shared_vpc_host_project_enable]
