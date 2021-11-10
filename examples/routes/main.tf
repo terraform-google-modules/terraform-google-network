@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = "~> 4.0"
-    }
-    null = {
-      version = "~> 2.1"
-    }
-  }
-}
-
 # [START vpc_static_route_create]
 module "google_compute_route" {
   source       = "terraform-google-modules/network/google//modules/routes"

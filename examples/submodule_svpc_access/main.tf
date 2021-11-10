@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = ">= 4.0.0"
-    }
-    null = {
-      version = ">= 2.1.0"
-    }
-  }
-}
-
 locals {
   net_data_users = compact(concat(
     var.service_project_owners,

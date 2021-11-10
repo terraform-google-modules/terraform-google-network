@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = "~> 4.0"
-    }
-    null = {
-      version = "~> 2.1"
-    }
-  }
-}
-
 # [START vpc_peering_create]
 module "peering1" {
   source        = "terraform-google-modules/network/google//modules/network-peering"

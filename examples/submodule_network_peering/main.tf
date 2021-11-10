@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = ">= 4.0.0"
-    }
-    null = {
-      version = ">= 2.1.0"
-    }
-  }
-}
-
 module "local-network" {
   source       = "../../"
   project_id   = var.project_id

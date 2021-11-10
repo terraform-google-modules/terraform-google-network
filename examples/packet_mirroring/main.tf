@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = "~> 4.0"
-    }
-    null = {
-      version = "~> 2.1"
-    }
-  }
-}
-
 resource "google_compute_instance" "mirror" {
   project      = var.project_id # Replace this with your project ID in quotes
   zone         = "us-central1-a"

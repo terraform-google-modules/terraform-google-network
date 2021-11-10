@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = "~> 4.0"
-    }
-    null = {
-      version = "~> 2.1"
-    }
-  }
-}
-
 module "vpc" {
   source       = "../../modules/vpc"
   network_name = var.network_name

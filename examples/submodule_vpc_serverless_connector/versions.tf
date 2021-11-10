@@ -16,4 +16,16 @@
 
 terraform {
   required_version = ">=0.13.0"
+
+  required_providers {
+    google = {
+      version = ">= 4.0.0"
+    }
+    google-beta = {
+      version = ">= 4.0.0"
+    }
+    null = {
+      version = ">= 2.1.0"
+    }
+  }
 }

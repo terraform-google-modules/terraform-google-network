@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = "~> 4.0"
-    }
-    null = {
-      version = "~> 2.1"
-    }
-  }
-}
-
 # [START vpc_secondary_range_create]
 resource "google_compute_subnetwork" "network-with-private-secondary-ip-ranges" {
   project       = var.project_id # Replace this with your project ID in quotes

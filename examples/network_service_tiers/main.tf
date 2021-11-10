@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = "~> 4.0"
-    }
-    null = {
-      version = "~> 2.1"
-    }
-  }
-}
-
 # [START networkservicetiers_project_tier_set]
 resource "google_compute_project_default_network_tier" "project-tier" {
   project      = var.project_id # Replace this with your project ID in quotes

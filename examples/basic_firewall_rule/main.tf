@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = "~> 4.0"
-    }
-    null = {
-      version = "~> 2.1"
-    }
-  }
-}
-
 # [START vpc_firewall_create]
 resource "google_compute_firewall" "rules" {
   project     = var.project_id # Replace this with your project ID in quotes

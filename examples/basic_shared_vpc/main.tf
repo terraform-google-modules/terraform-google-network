@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = "~> 4.0"
-    }
-    null = {
-      version = "~> 2.1"
-    }
-  }
-}
-
 # [START vpc_shared_vpc_host_project_enable]
 resource "google_compute_shared_vpc_host_project" "host" {
   project = var.project # Replace this with your host project ID in quotes
