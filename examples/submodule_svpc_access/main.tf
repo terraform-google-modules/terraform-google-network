@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-provider "google" {
-  version = "~> 3.45.0"
-}
-
-provider "null" {
-  version = "~> 2.1"
+terraform {
+  required_providers {
+    google = {
+      version = ">= 4.0.0"
+    }
+    null = {
+      version = ">= 2.1.0"
+    }
+  }
 }
 
 locals {

@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+provider "google-beta" {
+  version = "~> 4.0"
+}
 
 # [START vpc_subnet_private_access]
 resource "google_compute_network" "network" {

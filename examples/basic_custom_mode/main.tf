@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
+provider "google" {
+  version = "~> 4.0"
+}
 
 provider "null" {
   version = "~> 2.1"
-}
-
-provider "google" {
-  version = "~> 3.45.0"
 }
 
 # [START vpc_custom_create]
