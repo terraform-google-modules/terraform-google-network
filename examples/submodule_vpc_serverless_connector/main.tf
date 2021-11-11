@@ -14,20 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = ">= 4.0.0"
-    }
-    google-beta = {
-      version = ">= 4.0.0"
-    }
-    null = {
-      version = ">= 2.1.0"
-    }
-  }
-}
-
 # [START vpc_serverless_connector_enable_api]
 resource "google_project_service" "vpcaccess-api" {
   project = var.project_id # Replace this with your project ID in quotes
