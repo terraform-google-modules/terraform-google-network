@@ -14,14 +14,6 @@
  * limitations under the License.
  */
 
-provider "google" {
-  version = "~> 3.45.0"
-}
-
-provider "null" {
-  version = "~> 2.1"
-}
-
 module "local-network" {
   source       = "../../"
   project_id   = var.project_id

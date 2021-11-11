@@ -14,14 +14,6 @@
  * limitations under the License.
  */
 
-provider "google" {
-  version = "~> 3.45.0"
-}
-
-provider "null" {
-  version = "~> 2.1"
-}
-
 locals {
   net_data_users = compact(concat(
     var.service_project_owners,

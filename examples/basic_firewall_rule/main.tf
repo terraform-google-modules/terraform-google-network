@@ -14,15 +14,6 @@
  * limitations under the License.
  */
 
-
-provider "null" {
-  version = "~> 2.1"
-}
-
-provider "google" {
-  version = "~> 3.45.0"
-}
-
 # [START vpc_firewall_create]
 resource "google_compute_firewall" "rules" {
   project     = var.project_id # Replace this with your project ID in quotes

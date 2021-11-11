@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-provider "google" {
-  version = "~> 3.45.0"
-}
-
-provider "null" {
-  version = "~> 2.1"
-}
+# Whenever a new major version of the network module is released, the
+# version constraint below should be updated, e.g. to ~> 4.0.
+#
+# If that new version includes provider updates, validation of this
+# example may fail until that is done.
 
 # [START vpc_custom_create]
 module "test-vpc-module" {

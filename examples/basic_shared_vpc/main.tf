@@ -14,15 +14,6 @@
  * limitations under the License.
  */
 
-
-provider "null" {
-  version = "~> 2.1"
-}
-
-provider "google" {
-  version = "~> 3.45.0"
-}
-
 # [START vpc_shared_vpc_host_project_enable]
 resource "google_compute_shared_vpc_host_project" "host" {
   project = var.project # Replace this with your host project ID in quotes

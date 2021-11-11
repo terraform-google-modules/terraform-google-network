@@ -14,14 +14,6 @@
  * limitations under the License.
  */
 
-provider "google" {
-  version = "~> 3.45.0"
-}
-
-provider "null" {
-  version = "~> 2.1"
-}
-
 locals {
   network_01_subnet_01 = "${var.network_01_name}-subnet-01"
   network_01_subnet_02 = "${var.network_01_name}-subnet-02"

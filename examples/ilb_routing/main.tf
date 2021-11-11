@@ -14,14 +14,6 @@
  * limitations under the License.
  */
 
-provider "google" {
-  version = "~> 3.45.0"
-}
-
-provider "null" {
-  version = "~> 2.1"
-}
-
 module "vpc" {
   source       = "../../modules/vpc"
   network_name = var.network_name
