@@ -14,17 +14,6 @@
  * limitations under the License.
  */
 
-terraform {
-  required_providers {
-    google = {
-      version = "~> 4.0"
-    }
-    null = {
-      version = "~> 2.1"
-    }
-  }
-}
-
 locals {
   subnet_01 = "${var.network_name}-subnet-01"
   subnet_02 = "${var.network_name}-subnet-02"
