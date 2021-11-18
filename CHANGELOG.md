@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [4.0.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v4.0.0...v4.0.1) (2021-11-11)
+
+
+### Bug Fixes
+
+* Update Google provider constraints to allow 4.x ([#335](https://www.github.com/terraform-google-modules/terraform-google-network/issues/335)) ([9c07970](https://www.github.com/terraform-google-modules/terraform-google-network/commit/9c07970ea8be848bdee4071a3f3d417d5e4c1a9a))
+
 ## [4.0.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v3.5.0...v4.0.0) (2021-10-25)
 
 
