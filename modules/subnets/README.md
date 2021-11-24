@@ -88,3 +88,5 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | subnet\_flow\_logs\_interval | If subnet\_flow\_logs is true, sets the aggregation interval for collecting flow logs                           | string |    `"INTERVAL_5_SEC"`    |    no    |
 | subnet\_flow\_logs\_sampling | If subnet\_flow\_logs is true, set the sampling rate of VPC flow logs within the subnetwork                     | string |         `"0.5"`          |    no    |
 | subnet\_flow\_logs\_metadata | If subnet\_flow\_logs is true, configures whether metadata fields should be added to the reported VPC flow logs | string | `"INCLUDE_ALL_METADATA"` |    no    |
+| subnet\_purpose              | Whether this subnet is for `PRIVATE` or `INTERNAL_HTTPS_LOAD_BALANCER` use.                                     | string |       `"PRIVATE"`        |    no    |
+| subnet\_role                 | The role of the subnetwork if subnet\_purpose is `INTERNAL_HTTPS_LOAD_BALANCER`. May be `ACTIVE` or `BACKUP`.   | string |            -             |    no    |
