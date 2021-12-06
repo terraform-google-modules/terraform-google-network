@@ -22,13 +22,13 @@ resource "google_compute_shared_vpc_service_project" "projects" {
 }
 
 resource "google_compute_subnetwork_iam_binding" "network_users" {
-  for_each = { for i, k in var.host_subnets : k => i }
+  for_each = { for i, k in var.host_subnets : i => k }
 
   project    = var.host_project_id
-  region     = element(var.host_subnet_regions, each.value)
-  subnetwork = each.key
+  region     = element(var.host_subnet_regions, each.key)
+  subnetwork = each.value
   role       = "roles/compute.networkUser"
-  members    = compact(split(",", lookup(var.host_subnet_users, each.key)))
+  members    = compact(split(",", lookup(var.host_subnet_users, each.value)))
 }
 
 resource "google_project_iam_binding" "service_agents" {
