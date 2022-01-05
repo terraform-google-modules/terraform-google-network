@@ -29,7 +29,7 @@ resource "google_compute_shared_vpc_service_project" "service1" {
 
 # [START compute_shared_data]
 data "google_compute_network" "network" {
-  name = "my-network-123"
+  name    = "my-network-123"
   project = var.project
 }
 data "google_compute_subnetwork" "subnet" {
@@ -102,8 +102,8 @@ resource "google_compute_instance_template" "default" {
 # [END compute_shared_instance_template_create]
 
 resource "google_compute_region_health_check" "default" {
-  name     = "l4-ilb-hc"
-  region   = "europe-west1"
+  name   = "l4-ilb-hc"
+  region = "europe-west1"
   http_health_check {
     port = "80"
   }
