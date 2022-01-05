@@ -1,16 +1,24 @@
-# Simple shared VPC Project
+# Shared VPC network
 
 This example:
 
-* Enables shared VPC on a host project
+* Enables Shared VPC on a host project
+
 * Attaches a service project
-* Reserves an internal IP address in a subnet of a Shared VPC network
-* Creates a VM instance
 
-The IP address configuration object is created in the service
-project. Its value can come from the range of available addresses in
-the chosen shared subnet, or you can specify an address.
+* In the host project's shared subnet, creates the following service project
+  resources:
 
+  * Reserved internal IP address. The IP address can come from the range of
+    available addresses in the shared subnet, or you can specify an address.
+  * VM instance that uses the reserved IP address and has an interface in
+    the shared subnetwork.
+  * VM instance that uses an ephemeral IP address and has an interface in
+    the shared subnetwork.
+  * VM instance template that creates an interface in
+    the shared subnetwork.
+  * Forwarding rule in the shared VPC network and subnetwork, along with
+    a backend service and a health check.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
