@@ -27,13 +27,20 @@ resource "google_compute_shared_vpc_service_project" "service1" {
 }
 # [END vpc_shared_vpc_service_project_attach]
 
-# [START compute_shared_data]
+# [START compute_shared_data_network]
+data "google_compute_network" "network" {
+  name    = "my-network-123"
+  project = var.project
+}
+# [END compute_shared_data_network]
+
+# [START compute_shared_data_subnet]
 data "google_compute_subnetwork" "subnet" {
   name    = "my-subnet-123"
   project = var.project
   region  = "us-central1"
 }
-# [END compute_shared_data]
+# [END compute_shared_data_subnet]
 
 # [START compute_shared_internal_ip_create]
 resource "google_compute_address" "internal" {
@@ -96,3 +103,32 @@ resource "google_compute_instance_template" "default" {
   }
 }
 # [END compute_shared_instance_template_create]
+
+resource "google_compute_region_health_check" "default" {
+  name   = "l4-ilb-hc"
+  region = "europe-west1"
+  http_health_check {
+    port = "80"
+  }
+}
+resource "google_compute_region_backend_service" "default" {
+  name                  = "l4-ilb-backend-subnet"
+  region                = "europe-west1"
+  protocol              = "TCP"
+  load_balancing_scheme = "INTERNAL"
+  health_checks         = [google_compute_region_health_check.default.id]
+}
+# [START compute_shared_forwarding_rule_l4_ilb]
+resource "google_compute_forwarding_rule" "default" {
+  project               = var.service_project
+  name                  = "l4-ilb-forwarding-rule"
+  backend_service       = google_compute_region_backend_service.default.id
+  region                = "europe-west1"
+  ip_protocol           = "TCP"
+  load_balancing_scheme = "INTERNAL"
+  all_ports             = true
+  allow_global_access   = true
+  network               = data.google_compute_network.network.self_link
+  subnetwork            = data.google_compute_subnetwork.subnet.self_link
+}
+# [END compute_shared_forwarding_rule_l4_ilb]
