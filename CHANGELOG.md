@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [4.1.0](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v4.0.1...v4.1.0) (2022-01-10)
+
+
+### Features
+
+* Promote role and purpose of subnet to GA ([#343](https://www.github.com/terraform-google-modules/terraform-google-network/issues/343)) ([8b98a36](https://www.github.com/terraform-google-modules/terraform-google-network/commit/8b98a36eecef8d29c7a2435d1b0809cbd8e1ba6f))
+
 ### [4.0.1](https://www.github.com/terraform-google-modules/terraform-google-network/compare/v4.0.0...v4.0.1) (2021-11-11)
 
 
