@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v4.1.0...v5.0.0) (2022-02-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* update min TPG versions 3.83 (#349)
+
+### Bug Fixes
+
+* update min TPG versions 3.83 ([#349](https://github.com/terraform-google-modules/terraform-google-network/issues/349)) ([74efa6a](https://github.com/terraform-google-modules/terraform-google-network/commit/74efa6a63ed3f2068c3ecf85fc55a914afcd4be2))
+
 ## [4.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v4.0.1...v4.1.0) (2022-01-18)
 
 
