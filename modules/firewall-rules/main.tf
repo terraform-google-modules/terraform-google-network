@@ -14,20 +14,27 @@
  * limitations under the License.
  */
 
+locals {
+  rules = {
+    for r in var.rules : r.name => r
+  }
+}
+
 resource "google_compute_firewall" "rules" {
-  for_each                = { for r in var.rules : r.name => r }
+  for_each                = local.rules
   name                    = each.value.name
-  description             = each.value.description
+  description             = lookup(each.value, "description", null)
   direction               = each.value.direction
   network                 = var.network_name
   project                 = var.project_id
-  source_ranges           = each.value.direction == "INGRESS" ? each.value.ranges : null
-  destination_ranges      = each.value.direction == "EGRESS" ? each.value.ranges : null
-  source_tags             = each.value.source_tags
-  source_service_accounts = each.value.source_service_accounts
-  target_tags             = each.value.target_tags
-  target_service_accounts = each.value.target_service_accounts
-  priority                = each.value.priority
+  source_ranges           = each.value.direction == "INGRESS" ? lookup(each.value, "ranges", null) : null
+  destination_ranges      = each.value.direction == "EGRESS" ? lookup(each.value, "ranges", null) : null
+  source_tags             = lookup(each.value, "source_tags", null)
+  source_service_accounts = lookup(each.value, "source_service_accounts", null)
+  target_tags             = lookup(each.value, "target_tags", null)
+  target_service_accounts = lookup(each.value, "target_service_accounts", null)
+  priority                = lookup(each.value, "priority", null)
+  disabled                = lookup(each.value, "disabled", false)
 
   dynamic "log_config" {
     for_each = lookup(each.value, "log_config") == null ? [] : [each.value.log_config]
