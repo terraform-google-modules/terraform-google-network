@@ -2,7 +2,7 @@
 
 This example configures a single simple VPC inside of a project.
 
-This VPC has two subnets, with no secondary ranges.
+This VPC has three subnets, with no secondary ranges.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
