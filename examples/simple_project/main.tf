@@ -49,8 +49,7 @@ module "test-vpc-module" {
       subnet_flow_logs_interval = "INTERVAL_10_MIN"
       subnet_flow_logs_sampling = 0.7
       subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
-      // New
-      subnet_flow_logs_filter = "true"
+      subnet_flow_logs_filter   = "false"
     }
   ]
 }
