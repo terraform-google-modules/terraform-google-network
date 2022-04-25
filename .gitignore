@@ -24,14 +24,6 @@ Session.vim
 # Local .terraform directories
 **/.terraform/*
 .terraform.lock.hcl
-.terraform/
-*.tfstate
-*.tfstate.backup
-*.tfvars
-*.code-workspace
-.terraform.lock.hcl
-.terragrunt-cache
-terragrunt.hcl
 
 # .tfstate files
 *.tfstate
