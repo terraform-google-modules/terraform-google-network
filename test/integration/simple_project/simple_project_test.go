@@ -48,7 +48,7 @@ func TestSimpleProject(t *testing.T) {
 			subnet3 := gcloud.Run(t, "compute networks subnets describe subnet-03", gcOpts)
 			assert.Equal("10.10.30.0/24", subnet3.Get("ipCidrRange").String(), "should have the right CIDR")
 			assert.False(subnet3.Get("privateIpGoogleAccess").Bool(), "should not have Private Google Access")
-			expectedLogConfig = `{"aggregationInterval": "INTERVAL_10_MIN","enable": true,"filterExpr": "true","flowSampling": 0.7,"metadata": "INCLUDE_ALL_METADATA"}`
+			expectedLogConfig = `{"aggregationInterval": "INTERVAL_10_MIN","enable": true,"filterExpr": "false","flowSampling": 0.7,"metadata": "INCLUDE_ALL_METADATA"}`
 			assert.JSONEq(expectedLogConfig, subnet3.Get("logConfig").String(), "log config should be correct")
 		})
 	net.Test()
