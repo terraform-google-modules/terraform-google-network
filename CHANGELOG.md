@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v5.0.0...v5.1.0) (2022-05-16)
+
+
+### Features
+
+* add filter_expr control in subnet log_config ([#360](https://github.com/terraform-google-modules/terraform-google-network/issues/360)) ([5f7e227](https://github.com/terraform-google-modules/terraform-google-network/commit/5f7e22782c8f22e5d4f1a6ed448ae70e91a26b8d))
+
 ## [5.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v4.1.0...v5.0.0) (2022-02-04)
 
 
