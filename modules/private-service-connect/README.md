@@ -26,9 +26,40 @@ module "private_service_connect" {
 }
 ```
 
-You must ensure firewall rules are appropriately set up and target subnetwork has Private Google Access enabled.
-
 Private Service Connect IP must fulfill requirements detailed [here](https://cloud.google.com/vpc/docs/configure-private-service-connect-apis#ip-address-requirements).
+
+Target subnetwork must have Private Google Access enabled.
+
+In case all Egress is restricted, you must configure a proper firewall rule. Following is an example.
+
+```hcl
+resource "google_compute_firewall" "allow_private_api_egress" {
+  name      = "allow-google-apis-all-tcp-443"
+  network   = "<network-name>"
+  project   = "<project-id>"
+  direction = "EGRESS"
+  priority  = 65534 # this must be set accordingly
+
+  dynamic "log_config" {
+    for_each = var.firewall_enable_logging == true ? [{
+      metadata = "INCLUDE_ALL_METADATA"
+    }] : []
+
+    content {
+      metadata = log_config.value.metadata
+    }
+  }
+
+  allow {
+    protocol = "tcp"
+    ports    = ["443"]
+  }
+
+  destination_ranges = [<PRIVATE SERVICE CONNECT IP>] # Output from Private Service Connect module
+
+  target_tags = ["allow-google-apis"]
+}
+```
 
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
