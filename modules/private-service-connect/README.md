@@ -25,11 +25,28 @@ module "private_service_connect" {
   forwarding_rule_target     = "all-apis|vpc-sc"
 }
 ```
-# Notes
-You must ensure firewall are appropriately set up and target subnetwork has Private Google Access enabled.
+
+You must ensure firewall rules are appropriately set up and target subnetwork has Private Google Access enabled.
 
 Private Service Connect IP must fulfill requirements detailed [here](https://cloud.google.com/vpc/docs/configure-private-service-connect-apis#ip-address-requirements).
 
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
+## Inputs
+
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| environment\_code | A short form of the folder level resources (environment) within the Google Cloud organization. | `string` | `"c"` | no |
+| forwarding\_rule\_target | Target resource to receive the matched traffic. Only `all-apis` and `vpc-sc` are valid. | `string` | n/a | yes |
+| network\_self\_link | Network self link for Private Service Connect. | `string` | n/a | yes |
+| private\_service\_connect\_ip | The internal IP to be used for the private service connect. | `string` | n/a | yes |
+| project\_id | Project ID for Private Service Connect. | `string` | n/a | yes |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| global\_address\_id | An identifier for the global address created for the private service connect with format `projects/{{project}}/global/addresses/{{name}}` |
+| private\_service\_connect\_ip | The private service connect ip |
+
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

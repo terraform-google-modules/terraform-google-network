@@ -27,7 +27,7 @@ variable "network_self_link" {
 variable "environment_code" {
   description = "A short form of the folder level resources (environment) within the Google Cloud organization."
   type        = string
-  default     = ""
+  default     = "c"
 }
 
 variable "private_service_connect_ip" {
