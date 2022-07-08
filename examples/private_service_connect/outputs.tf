@@ -14,16 +14,22 @@
  * limitations under the License.
  */
 
-output "private_service_connect_ip" {
-  value       = var.private_service_connect_ip
-  description = "The private service connect ip"
+output "project_id" {
+  value       = var.project_id
+  description = "The project id"
+}
 
-  depends_on = [
-    google_compute_global_forwarding_rule.forwarding_rule_private_service_connect
-  ]
+output "network_name" {
+  value       = module.simple_vpc.network_name
+  description = "The network name"
+}
+
+output "private_service_connect_ip" {
+  value       = module.private_service_connect.private_service_connect_ip
+  description = "The private service connect ip"
 }
 
 output "global_address_id" {
-  value       = google_compute_global_address.private_service_connect.id
+  value       = module.private_service_connect.global_address_id
   description = "An identifier for the global address created for the private service connect with format `projects/{{project}}/global/addresses/{{name}}`"
 }
