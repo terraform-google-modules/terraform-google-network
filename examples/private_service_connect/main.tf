@@ -22,8 +22,7 @@
 
 module "private_service_connect" {
   source                     = "../../modules/private-service-connect"
-  project_id                 = var.project_id       # Replace this with your project ID in quotes
-  environment_code           = var.environment_code # Replace this with your environment code in quotes
+  project_id                 = var.project_id # Replace this with your project ID in quotes
   network_self_link          = module.simple_vpc.network_self_link
   private_service_connect_ip = "10.3.0.5"
   forwarding_rule_target     = "all-apis"
