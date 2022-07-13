@@ -24,15 +24,27 @@ variable "network_self_link" {
   type        = string
 }
 
-variable "environment_code" {
-  description = "A short form of the folder level resources (environment) within the Google Cloud organization."
+variable "dns_code" {
+  description = "Code to identify DNS resources in the form of `dz-{dns_code}-{dns_type}`"
   type        = string
-  default     = "c"
+  default     = ""
+}
+
+variable "private_service_connect_name" {
+  description = "Private Service Connect endpoint name. Defaults to `global-psconnect-ip`"
+  type        = string
+  default     = "global-psconnect-ip"
 }
 
 variable "private_service_connect_ip" {
   description = "The internal IP to be used for the private service connect."
   type        = string
+}
+
+variable "forwarding_rule_name" {
+  description = "Forwarding rule resource name. The forwarding rule name for PSC Google APIs must be an 1-20 characters string with lowercase letters and numbers and must start with a letter. Defaults to `globalrule`"
+  type        = string
+  default     = "globalrule"
 }
 
 variable "forwarding_rule_target" {

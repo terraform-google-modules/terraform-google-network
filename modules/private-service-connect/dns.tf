@@ -23,7 +23,7 @@ module "googleapis" {
   version     = "~> 4.0"
   project_id  = var.project_id
   type        = "private"
-  name        = "dz-${var.environment_code}-shared-${local.vpc_type}-apis"
+  name        = "dz-${local.dns_code}apis"
   domain      = "googleapis.com."
   description = "Private DNS zone to configure ${local.googleapis_url}"
 
@@ -56,7 +56,7 @@ module "gcr" {
   version     = "~> 3.1"
   project_id  = var.project_id
   type        = "private"
-  name        = "dz-${var.environment_code}-shared-${local.vpc_type}-gcr"
+  name        = "dz-${local.dns_code}gcr"
   domain      = "gcr.io."
   description = "Private DNS zone to configure gcr.io"
 
@@ -89,7 +89,7 @@ module "pkg_dev" {
   version     = "~> 3.1"
   project_id  = var.project_id
   type        = "private"
-  name        = "dz-${var.environment_code}-shared-${local.vpc_type}-pkg-dev"
+  name        = "dz-${local.dns_code}pkg-dev"
   domain      = "pkg.dev."
   description = "Private DNS zone to configure pkg.dev"
 
