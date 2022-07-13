@@ -29,11 +29,32 @@ func TestPrivateServiceConnect(t *testing.T) {
 		func(assert *assert.Assertions) {
 			net.DefaultVerify(assert)
 			projectID := net.GetStringOutput("project_id")
-			// gcOpts := gcloud.WithCommonArgs([]string{"--project", projectID, "--region", "us-west1", "--format", "json"})
+			gcOpts := gcloud.WithCommonArgs([]string{"--project", projectID, "--format", "json"})
 
-			vpc := gcloud.Run(t, fmt.Sprintf("compute networks describe %s --project %s", net.GetStringOutput("network_name"), projectID))
+			vpc := gcloud.Run(t, fmt.Sprintf("compute networks describe %s", net.GetStringOutput("network_name")), gcOpts)
 			assert.Equal(1, len(vpc.Get("subnetworks").Array()), "should be one subnet")
 
+			for _, dnsOutputName := range []string{
+				"dns_zone_googleapis_name",
+				"dns_zone_gcr_name",
+				"dns_zone_pkg_dev_name",
+			} {
+				dnsName := net.GetStringOutput(dnsOutputName)
+				dnsZone := gcloud.Run(t, fmt.Sprintf("dns managed-zones describe %s", dnsName), gcOpts)
+				assert.Equal(dnsName, dnsZone.Get("name").String(), fmt.Sprintf("dnsZone %s should exist", dnsName))
+			}
+
+			gcOpts = gcloud.WithCommonArgs([]string{"--project", projectID, "--global", "--format", "json"})
+
+			globalAddressName := net.GetStringOutput("private_service_connect_name")
+			globalAddressIp := net.GetStringOutput("private_service_connect_ip")
+			globalAddress := gcloud.Run(t, fmt.Sprintf("compute addresses describe %s", globalAddressName), gcOpts)
+			assert.Equal(globalAddressIp, globalAddress.Get("address").String(), fmt.Sprintf("private service connect ip should be %s", globalAddressIp))
+
+			forwardingRuleName := net.GetStringOutput("forwarding_rule_name")
+			forwardingRuleTarget := net.GetStringOutput("forwarding_rule_target")
+			forwardingRule := gcloud.Run(t, fmt.Sprintf("compute forwarding-rules describe %s", forwardingRuleName), gcOpts)
+			assert.Equal(forwardingRuleTarget, forwardingRule.Get("target").String(), fmt.Sprintf("forwarding rule should target to %s", forwardingRuleTarget))
 		})
 	net.Test()
 }
