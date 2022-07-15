@@ -22,7 +22,7 @@
 
 module "private_service_connect" {
   source                     = "../../modules/private-service-connect"
-  project_id                 = var.project_id # Replace this with your project ID in quotes
+  project_id                 = var.project_id
   network_self_link          = module.simple_vpc.network_self_link
   private_service_connect_ip = "10.3.0.5"
   forwarding_rule_target     = "all-apis"
@@ -31,7 +31,7 @@ module "private_service_connect" {
 module "simple_vpc" {
   source       = "terraform-google-modules/network/google"
   version      = "~> 4.0.1"
-  project_id   = var.project_id # Replace this with your project ID in quotes
+  project_id   = var.project_id
   network_name = "my-custom-mode-network"
   mtu          = 1460
 
