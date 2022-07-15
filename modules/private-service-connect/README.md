@@ -33,7 +33,6 @@ Target subnetwork must have Private Google Access enabled.
 
 If you have a firewall rule blocking egress traffic, you will need to configure a [new egress rule](https://cloud.google.com/vpc/docs/using-firewalls#creating_firewall_rules) with following attributes:
 
-
 - Direction: Egress
 - Priority: Higher than blocking egress rule
 - Target tags: allow-google-apis
