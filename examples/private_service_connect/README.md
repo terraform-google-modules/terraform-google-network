@@ -6,7 +6,6 @@ This example configures a single VPC inside a project and enables it to consume 
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| environment\_code | A short form of the folder level resources (environment) within the Google Cloud organization. | `string` | n/a | yes |
 | project\_id | Project ID for Private Service Connect. | `string` | n/a | yes |
 
 ## Outputs

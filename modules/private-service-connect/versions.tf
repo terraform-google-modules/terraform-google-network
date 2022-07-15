@@ -28,6 +28,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:network-peering/v5.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:private-service-connect/v5.1.0"
   }
 }

@@ -47,7 +47,6 @@ output "forwarding_rule_target" {
   description = "Target resource to receive the matched traffic. Only `all-apis` and `vpc-sc` are valid."
 }
 
-
 output "dns_zone_googleapis_name" {
   value       = module.private_service_connect.dns_zone_googleapis_name
   description = "Name for Managed DNS zone for GoogleAPIs"
@@ -62,4 +61,3 @@ output "dns_zone_pkg_dev_name" {
   value       = module.private_service_connect.dns_zone_pkg_dev_name
   description = "Name for Managed DNS zone for PKG_DEV"
 }
-

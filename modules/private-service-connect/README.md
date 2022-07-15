@@ -18,8 +18,8 @@ Basic usage of this module is as follows:
 module "private_service_connect" {
   source                     = "terraform-google-modules/network/google//modules/private_service_connect"
 
-  project_id                 = "project-1234"
-  network_self_link          = "<NETWORK SELF LINK>"
+  project_id                 = "<PROJECT_ID>"
+  network_self_link          = "<NETWORK_SELF_LINK>"
   private_service_connect_ip = "10.3.0.5"
   forwarding_rule_target     = "all-apis|vpc-sc"
 }
@@ -29,37 +29,17 @@ Private Service Connect IP must fulfill requirements detailed [here](https://clo
 
 Target subnetwork must have Private Google Access enabled.
 
-In case all Egress is restricted, you must configure a proper firewall rule. Following is an example.
+**Note:**  All egress traffic is allowed from VPC internal networks by default.
 
-```hcl
-resource "google_compute_firewall" "allow_private_api_egress" {
-  name      = "allow-google-apis-all-tcp-443"
-  network   = "<network-name>"
-  project   = "<project-id>"
-  direction = "EGRESS"
-  priority  = 65534 # this must be set accordingly
+If you have a firewall rule blocking egress traffic, you will need to configure a [new egress rule](https://cloud.google.com/vpc/docs/using-firewalls#creating_firewall_rules) with following attributes:
 
-  dynamic "log_config" {
-    for_each = var.firewall_enable_logging == true ? [{
-      metadata = "INCLUDE_ALL_METADATA"
-    }] : []
 
-    content {
-      metadata = log_config.value.metadata
-    }
-  }
-
-  allow {
-    protocol = "tcp"
-    ports    = ["443"]
-  }
-
-  destination_ranges = [<PRIVATE SERVICE CONNECT IP>] # Output from Private Service Connect module
-
-  target_tags = ["allow-google-apis"]
-}
-```
-
+- Direction: Egress
+- Priority: Higher than blocking egress rule
+- Target tags: allow-google-apis
+- Destination filters:
+   - IP ranges: <PRIVATE_SERVICE_CONNECT_IP>
+   - Protocols and ports: tcp:443
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs

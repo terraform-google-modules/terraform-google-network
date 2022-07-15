@@ -18,8 +18,3 @@ variable "project_id" {
   description = "Project ID for Private Service Connect."
   type        = string
 }
-
-variable "environment_code" {
-  description = "A short form of the folder level resources (environment) within the Google Cloud organization."
-  type        = string
-}
