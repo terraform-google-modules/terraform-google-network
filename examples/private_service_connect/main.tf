@@ -32,7 +32,7 @@ module "simple_vpc" {
   source       = "terraform-google-modules/network/google"
   version      = "~> 4.0.1"
   project_id   = var.project_id
-  network_name = "my-custom-mode-network"
+  network_name = "my-custom-network"
   mtu          = 1460
 
   subnets = [
