@@ -20,7 +20,8 @@ locals {
     "roles/compute.securityAdmin",
     "roles/iam.serviceAccountUser",
     "roles/vpcaccess.admin",
-    "roles/serviceusage.serviceUsageAdmin"
+    "roles/serviceusage.serviceUsageAdmin",
+    "roles/dns.admin"
   ]
 }
 
