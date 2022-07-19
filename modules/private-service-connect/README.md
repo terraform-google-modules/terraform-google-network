@@ -10,7 +10,7 @@ the resources created/managed by this module are:
 - one Global Address resource to configure `Private Service Connect` endpoint
 - one Global Forwarding Rule resource to forward traffic to respective HTTP(S) load balancing
 
-# Usage
+## Usage
 
 Basic usage of this module is as follows:
 
@@ -39,6 +39,11 @@ If you have a firewall rule blocking egress traffic, you will need to configure 
 - Destination filters:
    - IP ranges: <PRIVATE_SERVICE_CONNECT_IP>
    - Protocols and ports: tcp:443
+
+## Requirements
+
+- Cloud DNS API must be enabled.
+- Service Account running terraform must have `dns.managedZones.*` permissions. You can add them by assigning `DNS Admin` default role to the Service Account.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
