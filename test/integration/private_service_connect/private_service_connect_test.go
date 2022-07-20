@@ -1,4 +1,4 @@
-// Copyright 2021 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ func TestPrivateServiceConnect(t *testing.T) {
 			} {
 				dnsName := net.GetStringOutput(dnsOutputName)
 				dnsZone := gcloud.Run(t, fmt.Sprintf("dns managed-zones describe %s", dnsName), gcOpts)
-				assert.Equal(dnsName, dnsZone.Get("name").String(), fmt.Sprintf("dnsZone %s should exist", dnsName))
+				assert.Equalf(dnsName, dnsZone.Get("name").String(), "dnsZone %s should exist", dnsName)
 			}
 
 			gcOpts = gcloud.WithCommonArgs([]string{"--project", projectID, "--global", "--format", "json"})
@@ -49,12 +49,12 @@ func TestPrivateServiceConnect(t *testing.T) {
 			globalAddressName := net.GetStringOutput("private_service_connect_name")
 			globalAddressIp := net.GetStringOutput("private_service_connect_ip")
 			globalAddress := gcloud.Run(t, fmt.Sprintf("compute addresses describe %s", globalAddressName), gcOpts)
-			assert.Equal(globalAddressIp, globalAddress.Get("address").String(), fmt.Sprintf("private service connect ip should be %s", globalAddressIp))
+			assert.Equalf(globalAddressIp, globalAddress.Get("address").String(), "private service connect ip should be %s", globalAddressIp)
 
 			forwardingRuleName := net.GetStringOutput("forwarding_rule_name")
 			forwardingRuleTarget := net.GetStringOutput("forwarding_rule_target")
 			forwardingRule := gcloud.Run(t, fmt.Sprintf("compute forwarding-rules describe %s", forwardingRuleName), gcOpts)
-			assert.Equal(forwardingRuleTarget, forwardingRule.Get("target").String(), fmt.Sprintf("forwarding rule should target to %s", forwardingRuleTarget))
+			assert.Equalf(forwardingRuleTarget, forwardingRule.Get("target").String(), "forwarding rule should target to %s", forwardingRuleTarget)
 		})
 	net.Test()
 }
