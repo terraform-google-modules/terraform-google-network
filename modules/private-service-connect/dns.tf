@@ -20,7 +20,7 @@
 
 module "googleapis" {
   source      = "terraform-google-modules/cloud-dns/google"
-  version     = "~> 4.0"
+  version     = "~> 4.1"
   project_id  = var.project_id
   type        = "private"
   name        = "dz-${local.dns_code}apis"
@@ -38,7 +38,7 @@ module "googleapis" {
       ttl     = 300
       records = [local.googleapis_url]
     },
-    { ## This is important to check
+    {
       name    = local.recordsets_name
       type    = "A"
       ttl     = 300
@@ -53,7 +53,7 @@ module "googleapis" {
 
 module "gcr" {
   source      = "terraform-google-modules/cloud-dns/google"
-  version     = "~> 3.1"
+  version     = "~> 4.1"
   project_id  = var.project_id
   type        = "private"
   name        = "dz-${local.dns_code}gcr"
@@ -86,7 +86,7 @@ module "gcr" {
 
 module "pkg_dev" {
   source      = "terraform-google-modules/cloud-dns/google"
-  version     = "~> 3.1"
+  version     = "~> 4.1"
   project_id  = var.project_id
   type        = "private"
   name        = "dz-${local.dns_code}pkg-dev"
