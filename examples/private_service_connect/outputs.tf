@@ -18,6 +18,7 @@ output "project_id" {
   value       = var.project_id
   description = "The project id"
 }
+
 output "network_name" {
   value       = module.simple_vpc.network_name
   description = "The network name"
@@ -27,6 +28,7 @@ output "private_service_connect_name" {
   value       = module.private_service_connect.private_service_connect_name
   description = "Private service connect name"
 }
+
 output "private_service_connect_ip" {
   value       = module.private_service_connect.private_service_connect_ip
   description = "The private service connect ip"
