@@ -2,13 +2,13 @@
 
 This module enables the usage of [Private Service Connect](https://cloud.google.com/vpc/docs/private-service-connect) for a specific subnetwork.
 
-the resources created/managed by this module are:
+The resources created/managed by this module are:
 
-- one private DNS zone to configure `private.googleapis.com.`
-- one private DNS zone to configure `gcr.io.`
-- one private DNS zone to configure `pdk.dev.`
-- one Global Address resource to configure `Private Service Connect` endpoint
-- one Global Forwarding Rule resource to forward traffic to respective HTTP(S) load balancing
+- Private DNS zone to configure `private.googleapis.com.`
+- Private DNS zone to configure `gcr.io.`
+- Private DNS zone to configure `pdk.dev.`
+- Global Address resource to configure `Private Service Connect` endpoint
+- Global Forwarding Rule resource to forward traffic to respective HTTP(S) load balancing
 
 ## Usage
 
@@ -43,7 +43,7 @@ If you have a firewall rule blocking egress traffic, you will need to configure 
 ## Requirements
 
 - Cloud DNS API must be enabled.
-- Service Account running terraform must have `dns.managedZones.*` permissions. You can add them by assigning `DNS Admin` default role to the Service Account.
+- Service Account running Terraform must have `dns.managedZones.*` permissions. You can add them by assigning `DNS Admin` default role to the Service Account.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
