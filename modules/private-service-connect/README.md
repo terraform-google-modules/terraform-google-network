@@ -50,7 +50,7 @@ If you have a firewall rule blocking egress traffic, you will need to configure 
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| dns\_code | Code to identify DNS resources in the form of `dz-{dns_code}-{dns_type}` | `string` | `""` | no |
+| dns\_code | Code to identify DNS resources in the form of `{dns_code}-{dns_type}` | `string` | `"dz"` | no |
 | forwarding\_rule\_name | Forwarding rule resource name. The forwarding rule name for PSC Google APIs must be an 1-20 characters string with lowercase letters and numbers and must start with a letter. Defaults to `globalrule` | `string` | `"globalrule"` | no |
 | forwarding\_rule\_target | Target resource to receive the matched traffic. Only `all-apis` and `vpc-sc` are valid. | `string` | n/a | yes |
 | network\_self\_link | Network self link for Private Service Connect. | `string` | n/a | yes |

@@ -25,9 +25,9 @@ variable "network_self_link" {
 }
 
 variable "dns_code" {
-  description = "Code to identify DNS resources in the form of `dz-{dns_code}-{dns_type}`"
+  description = "Code to identify DNS resources in the form of `{dns_code}-{dns_type}`"
   type        = string
-  default     = ""
+  default     = "dz"
 }
 
 variable "private_service_connect_name" {
