@@ -21,7 +21,7 @@ module "private_service_connect" {
   project_id                 = "<PROJECT_ID>"
   network_self_link          = "<NETWORK_SELF_LINK>"
   private_service_connect_ip = "10.3.0.5"
-  forwarding_rule_target     = "all-apis|vpc-sc"
+  forwarding_rule_target     = "all-apis"
 }
 ```
 
