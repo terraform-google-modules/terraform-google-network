@@ -35,7 +35,7 @@ If you have a firewall rule blocking egress traffic, you will need to configure 
 
 - Direction: Egress
 - Priority: Higher than blocking egress rule
-- Target tags: allow-google-apis
+- Target tags: <FIREWALL_RULE_TAG>
 - Destination filters:
    - IP ranges: <PRIVATE_SERVICE_CONNECT_IP>
    - Protocols and ports: tcp:443
