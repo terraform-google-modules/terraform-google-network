@@ -151,6 +151,21 @@ steps:
     - verify submodule-vpc-serverless-connector-beta
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'source /usr/local/bin/task_helper_functions.sh && source_test_env && init_credentials && cd test/integration && RUN_STAGE=teardown go test -v ./... -p 1 -timeout 0 -run TestSubmoduleServerlessConnector']
+- id: converge private-service-connect
+  waitFor:
+    - create all
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnect --stage apply --verbose']
+- id: verify private-service-connect
+  waitFor:
+    - converge private-service-connect
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnect --stage verify --verbose']
+- id: destroy private-service-connect
+  waitFor:
+    - verify private-service-connect
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnect --stage teardown --verbose']
 tags:
 - 'ci'
 - 'integration'

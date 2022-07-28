@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,7 @@
  * limitations under the License.
  */
 
-module "project" {
-  source  = "terraform-google-modules/project-factory/google"
-  version = "~> 13.0"
-
-  name              = "ci-network"
-  random_project_id = "true"
-  org_id            = var.org_id
-  folder_id         = var.folder_id
-  billing_account   = var.billing_account
-
-  activate_apis = [
-    "cloudresourcemanager.googleapis.com",
-    "compute.googleapis.com",
-    "serviceusage.googleapis.com",
-    "vpcaccess.googleapis.com",
-    "dns.googleapis.com"
-  ]
+variable "project_id" {
+  description = "Project ID for Private Service Connect."
+  type        = string
 }

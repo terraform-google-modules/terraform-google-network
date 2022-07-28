@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,21 +20,28 @@
 # If that new version includes provider updates, validation of this
 # example may fail until that is done.
 
-# [START vpc_static_route_create]
-module "google_compute_route" {
-  source       = "terraform-google-modules/network/google//modules/routes"
-  version      = "~> 5.0"
-  project_id   = var.project_id # Replace this with your project ID in quotes
-  network_name = "default"
+module "private_service_connect" {
+  source                     = "../../modules/private-service-connect"
+  project_id                 = var.project_id
+  network_self_link          = module.simple_vpc.network_self_link
+  private_service_connect_ip = "10.3.0.5"
+  forwarding_rule_target     = "all-apis"
+}
 
-  routes = [
+module "simple_vpc" {
+  source       = "terraform-google-modules/network/google"
+  version      = "~> 4.0.1"
+  project_id   = var.project_id
+  network_name = "my-custom-network"
+  mtu          = 1460
+
+  subnets = [
     {
-      name              = "egress-internet"
-      description       = "route through IGW to access internet"
-      destination_range = "0.0.0.0/0"
-      tags              = "egress-inet"
-      next_hop_internet = "true"
+      subnet_name           = "my-subnetwork"
+      subnet_ip             = "10.0.0.0/24"
+      subnet_region         = "us-west1"
+      subnet_private_access = "true"
+      subnet_flow_logs      = "true"
     }
   ]
 }
-# [END vpc_static_route_create]
