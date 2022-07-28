@@ -1,4 +1,4 @@
-# Private Service Networks
+# Private Service Connect
 
 This module enables the usage of [Private Service Connect](https://cloud.google.com/vpc/docs/private-service-connect) for a specific subnetwork.
 
