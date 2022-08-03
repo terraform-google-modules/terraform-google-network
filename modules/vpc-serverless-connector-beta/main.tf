@@ -35,7 +35,7 @@ resource "google_vpc_access_connector" "connector_beta" {
   min_instances  = lookup(each.value, "min_instances", null)
   max_instances  = lookup(each.value, "max_instances", null)
   max_throughput = lookup(each.value, "max_throughput", null)
-    
+
   # REF: https://github.com/hashicorp/terraform-provider-google/issues/11304
   lifecycle {
     ignore_changes = [
