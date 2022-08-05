@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.2.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v5.1.0...v5.2.0) (2022-07-28)
+
+
+### Features
+
+* add private service connect module ([#368](https://github.com/terraform-google-modules/terraform-google-network/issues/368)) ([4e90bee](https://github.com/terraform-google-modules/terraform-google-network/commit/4e90bee24bad734ec9a8c99f32902b5904f68796))
+
 ## [5.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v5.0.0...v5.1.0) (2022-05-16)
 
 
