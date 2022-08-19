@@ -28,19 +28,19 @@ module "vpc-secondary-ranges" {
 
   subnets = [
     {
-      subnet_name   = "${local.subnet_01}"
+      subnet_name   = local.subnet_01
       subnet_ip     = "10.10.10.0/24"
       subnet_region = "us-west1"
     },
     {
-      subnet_name           = "${local.subnet_02}"
+      subnet_name           = local.subnet_02
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "true"
       subnet_flow_logs      = "true"
     },
     {
-      subnet_name               = "${local.subnet_03}"
+      subnet_name               = local.subnet_03
       subnet_ip                 = "10.10.30.0/24"
       subnet_region             = "us-west1"
       subnet_flow_logs          = "true"
@@ -49,14 +49,14 @@ module "vpc-secondary-ranges" {
       subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
     },
     {
-      subnet_name   = "${local.subnet_04}"
+      subnet_name   = local.subnet_04
       subnet_ip     = "10.10.40.0/24"
       subnet_region = "us-west1"
     },
   ]
 
   secondary_ranges = {
-    "${local.subnet_01}" = [
+    (local.subnet_01) = [
       {
         range_name    = "${local.subnet_01}-01"
         ip_cidr_range = "192.168.64.0/24"
@@ -67,9 +67,9 @@ module "vpc-secondary-ranges" {
       },
     ]
 
-    "${local.subnet_02}" = []
+    (local.subnet_02) = []
 
-    "${local.subnet_03}" = [
+    (local.subnet_03) = [
       {
         range_name    = "${local.subnet_03}-01"
         ip_cidr_range = "192.168.66.0/24"

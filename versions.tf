@@ -19,7 +19,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "< 5.0, >= 2.12"
+      version = "< 5.0, >= 3.83"
     }
     google-beta = {
       source  = "hashicorp/google-beta"
@@ -28,6 +28,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network/v4.0.1"
+    module_name = "blueprints/terraform/terraform-google-network/v5.2.0"
   }
 }
