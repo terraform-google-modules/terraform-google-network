@@ -25,7 +25,7 @@ This example:
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| project | The host project ID | `any` | n/a | yes |
+| host\_project | The host project ID | `any` | n/a | yes |
 | service\_project | The service project ID | `any` | n/a | yes |
 
 ## Outputs
