@@ -16,7 +16,7 @@
 
 # [START vpc_shared_vpc_host_project_enable]
 resource "google_compute_shared_vpc_host_project" "host" {
-  project = var.project # Replace this with your host project ID in quotes
+  project = var.host_project # Replace this with your host project ID in quotes
 }
 # [END vpc_shared_vpc_host_project_enable]
 
@@ -30,14 +30,14 @@ resource "google_compute_shared_vpc_service_project" "service1" {
 # [START compute_shared_data_network]
 data "google_compute_network" "network" {
   name    = "my-network-123"
-  project = var.project
+  project = var.host_project
 }
 # [END compute_shared_data_network]
 
 # [START compute_shared_data_subnet]
 data "google_compute_subnetwork" "subnet" {
   name    = "my-subnet-123"
-  project = var.project
+  project = var.host_project
   region  = "us-central1"
 }
 # [END compute_shared_data_subnet]

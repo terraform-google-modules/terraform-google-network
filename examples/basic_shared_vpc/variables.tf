@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-variable "project" {
+variable "host_project" {
   description = "The host project ID"
 }
 
