@@ -132,3 +132,15 @@ resource "google_compute_forwarding_rule" "default" {
   subnetwork            = data.google_compute_subnetwork.subnet.self_link
 }
 # [END compute_shared_forwarding_rule_l4_ilb]
+
+
+# [START iamcredentials_service_project_admins_all_subnets]
+resource "google_project_iam_binding" "project" {
+  project = var.host_project
+  role    = "roles/compute.networkUser"
+  members = [
+    "user:SERVICE_PROJECT_ADMIN"
+  ]
+}
+# [END iamcredentials_service_project_admins_all_subnets]
+
