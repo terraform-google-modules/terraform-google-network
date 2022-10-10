@@ -35,7 +35,7 @@ variable "shared_vpc_host" {
 }
 
 variable "subnets" {
-  type        = list(map(string))
+  type        = list(map(any))
   description = "The list of subnets being created"
 }
 
@@ -53,7 +53,7 @@ variable "routes" {
 
 variable "firewall_rules" {
   type        = any
-  description = "List of firewall rules"
+  description = "List of maps that represent the firewall rules to be created. Each firewall rule is represented using a map that should contains this data: name, direction, priority, description, ranges, source_tags, source_service_accounts, target_tags, target_service_accounts, allow, deny, log_config"
   default     = []
 }
 

@@ -23,7 +23,7 @@ variable "network_name" {
 }
 
 variable "subnets" {
-  type        = list(map(string))
+  type        = list(map(any))
   description = "The list of subnets being created"
 }
 
