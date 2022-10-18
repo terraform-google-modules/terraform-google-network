@@ -14,12 +14,7 @@
  * limitations under the License.
  */
 
-locals {
-  network_name = "simple-project-${var.random_string_for_testing}"
-}
-
 module "example" {
-  source       = "../../../examples/simple_project"
-  project_id   = var.project_id
-  network_name = local.network_name
+  source     = "../../../examples/simple_project"
+  project_id = var.project_id
 }
