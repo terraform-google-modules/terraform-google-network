@@ -51,6 +51,6 @@ module "test-vpc-module" {
       subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
       subnet_flow_logs_filter   = "false"
     }
-  ] 
+  ]
 }
 # [END vpc_custom_create]
