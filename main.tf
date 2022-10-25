@@ -21,10 +21,24 @@
 # example may fail until that is done.
 
 # [START vpc_custom_create]
+
+provider "google" {
+  project = "lucky-apparatus-366518"
+  region  = "us-central1"
+  zone    = "us-central1-c"
+}
+
+provider "google-beta" {
+  project = "lucky-apparatus-366518"
+  region  = "us-central1"
+  zone    = "us-central1-c"
+}
+
 module "test-vpc-module" {
+  project_id   = "lucky-apparatus-366518"
   source       = "terraform-google-modules/network/google"
   version      = "~> 4.0.1"
-  project_id   = "lucky-apparatus-366518"
+
   network_name = "my-custom-mode-network"
   mtu          = 1460
 
