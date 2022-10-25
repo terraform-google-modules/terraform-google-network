@@ -24,9 +24,6 @@ jobs:
         id: fmt
         run: terraform fmt -check
 
-      - name: Terraform Init
-        id: init
-        run: terraform init
       
       - name: Terraform Validate
         id: validate
