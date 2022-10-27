@@ -30,7 +30,7 @@ module "private_service_connect" {
 
 module "simple_vpc" {
   source       = "terraform-google-modules/network/google"
-  version      = "~> 4.0.1"
+  version      = "~> 5.2.0"
   project_id   = var.project_id
   network_name = "my-custom-network"
   mtu          = 1460
