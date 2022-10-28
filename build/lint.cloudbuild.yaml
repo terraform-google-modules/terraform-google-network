@@ -13,7 +13,7 @@
 # limitations under the License.
 
 steps:
-- name: 'gcr.io/cloud-foundation-cicd/cft/developer-tools:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+- name: 'us-central1-docker.pkg.dev/test-tflint-rollout/tfl/test:1'
   id: 'lint'
   args: ['/usr/local/bin/test_lint.sh']
 tags:
