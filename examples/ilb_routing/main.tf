@@ -55,8 +55,6 @@ module "subnets-backup" {
       role          = "BACKUP"
     }
   ]
-
-  module_depends_on = [module.subnets.subnets]
 }
 
 resource "google_compute_health_check" "this" {
