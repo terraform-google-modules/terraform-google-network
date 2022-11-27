@@ -14,52 +14,45 @@
  * limitations under the License.
  */
 
-locals {
-  subnets = {
-    for x in var.subnets :
-    "${x.subnet_region}/${x.subnet_name}" => x
-  }
-}
-
-
 /******************************************
 	Subnet configuration
  *****************************************/
 resource "google_compute_subnetwork" "subnetwork" {
   provider                 = google-beta
-  for_each                 = local.subnets
-  name                     = each.value.subnet_name
-  ip_cidr_range            = each.value.subnet_ip
-  region                   = each.value.subnet_region
-  private_ip_google_access = lookup(each.value, "subnet_private_access", "false")
+  name                     = var.subnets[count.index].subnet_name
+  ip_cidr_range            = var.subnets[count.index].subnet_ip
+  region                   = var.subnets[count.index].subnet_region
+  private_ip_google_access = lookup(var.subnets[count.index], "subnet_private_access", "false")
   dynamic "log_config" {
-    for_each = lookup(each.value, "subnet_flow_logs", false) ? [{
-      aggregation_interval = lookup(each.value, "subnet_flow_logs_interval", "INTERVAL_5_SEC")
-      flow_sampling        = lookup(each.value, "subnet_flow_logs_sampling", "0.5")
-      metadata             = lookup(each.value, "subnet_flow_logs_metadata", "INCLUDE_ALL_METADATA")
+    for_each = lookup(var.subnets[count.index], "subnet_flow_logs", false) ? [{
+      aggregation_interval = lookup(var.subnets[count.index], "subnet_flow_logs_interval", "INTERVAL_5_SEC")
+      flow_sampling        = lookup(var.subnets[count.index], "subnet_flow_logs_sampling", "0.5")
+      metadata             = lookup(var.subnets[count.index], "subnet_flow_logs_metadata", "INCLUDE_ALL_METADATA")
+      filter_expr          = lookup(var.subnets[count.index], "subnet_flow_logs_filter", "true")
     }] : []
     content {
       aggregation_interval = log_config.value.aggregation_interval
       flow_sampling        = log_config.value.flow_sampling
       metadata             = log_config.value.metadata
+      filter_expr          = log_config.value.filter_expr
     }
   }
   network     = var.network_name
   project     = var.project_id
-  description = lookup(each.value, "description", null)
+  description = lookup(var.subnets[count.index], "description", null)
   secondary_ip_range = [
     for i in range(
       length(
         contains(
-        keys(var.secondary_ranges), each.value.subnet_name) == true
-        ? var.secondary_ranges[each.value.subnet_name]
+        keys(var.secondary_ranges), var.subnets[count.index].subnet_name) == true
+        ? var.secondary_ranges[var.subnets[count.index].subnet_name]
         : []
     )) :
-    var.secondary_ranges[each.value.subnet_name][i]
+    var.secondary_ranges[var.subnets[count.index].subnet_name][i]
   ]
 
-  purpose = lookup(each.value, "purpose", null)
-  role    = lookup(each.value, "role", null)
+  purpose = lookup(var.subnets[count.index], "purpose", null)
+  role    = lookup(var.subnets[count.index], "role", null)
 
   depends_on = [var.module_depends_on]
 }
