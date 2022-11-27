@@ -19,6 +19,7 @@
  *****************************************/
 resource "google_compute_subnetwork" "subnetwork" {
   provider                 = google-beta
+  count                    = length(var.subnets)
   name                     = var.subnets[count.index].subnet_name
   ip_cidr_range            = var.subnets[count.index].subnet_ip
   region                   = var.subnets[count.index].subnet_region
