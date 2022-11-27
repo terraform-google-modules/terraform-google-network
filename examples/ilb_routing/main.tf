@@ -21,7 +21,7 @@ module "vpc" {
 }
 
 module "subnets" {
-  source       = "../../modules/subnets-beta"
+  source       = "../../modules/subnets"
   project_id   = var.project_id
   network_name = module.vpc.network_name
 
@@ -42,7 +42,7 @@ module "subnets" {
 }
 
 module "subnets-backup" {
-  source       = "../../modules/subnets-beta"
+  source       = "../../modules/subnets"
   project_id   = var.project_id
   network_name = module.vpc.network_name
 
