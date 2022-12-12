@@ -4,9 +4,9 @@ go 1.18
 
 require (
 	github.com/GoogleCloudPlatform/cloud-foundation-toolkit/infra/blueprint-test v0.0.0-20211001192917-5e783cf7c716
-	github.com/gruntwork-io/terratest v0.41.0
+	github.com/gruntwork-io/terratest v0.41.3
 	github.com/stretchr/testify v1.8.1
-	github.com/tidwall/gjson v1.14.3
+	github.com/tidwall/gjson v1.14.4
 )
 
 require (
