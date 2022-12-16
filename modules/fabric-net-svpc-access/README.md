@@ -47,7 +47,6 @@ module "net-shared-vpc-access" {
 | host\_subnet\_users | Map of comma-delimited IAM-style members to which network user roles for subnets will be assigned. | `map(any)` | `{}` | no |
 | host\_subnets | List of subnet names on which to grant network user role. | `list(string)` | `[]` | no |
 | service\_project\_ids | Ids of the service projects that will be attached to the Shared VPC. | `list(string)` | n/a | yes |
-| service\_project\_num | Number of service projects that will be attached to the Shared VPC. | `number` | `0` | no |
 
 ## Outputs
 

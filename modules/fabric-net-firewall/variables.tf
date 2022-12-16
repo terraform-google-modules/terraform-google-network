@@ -44,6 +44,9 @@ variable "internal_target_tags" {
 
 variable "internal_allow" {
   description = "Allow rules for internal ranges."
+  type = list(object({
+    protocol = string
+  }))
   default = [
     {
       protocol = "icmp"
@@ -71,6 +74,7 @@ variable "ssh_source_ranges" {
 
 variable "ssh_target_tags" {
   description = "List of target tags for tag-based SSH rule, defaults to ssh."
+  type        = list(string)
   default     = ["ssh"]
 }
 

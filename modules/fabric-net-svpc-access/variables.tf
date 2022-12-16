@@ -21,12 +21,6 @@ variable "host_project_id" {
 
 # passed-in values can be dynamic, so variables used in count need to be separate
 
-variable "service_project_num" {
-  type        = number
-  description = "Number of service projects that will be attached to the Shared VPC."
-  default     = 0
-}
-
 variable "service_project_ids" {
   type        = list(string)
   description = "Ids of the service projects that will be attached to the Shared VPC."
