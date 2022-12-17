@@ -46,7 +46,7 @@ variable "internal_allow" {
   description = "Allow rules for internal ranges."
   type = list(object({
     protocol = string
-    port     = optional(list(string))
+    ports    = optional(list(string))
   }))
   default = [
     {
