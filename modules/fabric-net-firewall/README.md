@@ -80,7 +80,7 @@ module "net-firewall" {
 | http\_target\_tags | List of target tags for tag-based HTTP rule, defaults to http-server. | `list(string)` | <pre>[<br>  "http-server"<br>]</pre> | no |
 | https\_source\_ranges | List of IP CIDR ranges for tag-based HTTPS rule, defaults to 0.0.0.0/0. | `list(string)` | <pre>[<br>  "0.0.0.0/0"<br>]</pre> | no |
 | https\_target\_tags | List of target tags for tag-based HTTPS rule, defaults to https-server. | `list(string)` | <pre>[<br>  "https-server"<br>]</pre> | no |
-| internal\_allow | Allow rules for internal ranges. | <pre>list(object({<br>    protocol = string<br>  }))</pre> | <pre>[<br>  {<br>    "protocol": "icmp"<br>  }<br>]</pre> | no |
+| internal\_allow | Allow rules for internal ranges. | <pre>list(object({<br>    protocol = string<br>    port     = optional(list(string))<br>  }))</pre> | <pre>[<br>  {<br>    "protocol": "icmp"<br>  }<br>]</pre> | no |
 | internal\_ranges | IP CIDR ranges for intra-VPC rules. | `list(string)` | `[]` | no |
 | internal\_ranges\_enabled | Create rules for intra-VPC ranges. | `bool` | `false` | no |
 | internal\_target\_tags | List of target tags for intra-VPC rules. | `list(string)` | `[]` | no |

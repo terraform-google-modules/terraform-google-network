@@ -131,6 +131,7 @@ spec:
     type: |-
       list(object({
           protocol = string
+          port     = optional(list(string))
         }))
     default:
     - protocol: icmp
