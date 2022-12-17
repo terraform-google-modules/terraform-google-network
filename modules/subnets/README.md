@@ -31,6 +31,8 @@ module "vpc" {
             subnet_private_access = "true"
             subnet_flow_logs      = "true"
             description           = "This subnet has a description"
+            purpose               = "INTERNAL_HTTPS_LOAD_BALANCER"
+            role                  = "ACTIVE"
         },
         {
             subnet_name                  = "subnet-03"
@@ -90,3 +92,5 @@ The subnets list contains maps, where each object represents a subnet. Each map 
 | subnet\_flow\_logs\_sampling | If subnet\_flow\_logs is true, set the sampling rate of VPC flow logs within the subnetwork                     | string |         `"0.5"`          |    no    |
 | subnet\_flow\_logs\_metadata | If subnet\_flow\_logs is true, configures whether metadata fields should be added to the reported VPC flow logs | string | `"INCLUDE_ALL_METADATA"` |    no    |
 | subnet\_flow\_logs\_filter_expr | Export filter defining which VPC flow logs should be logged, see https://cloud.google.com/vpc/docs/flow-logs#filtering for formatting details  | string | `"true"` |    no    |
+| purpose | The purpose of the subnet usage. Whether it is to be used as a regular subnet or for proxy or loadbalacing purposes, see https://cloud.google.com/vpc/docs/subnets#purpose for more details  | string | `"PRIVATE"` |    no    |
+| role | The role of the subnet when using it as a proxy or loadbalancer network. Whether it is to be used as the active or as a backup subnet, see https://cloud.google.com/load-balancing/docs/proxy-only-subnets#proxy_only_subnet_create for more details  | string |            -             |    no    |
