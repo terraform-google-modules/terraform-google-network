@@ -44,7 +44,6 @@ module "net-vpc-shared" {
 module "net-svpc-access" {
   source              = "../../modules/fabric-net-svpc-access"
   host_project_id     = module.net-vpc-shared.project_id
-  service_project_num = 1
   service_project_ids = [var.service_project_id]
   host_subnets        = ["data"]
   host_subnet_regions = ["europe-west1"]

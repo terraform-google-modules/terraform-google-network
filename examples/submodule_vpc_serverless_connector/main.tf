@@ -40,6 +40,7 @@ module "test-vpc-module" {
 
 module "serverless-connector" {
   source     = "terraform-google-modules/network/google//modules/vpc-serverless-connector-beta"
+  version    = "~> 6.0"
   project_id = var.project_id
   vpc_connectors = [{
     name        = "central-serverless"

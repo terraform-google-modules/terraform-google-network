@@ -27,12 +27,12 @@ module "test-vpc-module" {
 
   subnets = [
     {
-      subnet_name   = "${local.subnet_01}"
+      subnet_name   = local.subnet_01
       subnet_ip     = "10.10.10.0/24"
       subnet_region = "us-west1"
     },
     {
-      subnet_name           = "${local.subnet_02}"
+      subnet_name           = local.subnet_02
       subnet_ip             = "10.10.20.0/24"
       subnet_region         = "us-west1"
       subnet_private_access = "true"
