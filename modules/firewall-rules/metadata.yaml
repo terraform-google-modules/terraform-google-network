@@ -1,0 +1,128 @@
+# Copyright 2022 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-network
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  title: Google Cloud VPC Firewall Rules
+  source:
+    repo: https://github.com/terraform-google-modules/terraform-google-network
+    sourceType: git
+  version: 6.0.0
+  actuationTool:
+    type: Terraform
+    version: '>= 0.13.0'
+  examples:
+  - name: basic_auto_mode
+    location: examples/basic_auto_mode
+  - name: basic_custom_mode
+    location: examples/basic_custom_mode
+  - name: basic_firewall_rule
+    location: examples/basic_firewall_rule
+  - name: basic_secondary_ranges
+    location: examples/basic_secondary_ranges
+  - name: basic_shared_vpc
+    location: examples/basic_shared_vpc
+  - name: basic_vpc_peering
+    location: examples/basic_vpc_peering
+  - name: delete_default_gateway_routes
+    location: examples/delete_default_gateway_routes
+  - name: firewall_logging
+    location: examples/firewall_logging
+  - name: ilb_routing
+    location: examples/ilb_routing
+  - name: multi_vpc
+    location: examples/multi_vpc
+  - name: network_service_tiers
+    location: examples/network_service_tiers
+  - name: packet_mirroring
+    location: examples/packet_mirroring
+  - name: private_service_connect
+    location: examples/private_service_connect
+  - name: private_service_connect_google_apis
+    location: examples/private_service_connect_google_apis
+  - name: routes
+    location: examples/routes
+  - name: secondary_ranges
+    location: examples/secondary_ranges
+  - name: simple_project
+    location: examples/simple_project
+  - name: simple_project_with_regional_network
+    location: examples/simple_project_with_regional_network
+  - name: submodule_firewall
+    location: examples/submodule_firewall
+  - name: submodule_network_peering
+    location: examples/submodule_network_peering
+  - name: submodule_svpc_access
+    location: examples/submodule_svpc_access
+  - name: submodule_vpc_serverless_connector
+    location: examples/submodule_vpc_serverless_connector
+  variables:
+  - name: network_name
+    description: Name of the network this set of firewall rules applies to.
+    type: string
+    required: true
+  - name: project_id
+    description: Project id of the project that holds the network.
+    type: string
+    required: true
+  - name: rules
+    description: List of custom rule definitions (refer to variables file for syntax).
+    type: |-
+      list(object({
+          name                    = string
+          description             = string
+          direction               = string
+          priority                = number
+          ranges                  = list(string)
+          source_tags             = list(string)
+          source_service_accounts = list(string)
+          target_tags             = list(string)
+          target_service_accounts = list(string)
+          allow = list(object({
+            protocol = string
+            ports    = list(string)
+          }))
+          deny = list(object({
+            protocol = string
+            ports    = list(string)
+          }))
+          log_config = object({
+            metadata = string
+          })
+        }))
+    default: []
+    required: false
+  outputs:
+  - name: firewall_rules
+    description: The created firewall rule resources
+  roles:
+  - level: Project
+    roles:
+    - roles/compute.networkAdmin
+    - roles/compute.securityAdmin
+    - roles/iam.serviceAccountUser
+    - roles/vpcaccess.admin
+    - roles/serviceusage.serviceUsageAdmin
+    - roles/dns.admin
+  services:
+  - cloudresourcemanager.googleapis.com
+  - compute.googleapis.com
+  - serviceusage.googleapis.com
+  - vpcaccess.googleapis.com
+  - dns.googleapis.com

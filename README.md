@@ -104,8 +104,8 @@ Then perform the following commands on the root folder:
 | description | An optional description of this resource. The resource must be recreated to modify this field. | `string` | `""` | no |
 | firewall\_rules | List of firewall rules | `any` | `[]` | no |
 | mtu | The network MTU (If set to 0, meaning MTU is unset - defaults to '1460'). Recommended values: 1460 (default for historic reasons), 1500 (Internet default), or 8896 (for Jumbo packets). Allowed are all values in the range 1300 to 8896, inclusively. | `number` | `0` | no |
-| network\_name | The name of the network being created | `any` | n/a | yes |
-| project\_id | The ID of the project where this VPC will be created | `any` | n/a | yes |
+| network\_name | The name of the network being created | `string` | n/a | yes |
+| project\_id | The ID of the project where this VPC will be created | `string` | n/a | yes |
 | routes | List of routes being created in this VPC | `list(map(string))` | `[]` | no |
 | routing\_mode | The network routing mode (default 'GLOBAL') | `string` | `"GLOBAL"` | no |
 | secondary\_ranges | Secondary ranges that will be used in some of the subnets | `map(list(object({ range_name = string, ip_cidr_range = string })))` | `{}` | no |
