@@ -6,11 +6,6 @@ It supports creating:
 
 - Subnets within vpc network.
 
-It also uses google beta provider to support the following resource fields:
-
--  google_compute_subnetwork.purpose
--  google_compute_subnetwork.role
-
 ## Usage
 
 Basic usage of this submodule is as follows:
@@ -47,6 +42,7 @@ module "vpc" {
             subnet_flow_logs_interval = "INTERVAL_10_MIN"
             subnet_flow_logs_sampling = 0.7
             subnet_flow_logs_metadata = "INCLUDE_ALL_METADATA"
+            subnet_flow_logs_filter_expr = "true"
         }
     ]
 
@@ -86,10 +82,16 @@ module "vpc" {
 
 The subnets list contains maps, where each object represents a subnet. Each map has the following inputs (please see examples folder for additional references):
 
-| Name | Description | Type | Default | Required |
-|------|-------------|:----:|:-----:|:-----:|
-| subnet\_name | The name of the subnet being created  | string | - | yes |
-| subnet\_ip | The IP and CIDR range of the subnet being created | string | - | yes |
-| subnet\_region | The region where the subnet will be created  | string | - | yes |
-| subnet\_private\_access | Whether this subnet will have private Google access enabled | string | `"false"` | no |
-| subnet\_flow\_logs  | Whether the subnet will record and send flow log data to logging | string | `"false"` | no |
+| Name                         | Description                                                                                                     |  Type  |         Default          | Required |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------- | :----: | :----------------------: | :------: |
+| subnet\_name                 | The name of the subnet being created                                                                            | string |            -             |   yes    |
+| subnet\_ip                   | The IP and CIDR range of the subnet being created                                                               | string |            -             |   yes    |
+| subnet\_region               | The region where the subnet will be created                                                                     | string |            -             |   yes    |
+| subnet\_private\_access      | Whether this subnet will have private Google access enabled                                                     | string |        `"false"`         |    no    |
+| subnet\_flow\_logs           | Whether the subnet will record and send flow log data to logging                                                | string |        `"false"`         |    no    |
+| subnet\_flow\_logs\_interval | If subnet\_flow\_logs is true, sets the aggregation interval for collecting flow logs                           | string |    `"INTERVAL_5_SEC"`    |    no    |
+| subnet\_flow\_logs\_sampling | If subnet\_flow\_logs is true, set the sampling rate of VPC flow logs within the subnetwork                     | string |         `"0.5"`          |    no    |
+| subnet\_flow\_logs\_metadata | If subnet\_flow\_logs is true, configures whether metadata fields should be added to the reported VPC flow logs | string | `"INCLUDE_ALL_METADATA"` |    no    |
+| subnet\_flow\_logs\_filter_expr | Export filter defining which VPC flow logs should be logged, see https://cloud.google.com/vpc/docs/flow-logs#filtering for formatting details  | string | `"true"` |    no    |
+| purpose | The purpose of the subnet usage. Whether it is to be used as a regular subnet or for proxy or loadbalacing purposes, see https://cloud.google.com/vpc/docs/subnets#purpose for more details  | string | `"PRIVATE"` |    no    |
+| role | The role of the subnet when using it as a proxy or loadbalancer network. Whether it is to be used as the active or as a backup subnet, see https://cloud.google.com/load-balancing/docs/proxy-only-subnets#proxy_only_subnet_create for more details  | string |            -             |    no    |
