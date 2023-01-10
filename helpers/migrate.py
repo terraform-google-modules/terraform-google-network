@@ -309,7 +309,7 @@ class TerraformState:
         elif "attributes" in state_resource[0]:
             return state_resource[0]["attributes"][key]
         else:
-            raise "Expected either `attributes_flat` or `attributes` in state resource!"
+            raise "Expected `attributes_flat` or `attributes` in resource!"
 
 
 def group_by_module(resources):
