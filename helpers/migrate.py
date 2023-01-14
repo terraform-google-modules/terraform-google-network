@@ -304,7 +304,12 @@ class TerraformState:
         else:
             state_resource = state_resource_list[0]["instances"]
 
-        return state_resource[0]["attributes_flat"][key]
+        if "attributes_flat" in state_resource[0]:
+            return state_resource[0]["attributes_flat"][key]
+        elif "attributes" in state_resource[0]:
+            return state_resource[0]["attributes"][key]
+        else:
+            raise "Expected `attributes_flat` or `attributes` in resource!"
 
 
 def group_by_module(resources):
