@@ -1,4 +1,4 @@
-# Simple Project
+# Simple IPv6 Project
 
 This example configures a single simple VPC inside of a project.
 

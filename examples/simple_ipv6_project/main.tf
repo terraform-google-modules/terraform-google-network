@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,18 +22,18 @@
 
 # [START vpc_custom_create]
 module "test-vpc-module" {
-  source           = "../../"
-  project_id       = var.project_id # Replace this with your project ID in quotes
-  network_name     = "my-custom-mode-network"
-  mtu              = 1460
-  stack_type       = "IPV4_IPV6"
-  ipv6_access_type = "EXTERNAL"
+  source       = "../../"
+  project_id   = var.project_id # Replace this with your project ID in quotes
+  network_name = "my-custom-mode-network"
+  mtu          = 1460
 
   subnets = [
     {
       subnet_name   = "subnet-01"
       subnet_ip     = "10.10.10.0/24"
       subnet_region = "us-west1"
+      stack         = "IPV4_IPV6"
+      ipv6_type     = "EXTERNAL"
     },
     {
       subnet_name           = "subnet-02"
