@@ -26,11 +26,12 @@ locals {
 	Subnet configuration
  *****************************************/
 resource "google_compute_subnetwork" "subnetwork" {
-  for_each                 = local.subnets
-  name                     = each.value.subnet_name
-  ip_cidr_range            = each.value.subnet_ip
-  region                   = each.value.subnet_region
-  private_ip_google_access = lookup(each.value, "subnet_private_access", "false")
+  for_each                   = local.subnets
+  name                       = each.value.subnet_name
+  ip_cidr_range              = each.value.subnet_ip
+  region                     = each.value.subnet_region
+  private_ip_google_access   = lookup(each.value, "subnet_private_access", "false")
+  private_ipv6_google_access = lookup(each.value, "subnet_private_ipv6_access", null)
   dynamic "log_config" {
     for_each = lookup(each.value, "subnet_flow_logs", false) ? [{
       aggregation_interval = lookup(each.value, "subnet_flow_logs_interval", "INTERVAL_5_SEC")
@@ -59,6 +60,8 @@ resource "google_compute_subnetwork" "subnetwork" {
     var.secondary_ranges[each.value.subnet_name][i]
   ]
 
-  purpose = lookup(each.value, "purpose", null)
-  role    = lookup(each.value, "role", null)
+  purpose          = lookup(each.value, "purpose", null)
+  role             = lookup(each.value, "role", null)
+  stack_type       = lookup(each.value, "stack", null)
+  ipv6_access_type = lookup(each.value, "ipv6_type", null)
 }
