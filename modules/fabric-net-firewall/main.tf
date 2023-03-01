@@ -79,6 +79,7 @@ resource "google_compute_firewall" "allow-tag-ssh" {
     protocol = "tcp"
     ports    = ["22"]
   }
+
 }
 
 resource "google_compute_firewall" "allow-tag-http" {
