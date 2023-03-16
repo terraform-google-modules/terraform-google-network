@@ -32,7 +32,12 @@ variable "rules" {
     description             = string
     direction               = string
     priority                = number
+    # Deprecated; use source_ranges or destination_ranges instead.
+    # For rule of type INGRESS, will be used as source_ranges if not defined.
+    # For rule of type EGRESS, will be used as destination_ranges if not defined.
     ranges                  = list(string)
+    source_ranges           = list(string)
+    destination_ranges      = list(string)
     source_tags             = list(string)
     source_service_accounts = list(string)
     target_tags             = list(string)

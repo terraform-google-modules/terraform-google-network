@@ -21,8 +21,8 @@ resource "google_compute_firewall" "rules" {
   direction               = each.value.direction
   network                 = var.network_name
   project                 = var.project_id
-  source_ranges           = each.value.direction == "INGRESS" ? each.value.ranges : null
-  destination_ranges      = each.value.direction == "EGRESS" ? each.value.ranges : null
+  source_ranges           = coalesce(each.value.source_ranges, each.value.direction == "INGRESS" ? each.value.ranges : null)
+  destination_ranges      = coalesce(each.value.destination_ranges, each.value.direction == "EGRESS" ? each.value.ranges : null)
   source_tags             = each.value.source_tags
   source_service_accounts = each.value.source_service_accounts
   target_tags             = each.value.target_tags
