@@ -29,24 +29,24 @@ variable "rules" {
   default     = []
   type = list(object({
     name                    = string
-    description             = string
-    direction               = string
-    priority                = number
-    ranges                  = list(string)
-    source_tags             = list(string)
-    source_service_accounts = list(string)
-    target_tags             = list(string)
-    target_service_accounts = list(string)
-    allow = list(object({
+    description             = optional(string)
+    direction               = optional(string)
+    priority                = optional(number)
+    ranges                  = optional(list(string))
+    source_tags             = optional(list(string))
+    source_service_accounts = optional(list(string))
+    target_tags             = optional(list(string))
+    target_service_accounts = optional(list(string))
+    allow = optional(list(object({
       protocol = string
-      ports    = list(string)
-    }))
-    deny = list(object({
+      ports    = optional(list(string))
+    })))
+    deny = optional(list(object({
       protocol = string
-      ports    = list(string)
-    }))
-    log_config = object({
+      ports    = optional(list(string))
+    })))
+    log_config = optional(object({
       metadata = string
-    })
+    }))
   }))
 }
