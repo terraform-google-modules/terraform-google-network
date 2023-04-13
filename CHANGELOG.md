@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v6.0.1...v7.0.0) (2023-04-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **TF >= 1.3:** allow optional vars in firewall rules module ([#438](https://github.com/terraform-google-modules/terraform-google-network/issues/438))
+* **TPG >=4.25:** add IPv6 support ([#420](https://github.com/terraform-google-modules/terraform-google-network/issues/420))
+
+### Features
+
+* **TPG >=4.25:** add IPv6 support ([#420](https://github.com/terraform-google-modules/terraform-google-network/issues/420)) ([4470952](https://github.com/terraform-google-modules/terraform-google-network/commit/447095261290c25dae760cabfda5f21d941f0826))
+
+
+### Bug Fixes
+
+* **TF >= 1.3:** allow optional vars in firewall rules module ([#438](https://github.com/terraform-google-modules/terraform-google-network/issues/438)) ([b188d37](https://github.com/terraform-google-modules/terraform-google-network/commit/b188d37aa20a6975b465dde016656e22321b9432))
+
 ## [6.0.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v6.0.0...v6.0.1) (2022-12-30)
 
 
