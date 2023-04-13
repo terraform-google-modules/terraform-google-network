@@ -25,6 +25,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:firewall-rules/v6.0.1"
+    module_name = "blueprints/terraform/terraform-google-network:firewall-rules/v7.0.0"
   }
 }

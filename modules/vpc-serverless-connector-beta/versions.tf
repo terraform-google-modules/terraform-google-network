@@ -24,6 +24,6 @@ terraform {
   }
 
   provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-google-network:vpc-serverless-connector-beta/v6.0.1"
+    module_name = "blueprints/terraform/terraform-google-network:vpc-serverless-connector-beta/v7.0.0"
   }
 }
