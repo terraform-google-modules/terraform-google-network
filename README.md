@@ -12,8 +12,8 @@ Sub modules are provided for creating individual vpc, subnets, and routes. See t
 
 ## Compatibility
 
-This module is meant for use with Terraform 0.13+ and tested using Terraform 1.0+.
-If you find incompatibilities using Terraform `>=0.13`, please open an issue.
+This module is meant for use with Terraform 1.3+ and tested using Terraform 1.4+.
+If you find incompatibilities using Terraform `>=1.3`, please open an issue.
 
 If you haven't [upgraded][terraform-0.13-upgrade] and need a Terraform
 0.12.x-compatible version of this module, the last released version
@@ -165,10 +165,9 @@ The routes list contains maps, where each object represents a route. For the nex
 
 ## Requirements
 ### Installed Software
-- [Terraform](https://www.terraform.io/downloads.html) ~> 0.12.6
-- [Terraform Provider for GCP](https://github.com/terraform-providers/terraform-provider-google) ~> 2.19
-- [Terraform Provider for GCP Beta](https://github.com/terraform-providers/terraform-provider-google-beta) ~>
-  2.19
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.3
+- [Terraform Provider for GCP](https://github.com/terraform-providers/terraform-provider-google) >= 4.25
+- [Terraform Provider for GCP Beta](https://github.com/terraform-providers/terraform-provider-google-beta) >= 4.25
 - [gcloud](https://cloud.google.com/sdk/gcloud/) >243.0.0
 
 ### Configure a Service Account
