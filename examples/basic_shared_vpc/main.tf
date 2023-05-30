@@ -57,7 +57,7 @@ resource "google_compute_address" "internal" {
 resource "google_compute_instance" "reserved_ip" {
   project      = var.service_project
   zone         = "us-central1-a"
-  name         = "reserved-ip"
+  name         = "reserved-ip-instance"
   machine_type = "e2-medium"
   boot_disk {
     initialize_params {
