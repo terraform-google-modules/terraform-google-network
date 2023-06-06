@@ -171,14 +171,9 @@ steps:
     - create all
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'cft test run TestGlobalNetworkFirewallPolicy --stage apply --verbose']
-- id: converge1 global-firewall-policy
-  waitFor:
-    - converge global-firewall-policy
-  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
-  args: ['/bin/bash', '-c', 'cft test run TestGlobalNetworkFirewallPolicy --stage apply --verbose']
 - id: verify global-firewall-policy
   waitFor:
-    - converge1 global-firewall-policy
+    - converge global-firewall-policy
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'cft test run TestGlobalNetworkFirewallPolicy --stage verify --verbose']
 - id: destroy global-firewall-policy
@@ -191,14 +186,9 @@ steps:
     - create all
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'cft test run TestRegionalNetworkFirewallPolicy --stage apply --verbose']
-- id: converge1 regional-firewall-policy
-  waitFor:
-    - converge regional-firewall-policy
-  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
-  args: ['/bin/bash', '-c', 'cft test run TestRegionalNetworkFirewallPolicy --stage apply --verbose']
 - id: verify regional-firewall-policy
   waitFor:
-    - converge1 regional-firewall-policy
+    - converge regional-firewall-policy
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'cft test run TestRegionalNetworkFirewallPolicy --stage verify --verbose']
 - id: destroy regional-firewall-policy

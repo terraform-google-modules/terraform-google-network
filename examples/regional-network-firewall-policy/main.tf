@@ -136,7 +136,7 @@ module "firewal_policy" {
         layer4_configs = [
           {
             ip_protocol = "tcp"
-            port        = ["80"]
+            ports       = ["80"]
           },
         ]
       }
