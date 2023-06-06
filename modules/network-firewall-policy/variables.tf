@@ -47,7 +47,7 @@ variable "policy_region" {
 }
 
 variable "rules" {
-  description = "List of ingress/egress rules"
+  description = "List of Ingress/Egress rules"
   type = list(object({
     priority                = number
     direction               = string
@@ -76,4 +76,11 @@ variable "rules" {
     })
   }))
   default = []
+  validation {
+    condition = alltrue(
+      [for v in var.rules : !(length(coalesce(v.target_secure_tags, [])) > 0 && length(coalesce(v.target_service_accounts, [])) > 0)]
+    )
+    error_message = "target_secure_tags may not be set at the same time as target_service_accounts"
+  }
+
 }

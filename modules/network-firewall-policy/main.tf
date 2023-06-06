@@ -16,20 +16,21 @@
 
 locals {
   prefix = var.policy_region == null ? var.policy_name : "${var.policy_name}-${var.policy_region}"
+  global = var.policy_region == null
 }
 
 ########## Global ##########
 
 
 resource "google_compute_network_firewall_policy" "fw_policy" {
-  count       = var.policy_region == null ? 1 : 0
+  count       = local.global ? 1 : 0
   name        = var.policy_name
   project     = var.project_id
   description = var.description
 }
 
 resource "google_compute_network_firewall_policy_association" "vpc_associations" {
-  for_each          = var.policy_region == null && length(var.target_vpcs) > 0 ? { for x in var.target_vpcs : base64encode(x) => x } : {}
+  for_each          = local.global && length(var.target_vpcs) > 0 ? { for x in var.target_vpcs : base64encode(x) => x } : {}
   name              = local.prefix
   attachment_target = each.value
   firewall_policy   = google_compute_network_firewall_policy.fw_policy[0].name
@@ -39,7 +40,7 @@ resource "google_compute_network_firewall_policy_association" "vpc_associations"
 resource "google_compute_network_firewall_policy_rule" "rules" {
   provider = google-beta
 
-  for_each                = var.policy_region == null ? { for x in var.rules : x.priority => x } : {}
+  for_each                = local.global ? { for x in var.rules : x.priority => x } : {}
   priority                = each.key
   project                 = var.project_id
   action                  = each.value.action
@@ -94,7 +95,7 @@ resource "google_compute_network_firewall_policy_rule" "rules" {
 ########## Regional ##########
 
 resource "google_compute_region_network_firewall_policy" "fw_policy" {
-  count       = var.policy_region == null ? 0 : 1
+  count       = local.global ? 0 : 1
   name        = var.policy_name
   project     = var.project_id
   description = var.description
@@ -102,7 +103,7 @@ resource "google_compute_region_network_firewall_policy" "fw_policy" {
 }
 
 resource "google_compute_region_network_firewall_policy_association" "vpc_associations" {
-  for_each          = var.policy_region != null && length(var.target_vpcs) > 0 ? { for x in var.target_vpcs : base64encode(x) => x } : {}
+  for_each          = !local.global && length(var.target_vpcs) > 0 ? { for x in var.target_vpcs : base64encode(x) => x } : {}
   name              = local.prefix
   attachment_target = each.value
   firewall_policy   = google_compute_region_network_firewall_policy.fw_policy[0].name
@@ -113,7 +114,7 @@ resource "google_compute_region_network_firewall_policy_association" "vpc_associ
 resource "google_compute_region_network_firewall_policy_rule" "rules" {
   provider = google-beta
 
-  for_each                = var.policy_region != null ? { for x in var.rules : x.priority => x } : {}
+  for_each                = local.global ? {} : { for x in var.rules : x.priority => x }
   region                  = var.policy_region
   priority                = each.key
   project                 = var.project_id
