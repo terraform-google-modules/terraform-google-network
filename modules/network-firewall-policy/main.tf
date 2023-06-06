@@ -21,7 +21,6 @@ locals {
 
 ########## Global ##########
 
-
 resource "google_compute_network_firewall_policy" "fw_policy" {
   count       = local.global ? 1 : 0
   name        = var.policy_name
