@@ -15,6 +15,7 @@ This example creates a VPC network, Service Account, tag, address group and 2 `g
 |------|-------------|
 | firewal\_policy | Firewall policy created |
 | firewal\_policy\_no\_rules | Firewall policy created without any rules and association |
+| firewal\_policy\_no\_rules\_name | Name of Firewall policy created without any rules and association |
 | firewal\_policy\_rules | Firewall policy rules created |
 | firewal\_policy\_vpc\_associations | Firewall policy vpc association |
 | firewall\_policy\_name | Firewall policy name |

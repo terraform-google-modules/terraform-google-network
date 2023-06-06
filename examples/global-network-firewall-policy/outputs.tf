@@ -43,3 +43,8 @@ output "firewal_policy_no_rules" {
   value       = module.firewal_policy_no_rule.fw_policy[0]
   description = "Firewall policy created without any rules and association"
 }
+
+output "firewal_policy_no_rules_name" {
+  value       = module.firewal_policy_no_rule.fw_policy[0].name
+  description = "Name of Firewall policy created without any rules and association"
+}

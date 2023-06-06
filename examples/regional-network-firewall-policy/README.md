@@ -15,10 +15,12 @@ This example creates a VPC network, Service Account, tag, address group and 2 `r
 |------|-------------|
 | firewal\_policy | Firewall policy created |
 | firewal\_policy\_no\_rules | Firewall policy created without any rules and association |
+| firewal\_policy\_no\_rules\_name | Firewall policy name |
+| firewal\_policy\_no\_rules\_region | Firewall policy region |
 | firewal\_policy\_rules | Firewall policy rules created |
 | firewal\_policy\_vpc\_associations | Firewall policy vpc association |
 | firewall\_policy\_name | Firewall policy name |
-| firewall\_policy\_region | Firewall policy name |
+| firewall\_policy\_region | Firewall policy region |
 | project\_id | Firewall policy project ID |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
