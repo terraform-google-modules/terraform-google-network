@@ -35,6 +35,7 @@ module "firewall_rules" {
   target_vpcs  = [var.vpc1_id, var.vpc2_id]
 
   rules = [
+
     {
       priority       = "1"
       direction      = "INGRESS"
@@ -56,6 +57,7 @@ module "firewall_rules" {
         ]
       }
     },
+
     {
       priority                = "3"
       direction               = "INGRESS"
@@ -76,6 +78,7 @@ module "firewall_rules" {
         ]
       }
     },
+
     {
       priority       = "101"
       direction      = "EGRESS"
@@ -96,6 +99,7 @@ module "firewall_rules" {
         ]
       }
     },
+
     {
       priority                = "103"
       direction               = "EGRESS"
@@ -117,6 +121,7 @@ module "firewall_rules" {
     },
 
   ]
+
 }
 ```
 
