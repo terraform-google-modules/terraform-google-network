@@ -3,6 +3,7 @@
 This module allows creation of [Global](https://cloud.google.com/firewall/docs/network-firewall-policies) and [Regional](https://cloud.google.com/firewall/docs/regional-firewall-policies) Network Firewall Policy and [Rules](https://cloud.google.com/firewall/docs/firewall-policies-rule-details). It can also attach network firewall policy to multiple VPCs. Module will create a `Global` network firewall policy if a value is provided for the variable `policy_region`, otherwise a `Regional` network firewall policy will be created. Module can create both [Cloud Firewall Essentials](https://cloud.google.com/firewall/docs/about-firewalls#firewall-essentials) and [Cloud Firewall Standard](https://cloud.google.com/firewall/docs/about-firewalls#firewall-standard) tier rules. Firewall Rules and Target VPC attachment is optional.
 
 ##  Module Format
+
 Variable `rules` details are available [here](#firwall-policy-rules-format). High level format of this module is as follows:
 
 ```
@@ -160,6 +161,7 @@ In a [firewall policy rule](https://cloud.google.com/firewall/docs/firewall-poli
   - `ports`: An optional list of ports to which this rule applies. Field is only applicable for UDP or TCP protocol. Each entry must be either an integer or a range. If not specified, this rule applies to connections through any port.
 
 ### Format
+
 ```
   {
     priority                = 1
