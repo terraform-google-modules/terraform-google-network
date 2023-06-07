@@ -21,7 +21,9 @@ locals {
     "roles/iam.serviceAccountUser",
     "roles/vpcaccess.admin",
     "roles/serviceusage.serviceUsageAdmin",
-    "roles/dns.admin"
+    "roles/dns.admin",
+    "roles/resourcemanager.tagAdmin",
+    "roles/iam.serviceAccountAdmin",
   ]
 }
 

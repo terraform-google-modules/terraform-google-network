@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2023 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,21 @@
  * limitations under the License.
  */
 
-module "project" {
-  source  = "terraform-google-modules/project-factory/google"
-  version = "~> 14.0"
+terraform {
+  required_version = ">= 1.3.0"
 
-  name              = "ci-network"
-  random_project_id = "true"
-  org_id            = var.org_id
-  folder_id         = var.folder_id
-  billing_account   = var.billing_account
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 4.64, < 5.0"
+    }
+    google-beta = {
+      source  = "hashicorp/google-beta"
+      version = ">= 4.64, < 5.0"
+    }
+  }
 
-  activate_apis = [
-    "cloudresourcemanager.googleapis.com",
-    "compute.googleapis.com",
-    "serviceusage.googleapis.com",
-    "vpcaccess.googleapis.com",
-    "dns.googleapis.com",
-    "networksecurity.googleapis.com",
-    "iam.googleapis.com",
-  ]
+  provider_meta "google" {
+    module_name = "blueprints/terraform/terraform-google-network:firewall-policy/v7.0.0"
+  }
 }
