@@ -88,3 +88,9 @@ output "route_names" {
   value       = [for route in module.routes.routes : route.name]
   description = "The route names associated with this VPC"
 }
+
+# Custom output added - GB
+output "subnets_ips_v6" {
+  value       = [for network in module.subnets.subnets : network.external_ipv6_prefix]
+  description = "The IPs and CIDRs of the subnets being created (v6)"
+}
