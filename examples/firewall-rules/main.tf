@@ -21,7 +21,7 @@ locals {
   custom_rules = [
     // Example of custom tcp/udp rule
     {
-      name        = "deny-ingress-6534-6566"
+      name        = "fwtest-deny-ingress-6534-6566"
       description = "Deny all INGRESS to port 6534-6566"
       direction   = "INGRESS"
       ranges      = ["0.0.0.0/0"]
@@ -37,7 +37,7 @@ locals {
     },
 
     {
-      name        = "deny-egress-6534-6566"
+      name        = "fwtest-deny-egress-6534-6566"
       description = "Deny all EGRESS to 47.189.12.139/32 port 6534-6566"
       direction   = "EGRESS"
       ranges      = ["47.189.12.139/32"]
@@ -54,7 +54,7 @@ locals {
 
     // Example how to allow connection from instances with `backend` tag, to instances with `databases` tag
     {
-      name        = "allow-backend-to-databases"
+      name        = "fwtest-allow-backend-to-databases"
       description = "Allow backend nodes connection to databases instances"
       direction   = "INGRESS"
       target_tags = ["databases"] # target_tags
@@ -68,7 +68,7 @@ locals {
 
     // Example how to allow connection from an instance with a given service account
     {
-      name                    = "allow-all-admin-sa"
+      name                    = "fwtest-allow-all-admin-sa"
       description             = "Allow all traffic from admin sa instances"
       direction               = "INGRESS"
       source_service_accounts = ["admin@my-shiny-org.iam.gserviceaccount.com"]
@@ -85,7 +85,7 @@ locals {
 
     // Example how to allow connection from an source range to destination ranges
     {
-      name               = "allow-ssh-ingress"
+      name               = "fwtest-allow-ssh-ingress"
       description        = "Allow all traffic from 10.0.0.0/24 to 10.1.0.0/24"
       direction          = "INGRESS"
       ranges             = null
@@ -97,7 +97,7 @@ locals {
       }]
     },
     {
-      name               = "deny-ssh-egress"
+      name               = "fwtest-deny-ssh-egress"
       description        = "Deny all traffic from 10.4.0.0/24 to 10.3.0.0/24"
       direction          = "EGRESS"
       ranges             = null
@@ -135,102 +135,10 @@ module "test-vpc-module" {
   ]
 }
 
-// Custom firewall rules
-# locals {
-#   custom_rules = [
-#     // Example of custom tcp/udp rule
-#     {
-#       name                    = "deny-ingress-6534-6566"
-#       description             = "Deny all INGRESS to port 6534-6566"
-#       direction               = "INGRESS"
-#       ranges                  = ["0.0.0.0/0"]
-#       source_service_accounts = false # if `true` targets/sources expect list of instances SA, if false - list of tags
-#       deny = [{
-#         protocol = "tcp"
-#         ports    = ["6534-6566"]
-#         },
-#         {
-#           protocol = "udp"
-#           ports    = ["6534-6566"]
-#       }]
-
-#     },
-
-#     // Example how to allow connection from instances with `backend` tag, to instances with `databases` tag
-#     {
-#       name        = "allow-backend-to-databases"
-#       description = "Allow backend nodes connection to databases instances"
-#       direction   = "INGRESS"
-#       target_tags = ["databases"] # target_tags
-#       source_tags = ["backed"]    # source_tags
-#       allow = [{
-#         protocol = "tcp"
-#         ports    = ["3306", "5432", "1521", "1433"]
-#       }]
-
-#     },
-
-#     // Example how to allow connection from an instance with a given service account
-#     {
-#       name                    = "allow-all-admin-sa"
-#       description             = "Allow all traffic from admin sa instances"
-#       direction               = "INGRESS"
-#       source_service_accounts = ["admin@my-shiny-org.iam.gserviceaccount.com"]
-#       allow = [{
-#         protocol = "tcp"
-#         ports    = null # all ports
-#         },
-#         {
-#           protocol = "udp"
-#           ports    = null # all ports
-#         }
-#       ]
-#     },
-
-#     // Example how to allow connection from an source range to destination ranges
-#     {
-#       name               = "allow-all-admin-sa"
-#       description        = "Allow all traffic from admin sa instances"
-#       direction          = "INGRESS"
-#       destination_ranges = ["10.0.0.0/24"]
-#       source_ranges      = ["10.1.0.0/24"]
-#       allow = [{
-#         protocol = "tcp"
-#         ports    = null # all ports
-#         },
-#         {
-#           protocol = "udp"
-#           ports    = null # all ports
-#         }
-#       ]
-#     },
-
-
-#   ]
-
-# }
-
-
 
 module "test-firewall-submodule" {
   source       = "../../modules/firewall-rules"
   project_id   = var.project_id
   network_name = module.test-vpc-module.network_name
-  # internal_ranges_enabled = true
-  # internal_ranges         = module.test-vpc-module.subnets_ips
-
-  # internal_allow = [
-  #   {
-  #     protocol = "icmp"
-  #   },
-  #   {
-  #     protocol = "tcp",
-  #     ports    = ["8080", "1000-2000"]
-  #   },
-  #   {
-  #     protocol = "udp"
-  #     # all ports will be opened if `ports` key isn't specified
-  #   },
-  # ]
-  rules = local.custom_rules
+  rules        = local.custom_rules
 }
