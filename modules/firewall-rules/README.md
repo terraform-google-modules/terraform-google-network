@@ -4,7 +4,7 @@ This module allows creation of custom VPC firewall rules.
 
 ## Usage
 
-Basic usage of this module is as follows:
+Variable `rules` details are available [here](#rules). Basic usage of this module is as follows:
 
 ```hcl
 module "firewall_rules" {
@@ -17,7 +17,8 @@ module "firewall_rules" {
     description             = null
     direction               = "INGRESS"
     priority                = null
-    ranges                  = ["0.0.0.0/0"]
+    destination_ranges      = ["10.0.0.0/8"]
+    source_ranges           = ["0.0.0.0/0"]
     source_tags             = null
     source_service_accounts = null
     target_tags             = null
@@ -41,7 +42,7 @@ module "firewall_rules" {
 |------|-------------|------|---------|:--------:|
 | network\_name | Name of the network this set of firewall rules applies to. | `string` | n/a | yes |
 | project\_id | Project id of the project that holds the network. | `string` | n/a | yes |
-| rules | List of custom rule definitions (refer to variables file for syntax). | <pre>list(object({<br>    name                    = string<br>    description             = optional(string)<br>    direction               = optional(string)<br>    priority                = optional(number)<br>    ranges                  = optional(list(string))<br>    source_tags             = optional(list(string))<br>    source_service_accounts = optional(list(string))<br>    target_tags             = optional(list(string))<br>    target_service_accounts = optional(list(string))<br>    allow = optional(list(object({<br>      protocol = string<br>      ports    = optional(list(string))<br>    })))<br>    deny = optional(list(object({<br>      protocol = string<br>      ports    = optional(list(string))<br>    })))<br>    log_config = optional(object({<br>      metadata = string<br>    }))<br>  }))</pre> | `[]` | no |
+| rules | List of custom rule definitions | <pre>list(object({<br>    name                    = string<br>    description             = optional(string, null)<br>    direction               = optional(string, "INGRESS")<br>    priority                = optional(number, null)<br>    ranges                  = optional(list(string), [])<br>    destination_ranges      = optional(list(string), [])<br>    source_ranges           = optional(list(string), [])<br>    source_tags             = optional(list(string))<br>    source_service_accounts = optional(list(string))<br>    target_tags             = optional(list(string))<br>    target_service_accounts = optional(list(string))<br><br>    allow = optional(list(object({<br>      protocol = string<br>      ports    = optional(list(string))<br>    })), [])<br>    deny = optional(list(object({<br>      protocol = string<br>      ports    = optional(list(string))<br>    })), [])<br>    log_config = optional(object({<br>      metadata = string<br>    }))<br>  }))</pre> | `[]` | no |
 
 ## Outputs
 
@@ -50,3 +51,14 @@ module "firewall_rules" {
 | firewall\_rules | The created firewall rule resources |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
+
+## rules
+In a [firewall rule](https://cloud.google.com/firewall/docs/firewalls), you specify a set of components that define what the rule does. Some of the values are optional and some have default value. See [Inputs](#Inputs). For sample code check [firewall rule](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/submodule_firewall) in [examples](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples) folder. `ranges` may not be set at the same time as `destination_ranges` OR `source_ranges` otherwise module will generate an error message `ranges may not be set at the same time as destination_ranges OR source_ranges`
+
+- `ranges`: IP address range. This may not be set at the same time as `destination_ranges` OR `source_ranges`.
+- `source_ranges`: (Optional) If source ranges are specified, the firewall will apply only to traffic that has source IP address in these ranges. These ranges must be expressed in CIDR format. `source_ranges` may not be set at the same time as `ranges`
+- `destination_ranges`: (Optional) If destination ranges are specified, the firewall will apply only to traffic that has destination IP address in these ranges. These ranges must be expressed in CIDR format. `destination_ranges` may not be set at the same time as `ranges`
+- `name`: (Required) Name of the resource. Provided by the client when the resource is created. The name must be 1-63 characters long, the first character must be a lowercase letter, and all following characters must be a dash, lowercase letter, or digit, except the last character, which cannot be a dash.
+- `description`: (Optional) An optional description of this resource. Provide this property when you create the resource
+- `direction`: (Optional) Direction of traffic to which this firewall applies; default is INGRESS
+- `priority`: (Optional) Priority for this rule. This is an integer between 0 and 65535, both inclusive. When not specified, the value assumed is 1000
