@@ -24,7 +24,7 @@ module "firewall_rules" {
 
 ## Usage
 
-There are examples included for [global](https://github.com/terraform-google-modules/terraform-google-lb-http/tree/master/examples/global-network-firewall-policy) and [regional](https://github.com/terraform-google-modules/terraform-google-lb-http/tree/master/examples/regional-network-firewall-policy) firewall policies in the [examples](https://github.com/terraform-google-modules/terraform-google-lb-http/tree/master/examples/) folder. Basic usage of this module is as follows:
+There are examples included for [global](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/global-network-firewall-policy) and [regional](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/regional-network-firewall-policy) firewall policies in the [examples](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/) folder. Basic usage of this module is as follows:
 
 ```hcl
 module "firewall_rules" {
@@ -150,7 +150,7 @@ module "firewall_rules" {
 
 ## Firwall Policy Rules Format
 
-In a [firewall policy rule](https://cloud.google.com/firewall/docs/firewall-policies-rule-details), you specify a set of components that define what the rule does. Some of the values are optional and some have default value. See [Inputs](#Inputs). For sample code check [global](https://github.com/terraform-google-modules/terraform-google-lb-http/tree/master/examples/global-network-firewall-policy) and [regional](https://github.com/terraform-google-modules/terraform-google-lb-http/tree/master/examples/regional-network-firewall-policy) in [examples](https://github.com/terraform-google-modules/terraform-google-lb-http/tree/master/examples/) folder.
+In a [firewall policy rule](https://cloud.google.com/firewall/docs/firewall-policies-rule-details), you specify a set of components that define what the rule does. Some of the values are optional and some have default value. See [Inputs](#Inputs). For sample code check [global](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/global-network-firewall-policy) and [regional](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/regional-network-firewall-policy) in [examples](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/) folder.
 
 - `priority`: An integer indicating the priority of a rule in the list. The `priority` must be a positive value between 0 and 2147483647 and It has to be unique for every rule.
 - `dest_fqdns`, `dest_region_codes`, `dest_threat_intelligences` and `dest_address_groups` values are not needed and ignored by the this for `INGRESS` policies.
