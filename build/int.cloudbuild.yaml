@@ -196,6 +196,21 @@ steps:
     - verify regional-firewall-policy
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'cft test run TestRegionalNetworkFirewallPolicy --stage teardown --verbose']
+- id: converge firewall-rule
+  waitFor:
+    - create all
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestAll/examples/bidirectional-firewall-rules --stage apply --verbose']
+- id: verify firewall-rule
+  waitFor:
+    - converge firewall-rule
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestAll/examples/bidirectional-firewall-rules --stage verify --verbose']
+- id: destroy firewall-rule
+  waitFor:
+    - verify firewall-rule
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestAll/examples/bidirectional-firewall-rules --stage teardown --verbose']
 tags:
 - 'ci'
 - 'integration'
