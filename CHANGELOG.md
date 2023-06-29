@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.0.0...v7.1.0) (2023-06-27)
+
+
+### Features
+
+* add destination_ranges and source_ranges in firewall rules ([#464](https://github.com/terraform-google-modules/terraform-google-network/issues/464)) ([83a7e85](https://github.com/terraform-google-modules/terraform-google-network/commit/83a7e85ec0085309d41e103d959eecf17c7a6b14))
+* added network firewall policy sub-module ([#453](https://github.com/terraform-google-modules/terraform-google-network/issues/453)) ([7b197c6](https://github.com/terraform-google-modules/terraform-google-network/commit/7b197c6448c13bb5664f7865d42890b8d2fba7e1))
+
 ## [7.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v6.0.1...v7.0.0) (2023-04-13)
 
 
