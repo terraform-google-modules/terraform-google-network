@@ -23,6 +23,6 @@ Subnet-level access in this example is only granted to the default GCE service a
 
 ## Outputs
 
-No output.
+No outputs.
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
