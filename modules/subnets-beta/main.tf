@@ -62,8 +62,10 @@ resource "google_compute_subnetwork" "subnetwork" {
     var.secondary_ranges[each.value.subnet_name][i]
   ]
 
-  purpose = lookup(each.value, "purpose", null)
-  role    = lookup(each.value, "role", null)
+  purpose          = lookup(each.value, "purpose", null)
+  role             = lookup(each.value, "role", null)
+  stack_type       = lookup(each.value, "stack", null)
+  ipv6_access_type = lookup(each.value, "ipv6_type", null)
 
   depends_on = [var.module_depends_on]
 }
