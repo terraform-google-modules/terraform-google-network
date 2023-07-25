@@ -59,3 +59,15 @@ variable "mtu" {
   description = "The network MTU (If set to 0, meaning MTU is unset - defaults to '1460'). Recommended values: 1460 (default for historic reasons), 1500 (Internet default), or 8896 (for Jumbo packets). Allowed are all values in the range 1300 to 8896, inclusively."
   default     = 0
 }
+
+variable "enable_ipv6_ula" {
+  type        = bool
+  description = "Enabled IPv6 ULA, this is a permenant change and cannot be undone! (default 'false')"
+  default     = false
+}
+
+variable "internal_ipv6_range" {
+  type        = string
+  default     = null
+  description = "When enabling IPv6 ULA, optionally, specify a /48 from fd20::/20 (default null)"
+}
