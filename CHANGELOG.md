@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.2.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.1.0...v7.2.0) (2023-07-25)
+
+
+### Features
+
+* Add IPv6 ULA support and document subnet ipv6 support ([#466](https://github.com/terraform-google-modules/terraform-google-network/issues/466)) ([eb9d9fb](https://github.com/terraform-google-modules/terraform-google-network/commit/eb9d9fba67777ae3f0f20ac425789bc6489634c6))
+* add metadata_fields support ([#467](https://github.com/terraform-google-modules/terraform-google-network/issues/467)) ([f311cba](https://github.com/terraform-google-modules/terraform-google-network/commit/f311cba5b0689c84882ac7ae225b15e612371c6c))
+
 ## [7.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.0.0...v7.1.0) (2023-06-27)
 
 
