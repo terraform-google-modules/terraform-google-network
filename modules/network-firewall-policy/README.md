@@ -9,7 +9,7 @@ Variable `rules` details are available [here](#firwall-policy-rules-format). Hig
 ```
 module "firewall_rules" {
   source       = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version      = "~> 8.0"
+  version      = "~> 7.0"
   project_id   = var.project_id
   policy_name  = "my-firewall-policy"
   description  = "Test firewall policy"
@@ -173,7 +173,7 @@ In a [firewall policy rule](https://cloud.google.com/firewall/docs/firewall-poli
     enable_logging          = true
     target_secure_tags      = ["tagValues/${google_tags_tag_value.tag_value.name}",]
     target_service_accounts = ["fw-test-svc-acct@$my-project-id.iam.gserviceaccount.com"]
-    match = object({
+    match = {
       src_ip_ranges             = ["10.100.0.2"]
       src_fqdns                 = []
       src_region_codes          = []
