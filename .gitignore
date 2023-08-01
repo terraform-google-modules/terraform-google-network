@@ -46,3 +46,4 @@ crash.log
 test/fixtures/shared/terraform.tfvars
 
 credentials.json
+.idea
