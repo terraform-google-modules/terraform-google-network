@@ -116,6 +116,8 @@ Then perform the following commands on the root folder:
 
 | Name | Description |
 |------|-------------|
+| egress\_rules | n/a |
+| ingress\_rules | n/a |
 | network | The created network |
 | network\_id | The ID of the VPC being created |
 | network\_name | The name of the VPC being created |

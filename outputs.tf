@@ -88,3 +88,11 @@ output "route_names" {
   value       = [for route in module.routes.routes : route.name]
   description = "The route names associated with this VPC"
 }
+
+
+output "ingress_rules" {
+  value = local.ingress_rules
+}
+output "egress_rules" {
+  value = local.egress_rules
+}

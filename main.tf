@@ -55,13 +55,14 @@ module "routes" {
 	Firewall rules
  *****************************************/
 locals {
-  rules = [
+  ingress_rules = [
     for f in var.firewall_rules : {
       name                    = f.name
       direction               = f.direction
       priority                = lookup(f, "priority", null)
       description             = lookup(f, "description", null)
-      ranges                  = lookup(f, "ranges", null)
+      source_ranges           = lookup(f, "source_ranges", null)
+      destination_ranges      = lookup(f, "destination_ranges", null)
       source_tags             = lookup(f, "source_tags", null)
       source_service_accounts = lookup(f, "source_service_accounts", null)
       target_tags             = lookup(f, "target_tags", null)
@@ -69,13 +70,31 @@ locals {
       allow                   = lookup(f, "allow", [])
       deny                    = lookup(f, "deny", [])
       log_config              = lookup(f, "log_config", null)
-    }
+    } if f.direction == "INGRESS"
+  ]
+  egress_rules = [
+    for f in var.firewall_rules : {
+      name                    = f.name
+      direction               = f.direction
+      priority                = lookup(f, "priority", null)
+      description             = lookup(f, "description", null)
+      source_ranges           = lookup(f, "source_ranges", null)
+      destination_ranges      = lookup(f, "destination_ranges", null)
+      source_tags             = lookup(f, "source_tags", null)
+      source_service_accounts = lookup(f, "source_service_accounts", null)
+      target_tags             = lookup(f, "target_tags", null)
+      target_service_accounts = lookup(f, "target_service_accounts", null)
+      allow                   = lookup(f, "allow", [])
+      deny                    = lookup(f, "deny", [])
+      log_config              = lookup(f, "log_config", null)
+    } if f.direction == "EGRESS"
   ]
 }
 
 module "firewall_rules" {
-  source       = "./modules/firewall-rules"
-  project_id   = var.project_id
-  network_name = module.vpc.network_name
-  rules        = local.rules
+  source        = "./modules/firewall-rules"
+  project_id    = var.project_id
+  network_name  = module.vpc.network_name
+  ingress_rules = local.ingress_rules
+  egress_rules  = local.egress_rules
 }
