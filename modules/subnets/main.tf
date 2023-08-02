@@ -26,6 +26,7 @@ locals {
 	Subnet configuration
  *****************************************/
 resource "google_compute_subnetwork" "subnetwork" {
+
   for_each                   = local.subnets
   name                       = each.value.subnet_name
   ip_cidr_range              = each.value.subnet_ip
@@ -45,7 +46,7 @@ resource "google_compute_subnetwork" "subnetwork" {
       flow_sampling        = log_config.value.flow_sampling
       metadata             = log_config.value.metadata
       filter_expr          = log_config.value.filter_expr
-      metadata_fields      = log_config.value.metadata_fields
+      metadata_fields      = log_config.value.metadata == "CUSTOM_METADATA" ? log_config.value.metadata_fields : null
     }
   }
   network     = var.network_name
@@ -64,6 +65,6 @@ resource "google_compute_subnetwork" "subnetwork" {
 
   purpose          = lookup(each.value, "purpose", null)
   role             = lookup(each.value, "role", null)
-  stack_type       = lookup(each.value, "stack", null)
-  ipv6_access_type = lookup(each.value, "ipv6_type", null)
+  stack_type       = lookup(each.value, "stack_type", null)
+  ipv6_access_type = lookup(each.value, "ipv6_access_type", null)
 }
