@@ -30,7 +30,7 @@ resource "google_compute_network_firewall_policy" "fw_policy" {
 
 resource "google_compute_network_firewall_policy_association" "vpc_associations" {
   for_each          = local.global && length(var.target_vpcs) > 0 ? { for x in var.target_vpcs : base64encode(x) => x } : {}
-  name              = local.prefix
+  name              = "${local.prefix}-${element(split("/", each.value), length(split("/", each.value)) - 1)}"
   attachment_target = each.value
   firewall_policy   = google_compute_network_firewall_policy.fw_policy[0].name
   project           = var.project_id
@@ -103,7 +103,7 @@ resource "google_compute_region_network_firewall_policy" "fw_policy" {
 
 resource "google_compute_region_network_firewall_policy_association" "vpc_associations" {
   for_each          = !local.global && length(var.target_vpcs) > 0 ? { for x in var.target_vpcs : base64encode(x) => x } : {}
-  name              = local.prefix
+  name              = "${local.prefix}-${element(split("/", each.value), length(split("/", each.value)) - 1)}"
   attachment_target = each.value
   firewall_policy   = google_compute_region_network_firewall_policy.fw_policy[0].name
   project           = var.project_id

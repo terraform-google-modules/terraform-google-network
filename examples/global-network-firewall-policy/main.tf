@@ -34,6 +34,11 @@ resource "google_compute_network" "network" {
   name    = "${local.prefix}-network"
 }
 
+resource "google_compute_network" "network_backup" {
+  project = var.project_id
+  name    = "${local.prefix}-network-backup"
+}
+
 resource "google_tags_tag_key" "tag_key" {
 
   description = "For keyname resources."
@@ -74,7 +79,10 @@ module "firewal_policy" {
   project_id  = var.project_id
   policy_name = "${local.prefix}-firewall-policy-${random_string.random_suffix.result}"
   description = "test ${local.prefix} firewall policy"
-  target_vpcs = ["projects/${var.project_id}/global/networks/${local.prefix}-network"]
+  target_vpcs = [
+    "projects/${var.project_id}/global/networks/${local.prefix}-network",
+    "projects/${var.project_id}/global/networks/${local.prefix}-network-backup",
+  ]
 
   rules = [
     {
