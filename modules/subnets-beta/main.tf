@@ -26,12 +26,13 @@ locals {
 	Subnet configuration
  *****************************************/
 resource "google_compute_subnetwork" "subnetwork" {
-  provider                 = google-beta
-  for_each                 = local.subnets
-  name                     = each.value.subnet_name
-  ip_cidr_range            = each.value.subnet_ip
-  region                   = each.value.subnet_region
-  private_ip_google_access = lookup(each.value, "subnet_private_access", "false")
+  provider                   = google-beta
+  for_each                   = local.subnets
+  name                       = each.value.subnet_name
+  ip_cidr_range              = each.value.subnet_ip
+  region                     = each.value.subnet_region
+  private_ip_google_access   = lookup(each.value, "subnet_private_access", "false")
+  private_ipv6_google_access = lookup(each.value, "subnet_private_ipv6_access", null)
   dynamic "log_config" {
     for_each = coalesce(lookup(each.value, "subnet_flow_logs", null), false) ? [{
       aggregation_interval = each.value.subnet_flow_logs_interval
@@ -45,7 +46,7 @@ resource "google_compute_subnetwork" "subnetwork" {
       flow_sampling        = log_config.value.flow_sampling
       metadata             = log_config.value.metadata
       filter_expr          = log_config.value.filter_expr
-      metadata_fields      = log_config.value.metadata_fields
+      metadata_fields      = log_config.value.metadata == "CUSTOM_METADATA" ? log_config.value.metadata_fields : null
     }
   }
   network     = var.network_name
@@ -64,8 +65,8 @@ resource "google_compute_subnetwork" "subnetwork" {
 
   purpose          = lookup(each.value, "purpose", null)
   role             = lookup(each.value, "role", null)
-  stack_type       = lookup(each.value, "stack", null)
-  ipv6_access_type = lookup(each.value, "ipv6_type", null)
+  stack_type       = lookup(each.value, "stack_type", null)
+  ipv6_access_type = lookup(each.value, "ipv6_access_type", null)
 
   depends_on = [var.module_depends_on]
 }

@@ -50,6 +50,10 @@ variable "subnets" {
     subnet_flow_logs_filter          = optional(string)
     subnet_flow_logs_metadata_fields = optional(list(string))
     description                      = optional(string)
+    purpose                          = optional(string)
+    role                             = optional(string)
+    stack_type                       = optional(string)
+    ipv6_access_type                 = optional(string)
   }))
   description = "The list of subnets being created"
 }
