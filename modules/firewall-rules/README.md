@@ -51,6 +51,7 @@ module "firewall_rules" {
 | Name | Description |
 |------|-------------|
 | firewall\_rules | The created firewall rule resources |
+| firewall\_rules\_ingress\_egress | The created firewall ingress/egress rule resources |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 
