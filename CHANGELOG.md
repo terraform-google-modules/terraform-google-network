@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.3.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.2.0...v7.3.0) (2023-08-09)
+
+
+### Features
+
+* add ingress and egress firewall rules to main module ([#485](https://github.com/terraform-google-modules/terraform-google-network/issues/485)) ([663f1d8](https://github.com/terraform-google-modules/terraform-google-network/commit/663f1d892ce4dd74b46b7a69767eb29731882e0d))
+
+
+### Bug Fixes
+
+* added missing variables ([#481](https://github.com/terraform-google-modules/terraform-google-network/issues/481)) ([71a1177](https://github.com/terraform-google-modules/terraform-google-network/commit/71a11777cb5c432459ae0cdca2bc625c5c513651))
+* network attachment error in firewall policy sub-module ([#478](https://github.com/terraform-google-modules/terraform-google-network/issues/478)) ([2dde9d8](https://github.com/terraform-google-modules/terraform-google-network/commit/2dde9d83cba253148a37621cfbe69d2a1f2b9a14))
+
 ## [7.2.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.1.0...v7.2.0) (2023-07-25)
 
 
