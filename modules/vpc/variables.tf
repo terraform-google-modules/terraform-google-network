@@ -71,3 +71,9 @@ variable "internal_ipv6_range" {
   default     = null
   description = "When enabling IPv6 ULA, optionally, specify a /48 from fd20::/20 (default null)"
 }
+
+variable "firewall_policy_enforcement_order" {
+  type        = string
+  default     = null
+  description = "Set the order that Firewall Rules and Firewall Policies are evaluated. Valid values are `BEFORE_CLASSIC_FIREWALL` and `AFTER_CLASSIC_FIREWALL`. (default null or equivalent to `AFTER_CLASSIC_FIREWALL`)"
+}

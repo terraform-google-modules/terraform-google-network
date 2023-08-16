@@ -27,6 +27,7 @@ module "vpc" {
   shared_vpc_host                        = var.shared_vpc_host
   delete_default_internet_gateway_routes = var.delete_default_internet_gateway_routes
   mtu                                    = var.mtu
+  firewall_policy_enforcement_order      = var.firewall_policy_enforcement_order
 }
 
 /******************************************
