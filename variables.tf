@@ -179,6 +179,18 @@ variable "egress_rules" {
   }))
 }
 
+variable "enable_ipv6_ula" {
+  type        = bool
+  description = "Enabled IPv6 ULA, this is a permenant change and cannot be undone! (default 'false')"
+  default     = false
+}
+
+variable "internal_ipv6_range" {
+  type        = string
+  default     = null
+  description = "When enabling IPv6 ULA, optionally, specify a /48 from fd20::/20 (default null)"
+}
+
 variable "network_firewall_policy_enforcement_order" {
   type        = string
   default     = null
