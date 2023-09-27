@@ -33,7 +33,7 @@ module "test-vpc-module" {
       subnet_ip     = "10.10.10.0/24"
       subnet_region = "us-west1"
       stack_type         = "IPV4_IPV6"
-      ipv6_type     = "EXTERNAL"
+      ipv6_access_type     = "EXTERNAL"
     },
     {
       subnet_name           = "subnet-02"
