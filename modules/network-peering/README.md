@@ -56,6 +56,7 @@ module "peering-a-c" {
 | module\_depends\_on | List of modules or resources this module depends on. | `list(any)` | `[]` | no |
 | peer\_network | Resource link of the peer network. | `string` | n/a | yes |
 | prefix | Name prefix for the network peerings | `string` | `"network-peering"` | no |
+| stack\_type | Which IP version(s) of traffic and routes are allowed to be imported or exported between peer networks. Possible values: ["IPV4\_ONLY", "IPV4\_IPV6"]. | `string` | `"IPV4_ONLY"` | no |
 
 ## Outputs
 
