@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.4.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.3.0...v7.4.0) (2023-10-02)
+
+
+### Features
+
+* add firewall policy enforcement order ([#486](https://github.com/terraform-google-modules/terraform-google-network/issues/486)) ([a65c41a](https://github.com/terraform-google-modules/terraform-google-network/commit/a65c41a8afede4a6cc64d5090c91a6cb25a23f87))
+
+
+### Bug Fixes
+
+* Adds pass-through variables for ipv6 ([#495](https://github.com/terraform-google-modules/terraform-google-network/issues/495)) ([d477082](https://github.com/terraform-google-modules/terraform-google-network/commit/d477082964d8f798c75bfb39d1a7d7ca11820360))
+* restrict provider version to "&lt;5.0" for modules missing max version ([#501](https://github.com/terraform-google-modules/terraform-google-network/issues/501)) ([22736f5](https://github.com/terraform-google-modules/terraform-google-network/commit/22736f50e0ff0edbab3cb6300087f5813fa209ee))
+* update simple IPv6 subnet example ([#498](https://github.com/terraform-google-modules/terraform-google-network/issues/498)) ([7fdd9ab](https://github.com/terraform-google-modules/terraform-google-network/commit/7fdd9abb06e1a523cf91eaa82e06a5abff15b1a5))
+
 ## [7.3.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.2.0...v7.3.0) (2023-08-09)
 
 
