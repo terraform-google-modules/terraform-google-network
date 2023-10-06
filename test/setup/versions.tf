@@ -19,10 +19,10 @@ terraform {
 
   required_providers {
     google = {
-      version = ">= 3.49, < 5.0"
+      version = ">= 3.49, < 6"
     }
     google-beta = {
-      version = ">= 3.49, < 5.0"
+      version = ">= 3.49, < 6"
     }
   }
 }
