@@ -23,7 +23,7 @@ terraform {
       version = ">= 3.62"
     }
     google-beta = {
-      source  = "hashicorp/google"
+      source  = "hashicorp/google-beta"
       version = ">= 3.62"
     }
     null = {
