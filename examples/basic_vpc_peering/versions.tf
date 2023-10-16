@@ -19,7 +19,7 @@ terraform {
 
   required_providers {
     google = {
-      version = ">= 3.45, < 5.0"
+      version = ">= 3.45, < 5.2"
     }
     null = {
       version = "~> 3.0"
