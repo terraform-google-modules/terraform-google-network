@@ -19,7 +19,7 @@ terraform {
 
   required_providers {
     google = {
-      source  = "hashicorp/google"
+      source = "hashicorp/google"
     }
     null = {
       version = ">= 3.0"
