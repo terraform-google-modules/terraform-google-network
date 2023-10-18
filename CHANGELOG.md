@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [7.5.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.4.0...v7.5.0) (2023-10-18)
+
+
+### Features
+
+* add stack type to peering module ([#500](https://github.com/terraform-google-modules/terraform-google-network/issues/500)) ([bc711d2](https://github.com/terraform-google-modules/terraform-google-network/commit/bc711d29657953cf596a2dec458702b5b3ac0f1f))
+
+
+### Bug Fixes
+
+* upgraded versions.tf to include minor bumps from tpg v5 ([#503](https://github.com/terraform-google-modules/terraform-google-network/issues/503)) ([4ef6a9b](https://github.com/terraform-google-modules/terraform-google-network/commit/4ef6a9b9d33a3904ff8271164dad8ce4932e5f74))
+
 ## [7.4.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.3.0...v7.4.0) (2023-10-02)
 
 
