@@ -20,7 +20,7 @@
 
 module "googleapis" {
   source      = "terraform-google-modules/cloud-dns/google"
-  version     = "~> 4.1"
+  version     = "~> 5.0"
   project_id  = var.project_id
   type        = "private"
   name        = "${local.dns_code}apis"
@@ -53,7 +53,7 @@ module "googleapis" {
 
 module "gcr" {
   source      = "terraform-google-modules/cloud-dns/google"
-  version     = "~> 4.1"
+  version     = "~> 5.0"
   project_id  = var.project_id
   type        = "private"
   name        = "${local.dns_code}gcr"
@@ -86,7 +86,7 @@ module "gcr" {
 
 module "pkg_dev" {
   source      = "terraform-google-modules/cloud-dns/google"
-  version     = "~> 4.1"
+  version     = "~> 5.0"
   project_id  = var.project_id
   type        = "private"
   name        = "${local.dns_code}pkg-dev"
