@@ -57,7 +57,7 @@ variable "rules" {
     description             = optional(string)
     enable_logging          = optional(bool)
     target_secure_tags      = optional(list(string))
-    target_service_accounts = optional(list(string), [])
+    target_service_accounts = optional(list(string))
     match = object({
       src_ip_ranges             = optional(list(string), [])
       src_fqdns                 = optional(list(string), [])
