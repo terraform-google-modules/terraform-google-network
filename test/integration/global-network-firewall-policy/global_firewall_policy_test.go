@@ -55,8 +55,8 @@ func TestGlobalNetworkFirewallPolicy(t *testing.T) {
 			assert.Equal("10.100.0.1/32", sp1.Get("match.srcIpRanges").Array()[0].String(), "has expected srcIpRanges")
 			assert.Equal("US", sp1.Get("match.srcRegionCodes").Array()[0].String(), "has expected srcRegionCodes")
 			assert.Equal("all", sp1.Get("match.layer4Configs").Array()[0].Get("ipProtocol").String(), "has expected layer4Configs.ipProtocol")
-			secureTags := sp1.Get("match.srcSecureTags").Array()
-			assert.Equal(1, len(secureTags), "should have the correct srcSecureTags count")
+			secureTags1 := sp1.Get("match.srcSecureTags").Array()
+			assert.Equal(1, len(secureTags1), "should have the correct srcSecureTags count - 1")
 			srcAddressGroups := sp1.Get("match.srcAddressGroups").Array()
 			assert.Equal(1, len(srcAddressGroups), "should have the correct srcAddressGroups count")
 
@@ -72,6 +72,8 @@ func TestGlobalNetworkFirewallPolicy(t *testing.T) {
 			assert.Equal("10.100.0.2/32", sp2.Get("match.srcIpRanges").Array()[0].String(), "has expected srcIpRanges")
 			assert.Equal("BE", sp2.Get("match.srcRegionCodes").Array()[0].String(), "has expected srcRegionCodes")
 			assert.Equal("all", sp2.Get("match.layer4Configs").Array()[0].Get("ipProtocol").String(), "has expected layer4Configs.ipProtocol")
+			secureTags2 := sp2.Get("targetSecureTags").Array()
+			assert.Equal(1, len(secureTags2), "should have the correct targetSecureTags count - 1")
 
 			rule3 := gcloud.Runf(t, "compute network-firewall-policies rules describe 3 --global-firewall-policy --firewall-policy %s --project %s", policyName, projectId)
 			sp3 := rule3.Array()[0]
@@ -116,6 +118,8 @@ func TestGlobalNetworkFirewallPolicy(t *testing.T) {
 			assert.Equal("10.100.0.2/32", sp102.Get("match.destIpRanges").Array()[0].String(), "has expected destIpRanges")
 			assert.Equal("AR", sp102.Get("match.destRegionCodes").Array()[0].String(), "has expected destRegionCodes")
 			assert.Equal("all", sp102.Get("match.layer4Configs").Array()[0].Get("ipProtocol").String(), "has expected layer4Configs.ipProtocol")
+			secureTags102 := sp2.Get("targetSecureTags").Array()
+			assert.Equal(1, len(secureTags102), "should have the correct targetSecureTags count - 1")
 
 			rule103 := gcloud.Runf(t, "compute network-firewall-policies rules describe 103 --global-firewall-policy --firewall-policy %s --project %s", policyName, projectId)
 			sp103 := rule103.Array()[0]
