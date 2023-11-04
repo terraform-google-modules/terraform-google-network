@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [8.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.5.0...v8.0.0) (2023-11-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* bumping tf to v1.3 for fabric-net-firewall ([#515](https://github.com/terraform-google-modules/terraform-google-network/issues/515))
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v5 ([#489](https://github.com/terraform-google-modules/terraform-google-network/issues/489))
+
+### Bug Fixes
+
+* bumping tf to v1.3 for fabric-net-firewall ([#515](https://github.com/terraform-google-modules/terraform-google-network/issues/515)) ([c08ea5f](https://github.com/terraform-google-modules/terraform-google-network/commit/c08ea5f269cc845db7c335b30b45c6d5d728029b))
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v5 ([#489](https://github.com/terraform-google-modules/terraform-google-network/issues/489)) ([adb3e2a](https://github.com/terraform-google-modules/terraform-google-network/commit/adb3e2adb92dfbcd9792cd1db7df1b048ee7d7cb))
+* network-firewall-policy not able to use target_secure_tags ([#514](https://github.com/terraform-google-modules/terraform-google-network/issues/514)) ([a5418b4](https://github.com/terraform-google-modules/terraform-google-network/commit/a5418b40729e6f72b3f3e0c76825381f7aa68d9d))
+
 ## [7.5.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.4.0...v7.5.0) (2023-10-18)
 
 

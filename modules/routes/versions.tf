@@ -25,6 +25,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:routes/v7.5.0"
+    module_name = "blueprints/terraform/terraform-google-network:routes/v8.0.0"
   }
 }
