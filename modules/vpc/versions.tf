@@ -29,9 +29,9 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:vpc/v7.5.0"
+    module_name = "blueprints/terraform/terraform-google-network:vpc/v8.0.0"
   }
   provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-google-network:vpc/v7.5.0"
+    module_name = "blueprints/terraform/terraform-google-network:vpc/v8.0.0"
   }
 }
