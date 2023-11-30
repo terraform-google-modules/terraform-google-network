@@ -52,16 +52,14 @@ resource "google_compute_subnetwork" "subnetwork" {
   network     = var.network_name
   project     = var.project_id
   description = lookup(each.value, "description", null)
-  secondary_ip_range = [
-    for i in range(
-      length(
-        contains(
-        keys(var.secondary_ranges), each.value.subnet_name) == true
-        ? var.secondary_ranges[each.value.subnet_name]
-        : []
-    )) :
-    var.secondary_ranges[each.value.subnet_name][i]
-  ]
+  dynamic "secondary_ip_range" {
+    for_each = contains(keys(var.secondary_ranges), each.value.name) == true ? var.secondary_ranges[each.value.name] : []
+
+    content {
+      range_name    = secondary_ip_range.value.range_name
+      ip_cidr_range = secondary_ip_range.value.ip_cidr_range
+    }
+  }
 
   purpose          = lookup(each.value, "purpose", null)
   role             = lookup(each.value, "role", null)
