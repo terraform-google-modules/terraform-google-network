@@ -25,6 +25,7 @@ resource "google_compute_firewall" "rules" {
   name                    = each.value.name
   description             = each.value.description
   direction               = each.value.direction
+  disabled                = each.value.disabled
   network                 = var.network_name
   project                 = var.project_id
   source_ranges           = each.value.direction == "INGRESS" ? each.value.ranges : null
@@ -64,6 +65,7 @@ resource "google_compute_firewall" "rules_ingress_egress" {
   name                    = each.value.name
   description             = each.value.description
   direction               = each.value.direction
+  disabled                = each.value.disabled
   network                 = var.network_name
   project                 = var.project_id
   source_ranges           = lookup(each.value, "source_ranges", null)

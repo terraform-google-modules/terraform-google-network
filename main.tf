@@ -62,6 +62,7 @@ locals {
     for f in var.firewall_rules : {
       name                    = f.name
       direction               = f.direction
+      disabled                = lookup(f, "disabled", null)
       priority                = lookup(f, "priority", null)
       description             = lookup(f, "description", null)
       ranges                  = lookup(f, "ranges", null)
