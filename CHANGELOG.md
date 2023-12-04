@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [8.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v8.0.0...v8.1.0) (2023-12-04)
+
+
+### Features
+
+* Add in disabled field to firewall-rules ([#524](https://github.com/terraform-google-modules/terraform-google-network/issues/524)) ([f851f06](https://github.com/terraform-google-modules/terraform-google-network/commit/f851f06cf5b8a1a5400a51a0bdd659a35395b057))
+
 ## [8.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v7.5.0...v8.0.0) (2023-11-04)
 
 
