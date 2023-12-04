@@ -25,7 +25,7 @@ You can go to the examples folder, however the usage of the module could be like
 ```hcl
 module "vpc" {
     source  = "terraform-google-modules/network/google"
-    version = "~> 8.0"
+    version = "~> 8.1"
 
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"
