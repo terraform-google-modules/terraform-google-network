@@ -53,7 +53,7 @@ resource "google_compute_subnetwork" "subnetwork" {
   project     = var.project_id
   description = lookup(each.value, "description", null)
   dynamic "secondary_ip_range" {
-    for_each = contains(keys(var.secondary_ranges), each.value.name) == true ? var.secondary_ranges[each.value.name] : []
+    for_each = contains(keys(var.secondary_ranges), each.value.subnet_name) == true ? var.secondary_ranges[each.value.subnet_name] : []
 
     content {
       range_name    = secondary_ip_range.value.range_name
