@@ -31,6 +31,7 @@ variable "rules" {
     name                    = string
     description             = optional(string, null)
     direction               = optional(string, "INGRESS")
+    disabled                = optional(bool, null)
     priority                = optional(number, null)
     ranges                  = optional(list(string), [])
     source_tags             = optional(list(string))
@@ -58,6 +59,7 @@ variable "ingress_rules" {
   type = list(object({
     name                    = string
     description             = optional(string, null)
+    disabled                = optional(bool, null)
     priority                = optional(number, null)
     destination_ranges      = optional(list(string), [])
     source_ranges           = optional(list(string), [])
@@ -86,6 +88,7 @@ variable "egress_rules" {
   type = list(object({
     name                    = string
     description             = optional(string, null)
+    disabled                = optional(bool, null)
     priority                = optional(number, null)
     destination_ranges      = optional(list(string), [])
     source_ranges           = optional(list(string), [])
