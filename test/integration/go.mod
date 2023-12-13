@@ -3,8 +3,8 @@ module github.com/terraform-google-modules/terraform-google-network/test/integra
 go 1.21
 
 require (
-	github.com/GoogleCloudPlatform/cloud-foundation-toolkit/infra/blueprint-test v0.10.1
-	github.com/gruntwork-io/terratest v0.46.7
+	github.com/GoogleCloudPlatform/cloud-foundation-toolkit/infra/blueprint-test v0.10.2
+	github.com/gruntwork-io/terratest v0.46.8
 	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.17.0
 )
