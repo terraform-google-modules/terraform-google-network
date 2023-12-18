@@ -22,7 +22,9 @@
 
 # [START vpc_custom_create]
 module "test-vpc-module" {
-  source       = "../../"
+  source  = "terraform-google-modules/network/google"
+  version = "~> 8.0"
+
   project_id   = var.project_id # Replace this with your project ID in quotes
   network_name = "my-custom-mode-network"
   mtu          = 1460
