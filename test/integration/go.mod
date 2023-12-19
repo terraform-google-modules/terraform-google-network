@@ -3,7 +3,7 @@ module github.com/terraform-google-modules/terraform-google-network/test/integra
 go 1.21
 
 require (
-	github.com/GoogleCloudPlatform/cloud-foundation-toolkit/infra/blueprint-test v0.10.2
+	github.com/GoogleCloudPlatform/cloud-foundation-toolkit/infra/blueprint-test v0.10.3
 	github.com/gruntwork-io/terratest v0.46.8
 	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.17.0
@@ -73,8 +73,8 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/grpc v1.58.3 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230905202853-d090da108d2f // indirect
-	sigs.k8s.io/kustomize/kyaml v0.15.0 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.16.0 // indirect
+	sigs.k8s.io/yaml v1.4.0 // indirect
 )
