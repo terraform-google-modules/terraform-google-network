@@ -63,6 +63,7 @@ variable "rules" {
       src_fqdns                 = optional(list(string), [])
       src_region_codes          = optional(list(string), [])
       src_secure_tags           = optional(list(string), [])
+      src_threat_intelligences  = optional(list(string), [])
       src_address_groups        = optional(list(string), [])
       dest_ip_ranges            = optional(list(string), [])
       dest_fqdns                = optional(list(string), [])
