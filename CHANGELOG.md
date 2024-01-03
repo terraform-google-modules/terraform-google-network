@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [9.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v8.1.0...v9.0.0) (2024-01-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add dynamic block to define secondary subnets ([#523](https://github.com/terraform-google-modules/terraform-google-network/issues/523))
+
+### Features
+
+* Add dynamic block to define secondary subnets ([#523](https://github.com/terraform-google-modules/terraform-google-network/issues/523)) ([2adc566](https://github.com/terraform-google-modules/terraform-google-network/commit/2adc566aa37d564e9b87b3183cb8195b5fa11958))
+
+
+### Bug Fixes
+
+* src_threat_intelligences is missing from the variable object definition. ([#530](https://github.com/terraform-google-modules/terraform-google-network/issues/530)) ([654c366](https://github.com/terraform-google-modules/terraform-google-network/commit/654c366349b29b3a78a95fab42bc8cd387d0a7ce))
+
 ## [8.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v8.0.0...v8.1.0) (2023-12-04)
 
 
