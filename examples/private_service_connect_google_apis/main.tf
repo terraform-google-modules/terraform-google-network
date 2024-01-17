@@ -16,14 +16,12 @@
 
 # [START vpc_subnet_private_access]
 resource "google_compute_network" "network" {
-  provider                = google-beta
   project                 = var.project # Replace this with your project ID in quotes
   name                    = "tf-test"
   auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "vpc_subnetwork" {
-  provider                 = google-beta
   project                  = google_compute_network.network.project
   name                     = "test-subnetwork"
   ip_cidr_range            = "10.2.0.0/16"
@@ -35,7 +33,6 @@ resource "google_compute_subnetwork" "vpc_subnetwork" {
 
 # [START compute_internal_ip_private_access]
 resource "google_compute_global_address" "default" {
-  provider     = google-beta
   project      = google_compute_network.network.project
   name         = "global-psconnect-ip"
   address_type = "INTERNAL"
@@ -47,7 +44,6 @@ resource "google_compute_global_address" "default" {
 
 # [START compute_forwarding_rule_private_access]
 resource "google_compute_global_forwarding_rule" "default" {
-  provider              = google-beta
   project               = google_compute_network.network.project
   name                  = "globalrule"
   target                = "all-apis"
