@@ -16,7 +16,7 @@
 
 module "local-network" {
   source  = "terraform-google-modules/network/google"
-  version = "~> 8.0"
+  version = "~> 9.0"
 
   project_id   = var.project_id
   network_name = "local-network"
@@ -25,7 +25,7 @@ module "local-network" {
 
 module "peer-network-1" {
   source  = "terraform-google-modules/network/google"
-  version = "~> 8.0"
+  version = "~> 9.0"
 
   project_id   = var.project_id
   network_name = "peer-network-1"
@@ -34,7 +34,7 @@ module "peer-network-1" {
 
 module "peer-network-2" {
   source  = "terraform-google-modules/network/google"
-  version = "~> 8.0"
+  version = "~> 9.0"
 
   project_id   = var.project_id
   network_name = "peer-network-2"
@@ -43,7 +43,7 @@ module "peer-network-2" {
 
 module "peering-1" {
   source  = "terraform-google-modules/network/google//modules/network-peering"
-  version = "~> 8.0"
+  version = "~> 9.0"
 
   local_network              = module.local-network.network_self_link
   peer_network               = module.peer-network-1.network_self_link
@@ -52,7 +52,7 @@ module "peering-1" {
 
 module "peering-2" {
   source  = "terraform-google-modules/network/google//modules/network-peering"
-  version = "~> 8.0"
+  version = "~> 9.0"
 
   local_network              = module.local-network.network_self_link
   peer_network               = module.peer-network-2.network_self_link

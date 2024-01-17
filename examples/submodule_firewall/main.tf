@@ -21,7 +21,7 @@ locals {
 
 module "test-vpc-module" {
   source  = "terraform-google-modules/network/google"
-  version = "~> 8.0"
+  version = "~> 9.0"
 
   project_id   = var.project_id
   network_name = var.network_name
@@ -118,7 +118,7 @@ locals {
 
 module "test-firewall-submodule" {
   source                  = "terraform-google-modules/network/google//modules/fabric-net-firewall"
-  version                 = "~> 8.0"
+  version                 = "~> 9.0"
   project_id              = var.project_id
   network                 = module.test-vpc-module.network_name
   internal_ranges_enabled = true

@@ -23,7 +23,7 @@
 # [START vpc_peering_create]
 module "peering1" {
   source        = "terraform-google-modules/network/google//modules/network-peering"
-  version       = "~> 8.0"
+  version       = "~> 9.0"
   local_network = var.local_network # Replace with self link to VPC network "foobar" in quotes
   peer_network  = var.peer_network  # Replace with self link to VPC network "other" in quotes
 }
