@@ -24,7 +24,7 @@ resource "google_project_service" "vpcaccess-api" {
 # [START vpc_serverless_connector]
 module "test-vpc-module" {
   source       = "terraform-google-modules/network/google"
-  version      = "~> 8.0"
+  version      = "~> 9.0"
   project_id   = var.project_id # Replace this with your project ID in quotes
   network_name = "my-serverless-network"
   mtu          = 1460
@@ -40,7 +40,7 @@ module "test-vpc-module" {
 
 module "serverless-connector" {
   source     = "terraform-google-modules/network/google//modules/vpc-serverless-connector-beta"
-  version    = "~> 8.0"
+  version    = "~> 9.0"
   project_id = var.project_id
   vpc_connectors = [{
     name        = "central-serverless"

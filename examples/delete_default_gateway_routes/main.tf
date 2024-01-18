@@ -20,7 +20,7 @@ locals {
 
 module "test-vpc-module" {
   source  = "terraform-google-modules/network/google"
-  version = "~> 8.0"
+  version = "~> 9.0"
 
   project_id                             = var.project_id
   network_name                           = var.network_name

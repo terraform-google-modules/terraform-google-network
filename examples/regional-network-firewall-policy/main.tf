@@ -79,7 +79,7 @@ resource "google_service_account" "service_account" {
 
 module "firewal_policy" {
   source  = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version = "~> 8.0"
+  version = "~> 9.0"
 
   project_id  = var.project_id
   policy_name = "${local.prefix}-firewall-policy-${random_string.random_suffix.result}"
@@ -220,7 +220,7 @@ module "firewal_policy" {
 
 module "firewal_policy_no_rule" {
   source        = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version       = "~> 8.0"
+  version       = "~> 9.0"
   project_id    = var.project_id
   policy_name   = "${local.prefix}-firewall-policy-no-rules-${random_string.random_suffix.result}"
   description   = "${local.prefix} test firewall policy without any rules"

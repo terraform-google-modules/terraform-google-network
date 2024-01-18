@@ -16,7 +16,7 @@
 
 module "vpc" {
   source  = "terraform-google-modules/network/google//modules/vpc"
-  version = "~> 8.0"
+  version = "~> 9.0"
 
   network_name = var.network_name
   project_id   = var.project_id
@@ -24,7 +24,7 @@ module "vpc" {
 
 module "subnets" {
   source  = "terraform-google-modules/network/google//modules/subnets-beta"
-  version = "~> 8.0"
+  version = "~> 9.0"
 
   project_id   = var.project_id
   network_name = module.vpc.network_name
@@ -47,7 +47,7 @@ module "subnets" {
 
 module "subnets-backup" {
   source  = "terraform-google-modules/network/google//modules/subnets-beta"
-  version = "~> 8.0"
+  version = "~> 9.0"
 
   project_id   = var.project_id
   network_name = module.vpc.network_name
@@ -97,7 +97,7 @@ resource "google_compute_forwarding_rule" "this" {
 
 module "routes" {
   source       = "terraform-google-modules/network/google//modules/routes-beta"
-  version      = "~> 8.0"
+  version      = "~> 9.0"
   project_id   = var.project_id
   network_name = module.vpc.network_name
   routes_count = 2
