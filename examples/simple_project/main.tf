@@ -25,7 +25,7 @@ module "test-vpc-module" {
   source       = "terraform-google-modules/network/google"
   version      = "~> 9.0"
   project_id   = var.project_id # Replace this with your project ID in quotes
-  network_name = "my-custom-mode-network"
+  network_name = "my-custom-mode-network-update-suffix"
   mtu          = 1460
 
   subnets = [
