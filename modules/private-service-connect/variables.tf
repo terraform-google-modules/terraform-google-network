@@ -56,3 +56,15 @@ variable "forwarding_rule_target" {
     error_message = "For forwarding_rule_target only `all-apis` and `vpc-sc` are valid."
   }
 }
+
+variable "service_directory_namespace" {
+  description = "Service Directory namespace to register the forwarding rule under."
+  type        = string
+  default     = null
+}
+
+variable "service_directory_region" {
+  description = "Service Directory region to register this global forwarding rule under. Defaults to `us-central1` if not defined."
+  type        = string
+  default     = null
+}
