@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [9.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v9.0.0...v9.1.0) (2024-03-12)
+
+
+### Features
+
+* Add service_directory_registrations: namespace and service_directory_region ([#548](https://github.com/terraform-google-modules/terraform-google-network/issues/548)) ([d4855d6](https://github.com/terraform-google-modules/terraform-google-network/commit/d4855d6b82b7963e22ed0f05aa31900915cfb954))
+
 ## [9.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v8.1.0...v9.0.0) (2024-01-03)
 
 
