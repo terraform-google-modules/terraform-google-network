@@ -14,18 +14,25 @@
  * limitations under the License.
  */
 
+resource "random_string" "random_suffix" {
+  length  = 4
+  special = false
+  lower   = true
+  upper   = false
+}
+
 resource "google_folder" "folder1" {
-  display_name = "ci-network1"
+  display_name = "ci-network1-${random_string.random_suffix.result}"
   parent       = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
 }
 
 resource "google_folder" "folder2" {
-  display_name = "ci-network2"
+  display_name = "ci-network2-${random_string.random_suffix.result}"
   parent       = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
 }
 
 resource "google_folder" "folder3" {
-  display_name = "ci-network3"
+  display_name = "ci-network3-${random_string.random_suffix.result}"
   parent       = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
 }
 
