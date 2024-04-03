@@ -18,7 +18,7 @@ It supports creating:
 - [hierarchical firewall policy](./modules/hierarchical-firewall-policy/)
 - [network firewall policy](./modules/network-firewall-policy/)
 - [serverless vpc  access connector](./modules/vpc-serverless-connector-beta/)
-- [hierarchical firewall policy](./modules/hierarchical-firewall-policy/) 
+- [hierarchical firewall policy](./modules/hierarchical-firewall-policy/)
 
 ## Compatibility
 
