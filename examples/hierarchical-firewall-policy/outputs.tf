@@ -14,37 +14,47 @@
  * limitations under the License.
  */
 
-output "fw_policy_id" {
-  value       = module.firewal_policy.fw_policy.name
-  description = "Firewall policy"
+output "project_id" {
+  value       = var.project_id
+  description = "Project ID"
 }
 
-output "fw_policy_description" {
-  value       = module.firewal_policy.fw_policy.description
-  description = "Firewall policy"
+output "fw_policy_id" {
+  value       = module.firewal_policy.fw_policy.name
+  description = "Firewall policy ID"
+}
+
+output "fw_policy_parent_folder" {
+  value       = module.firewal_policy.fw_policy.parent
+  description = "Firewall policy parent"
 }
 
 output "fw_policy_name" {
   value       = module.firewal_policy.fw_policy.short_name
-  description = "Firewall policy"
+  description = "Firewall policy name"
 }
 
 output "target_associations" {
   value       = module.firewal_policy.target_associations
-  description = "Firewall policy"
+  description = "Firewall policy association"
 }
 
 output "rules" {
   value       = module.firewal_policy.rules
-  description = "Firewall policy"
+  description = "Firewall policy rules"
 }
 
 output "firewal_policy_no_rules_id" {
   value       = module.firewal_policy_no_rule.fw_policy.name
-  description = "Firewall policy created without any rules and association"
+  description = "ID of Firewall policy created without any rules and association"
 }
 
 output "firewal_policy_no_rules_name" {
   value       = module.firewal_policy_no_rule.fw_policy.short_name
   description = "Name of Firewall policy created without any rules and association"
+}
+
+output "firewal_policy_no_rules_parent_folder" {
+  value       = module.firewal_policy.fw_policy.parent
+  description = "Firewall policy parent"
 }

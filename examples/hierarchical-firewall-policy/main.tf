@@ -83,7 +83,7 @@ module "firewal_policy" {
       ]
       match = {
         src_ip_ranges    = ["10.100.0.2/32"]
-        src_fqdns        = ["google.org"]
+        src_fqdns        = ["example.org"]
         src_region_codes = ["BE"]
         layer4_configs = [
           {

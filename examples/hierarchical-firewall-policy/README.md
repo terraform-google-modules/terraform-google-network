@@ -17,12 +17,14 @@ This example creates a Service Account and 2 hierarchical firewall policy. First
 
 | Name | Description |
 |------|-------------|
-| firewal\_policy\_no\_rules\_id | Firewall policy created without any rules and association |
+| firewal\_policy\_no\_rules\_id | ID of Firewall policy created without any rules and association |
 | firewal\_policy\_no\_rules\_name | Name of Firewall policy created without any rules and association |
-| fw\_policy\_description | Firewall policy |
-| fw\_policy\_id | Firewall policy |
-| fw\_policy\_name | Firewall policy |
-| rules | Firewall policy |
-| target\_associations | Firewall policy |
+| firewal\_policy\_no\_rules\_parent\_folder | Firewall policy parent |
+| fw\_policy\_id | Firewall policy ID |
+| fw\_policy\_name | Firewall policy name |
+| fw\_policy\_parent\_folder | Firewall policy parent |
+| project\_id | Project ID |
+| rules | Firewall policy rules |
+| target\_associations | Firewall policy association |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

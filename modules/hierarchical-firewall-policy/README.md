@@ -68,7 +68,7 @@ module "firewal_policy" {
       description = "test ingres rule 2"
       match = {
         src_ip_ranges    = ["10.100.0.2/32"]
-        src_fqdns        = ["google.org"]
+        src_fqdns        = ["example.org"]
         src_region_codes = ["BE"]
         layer4_configs = [
           {
