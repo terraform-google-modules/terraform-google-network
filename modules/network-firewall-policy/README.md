@@ -1,15 +1,15 @@
-# Google Cloud VPC Firewall Policy
+# Google Cloud Network Firewall Policy
 
-This module allows creation of [Global](https://cloud.google.com/firewall/docs/network-firewall-policies) and [Regional](https://cloud.google.com/firewall/docs/regional-firewall-policies) Network Firewall Policy and [Rules](https://cloud.google.com/firewall/docs/firewall-policies-rule-details). It can also attach network firewall policy to multiple VPCs. Module will create a `Regional` network firewall policy if a value is provided for the variable `policy_region`, otherwise a `Global` network firewall policy will be created. Module can create both [Cloud Firewall Essentials](https://cloud.google.com/firewall/docs/about-firewalls#firewall-essentials) and [Cloud Firewall Standard](https://cloud.google.com/firewall/docs/about-firewalls#firewall-standard) tier rules. Firewall Rules and Target VPC attachment is optional.
+This module allows creation of [Global](https://cloud.google.com/firewall/docs/network-firewall-policies), [Regional](https://cloud.google.com/firewall/docs/regional-firewall-policies) Network Firewall Policy and [Rules](https://cloud.google.com/firewall/docs/firewall-policies-rule-details). It can also attach network firewall policy to multiple VPCs. Module will create a `Regional` network firewall policy if a value is provided for the variable `policy_region`, otherwise a `Global` network firewall policy will be created. Module can create both [Cloud Firewall Essentials](https://cloud.google.com/firewall/docs/about-firewalls#firewall-essentials) and [Cloud Firewall Standard](https://cloud.google.com/firewall/docs/about-firewalls#firewall-standard) tier rules. Firewall Rules and Target VPC attachment is optional.
 
 ##  Module Format
 
 Variable `rules` details are available [here](#firwall-policy-rules-format). High level format of this module is as follows:
 
 ```
-module "firewall_rules" {
+module "network_firewall_policy" {
   source       = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version      = "~> 8.0"
+  version      = "~> 9.0"
   project_id   = var.project_id
   policy_name  = "my-firewall-policy"
   description  = "Test firewall policy"
@@ -27,9 +27,9 @@ module "firewall_rules" {
 There are examples included for [global](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/global-network-firewall-policy) and [regional](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/regional-network-firewall-policy) firewall policies in the [examples](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/) folder. Basic usage of this module is as follows:
 
 ```hcl
-module "firewall_rules" {
+module "network_firewall_policy" {
   source       = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version      = "~> 7.2"
+  version      = "~> 9.0"
   project_id   = var.project_id
   policy_name  = "my-firewall-policy"
   description  = "Test firewall policy"
@@ -193,3 +193,21 @@ In a [firewall policy rule](https://cloud.google.com/firewall/docs/firewall-poli
     }
   }
 ```
+
+## Requirements
+### Installed Software
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.3
+- [Terraform Provider for GCP](https://github.com/terraform-providers/terraform-provider-google) >= 4.64
+- [Terraform Provider for GCP Beta](https://github.com/terraform-providers/terraform-provider-google-beta) >= 4.64
+
+### Configure a Service Account
+In order to execute this module you must have a Service Account with the following roles:
+
+- roles/compute.securityAdmin
+- roles/compute.networkAdmin
+
+### Enable API's
+In order to operate with the Service Account you must activate the following API on the project where the Service Account was created:
+
+- compute.googleapis.com
+- networksecurity.googleapis.com

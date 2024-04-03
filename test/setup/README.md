@@ -40,13 +40,17 @@ run the `make test_integration_docker` target
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | billing\_account | The billing account id associated with the project, e.g. XXXXXX-YYYYYY-ZZZZZZ | `any` | n/a | yes |
-| folder\_id | The folder to deploy in | `any` | n/a | yes |
+| folder\_id | The folder to deploy in | `any` | `null` | no |
 | org\_id | The numeric organization id | `any` | n/a | yes |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
+| folder1 | n/a |
+| folder2 | n/a |
+| folder3 | n/a |
+| org\_id | n/a |
 | project\_id | n/a |
 | sa\_key | n/a |
 

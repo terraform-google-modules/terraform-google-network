@@ -22,3 +22,19 @@ output "sa_key" {
   value     = google_service_account_key.int_test.private_key
   sensitive = true
 }
+
+output "folder1" {
+  value = element(split("/", google_folder.folder1.id), length(split("/", google_folder.folder1.id)) - 1)
+}
+
+output "folder2" {
+  value = element(split("/", google_folder.folder2.id), length(split("/", google_folder.folder2.id)) - 1)
+}
+
+output "folder3" {
+  value = element(split("/", google_folder.folder3.id), length(split("/", google_folder.folder3.id)) - 1)
+}
+
+output "org_id" {
+  value = var.org_id
+}

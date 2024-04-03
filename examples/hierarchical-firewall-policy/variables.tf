@@ -14,17 +14,22 @@
  * limitations under the License.
  */
 
-terraform {
-  required_version = ">= 1.3.0"
+variable "project_id" {
+  description = "The project ID to host the network in"
+}
 
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 4.64, < 6"
-    }
-    google-beta = {
-      source  = "hashicorp/google-beta"
-      version = ">= 4.64, < 6"
-    }
-  }
+variable "folder1" {
+  description = "The folder_id ID 1 to to create firewall policy in"
+}
+
+variable "folder2" {
+  description = "The folder_id ID 2 to attach firewal policy to"
+}
+
+variable "folder3" {
+  description = "The folder_id ID 3 to attach firewal policy to"
+}
+
+variable "org_id" {
+  description = "The org ID attach firewal policy to"
 }

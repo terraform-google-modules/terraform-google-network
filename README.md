@@ -7,20 +7,26 @@ It supports creating:
 - A Google Virtual Private Network (VPC)
 - Subnets within the VPC
 - Secondary ranges for the subnets (if applicable)
+- routes
+- firewall rules
 
-Sub modules are provided for creating individual vpc, subnets, and routes. See the modules directory for the various sub modules usage.
+[Sub modules](./modules/) are provided for creating individual vpc, subnets, routes, firewall rules, and firewall policies. See the [modules](./modules/) directory for the various sub modules usage.
+- [vpc](./modules/vpc/)
+- [subnet](./modules/subnets/)
+- [route](./modules/routes/)
+- [firewall rules](./modules/firewall-rules/)
+- [hierarchical firewall policy](./modules/hierarchical-firewall-policy/)
+- [network firewall policy](./modules/network-firewall-policy/)
+- [serverless vpc  access connector](./modules/vpc-serverless-connector-beta/)
 
 ## Compatibility
 
 This module is meant for use with Terraform 1.3+ and tested using Terraform 1.4+.
 If you find incompatibilities using Terraform `>=1.3`, please open an issue.
 
-If you haven't [upgraded][terraform-0.13-upgrade] and need a Terraform
-0.12.x-compatible version of this module, the last released version
-intended for Terraform 0.12.x is [2.6.0].
 
 ## Usage
-You can go to the examples folder, however the usage of the module could be like this in your own main.tf file:
+You can go to the [examples](./examples/) folder, however the usage of the module could be like this in your own main.tf file:
 
 ```hcl
 module "vpc" {
