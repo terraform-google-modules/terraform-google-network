@@ -1,7 +1,6 @@
 # Google Cloud Hierarchical Firewall Policy
 
-This module allows creation of [hierarchical firewall policy](https://cloud.google.com/firewall/docs/firewall-policies) and [Rules](https://cloud.google.com/firewall/docs/firewall-policies-rule-details). It can also attach hierarchical firewall policy to multiple folders or organization. Module can create both [Cloud Firewall Essentials](https://cloud.google.com/firewall/docs/about-firewalls#firewall-essentials) and [Cloud Firewall Standard](https://cloud.google.com/firewall/docs/about-firewalls#firewall-standard) tier rules. Firewall Rules and Target folders/org attachment is optional. Hierarchical firewall policy limitations are available [here](https://cloud.google.com/firewall/docs/using-firewall-policies#limitations)
-
+This module allows creation of [hierarchical firewall policy](https://cloud.google.com/firewall/docs/firewall-policies) and [Rules](https://cloud.google.com/firewall/docs/firewall-policies-rule-details). It can also attach hierarchical firewall policy to multiple folders or an organization. It can create both [Cloud Firewall Essentials](https://cloud.google.com/firewall/docs/about-firewalls#firewall-essentials) and [Cloud Firewall Standard](https://cloud.google.com/firewall/docs/about-firewalls#firewall-standard) tier rules. Firewall Rules and Target folders/org attachment is optional. Hierarchical firewall policy limitations are available [here](https://cloud.google.com/firewall/docs/using-firewall-policies#limitations)
 ##  Module Format
 
 Variable `rules` details are available [here](#firwall-policy-rules-format). High level format of this module is as follows:
