@@ -118,7 +118,7 @@ func TestGlobalNetworkFirewallPolicy(t *testing.T) {
 			assert.Equal("10.100.0.2/32", sp102.Get("match.destIpRanges").Array()[0].String(), "has expected destIpRanges")
 			assert.Equal("AR", sp102.Get("match.destRegionCodes").Array()[0].String(), "has expected destRegionCodes")
 			assert.Equal("all", sp102.Get("match.layer4Configs").Array()[0].Get("ipProtocol").String(), "has expected layer4Configs.ipProtocol")
-			secureTags102 := sp2.Get("targetSecureTags").Array()
+			secureTags102 := sp102.Get("targetSecureTags").Array()
 			assert.Equal(1, len(secureTags102), "should have the correct targetSecureTags count - 1")
 
 			rule103 := gcloud.Runf(t, "compute network-firewall-policies rules describe 103 --global-firewall-policy --firewall-policy %s --project %s", policyName, projectId)

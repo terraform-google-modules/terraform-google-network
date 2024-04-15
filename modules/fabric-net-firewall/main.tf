@@ -116,7 +116,6 @@ resource "google_compute_firewall" "allow-tag-https" {
 ################################################################################
 
 resource "google_compute_firewall" "custom" {
-  # provider                = "google-beta"
   for_each                = var.custom_rules
   name                    = each.key
   description             = each.value.description

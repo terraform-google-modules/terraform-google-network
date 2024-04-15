@@ -211,6 +211,21 @@ steps:
     - verify firewall-rule
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'cft test run TestAll/examples/bidirectional-firewall-rules --stage teardown --verbose']
+- id: converge hierarchical-firewall-policy
+  waitFor:
+    - destroy firewall-rule
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestHierarchicalFirewallPolicy --stage apply --verbose']
+- id: verify hierarchical-firewall-policy
+  waitFor:
+    - converge hierarchical-firewall-policy
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestHierarchicalFirewallPolicy --stage verify --verbose']
+- id: destroy hierarchical-firewall-policy
+  waitFor:
+    - verify hierarchical-firewall-policy
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestHierarchicalFirewallPolicy --stage teardown --verbose']
 tags:
 - 'ci'
 - 'integration'

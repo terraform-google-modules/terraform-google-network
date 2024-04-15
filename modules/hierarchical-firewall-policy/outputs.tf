@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-terraform {
-  required_version = ">= 1.3.0"
+output "fw_policy" {
+  value       = google_compute_firewall_policy.fw_policy
+  description = "Firewall policy created"
+}
 
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 4.64"
-    }
-    google-beta = {
-      source  = "hashicorp/google-beta"
-      version = ">= 4.64"
-    }
-  }
+output "target_associations" {
+  value       = google_compute_firewall_policy_association.target_associations
+  description = "folders/orgs associations created"
+}
+
+output "rules" {
+  value       = google_compute_firewall_policy_rule.rules
+  description = "Firewall policy rules created"
 }

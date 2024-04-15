@@ -14,6 +14,28 @@
  * limitations under the License.
  */
 
+resource "random_string" "random_suffix" {
+  length  = 4
+  special = false
+  lower   = true
+  upper   = false
+}
+
+resource "google_folder" "folder1" {
+  display_name = "ci-network1-${random_string.random_suffix.result}"
+  parent       = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
+}
+
+resource "google_folder" "folder2" {
+  display_name = "ci-network2-${random_string.random_suffix.result}"
+  parent       = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
+}
+
+resource "google_folder" "folder3" {
+  display_name = "ci-network3-${random_string.random_suffix.result}"
+  parent       = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
+}
+
 module "project" {
   source  = "terraform-google-modules/project-factory/google"
   version = "~> 14.0"
@@ -21,7 +43,7 @@ module "project" {
   name              = "ci-network"
   random_project_id = "true"
   org_id            = var.org_id
-  folder_id         = var.folder_id
+  folder_id         = google_folder.folder2.id
   billing_account   = var.billing_account
 
   activate_apis = [
