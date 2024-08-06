@@ -23,6 +23,7 @@ module "serverless-connector" {
     machine_type    = "e2-standard-4"
     min_instances   = 2
     max_instances   = 3
+    min_throughput  = 200
     max_throughput  = 300
   }]
 }
