@@ -34,5 +34,6 @@ resource "google_vpc_access_connector" "connector_beta" {
   machine_type   = lookup(each.value, "machine_type", null)
   min_instances  = lookup(each.value, "min_instances", null)
   max_instances  = lookup(each.value, "max_instances", null)
+  min_throughput = lookup(each.value, "min_throughput", null)
   max_throughput = lookup(each.value, "max_throughput", null)
 }
