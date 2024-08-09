@@ -34,7 +34,7 @@ module "serverless-connector" {
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | project\_id | Project in which the vpc connector will be deployed. | `string` | n/a | yes |
-| vpc\_connectors | List of VPC serverless connectors. | `list(map(string))` | `[]` | no |
+| vpc\_connectors | List of VPC serverless connectors. | <pre>list(object({<br>    name            = string,<br>    region          = string,<br>    network         = optional(string, null),<br>    subnet_name     = optional(string, null),<br>    ip_cidr_range   = optional(string, null),<br>    host_project_id = optional(string, null),<br>    machine_type    = optional(string, null),<br>    min_instances   = optional(number, null),<br>    max_instances   = optional(number, null),<br>    max_throughput  = optional(number, null)<br>  }))</pre> | `[]` | no |
 
 ## Outputs
 
