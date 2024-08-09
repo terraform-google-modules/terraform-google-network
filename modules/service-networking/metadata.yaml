@@ -1,0 +1,156 @@
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-network-service-networking
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: Terraform Google service networking
+    source:
+      repo: https://github.com/q2w/terraform-google-network.git
+      sourceType: git
+      dir: /modules/service-networking
+    version: 9.1.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.13.0"
+    description: {}
+  content:
+    examples:
+      - name: basic_auto_mode
+        location: examples/basic_auto_mode
+      - name: basic_custom_mode
+        location: examples/basic_custom_mode
+      - name: basic_firewall_rule
+        location: examples/basic_firewall_rule
+      - name: basic_secondary_ranges
+        location: examples/basic_secondary_ranges
+      - name: basic_shared_vpc
+        location: examples/basic_shared_vpc
+      - name: basic_vpc_peering
+        location: examples/basic_vpc_peering
+      - name: bidirectional-firewall-rules
+        location: examples/bidirectional-firewall-rules
+      - name: delete_default_gateway_routes
+        location: examples/delete_default_gateway_routes
+      - name: firewall_logging
+        location: examples/firewall_logging
+      - name: global-network-firewall-policy
+        location: examples/global-network-firewall-policy
+      - name: hierarchical-firewall-policy
+        location: examples/hierarchical-firewall-policy
+      - name: ilb_routing
+        location: examples/ilb_routing
+      - name: multi_vpc
+        location: examples/multi_vpc
+      - name: network_service_tiers
+        location: examples/network_service_tiers
+      - name: packet_mirroring
+        location: examples/packet_mirroring
+      - name: private_service_connect
+        location: examples/private_service_connect
+      - name: private_service_connect_google_apis
+        location: examples/private_service_connect_google_apis
+      - name: regional-network-firewall-policy
+        location: examples/regional-network-firewall-policy
+      - name: routes
+        location: examples/routes
+      - name: secondary_ranges
+        location: examples/secondary_ranges
+      - name: service-networking
+        location: examples/service-networking
+      - name: simple_ipv6_project
+        location: examples/simple_ipv6_project
+      - name: simple_project
+        location: examples/simple_project
+      - name: simple_project_with_regional_network
+        location: examples/simple_project_with_regional_network
+      - name: submodule_firewall
+        location: examples/submodule_firewall
+      - name: submodule_network_peering
+        location: examples/submodule_network_peering
+      - name: submodule_svpc_access
+        location: examples/submodule_svpc_access
+      - name: submodule_vpc_serverless_connector
+        location: examples/submodule_vpc_serverless_connector
+  interfaces:
+    variables:
+      - name: address_name
+        description: Global address name
+        varType: string
+        required: true
+      - name: address_prefix_length
+        description: Global address prefix length
+        varType: number
+        defaultValue: 16
+      - name: address_purpose
+        description: Global address purpose
+        varType: string
+        defaultValue: VPC_PEERING
+      - name: address_type
+        description: Global address type
+        varType: string
+        defaultValue: INTERNAL
+      - name: create_peered_dns_domain
+        description: Create peered dns domain
+        varType: bool
+        defaultValue: false
+      - name: create_peering_routes_config
+        description: Create peering route config
+        varType: bool
+        defaultValue: false
+      - name: deletion_policy
+        description: Deletion policy for service networking resource
+        varType: string
+      - name: dns_suffix
+        description: Dns suffix
+        varType: string
+      - name: domain_name
+        description: Domain name
+        varType: string
+      - name: export_custom_routes
+        description: Export custom routes
+        varType: bool
+        defaultValue: false
+      - name: import_custom_routes
+        description: Import custom routes to peering rout config
+        varType: bool
+        defaultValue: false
+      - name: network_id
+        description: Network id
+        varType: string
+        required: true
+      - name: network_name
+        description: Network name
+        varType: string
+      - name: project_id
+        description: Project ID
+        varType: string
+        required: true
+    outputs:
+      - name: address_id
+        description: Global address id
+      - name: peering
+        description: Service networking connection peering
+  requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/compute.networkAdmin
+          - roles/compute.securityAdmin
+          - roles/iam.serviceAccountUser
+          - roles/vpcaccess.admin
+          - roles/serviceusage.serviceUsageAdmin
+          - roles/dns.admin
+          - roles/resourcemanager.tagAdmin
+          - roles/iam.serviceAccountAdmin
+          - roles/compute.orgFirewallPolicyAdmin
+    services:
+      - cloudresourcemanager.googleapis.com
+      - compute.googleapis.com
+      - serviceusage.googleapis.com
+      - vpcaccess.googleapis.com
+      - dns.googleapis.com
+      - networksecurity.googleapis.com
+      - iam.googleapis.com
