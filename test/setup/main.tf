@@ -54,5 +54,6 @@ module "project" {
     "dns.googleapis.com",
     "networksecurity.googleapis.com",
     "iam.googleapis.com",
+    "servicenetworking.googleapis.com",
   ]
 }

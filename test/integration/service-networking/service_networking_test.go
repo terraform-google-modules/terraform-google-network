@@ -26,10 +26,9 @@ func TestServiceNetworking(t *testing.T) {
 	net.DefineVerify(
 		func(assert *assert.Assertions) {
 			net.DefaultVerify(assert)
-			projectID := net.GetStringOutput("project_id")
 			peering := net.GetStringOutput("peering")
 
-			assert.Contains(peering, "xyz")
+			assert.Contains(peering, "servicenetworking-googleapis-com")
 		})
 	net.Test()
 }
