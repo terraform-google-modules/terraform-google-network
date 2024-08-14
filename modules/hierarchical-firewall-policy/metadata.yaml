@@ -22,7 +22,7 @@ spec:
   info:
     title: Google Cloud Hierarchical Firewall Policy
     source:
-      repo: https://github.com/q2w/terraform-google-network.git
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
       dir: /modules/hierarchical-firewall-policy
     version: 9.1.0
