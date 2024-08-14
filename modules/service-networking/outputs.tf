@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-output "address_id" {
+output "address_ids" {
   description = "Global address id"
-  value       = google_compute_global_address.global_address.id
+  value       = [for id, _ in google_compute_global_address.global_addresses : id]
 }
 
 output "peering" {

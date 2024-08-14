@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
-resource "google_compute_global_address" "global_address" {
+resource "google_compute_global_address" "global_addresses" {
+  for_each      = { for address in var.global_addresses : address.name => address }
   project       = var.project_id
-  name          = var.address_name
-  purpose       = var.address_purpose
-  address_type  = var.address_type
-  prefix_length = var.address_prefix_length
-  network       = var.network_id
+  name          = each.value.name
+  purpose       = each.value.purpose
+  address_type  = each.value.type
+  prefix_length = each.value.prefix_length
+  network       = var.network.id
 }
 
 resource "google_service_networking_connection" "default" {
-  network                 = var.network_id
-  service                 = "servicenetworking.googleapis.com"
-  reserved_peering_ranges = [google_compute_global_address.global_address.name]
+  network                 = var.network.id
+  service                 = var.service
+  reserved_peering_ranges = [for name, _ in google_compute_global_address.global_addresses : name]
   deletion_policy         = var.deletion_policy
 }
 
@@ -34,7 +35,7 @@ resource "google_compute_network_peering_routes_config" "peering_routes" {
   count                = var.create_peering_routes_config ? 1 : 0
   project              = var.project_id
   peering              = google_service_networking_connection.default.peering
-  network              = var.network_name
+  network              = var.network.name
   import_custom_routes = var.import_custom_routes
   export_custom_routes = var.export_custom_routes
 }
@@ -43,7 +44,7 @@ resource "google_service_networking_peered_dns_domain" "default" {
   count      = var.create_peered_dns_domain ? 1 : 0
   project    = var.project_id
   name       = var.domain_name
-  network    = var.network_name
+  network    = var.network.name
   dns_suffix = var.dns_suffix
-  service    = "servicenetworking.googleapis.com"
+  service    = var.service
 }

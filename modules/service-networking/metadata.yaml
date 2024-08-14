@@ -90,22 +90,6 @@ spec:
         location: examples/submodule_vpc_serverless_connector
   interfaces:
     variables:
-      - name: address_name
-        description: Global address name
-        varType: string
-        required: true
-      - name: address_prefix_length
-        description: Global address prefix length
-        varType: number
-        defaultValue: 16
-      - name: address_purpose
-        description: Global address purpose
-        varType: string
-        defaultValue: VPC_PEERING
-      - name: address_type
-        description: Global address type
-        varType: string
-        defaultValue: INTERNAL
       - name: create_peered_dns_domain
         description: Create peered dns domain
         varType: bool
@@ -127,23 +111,38 @@ spec:
         description: Export custom routes
         varType: bool
         defaultValue: false
+      - name: global_addresses
+        description: List of global addresses to be created
+        varType: |-
+          list(object({
+              name : string,
+              purpose : optional(string, "VPC_PEERING"),
+              type : optional(string, "INTERNAL"),
+              prefix_length : optional(number, 16)
+            }))
+        required: true
       - name: import_custom_routes
         description: Import custom routes to peering rout config
         varType: bool
         defaultValue: false
-      - name: network_id
-        description: Network id
-        varType: string
+      - name: network
+        description: Network details including name and id
+        varType: |-
+          object({
+              name = optional(string, null),
+              id   = string
+            })
         required: true
-      - name: network_name
-        description: Network name
-        varType: string
       - name: project_id
         description: Project ID
         varType: string
         required: true
+      - name: service
+        description: Service to create service networking connection
+        varType: string
+        required: true
     outputs:
-      - name: address_id
+      - name: address_ids
         description: Global address id
       - name: peering
         description: Service networking connection peering
@@ -168,3 +167,4 @@ spec:
       - dns.googleapis.com
       - networksecurity.googleapis.com
       - iam.googleapis.com
+      - servicenetworking.googleapis.com
