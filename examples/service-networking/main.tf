@@ -25,7 +25,7 @@ module "service_networking" {
   version = "~> 9.0"
 
   project_id       = var.project_id
-  network          = { id : google_compute_network.peering_network.id }
+  network_name     = google_compute_network.peering_network.name
   global_addresses = [{ name : "global-address" }]
   service          = "servicenetworking.googleapis.com"
 }

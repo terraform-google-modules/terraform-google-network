@@ -25,16 +25,14 @@ variable "global_addresses" {
     name : string,
     purpose : optional(string, "VPC_PEERING"),
     type : optional(string, "INTERNAL"),
+    address : optional(string, null),
     prefix_length : optional(number, 16)
   }))
 }
 
-variable "network" {
-  description = "Network details including name and id"
-  type = object({
-    name = optional(string, null),
-    id   = string
-  })
+variable "network_name" {
+  description = "Network name"
+  type        = string
 }
 
 variable "service" {

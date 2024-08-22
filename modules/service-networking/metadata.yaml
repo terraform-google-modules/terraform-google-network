@@ -22,7 +22,7 @@ spec:
   info:
     title: Terraform Google service networking
     source:
-      repo: https://github.com/q2w/terraform-google-network.git
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
       dir: /modules/service-networking
     version: 9.1.0
@@ -118,6 +118,7 @@ spec:
               name : string,
               purpose : optional(string, "VPC_PEERING"),
               type : optional(string, "INTERNAL"),
+              address : optional(string, null),
               prefix_length : optional(number, 16)
             }))
         required: true
@@ -125,13 +126,9 @@ spec:
         description: Import custom routes to peering rout config
         varType: bool
         defaultValue: false
-      - name: network
-        description: Network details including name and id
-        varType: |-
-          object({
-              name = optional(string, null),
-              id   = string
-            })
+      - name: network_name
+        description: Network name
+        varType: string
         required: true
       - name: project_id
         description: Project ID
