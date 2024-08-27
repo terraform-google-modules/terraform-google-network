@@ -53,6 +53,7 @@ module "project" {
     "vpcaccess.googleapis.com",
     "dns.googleapis.com",
     "networksecurity.googleapis.com",
+    "networkconnectivity.googleapis.com",
     "iam.googleapis.com",
   ]
 }
