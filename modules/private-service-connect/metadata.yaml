@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,120 +19,144 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: "true"
 spec:
-  title: Private Service Connect
-  source:
-    repo: https://github.com/terraform-google-modules/terraform-google-network
-    sourceType: git
-  version: 9.1.0
-  actuationTool:
-    type: Terraform
-    version: '>= 0.13'
-  examples:
-  - name: basic_auto_mode
-    location: examples/basic_auto_mode
-  - name: basic_custom_mode
-    location: examples/basic_custom_mode
-  - name: basic_firewall_rule
-    location: examples/basic_firewall_rule
-  - name: basic_secondary_ranges
-    location: examples/basic_secondary_ranges
-  - name: basic_shared_vpc
-    location: examples/basic_shared_vpc
-  - name: basic_vpc_peering
-    location: examples/basic_vpc_peering
-  - name: delete_default_gateway_routes
-    location: examples/delete_default_gateway_routes
-  - name: firewall_logging
-    location: examples/firewall_logging
-  - name: ilb_routing
-    location: examples/ilb_routing
-  - name: multi_vpc
-    location: examples/multi_vpc
-  - name: network_service_tiers
-    location: examples/network_service_tiers
-  - name: packet_mirroring
-    location: examples/packet_mirroring
-  - name: private_service_connect
-    location: examples/private_service_connect
-  - name: private_service_connect_google_apis
-    location: examples/private_service_connect_google_apis
-  - name: routes
-    location: examples/routes
-  - name: secondary_ranges
-    location: examples/secondary_ranges
-  - name: simple_project
-    location: examples/simple_project
-  - name: simple_project_with_regional_network
-    location: examples/simple_project_with_regional_network
-  - name: submodule_firewall
-    location: examples/submodule_firewall
-  - name: submodule_network_peering
-    location: examples/submodule_network_peering
-  - name: submodule_svpc_access
-    location: examples/submodule_svpc_access
-  - name: submodule_vpc_serverless_connector
-    location: examples/submodule_vpc_serverless_connector
-  variables:
-  - name: dns_code
-    description: Code to identify DNS resources in the form of `{dns_code}-{dns_type}`
-    type: string
-    default: dz
-    required: false
-  - name: forwarding_rule_name
-    description: Forwarding rule resource name. The forwarding rule name for PSC Google APIs must be an 1-20 characters string with lowercase letters and numbers and must start with a letter. Defaults to `globalrule`
-    type: string
-    default: globalrule
-    required: false
-  - name: forwarding_rule_target
-    description: Target resource to receive the matched traffic. Only `all-apis` and `vpc-sc` are valid.
-    type: string
-    required: true
-  - name: network_self_link
-    description: Network self link for Private Service Connect.
-    type: string
-    required: true
-  - name: private_service_connect_ip
-    description: The internal IP to be used for the private service connect.
-    type: string
-    required: true
-  - name: private_service_connect_name
-    description: Private Service Connect endpoint name. Defaults to `global-psconnect-ip`
-    type: string
-    default: global-psconnect-ip
-    required: false
-  - name: project_id
-    description: Project ID for Private Service Connect.
-    type: string
-    required: true
-  outputs:
-  - name: dns_zone_gcr_name
-    description: Name for Managed DNS zone for GCR
-  - name: dns_zone_googleapis_name
-    description: Name for Managed DNS zone for GoogleAPIs
-  - name: dns_zone_pkg_dev_name
-    description: Name for Managed DNS zone for PKG_DEV
-  - name: forwarding_rule_name
-    description: Forwarding rule resource name.
-  - name: forwarding_rule_target
-    description: Target resource to receive the matched traffic. Only `all-apis` and `vpc-sc` are valid.
-  - name: global_address_id
-    description: An identifier for the global address created for the private service connect with format `projects/{{project}}/global/addresses/{{name}}`
-  - name: private_service_connect_ip
-    description: Private service connect ip
-  - name: private_service_connect_name
-    description: Private service connect name
-  roles:
-  - level: Project
+  info:
+    title: Private Service Connect
+    source:
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
+      sourceType: git
+      dir: /modules/private-service-connect
+    version: 9.1.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.13"
+    description: {}
+  content:
+    examples:
+      - name: basic_auto_mode
+        location: examples/basic_auto_mode
+      - name: basic_custom_mode
+        location: examples/basic_custom_mode
+      - name: basic_firewall_rule
+        location: examples/basic_firewall_rule
+      - name: basic_secondary_ranges
+        location: examples/basic_secondary_ranges
+      - name: basic_shared_vpc
+        location: examples/basic_shared_vpc
+      - name: basic_vpc_peering
+        location: examples/basic_vpc_peering
+      - name: bidirectional-firewall-rules
+        location: examples/bidirectional-firewall-rules
+      - name: delete_default_gateway_routes
+        location: examples/delete_default_gateway_routes
+      - name: firewall_logging
+        location: examples/firewall_logging
+      - name: global-network-firewall-policy
+        location: examples/global-network-firewall-policy
+      - name: hierarchical-firewall-policy
+        location: examples/hierarchical-firewall-policy
+      - name: ilb_routing
+        location: examples/ilb_routing
+      - name: multi_vpc
+        location: examples/multi_vpc
+      - name: network_service_tiers
+        location: examples/network_service_tiers
+      - name: packet_mirroring
+        location: examples/packet_mirroring
+      - name: private_service_connect
+        location: examples/private_service_connect
+      - name: private_service_connect_google_apis
+        location: examples/private_service_connect_google_apis
+      - name: regional-network-firewall-policy
+        location: examples/regional-network-firewall-policy
+      - name: routes
+        location: examples/routes
+      - name: secondary_ranges
+        location: examples/secondary_ranges
+      - name: simple_ipv6_project
+        location: examples/simple_ipv6_project
+      - name: simple_project
+        location: examples/simple_project
+      - name: simple_project_with_regional_network
+        location: examples/simple_project_with_regional_network
+      - name: submodule_firewall
+        location: examples/submodule_firewall
+      - name: submodule_network_peering
+        location: examples/submodule_network_peering
+      - name: submodule_svpc_access
+        location: examples/submodule_svpc_access
+      - name: submodule_vpc_serverless_connector
+        location: examples/submodule_vpc_serverless_connector
+  interfaces:
+    variables:
+      - name: dns_code
+        description: Code to identify DNS resources in the form of `{dns_code}-{dns_type}`
+        varType: string
+        defaultValue: dz
+      - name: forwarding_rule_name
+        description: Forwarding rule resource name. The forwarding rule name for PSC Google APIs must be an 1-20 characters string with lowercase letters and numbers and must start with a letter. Defaults to `globalrule`
+        varType: string
+        defaultValue: globalrule
+      - name: forwarding_rule_target
+        description: Target resource to receive the matched traffic. Only `all-apis` and `vpc-sc` are valid.
+        varType: string
+        required: true
+      - name: network_self_link
+        description: Network self link for Private Service Connect.
+        varType: string
+        required: true
+      - name: private_service_connect_ip
+        description: The internal IP to be used for the private service connect.
+        varType: string
+        required: true
+      - name: private_service_connect_name
+        description: Private Service Connect endpoint name. Defaults to `global-psconnect-ip`
+        varType: string
+        defaultValue: global-psconnect-ip
+      - name: project_id
+        description: Project ID for Private Service Connect.
+        varType: string
+        required: true
+      - name: service_directory_namespace
+        description: Service Directory namespace to register the forwarding rule under.
+        varType: string
+      - name: service_directory_region
+        description: Service Directory region to register this global forwarding rule under. Defaults to `us-central1` if not defined.
+        varType: string
+    outputs:
+      - name: dns_zone_gcr_name
+        description: Name for Managed DNS zone for GCR
+      - name: dns_zone_googleapis_name
+        description: Name for Managed DNS zone for GoogleAPIs
+      - name: dns_zone_pkg_dev_name
+        description: Name for Managed DNS zone for PKG_DEV
+      - name: forwarding_rule_name
+        description: Forwarding rule resource name.
+      - name: forwarding_rule_target
+        description: Target resource to receive the matched traffic. Only `all-apis` and `vpc-sc` are valid.
+      - name: global_address_id
+        description: An identifier for the global address created for the private service connect with format `projects/{{project}}/global/addresses/{{name}}`
+      - name: private_service_connect_ip
+        description: Private service connect ip
+      - name: private_service_connect_name
+        description: Private service connect name
+  requirements:
     roles:
-    - roles/compute.networkAdmin
-    - roles/compute.securityAdmin
-    - roles/iam.serviceAccountUser
-    - roles/vpcaccess.admin
-    - roles/serviceusage.serviceUsageAdmin
-    - roles/dns.admin
-  services:
-  - cloudresourcemanager.googleapis.com
-  - compute.googleapis.com
-  - serviceusage.googleapis.com
-  - vpcaccess.googleapis.com
-  - dns.googleapis.com
+      - level: Project
+        roles:
+          - roles/compute.networkAdmin
+          - roles/compute.securityAdmin
+          - roles/iam.serviceAccountUser
+          - roles/vpcaccess.admin
+          - roles/serviceusage.serviceUsageAdmin
+          - roles/dns.admin
+          - roles/resourcemanager.tagAdmin
+          - roles/iam.serviceAccountAdmin
+          - roles/compute.orgFirewallPolicyAdmin
+    services:
+      - cloudresourcemanager.googleapis.com
+      - compute.googleapis.com
+      - serviceusage.googleapis.com
+      - vpcaccess.googleapis.com
+      - dns.googleapis.com
+      - networksecurity.googleapis.com
+      - iam.googleapis.com

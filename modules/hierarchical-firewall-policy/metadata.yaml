@@ -20,15 +20,15 @@ metadata:
     config.kubernetes.io/local-config: "true"
 spec:
   info:
-    title: Google Cloud Shared VPC Access Configuration
+    title: Google Cloud Hierarchical Firewall Policy
     source:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
-      dir: /modules/fabric-net-svpc-access
+      dir: /modules/hierarchical-firewall-policy
     version: 9.1.0
     actuationTool:
       flavor: Terraform
-      version: ">= 0.13.0"
+      version: ">= 1.3.0"
     description: {}
   content:
     examples:
@@ -88,37 +88,62 @@ spec:
         location: examples/submodule_vpc_serverless_connector
   interfaces:
     variables:
-      - name: host_project_id
-        description: Project id of the shared VPC host project.
+      - name: description
+        description: An optional description of this resource. Provide this property when you create the resource
+        varType: string
+      - name: parent_node
+        description: The parent of the firewall policy. Parent should be in format organizations/<org-id> or folders/<folder_id>
         varType: string
         required: true
-      - name: host_service_agent_role
-        description: Assign host service agent role to users in host_service_agent_users variable.
-        varType: bool
-        defaultValue: false
-      - name: host_service_agent_users
-        description: List of IAM-style users that will be granted the host service agent role on the host project.
-        varType: list(string)
-        defaultValue: []
-      - name: host_subnet_regions
-        description: List of subnet regions, one per subnet.
-        varType: list(string)
-        defaultValue: []
-      - name: host_subnet_users
-        description: Map of comma-delimited IAM-style members to which network user roles for subnets will be assigned.
-        varType: map(any)
-        defaultValue: {}
-      - name: host_subnets
-        description: List of subnet names on which to grant network user role.
-        varType: list(string)
-        defaultValue: []
-      - name: service_project_ids
-        description: Ids of the service projects that will be attached to the Shared VPC.
-        varType: list(string)
+      - name: policy_name
+        description: User-provided name of the hierarchical firewall policy
+        varType: string
         required: true
+      - name: rules
+        description: List of Ingress/Egress rules
+        varType: |-
+          list(object({
+              priority                = number
+              direction               = string
+              action                  = string
+              rule_name               = optional(string)
+              disabled                = optional(bool)
+              description             = optional(string)
+              enable_logging          = optional(bool)
+              target_service_accounts = optional(list(string), [])
+              target_resources        = optional(list(string), [])
+              match = object({
+                src_ip_ranges             = optional(list(string), [])
+                src_fqdns                 = optional(list(string), [])
+                src_region_codes          = optional(list(string), [])
+                src_threat_intelligences  = optional(list(string), [])
+                src_address_groups        = optional(list(string), [])
+                dest_ip_ranges            = optional(list(string), [])
+                dest_fqdns                = optional(list(string), [])
+                dest_region_codes         = optional(list(string), [])
+                dest_threat_intelligences = optional(list(string), [])
+                dest_address_groups       = optional(list(string), [])
+                layer4_configs = optional(list(object({
+                  ip_protocol = optional(string, "all")
+                  ports       = optional(list(string), [])
+                })), [{}])
+              })
+            }))
+        defaultValue: []
+      - name: target_folders
+        description: List of target folders IDs that the firewall policy will be attached to
+        varType: list(string)
+        defaultValue: []
+      - name: target_org
+        description: Target org id that the firewall policy will be attached to
+        varType: string
     outputs:
-      - name: service_projects
-        description: Project ids of the services with access to all subnets.
+      - name: fw_policy
+        description: Firewall policy created
+      - name: rules
+        description: Firewall policy rules created
+      - name: target_associations
+        description: folders/orgs associations created
   requirements:
     roles:
       - level: Project
