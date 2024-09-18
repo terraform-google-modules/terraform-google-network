@@ -57,6 +57,7 @@ If you have a firewall rule blocking egress traffic, you will need to configure 
 | private\_service\_connect\_ip | The internal IP to be used for the private service connect. | `string` | n/a | yes |
 | private\_service\_connect\_name | Private Service Connect endpoint name. Defaults to `global-psconnect-ip` | `string` | `"global-psconnect-ip"` | no |
 | project\_id | Project ID for Private Service Connect. | `string` | n/a | yes |
+| psc\_global\_access | This is used in PSC consumer ForwardingRule to control whether the PSC endpoint can be accessed from another region. Defaults to `false` | `bool` | `false` | no |
 | service\_directory\_namespace | Service Directory namespace to register the forwarding rule under. | `string` | `null` | no |
 | service\_directory\_region | Service Directory region to register this global forwarding rule under. Defaults to `us-central1` if not defined. | `string` | `null` | no |
 
