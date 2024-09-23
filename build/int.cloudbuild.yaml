@@ -226,6 +226,21 @@ steps:
     - verify hierarchical-firewall-policy
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'cft test run TestHierarchicalFirewallPolicy --stage teardown --verbose']
+- id: converge network-connectivity-center
+  waitFor:
+    - destroy hierarchical-firewall-policy
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestNetworkConnectivityCenter --stage apply --verbose']
+- id: verify network-connectivity-center
+  waitFor:
+    - converge network-connectivity-center
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestNetworkConnectivityCenter --stage verify --verbose']
+- id: destroy network-connectivity-center
+  waitFor:
+    - verify network-connectivity-center
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestNetworkConnectivityCenter --stage teardown --verbose']
 tags:
 - 'ci'
 - 'integration'

@@ -14,6 +14,16 @@
  * limitations under the License.
  */
 
+output "project_id" {
+  description = "The project ID (required for testing)"
+  value       = var.project_id
+}
+
+output "ncc_hub_name" {
+  description = "Name of the NCC Hub (required for testing)"
+  value       = module.network_connectivity_center.ncc_hub.name
+}
+
 output "ncc_hub" {
   description = "The NCC Hub object"
   value       = module.network_connectivity_center.ncc_hub

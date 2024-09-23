@@ -18,9 +18,18 @@ module "network_connectivity_center" {
   source       = "terraform-google-modules/network/google//modules/network-connectivity-center"
   project_id   = var.project_id
   ncc_hub_name = var.ncc_hub_name
+  ncc_hub_labels = {
+    "module" = "ncc"
+  }
+  spoke_labels = {
+    "created-by" = "terraform-google-ncc-example"
+  }
   vpc_spokes = {
     "vpc-1" = {
       uri = module.vpc_spoke_vpc.network_id
+      labels = {
+        "spoke-type" = "vpc"
+      }
     }
   }
   hybrid_spokes = {

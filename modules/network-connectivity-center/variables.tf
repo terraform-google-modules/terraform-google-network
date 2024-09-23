@@ -15,20 +15,30 @@
  */
 
 variable "project_id" {
-  description = "Project id of the project that holds the network."
+  description = "Project ID of the project that holds the network."
   type        = string
 }
 
 variable "ncc_hub_name" {
   description = "The Name of the NCC Hub"
   type        = string
-  default     = "ncc-hub"
+}
+
+variable "ncc_hub_description" {
+  description = "The description of the NCC Hub"
+  type        = string
+  default     = "Managed by Terraform"
+}
+variable "ncc_hub_labels" {
+  description = "These labels will be added the NCC hub"
+  type        = map(string)
+  default     = {}
 }
 
 variable "export_psc" {
   description = "Whether Private Service Connect transitivity is enabled for the hub"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "vpc_spokes" {
@@ -36,6 +46,8 @@ variable "vpc_spokes" {
   type = map(object({
     uri                   = string
     exclude_export_ranges = optional(set(string))
+    description           = optional(string, "Managed by Terraform")
+    labels                = optional(map(string))
   }))
   default = {}
 }
@@ -47,6 +59,8 @@ variable "hybrid_spokes" {
     uris                       = set(string)
     site_to_site_data_transfer = optional(bool, false)
     type                       = string
+    description                = optional(string, "Managed by Terraform")
+    labels                     = optional(map(string))
   }))
   default = {}
 }
@@ -60,6 +74,14 @@ variable "router_appliance_spokes" {
     }))
     location                   = string
     site_to_site_data_transfer = optional(bool, false)
+    description                = optional(string, "Managed by Terraform")
+    labels                     = optional(map(string))
   }))
   default = {}
+}
+
+variable "spoke_labels" {
+  description = "These labels will be added to all NCC spokes"
+  type        = map(string)
+  default     = {}
 }

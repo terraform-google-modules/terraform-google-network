@@ -15,13 +15,16 @@
  */
 
 terraform {
-  required_version = ">=0.13.0"
+  required_version = ">= 1.3.0"
 
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 5.40.0"
+      version = ">= 5.40.0, < 7"
 
     }
+  }
+  provider_meta "google" {
+    module_name = "blueprints/terraform/terraform-google-network:network-connectivity-center/v9.2.0"
   }
 }

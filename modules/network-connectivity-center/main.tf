@@ -15,7 +15,6 @@
  */
 
 locals {
-  default_description = "Managed by Terraform"
   vpc_spokes = {
     for k, v in google_network_connectivity_spoke.vpc_spoke :
     k => v
@@ -33,8 +32,9 @@ locals {
 resource "google_network_connectivity_hub" "hub" {
   name        = var.ncc_hub_name
   project     = var.project_id
-  description = local.default_description
+  description = var.ncc_hub_description
   export_psc  = var.export_psc
+  labels      = var.ncc_hub_labels
 }
 
 
@@ -43,8 +43,9 @@ resource "google_network_connectivity_spoke" "vpc_spoke" {
   project     = var.project_id
   name        = each.key
   location    = "global"
-  description = local.default_description
+  description = each.value.description
   hub         = google_network_connectivity_hub.hub.id
+  labels      = merge(var.spoke_labels, each.value.labels)
 
   linked_vpc_network {
     uri                   = each.value.uri
@@ -57,8 +58,9 @@ resource "google_network_connectivity_spoke" "hybrid_spoke" {
   project     = var.project_id
   name        = each.key
   location    = each.value.location
-  description = local.default_description
+  description = each.value.description
   hub         = google_network_connectivity_hub.hub.id
+  labels      = merge(var.spoke_labels, each.value.labels)
 
   dynamic "linked_interconnect_attachments" {
     for_each = each.value.type == "interconnect" ? [1] : []
@@ -82,8 +84,9 @@ resource "google_network_connectivity_spoke" "router_appliance_spoke" {
   project     = var.project_id
   name        = each.key
   location    = each.value.location
-  description = local.default_description
+  description = each.value.description
   hub         = google_network_connectivity_hub.hub.id
+  labels      = merge(var.spoke_labels, each.value.labels)
 
   linked_router_appliance_instances {
     dynamic "instances" {
