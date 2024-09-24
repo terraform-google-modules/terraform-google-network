@@ -16,6 +16,7 @@
 
 locals {
   int_required_roles = [
+    "roles/compute.instanceAdmin",
     "roles/compute.networkAdmin",
     "roles/compute.securityAdmin",
     "roles/iam.serviceAccountUser",
