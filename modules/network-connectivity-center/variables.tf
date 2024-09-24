@@ -27,7 +27,7 @@ variable "ncc_hub_name" {
 variable "ncc_hub_description" {
   description = "The description of the NCC Hub"
   type        = string
-  default     = "Managed by Terraform"
+  default     = ""
 }
 variable "ncc_hub_labels" {
   description = "These labels will be added the NCC hub"
@@ -46,7 +46,7 @@ variable "vpc_spokes" {
   type = map(object({
     uri                   = string
     exclude_export_ranges = optional(set(string))
-    description           = optional(string, "Managed by Terraform")
+    description           = optional(string)
     labels                = optional(map(string))
   }))
   default = {}
@@ -59,7 +59,7 @@ variable "hybrid_spokes" {
     uris                       = set(string)
     site_to_site_data_transfer = optional(bool, false)
     type                       = string
-    description                = optional(string, "Managed by Terraform")
+    description                = optional(string)
     labels                     = optional(map(string))
   }))
   default = {}
@@ -74,7 +74,7 @@ variable "router_appliance_spokes" {
     }))
     location                   = string
     site_to_site_data_transfer = optional(bool, false)
-    description                = optional(string, "Managed by Terraform")
+    description                = optional(string)
     labels                     = optional(map(string))
   }))
   default = {}

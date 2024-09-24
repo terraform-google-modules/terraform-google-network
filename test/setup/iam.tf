@@ -25,6 +25,7 @@ locals {
     "roles/resourcemanager.tagAdmin",
     "roles/iam.serviceAccountAdmin",
     "roles/compute.orgFirewallPolicyAdmin",
+    "roles/networkconnectivity.hubAdmin",
   ]
 }
 
