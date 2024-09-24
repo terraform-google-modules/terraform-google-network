@@ -27,7 +27,7 @@ variable "ncc_hub_name" {
 variable "ncc_hub_description" {
   description = "The description of the NCC Hub"
   type        = string
-  default     = ""
+  default     = null
 }
 variable "ncc_hub_labels" {
   description = "These labels will be added the NCC hub"
