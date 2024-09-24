@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [9.2.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v9.1.0...v9.2.0) (2024-08-29)
+
+
+### Features
+
+* Change serverless-connector input type and update metadata ([#568](https://github.com/terraform-google-modules/terraform-google-network/issues/568)) ([830b09c](https://github.com/terraform-google-modules/terraform-google-network/commit/830b09c7566f32cbbbf25d557912e5013357a43e))
+* **deps:** Update Terraform Google Provider to v6 (major) ([#574](https://github.com/terraform-google-modules/terraform-google-network/issues/574)) ([c90da25](https://github.com/terraform-google-modules/terraform-google-network/commit/c90da2594f488ad0c433931deb29bf9d96cb76a5))
+
 ## [9.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v9.0.0...v9.1.0) (2024-04-15)
 
 
