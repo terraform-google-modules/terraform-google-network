@@ -47,10 +47,7 @@ module "network_connectivity_center" {
           virtual_machine = google_compute_instance.router_appliance_1.id
           ip_address      = google_compute_instance.router_appliance_1.network_interface[0].network_ip
         },
-        {
-          virtual_machine = google_compute_instance.router_appliance_2.id
-          ip_address      = google_compute_instance.router_appliance_2.network_interface[0].network_ip
-        }
+
       ]
       location                   = var.instance_region
       site_to_site_data_transfer = false
@@ -230,27 +227,6 @@ module "router_appliance_spoke_vpc" {
 
 resource "google_compute_instance" "router_appliance_1" {
   name           = "fake-router-appliance-1"
-  machine_type   = "e2-medium"
-  project        = var.project_id
-  can_ip_forward = true
-  zone           = random_shuffle.zone.result[0]
-
-  boot_disk {
-    initialize_params {
-      image = "debian-cloud/debian-11"
-    }
-  }
-
-  network_interface {
-    subnetwork = module.router_appliance_spoke_vpc.subnets["${var.instance_region}/router-appliance-subnet-01"].id
-    access_config {
-      network_tier = "PREMIUM"
-    }
-  }
-}
-
-resource "google_compute_instance" "router_appliance_2" {
-  name           = "fake-router-appliance-2"
   machine_type   = "e2-medium"
   project        = var.project_id
   can_ip_forward = true
