@@ -50,6 +50,7 @@ resource "google_network_connectivity_spoke" "vpc_spoke" {
   linked_vpc_network {
     uri                   = each.value.uri
     exclude_export_ranges = each.value.exclude_export_ranges
+    include_export_ranges = each.value.include_export_ranges
   }
 }
 

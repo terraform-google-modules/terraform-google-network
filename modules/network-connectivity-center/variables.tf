@@ -45,7 +45,8 @@ variable "vpc_spokes" {
   description = "VPC network that is associated with the spoke"
   type = map(object({
     uri                   = string
-    exclude_export_ranges = optional(set(string))
+    exclude_export_ranges = optional(set(string), [])
+    include_export_ranges = optional(set(string), [])
     description           = optional(string)
     labels                = optional(map(string))
   }))
