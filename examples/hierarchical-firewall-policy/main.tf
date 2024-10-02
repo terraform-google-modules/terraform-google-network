@@ -48,7 +48,6 @@ module "firewal_policy" {
   parent_node    = "folders/${var.folder1}"
   policy_name    = "${local.prefix}-firewall-policy-${random_string.random_suffix.result}"
   description    = "test ${local.prefix} firewall policy"
-  target_org     = var.org_id
   target_folders = [var.folder2, var.folder3]
 
   rules = [

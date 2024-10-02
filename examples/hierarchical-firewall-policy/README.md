@@ -10,7 +10,6 @@ This example creates a Service Account and 2 hierarchical firewall policy. First
 | folder1 | The folder\_id ID 1 to to create firewall policy in | `any` | n/a | yes |
 | folder2 | The folder\_id ID 2 to attach firewal policy to | `any` | n/a | yes |
 | folder3 | The folder\_id ID 3 to attach firewal policy to | `any` | n/a | yes |
-| org\_id | The org ID attach firewal policy to | `any` | n/a | yes |
 | project\_id | The project ID to host the network in | `any` | n/a | yes |
 
 ## Outputs
