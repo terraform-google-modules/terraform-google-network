@@ -37,6 +37,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:network-peering/v9.2.0"
+    module_name = "blueprints/terraform/terraform-google-network:network-peering/v9.3.0"
   }
 }

@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [9.3.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v9.2.0...v9.3.0) (2024-10-07)
+
+
+### Features
+
+* allow enabling global access for PSC endpoints ([#577](https://github.com/terraform-google-modules/terraform-google-network/issues/577)) ([8abb57b](https://github.com/terraform-google-modules/terraform-google-network/commit/8abb57be5f8a88e4e5e326d73d57d72dec58165f))
+* Create module and example for NCC ([#575](https://github.com/terraform-google-modules/terraform-google-network/issues/575)) ([3a6c8fb](https://github.com/terraform-google-modules/terraform-google-network/commit/3a6c8fb900f90bbe999526007c147c515d506d9a))
+
+
+### Bug Fixes
+
+* tests failing on hierarchical policy attachment to org ([#580](https://github.com/terraform-google-modules/terraform-google-network/issues/580)) ([69fca12](https://github.com/terraform-google-modules/terraform-google-network/commit/69fca128fdbb37e71cb144383ce01dfae3637aa0))
+
 ## [9.2.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v9.1.0...v9.2.0) (2024-08-29)
 
 
