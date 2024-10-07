@@ -25,6 +25,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:subnets/v9.2.0"
+    module_name = "blueprints/terraform/terraform-google-network:subnets/v9.3.0"
   }
 }
