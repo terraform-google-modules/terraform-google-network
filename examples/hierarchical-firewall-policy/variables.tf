@@ -29,7 +29,3 @@ variable "folder2" {
 variable "folder3" {
   description = "The folder_id ID 3 to attach firewal policy to"
 }
-
-variable "org_id" {
-  description = "The org ID attach firewal policy to"
-}

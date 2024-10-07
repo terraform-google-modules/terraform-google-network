@@ -38,13 +38,14 @@ resource "google_folder" "folder3" {
 
 module "project" {
   source  = "terraform-google-modules/project-factory/google"
-  version = "~> 15.0"
+  version = "~> 17.0"
 
   name              = "ci-network"
   random_project_id = "true"
   org_id            = var.org_id
   folder_id         = google_folder.folder2.id
   billing_account   = var.billing_account
+  deletion_policy   = "DELETE"
 
   activate_apis = [
     "cloudresourcemanager.googleapis.com",
