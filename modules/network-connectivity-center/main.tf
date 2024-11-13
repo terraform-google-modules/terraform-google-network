@@ -40,7 +40,7 @@ resource "google_network_connectivity_hub" "hub" {
 
 resource "google_network_connectivity_spoke" "vpc_spoke" {
   for_each    = var.vpc_spokes
-  project     = var.project_id
+  project     = split("/", each.value.uri)[1]
   name        = each.key
   location    = "global"
   description = each.value.description
