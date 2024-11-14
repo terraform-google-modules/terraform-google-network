@@ -40,7 +40,7 @@ resource "google_network_connectivity_hub" "hub" {
 
 resource "google_network_connectivity_spoke" "vpc_spoke" {
   for_each    = var.vpc_spokes
-  project     = var.project_id
+  project     = split("/", each.value.uri)[1]
   name        = each.key
   location    = "global"
   description = each.value.description
@@ -78,11 +78,6 @@ resource "google_network_connectivity_spoke" "hybrid_spoke" {
       site_to_site_data_transfer = each.value.site_to_site_data_transfer
     }
   }
-
-  # TODO: gleichda remove once b/369823133 is fixed
-  depends_on = [
-    google_network_connectivity_spoke.vpc_spoke
-  ]
 }
 
 resource "google_network_connectivity_spoke" "router_appliance_spoke" {
@@ -106,9 +101,4 @@ resource "google_network_connectivity_spoke" "router_appliance_spoke" {
     site_to_site_data_transfer = each.value.site_to_site_data_transfer
 
   }
-
-  # TODO: gleichda remove once b/369823133 is fixed
-  depends_on = [
-    google_network_connectivity_spoke.hybrid_spoke
-  ]
 }
