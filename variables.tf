@@ -199,3 +199,15 @@ variable "network_firewall_policy_enforcement_order" {
   default     = null
   description = "Set the order that Firewall Rules and Firewall Policies are evaluated. Valid values are `BEFORE_CLASSIC_FIREWALL` and `AFTER_CLASSIC_FIREWALL`. (default null or equivalent to `AFTER_CLASSIC_FIREWALL`)"
 }
+
+variable "network_profile" {
+  type        = string
+  default     = null
+  description = <<-EOT
+    "A full or partial URL of the network profile to apply to this network. 
+    This field can be set only at resource creation time. For example, the
+    following are valid URLs:
+      * https://www.googleapis.com/compute/beta/projects/{projectId}/global/networkProfiles/{network_profile_name}
+      * projects/{projectId}/global/networkProfiles/{network_profile_name}
+    EOT
+}

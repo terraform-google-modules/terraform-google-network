@@ -24,7 +24,7 @@ terraform {
     }
     google-beta = {
       source  = "hashicorp/google-beta"
-      version = ">= 4.64, < 7"
+      version = ">= 6.XX, < 7" # TODO Update this once the provider is released (DO NOT MERGE)
     }
   }
 
