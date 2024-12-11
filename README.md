@@ -32,7 +32,7 @@ You can go to the [examples](./examples/) folder, however the usage of the modul
 ```hcl
 module "vpc" {
     source  = "terraform-google-modules/network/google"
-    version = "~> 9.3"
+    version = "~> 10.0"
 
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"
