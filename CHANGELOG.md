@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [10.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v9.3.0...v10.0.0) (2024-12-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* Add network_profile setting to network, update network resource provider ([#584](https://github.com/terraform-google-modules/terraform-google-network/issues/584))
+
+### Features
+
+* Add network_profile setting to network, update network resource provider ([#584](https://github.com/terraform-google-modules/terraform-google-network/issues/584)) ([456a6d9](https://github.com/terraform-google-modules/terraform-google-network/commit/456a6d91235792ab3ee91be05fb01e0f5e515a3c))
+
 ## [9.3.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v9.2.0...v9.3.0) (2024-10-07)
 
 
