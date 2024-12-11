@@ -30,6 +30,7 @@ module "vpc" {
   enable_ipv6_ula                           = var.enable_ipv6_ula
   internal_ipv6_range                       = var.internal_ipv6_range
   network_firewall_policy_enforcement_order = var.network_firewall_policy_enforcement_order
+  network_profile                           = var.network_profile
 }
 
 /******************************************
