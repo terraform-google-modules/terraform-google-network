@@ -43,12 +43,11 @@ resource "google_compute_network" "network_backup" {
 
 module "firewal_policy" {
   source  = "terraform-google-modules/network/google//modules/hierarchical-firewall-policy"
-  version = "~> 9.0"
+  version = "~> 10.0"
 
   parent_node    = "folders/${var.folder1}"
   policy_name    = "${local.prefix}-firewall-policy-${random_string.random_suffix.result}"
   description    = "test ${local.prefix} firewall policy"
-  target_org     = var.org_id
   target_folders = [var.folder2, var.folder3]
 
   rules = [
@@ -182,7 +181,7 @@ module "firewal_policy" {
 
 module "firewal_policy_no_rule" {
   source  = "terraform-google-modules/network/google//modules/hierarchical-firewall-policy"
-  version = "~> 9.0"
+  version = "~> 10.0"
 
   parent_node = "folders/${var.folder1}"
   policy_name = "${local.prefix}-firewall-policy-no-rules-${random_string.random_suffix.result}"

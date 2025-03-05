@@ -20,11 +20,11 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 3.33, < 6"
+      version = ">= 3.33, < 7"
     }
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:firewall-rules/v9.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:firewall-rules/v10.0.0"
   }
 }

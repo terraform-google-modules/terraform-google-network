@@ -19,19 +19,19 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 5.8, < 6"
+      version = ">= 5.8, < 7"
     }
     google-beta = {
       source  = "hashicorp/google-beta"
-      version = ">= 5.8, < 6"
+      version = ">= 5.8, < 7"
     }
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:private-service-connect/v9.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:private-service-connect/v10.0.0"
   }
 
   provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-google-network:private-service-connect/v9.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:private-service-connect/v10.0.0"
   }
 }

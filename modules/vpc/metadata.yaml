@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,121 +19,146 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: "true"
 spec:
-  title: Terraform VPC Module
-  source:
-    repo: https://github.com/terraform-google-modules/terraform-google-network
-    sourceType: git
-  version: 9.1.0
-  actuationTool:
-    type: Terraform
-    version: '>= 0.13.0'
-  examples:
-  - name: basic_auto_mode
-    location: examples/basic_auto_mode
-  - name: basic_custom_mode
-    location: examples/basic_custom_mode
-  - name: basic_firewall_rule
-    location: examples/basic_firewall_rule
-  - name: basic_secondary_ranges
-    location: examples/basic_secondary_ranges
-  - name: basic_shared_vpc
-    location: examples/basic_shared_vpc
-  - name: basic_vpc_peering
-    location: examples/basic_vpc_peering
-  - name: delete_default_gateway_routes
-    location: examples/delete_default_gateway_routes
-  - name: firewall_logging
-    location: examples/firewall_logging
-  - name: ilb_routing
-    location: examples/ilb_routing
-  - name: multi_vpc
-    location: examples/multi_vpc
-  - name: network_service_tiers
-    location: examples/network_service_tiers
-  - name: packet_mirroring
-    location: examples/packet_mirroring
-  - name: private_service_connect
-    location: examples/private_service_connect
-  - name: private_service_connect_google_apis
-    location: examples/private_service_connect_google_apis
-  - name: routes
-    location: examples/routes
-  - name: secondary_ranges
-    location: examples/secondary_ranges
-  - name: simple_project
-    location: examples/simple_project
-  - name: simple_project_with_regional_network
-    location: examples/simple_project_with_regional_network
-  - name: submodule_firewall
-    location: examples/submodule_firewall
-  - name: submodule_network_peering
-    location: examples/submodule_network_peering
-  - name: submodule_svpc_access
-    location: examples/submodule_svpc_access
-  - name: submodule_vpc_serverless_connector
-    location: examples/submodule_vpc_serverless_connector
-  variables:
-  - name: auto_create_subnetworks
-    description: When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources.
-    type: bool
-    default: false
-    required: false
-  - name: delete_default_internet_gateway_routes
-    description: If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted
-    type: bool
-    default: false
-    required: false
-  - name: description
-    description: An optional description of this resource. The resource must be recreated to modify this field.
-    type: string
-    default: ""
-    required: false
-  - name: mtu
-    description: 'The network MTU (If set to 0, meaning MTU is unset - defaults to ''1460''). Recommended values: 1460 (default for historic reasons), 1500 (Internet default), or 8896 (for Jumbo packets). Allowed are all values in the range 1300 to 8896, inclusively.'
-    type: number
-    default: 0
-    required: false
-  - name: network_name
-    description: The name of the network being created
-    type: string
-    required: true
-  - name: project_id
-    description: The ID of the project where this VPC will be created
-    type: string
-    required: true
-  - name: routing_mode
-    description: The network routing mode (default 'GLOBAL')
-    type: string
-    default: GLOBAL
-    required: false
-  - name: shared_vpc_host
-    description: Makes this project a Shared VPC host if 'true' (default 'false')
-    type: bool
-    default: false
-    required: false
-  outputs:
-  - name: network
-    description: The VPC resource being created
-  - name: network_id
-    description: The ID of the VPC being created
-  - name: network_name
-    description: The name of the VPC being created
-  - name: network_self_link
-    description: The URI of the VPC being created
-  - name: project_id
-    description: VPC project id
-  roles:
-  - level: Project
+  info:
+    title: Terraform VPC Module
+    source:
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
+      sourceType: git
+      dir: /modules/vpc
+    version: 10.0.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 0.13.0"
+    description: {}
+  content:
+    examples:
+      - name: basic_auto_mode
+        location: examples/basic_auto_mode
+      - name: basic_custom_mode
+        location: examples/basic_custom_mode
+      - name: basic_firewall_rule
+        location: examples/basic_firewall_rule
+      - name: basic_secondary_ranges
+        location: examples/basic_secondary_ranges
+      - name: basic_shared_vpc
+        location: examples/basic_shared_vpc
+      - name: basic_vpc_peering
+        location: examples/basic_vpc_peering
+      - name: bidirectional-firewall-rules
+        location: examples/bidirectional-firewall-rules
+      - name: delete_default_gateway_routes
+        location: examples/delete_default_gateway_routes
+      - name: firewall_logging
+        location: examples/firewall_logging
+      - name: global-network-firewall-policy
+        location: examples/global-network-firewall-policy
+      - name: hierarchical-firewall-policy
+        location: examples/hierarchical-firewall-policy
+      - name: ilb_routing
+        location: examples/ilb_routing
+      - name: multi_vpc
+        location: examples/multi_vpc
+      - name: network_service_tiers
+        location: examples/network_service_tiers
+      - name: packet_mirroring
+        location: examples/packet_mirroring
+      - name: private_service_connect
+        location: examples/private_service_connect
+      - name: private_service_connect_google_apis
+        location: examples/private_service_connect_google_apis
+      - name: regional-network-firewall-policy
+        location: examples/regional-network-firewall-policy
+      - name: routes
+        location: examples/routes
+      - name: secondary_ranges
+        location: examples/secondary_ranges
+      - name: simple_ipv6_project
+        location: examples/simple_ipv6_project
+      - name: simple_project
+        location: examples/simple_project
+      - name: simple_project_with_regional_network
+        location: examples/simple_project_with_regional_network
+      - name: submodule_firewall
+        location: examples/submodule_firewall
+      - name: submodule_network_peering
+        location: examples/submodule_network_peering
+      - name: submodule_svpc_access
+        location: examples/submodule_svpc_access
+      - name: submodule_vpc_serverless_connector
+        location: examples/submodule_vpc_serverless_connector
+  interfaces:
+    variables:
+      - name: auto_create_subnetworks
+        description: When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources.
+        varType: bool
+        defaultValue: false
+      - name: delete_default_internet_gateway_routes
+        description: If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted
+        varType: bool
+        defaultValue: false
+      - name: description
+        description: An optional description of this resource. The resource must be recreated to modify this field.
+        varType: string
+        defaultValue: ""
+      - name: enable_ipv6_ula
+        description: Enabled IPv6 ULA, this is a permenant change and cannot be undone! (default 'false')
+        varType: bool
+        defaultValue: false
+      - name: internal_ipv6_range
+        description: When enabling IPv6 ULA, optionally, specify a /48 from fd20::/20 (default null)
+        varType: string
+      - name: mtu
+        description: "The network MTU (If set to 0, meaning MTU is unset - defaults to '1460'). Recommended values: 1460 (default for historic reasons), 1500 (Internet default), or 8896 (for Jumbo packets). Allowed are all values in the range 1300 to 8896, inclusively."
+        varType: number
+        defaultValue: 0
+      - name: network_firewall_policy_enforcement_order
+        description: Set the order that Firewall Rules and Firewall Policies are evaluated. Valid values are `BEFORE_CLASSIC_FIREWALL` and `AFTER_CLASSIC_FIREWALL`. (default null or equivalent to `AFTER_CLASSIC_FIREWALL`)
+        varType: string
+      - name: network_name
+        description: The name of the network being created
+        varType: string
+        required: true
+      - name: project_id
+        description: The ID of the project where this VPC will be created
+        varType: string
+        required: true
+      - name: routing_mode
+        description: The network routing mode (default 'GLOBAL')
+        varType: string
+        defaultValue: GLOBAL
+      - name: shared_vpc_host
+        description: Makes this project a Shared VPC host if 'true' (default 'false')
+        varType: bool
+        defaultValue: false
+    outputs:
+      - name: network
+        description: The VPC resource being created
+      - name: network_id
+        description: The ID of the VPC being created
+      - name: network_name
+        description: The name of the VPC being created
+      - name: network_self_link
+        description: The URI of the VPC being created
+      - name: project_id
+        description: VPC project id
+  requirements:
     roles:
-    - roles/compute.networkAdmin
-    - roles/compute.securityAdmin
-    - roles/iam.serviceAccountUser
-    - roles/vpcaccess.admin
-    - roles/serviceusage.serviceUsageAdmin
-    - roles/dns.admin
-  services:
-  - cloudresourcemanager.googleapis.com
-  - compute.googleapis.com
-  - serviceusage.googleapis.com
-  - vpcaccess.googleapis.com
-  - dns.googleapis.com
+      - level: Project
+        roles:
+          - roles/compute.networkAdmin
+          - roles/compute.securityAdmin
+          - roles/iam.serviceAccountUser
+          - roles/vpcaccess.admin
+          - roles/serviceusage.serviceUsageAdmin
+          - roles/dns.admin
+          - roles/resourcemanager.tagAdmin
+          - roles/iam.serviceAccountAdmin
+          - roles/compute.orgFirewallPolicyAdmin
+    services:
+      - cloudresourcemanager.googleapis.com
+      - compute.googleapis.com
+      - serviceusage.googleapis.com
+      - vpcaccess.googleapis.com
+      - dns.googleapis.com
+      - networksecurity.googleapis.com
+      - iam.googleapis.com

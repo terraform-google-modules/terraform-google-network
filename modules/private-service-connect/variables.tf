@@ -68,3 +68,9 @@ variable "service_directory_region" {
   type        = string
   default     = null
 }
+
+variable "psc_global_access" {
+  description = "This is used in PSC consumer ForwardingRule to control whether the PSC endpoint can be accessed from another region. Defaults to `false`"
+  type        = bool
+  default     = false
+}

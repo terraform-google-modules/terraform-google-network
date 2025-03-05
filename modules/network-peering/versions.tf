@@ -20,11 +20,11 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 4.65, < 6"
+      version = ">= 4.65, < 7"
     }
     google-beta = {
       source  = "hashicorp/google-beta"
-      version = ">= 4.65, < 6"
+      version = ">= 4.65, < 7"
     }
     random = {
       source  = "hashicorp/random"
@@ -37,6 +37,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:network-peering/v9.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:network-peering/v10.0.0"
   }
 }

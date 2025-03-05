@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,183 +19,306 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: "true"
 spec:
-  title: Terraform Network Module
-  source:
-    repo: https://github.com/terraform-google-modules/terraform-google-network
-    sourceType: git
-  version: 9.1.0
-  actuationTool:
-    type: Terraform
-    version: '>= 0.13.0'
-  subBlueprints:
-  - name: fabric-net-firewall
-    location: modules/fabric-net-firewall
-  - name: fabric-net-svpc-access
-    location: modules/fabric-net-svpc-access
-  - name: firewall-rules
-    location: modules/firewall-rules
-  - name: network-peering
-    location: modules/network-peering
-  - name: private-service-connect
-    location: modules/private-service-connect
-  - name: routes
-    location: modules/routes
-  - name: routes-beta
-    location: modules/routes-beta
-  - name: subnets
-    location: modules/subnets
-  - name: subnets-beta
-    location: modules/subnets-beta
-  - name: vpc
-    location: modules/vpc
-  - name: vpc-serverless-connector-beta
-    location: modules/vpc-serverless-connector-beta
-  examples:
-  - name: basic_auto_mode
-    location: examples/basic_auto_mode
-  - name: basic_custom_mode
-    location: examples/basic_custom_mode
-  - name: basic_firewall_rule
-    location: examples/basic_firewall_rule
-  - name: basic_secondary_ranges
-    location: examples/basic_secondary_ranges
-  - name: basic_shared_vpc
-    location: examples/basic_shared_vpc
-  - name: basic_vpc_peering
-    location: examples/basic_vpc_peering
-  - name: delete_default_gateway_routes
-    location: examples/delete_default_gateway_routes
-  - name: firewall_logging
-    location: examples/firewall_logging
-  - name: ilb_routing
-    location: examples/ilb_routing
-  - name: multi_vpc
-    location: examples/multi_vpc
-  - name: network_service_tiers
-    location: examples/network_service_tiers
-  - name: packet_mirroring
-    location: examples/packet_mirroring
-  - name: private_service_connect
-    location: examples/private_service_connect
-  - name: private_service_connect_google_apis
-    location: examples/private_service_connect_google_apis
-  - name: routes
-    location: examples/routes
-  - name: secondary_ranges
-    location: examples/secondary_ranges
-  - name: simple_project
-    location: examples/simple_project
-  - name: simple_project_with_regional_network
-    location: examples/simple_project_with_regional_network
-  - name: submodule_firewall
-    location: examples/submodule_firewall
-  - name: submodule_network_peering
-    location: examples/submodule_network_peering
-  - name: submodule_svpc_access
-    location: examples/submodule_svpc_access
-  - name: submodule_vpc_serverless_connector
-    location: examples/submodule_vpc_serverless_connector
-  variables:
-  - name: auto_create_subnetworks
-    description: When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources.
-    type: bool
-    default: false
-    required: false
-  - name: delete_default_internet_gateway_routes
-    description: If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted
-    type: bool
-    default: false
-    required: false
-  - name: description
-    description: An optional description of this resource. The resource must be recreated to modify this field.
-    type: string
-    default: ""
-    required: false
-  - name: firewall_rules
-    description: List of firewall rules
-    type: any
-    default: []
-    required: false
-  - name: mtu
-    description: 'The network MTU (If set to 0, meaning MTU is unset - defaults to ''1460''). Recommended values: 1460 (default for historic reasons), 1500 (Internet default), or 8896 (for Jumbo packets). Allowed are all values in the range 1300 to 8896, inclusively.'
-    type: number
-    default: 0
-    required: false
-  - name: network_name
-    description: The name of the network being created
-    type: string
-    required: true
-  - name: project_id
-    description: The ID of the project where this VPC will be created
-    type: string
-    required: true
-  - name: routes
-    description: List of routes being created in this VPC
-    type: list(map(string))
-    default: []
-    required: false
-  - name: routing_mode
-    description: The network routing mode (default 'GLOBAL')
-    type: string
-    default: GLOBAL
-    required: false
-  - name: secondary_ranges
-    description: Secondary ranges that will be used in some of the subnets
-    type: map(list(object({ range_name = string, ip_cidr_range = string })))
-    default: {}
-    required: false
-  - name: shared_vpc_host
-    description: Makes this project a Shared VPC host if 'true' (default 'false')
-    type: bool
-    default: false
-    required: false
-  - name: subnets
-    description: The list of subnets being created
-    type: list(object({subnet_name = string, subnet_ip = string, subnet_region = string, subnet_private_access = optional(string), subnet_private_ipv6_access = optional(string), subnet_flow_logs = optional(string), subnet_flow_logs_interval = optional(string), subnet_flow_logs_sampling = optional(string), subnet_flow_logs_metadata = optional(string), subnet_flow_logs_filter = optional(string), subnet_flow_logs_metadata_fields = optional(list(string)), description = optional(string)}))
-    required: true
-  outputs:
-  - name: network
-    description: The created network
-  - name: network_id
-    description: The ID of the VPC being created
-  - name: network_name
-    description: The name of the VPC being created
-  - name: network_self_link
-    description: The URI of the VPC being created
-  - name: project_id
-    description: VPC project id
-  - name: route_names
-    description: The route names associated with this VPC
-  - name: subnets
-    description: A map with keys of form subnet_region/subnet_name and values being the outputs of the google_compute_subnetwork resources used to create corresponding subnets.
-  - name: subnets_flow_logs
-    description: Whether the subnets will have VPC flow logs enabled
-  - name: subnets_ids
-    description: The IDs of the subnets being created
-  - name: subnets_ips
-    description: The IPs and CIDRs of the subnets being created
-  - name: subnets_names
-    description: The names of the subnets being created
-  - name: subnets_private_access
-    description: Whether the subnets will have access to Google API's without a public IP
-  - name: subnets_regions
-    description: The region where the subnets will be created
-  - name: subnets_secondary_ranges
-    description: The secondary ranges associated with these subnets
-  - name: subnets_self_links
-    description: The self-links of subnets being created
-  roles:
-  - level: Project
+  info:
+    title: Terraform Network Module
+    source:
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
+      sourceType: git
+    version: 10.0.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.3"
+    description: {}
+  content:
+    subBlueprints:
+      - name: fabric-net-firewall
+        location: modules/fabric-net-firewall
+      - name: fabric-net-svpc-access
+        location: modules/fabric-net-svpc-access
+      - name: firewall-rules
+        location: modules/firewall-rules
+      - name: hierarchical-firewall-policy
+        location: modules/hierarchical-firewall-policy
+      - name: network-firewall-policy
+        location: modules/network-firewall-policy
+      - name: network-peering
+        location: modules/network-peering
+      - name: private-service-connect
+        location: modules/private-service-connect
+      - name: routes
+        location: modules/routes
+      - name: routes-beta
+        location: modules/routes-beta
+      - name: subnets
+        location: modules/subnets
+      - name: subnets-beta
+        location: modules/subnets-beta
+      - name: vpc
+        location: modules/vpc
+      - name: vpc-serverless-connector-beta
+        location: modules/vpc-serverless-connector-beta
+    examples:
+      - name: basic_auto_mode
+        location: examples/basic_auto_mode
+      - name: basic_custom_mode
+        location: examples/basic_custom_mode
+      - name: basic_firewall_rule
+        location: examples/basic_firewall_rule
+      - name: basic_secondary_ranges
+        location: examples/basic_secondary_ranges
+      - name: basic_shared_vpc
+        location: examples/basic_shared_vpc
+      - name: basic_vpc_peering
+        location: examples/basic_vpc_peering
+      - name: bidirectional-firewall-rules
+        location: examples/bidirectional-firewall-rules
+      - name: delete_default_gateway_routes
+        location: examples/delete_default_gateway_routes
+      - name: firewall_logging
+        location: examples/firewall_logging
+      - name: global-network-firewall-policy
+        location: examples/global-network-firewall-policy
+      - name: hierarchical-firewall-policy
+        location: examples/hierarchical-firewall-policy
+      - name: ilb_routing
+        location: examples/ilb_routing
+      - name: multi_vpc
+        location: examples/multi_vpc
+      - name: network_service_tiers
+        location: examples/network_service_tiers
+      - name: packet_mirroring
+        location: examples/packet_mirroring
+      - name: private_service_connect
+        location: examples/private_service_connect
+      - name: private_service_connect_google_apis
+        location: examples/private_service_connect_google_apis
+      - name: regional-network-firewall-policy
+        location: examples/regional-network-firewall-policy
+      - name: routes
+        location: examples/routes
+      - name: secondary_ranges
+        location: examples/secondary_ranges
+      - name: simple_ipv6_project
+        location: examples/simple_ipv6_project
+      - name: simple_project
+        location: examples/simple_project
+      - name: simple_project_with_regional_network
+        location: examples/simple_project_with_regional_network
+      - name: submodule_firewall
+        location: examples/submodule_firewall
+      - name: submodule_network_peering
+        location: examples/submodule_network_peering
+      - name: submodule_svpc_access
+        location: examples/submodule_svpc_access
+      - name: submodule_vpc_serverless_connector
+        location: examples/submodule_vpc_serverless_connector
+  interfaces:
+    variables:
+      - name: auto_create_subnetworks
+        description: When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources.
+        varType: bool
+        defaultValue: false
+      - name: delete_default_internet_gateway_routes
+        description: If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted
+        varType: bool
+        defaultValue: false
+      - name: description
+        description: An optional description of this resource. The resource must be recreated to modify this field.
+        varType: string
+        defaultValue: ""
+      - name: egress_rules
+        description: List of egress rules. This will be ignored if variable 'rules' is non-empty
+        varType: |-
+          list(object({
+              name                    = string
+              description             = optional(string, null)
+              disabled                = optional(bool, null)
+              priority                = optional(number, null)
+              destination_ranges      = optional(list(string), [])
+              source_ranges           = optional(list(string), [])
+              source_tags             = optional(list(string))
+              source_service_accounts = optional(list(string))
+              target_tags             = optional(list(string))
+              target_service_accounts = optional(list(string))
+
+              allow = optional(list(object({
+                protocol = string
+                ports    = optional(list(string))
+              })), [])
+              deny = optional(list(object({
+                protocol = string
+                ports    = optional(list(string))
+              })), [])
+              log_config = optional(object({
+                metadata = string
+              }))
+            }))
+        defaultValue: []
+      - name: enable_ipv6_ula
+        description: Enabled IPv6 ULA, this is a permenant change and cannot be undone! (default 'false')
+        varType: bool
+        defaultValue: false
+      - name: firewall_rules
+        description: This is DEPRICATED and available for backward compatiblity. Use ingress_rules and egress_rules variables. List of firewall rules
+        varType: |-
+          list(object({
+              name                    = string
+              description             = optional(string, null)
+              direction               = optional(string, "INGRESS")
+              disabled                = optional(bool, null)
+              priority                = optional(number, null)
+              ranges                  = optional(list(string), [])
+              source_tags             = optional(list(string))
+              source_service_accounts = optional(list(string))
+              target_tags             = optional(list(string))
+              target_service_accounts = optional(list(string))
+
+              allow = optional(list(object({
+                protocol = string
+                ports    = optional(list(string))
+              })), [])
+              deny = optional(list(object({
+                protocol = string
+                ports    = optional(list(string))
+              })), [])
+              log_config = optional(object({
+                metadata = string
+              }))
+            }))
+        defaultValue: []
+      - name: ingress_rules
+        description: List of ingress rules. This will be ignored if variable 'rules' is non-empty
+        varType: |-
+          list(object({
+              name                    = string
+              description             = optional(string, null)
+              disabled                = optional(bool, null)
+              priority                = optional(number, null)
+              destination_ranges      = optional(list(string), [])
+              source_ranges           = optional(list(string), [])
+              source_tags             = optional(list(string))
+              source_service_accounts = optional(list(string))
+              target_tags             = optional(list(string))
+              target_service_accounts = optional(list(string))
+
+              allow = optional(list(object({
+                protocol = string
+                ports    = optional(list(string))
+              })), [])
+              deny = optional(list(object({
+                protocol = string
+                ports    = optional(list(string))
+              })), [])
+              log_config = optional(object({
+                metadata = string
+              }))
+            }))
+        defaultValue: []
+      - name: internal_ipv6_range
+        description: When enabling IPv6 ULA, optionally, specify a /48 from fd20::/20 (default null)
+        varType: string
+      - name: mtu
+        description: "The network MTU (If set to 0, meaning MTU is unset - defaults to '1460'). Recommended values: 1460 (default for historic reasons), 1500 (Internet default), or 8896 (for Jumbo packets). Allowed are all values in the range 1300 to 8896, inclusively."
+        varType: number
+        defaultValue: 0
+      - name: network_firewall_policy_enforcement_order
+        description: Set the order that Firewall Rules and Firewall Policies are evaluated. Valid values are `BEFORE_CLASSIC_FIREWALL` and `AFTER_CLASSIC_FIREWALL`. (default null or equivalent to `AFTER_CLASSIC_FIREWALL`)
+        varType: string
+      - name: network_name
+        description: The name of the network being created
+        varType: string
+        required: true
+      - name: project_id
+        description: The ID of the project where this VPC will be created
+        varType: string
+        required: true
+      - name: routes
+        description: List of routes being created in this VPC
+        varType: list(map(string))
+        defaultValue: []
+      - name: routing_mode
+        description: The network routing mode (default 'GLOBAL')
+        varType: string
+        defaultValue: GLOBAL
+      - name: secondary_ranges
+        description: Secondary ranges that will be used in some of the subnets
+        varType: map(list(object({ range_name = string, ip_cidr_range = string })))
+        defaultValue: {}
+      - name: shared_vpc_host
+        description: Makes this project a Shared VPC host if 'true' (default 'false')
+        varType: bool
+        defaultValue: false
+      - name: subnets
+        description: The list of subnets being created
+        varType: |-
+          list(object({
+              subnet_name                      = string
+              subnet_ip                        = string
+              subnet_region                    = string
+              subnet_private_access            = optional(string)
+              subnet_private_ipv6_access       = optional(string)
+              subnet_flow_logs                 = optional(string)
+              subnet_flow_logs_interval        = optional(string)
+              subnet_flow_logs_sampling        = optional(string)
+              subnet_flow_logs_metadata        = optional(string)
+              subnet_flow_logs_filter          = optional(string)
+              subnet_flow_logs_metadata_fields = optional(list(string))
+              description                      = optional(string)
+              purpose                          = optional(string)
+              role                             = optional(string)
+              stack_type                       = optional(string)
+              ipv6_access_type                 = optional(string)
+            }))
+        required: true
+    outputs:
+      - name: network
+        description: The created network
+      - name: network_id
+        description: The ID of the VPC being created
+      - name: network_name
+        description: The name of the VPC being created
+      - name: network_self_link
+        description: The URI of the VPC being created
+      - name: project_id
+        description: VPC project id
+      - name: route_names
+        description: The route names associated with this VPC
+      - name: subnets
+        description: A map with keys of form subnet_region/subnet_name and values being the outputs of the google_compute_subnetwork resources used to create corresponding subnets.
+      - name: subnets_flow_logs
+        description: Whether the subnets will have VPC flow logs enabled
+      - name: subnets_ids
+        description: The IDs of the subnets being created
+      - name: subnets_ips
+        description: The IPs and CIDRs of the subnets being created
+      - name: subnets_names
+        description: The names of the subnets being created
+      - name: subnets_private_access
+        description: Whether the subnets will have access to Google API's without a public IP
+      - name: subnets_regions
+        description: The region where the subnets will be created
+      - name: subnets_secondary_ranges
+        description: The secondary ranges associated with these subnets
+      - name: subnets_self_links
+        description: The self-links of subnets being created
+  requirements:
     roles:
-    - roles/compute.networkAdmin
-    - roles/compute.securityAdmin
-    - roles/iam.serviceAccountUser
-    - roles/vpcaccess.admin
-    - roles/serviceusage.serviceUsageAdmin
-    - roles/dns.admin
-  services:
-  - cloudresourcemanager.googleapis.com
-  - compute.googleapis.com
-  - serviceusage.googleapis.com
-  - vpcaccess.googleapis.com
-  - dns.googleapis.com
+      - level: Project
+        roles:
+          - roles/compute.networkAdmin
+          - roles/compute.securityAdmin
+          - roles/iam.serviceAccountUser
+          - roles/vpcaccess.admin
+          - roles/serviceusage.serviceUsageAdmin
+          - roles/dns.admin
+          - roles/resourcemanager.tagAdmin
+          - roles/iam.serviceAccountAdmin
+          - roles/compute.orgFirewallPolicyAdmin
+    services:
+      - cloudresourcemanager.googleapis.com
+      - compute.googleapis.com
+      - serviceusage.googleapis.com
+      - vpcaccess.googleapis.com
+      - dns.googleapis.com
+      - networksecurity.googleapis.com
+      - iam.googleapis.com

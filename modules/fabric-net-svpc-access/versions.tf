@@ -20,18 +20,18 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 2.12, < 6"
+      version = ">= 2.12, < 7"
     }
     google-beta = {
       source  = "hashicorp/google-beta"
-      version = ">= 2.12, < 6"
+      version = ">= 2.12, < 7"
     }
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:fabric-net-svpc-access/v9.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:fabric-net-svpc-access/v10.0.0"
   }
   provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-google-network:fabric-net-svpc-access/v9.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:fabric-net-svpc-access/v10.0.0"
   }
 }
