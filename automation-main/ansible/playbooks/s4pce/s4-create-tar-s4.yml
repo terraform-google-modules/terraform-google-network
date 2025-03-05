@@ -1,0 +1,570 @@
+---
+# Playbook Name: s4-create-tar-s4.yml
+# Synopsis: Creates tars for S4 App and Hana. Saves to EFS and S3
+# Description: Gracefully stops SAP App and Hana.  Then creates split tar files of desired folders.  Tars are saved to EFS and uploaded to S3 buckets
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS permissions to upload to S3 Bucket for tar files upload
+#   - Sudo access to S4 App and DB instances
+# Dependencies: N/A
+# Variables:
+#   - sid : SAP ID of the system. Used to shutdown the App and DB servers
+#   - ipaddress_db : IP Address of the Hana DB instance
+#   - ipaddress_sapapp : IP Address of the SAPApp instance
+#   - release_name : Name of the tar release.  [Release]_HFC[XX]EP[NN]_[RDS|NO_RDS]_TAR   i.e. 1911_HFC02EP05_RDS_TAR
+#   - aws_access_key : AWS access key to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - aws_secret_key : AWS secret key to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - aws_security_token : AWS security token to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - app_staging_location : efs volume location for sap staging
+#   - db_staging_location : efs volume location for hana staging
+#   - upload_bucket : s3 bucket to upload to
+#   - upload_location : path to prepend to s3 upload location
+# Example:
+#   How to start with remote execution using ssh key
+#    ansible-playbook -u ec2-user --private-key myprivatekey.pem -c ssh s4-create-tar-s4.yml
+#
+#   How to start with remote execution using username/password
+#   - Requires sshpass installed
+#   - Requires ssh fingerprints of remote systems installed
+#      ansible-playbook -u i123456 -k s4-create-tar-s4.yml
+#
+# Authors: Louis Lee
+# Version: 2.9-000002
+# Modified: 2020-01-21 - Created
+#           2020-01-29 - Aligned with other tar playbooks
+# Comments: N/A
+
+##### Play1
+- name: Play1 Obtain server information and metadata
+  hosts: localhost
+  gather_facts: false
+
+  vars_prompt:
+  - name: dbsid
+    prompt: "What is the DB SID "
+    private: no
+
+  - name: appsid
+    prompt: "What is the APP SID "
+    private: no
+
+  - name: hdb_instance_number
+    prompt: "What is the HDB Instance Number"
+    private: no
+
+  - name: ascs_instance_number
+    prompt: "What is the ASCS Instance Number"
+    private: no
+
+  - name: ipaddress_db
+    prompt: "What is the Hana DB ip address?"
+    private: no
+
+  - name: ipaddress_sapapp
+    prompt: "What is the SAP Application Server ip address?"
+    private: no
+
+  - name: release_name
+    prompt: "What is the release_name of the tar?"
+    private: no
+
+  - name: aws_access_key
+    prompt: "Enter your AWS Access Key for S3 Bucket Upload"
+    private: no
+
+  - name: aws_secret_key
+    prompt: "Enter your AWS Secret Key for S3 Bucket Upload"
+    private: yes
+
+  - name: aws_security_token
+    prompt: "Enter your AWS Security Token for S3 Bucket Upload"
+    private: yes
+
+  vars:
+    app_staging_location: '/mnt/staging/s4/Build'
+    db_staging_location: '/hana/backups/staging/s4/Build'
+    upload_bucket: ''
+    upload_location: 'staging/s4/Build'
+
+  tasks:
+  - name: "Confirm values with 'Y'"
+    pause:
+      prompt: |
+
+
+        DBSID                : {{ dbsid }}
+        APPSID               : {{ appsid }}
+        Hana DB ip address   : {{ ipaddress_db }}
+        SAP App ip address   : {{ ipaddress_sapapp }}
+        Hana DB instance     : {{ hdb_instance_number }}
+        ASCS instance        : {{ ascs_instance_number }}
+
+        App Release Destination Location  : {{ app_staging_location }}/{{ release_name }}/APP
+        Hana Release Destination Location : {{ db_staging_location }}/{{ release_name }}/DB
+        S3 Upload Location                : s3://{{ upload_bucket }}/{{ upload_location }}/{{ release_name }}
+    register: confirm_input
+
+  - name: "Fail if not confirmed"
+    fail:
+      msg: 'Input not confirmed.  Quitting now.'
+    when:
+    - confirm_input.user_input != 'Y'
+    - confirm_input.user_input != 'y'
+
+  - name: "Add DB to ansible hosts"
+    add_host:
+      name: "{{ ipaddress_db }}"
+      groups:
+      - hanadb
+      - "{{ dbsid|lower }}"
+      sid: "{{ dbsid|lower }}"
+      hdb_instance_number: "{{ hdb_instance_number }}"
+      release_name: "{{ release_name }}"
+      staging_location: "{{ db_staging_location }}"
+      upload_bucket: "{{ upload_bucket }}"
+      upload_location: "{{ upload_location }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      aws_security_token: "{{ aws_security_token }}"
+
+  - name: "Add SapApp to ansible hosts"
+    add_host:
+      name: "{{ ipaddress_sapapp }}"
+      groups:
+      - sapapp
+      - "{{ appsid|lower }}"
+      sid: "{{ appsid|lower }}"
+      ascs_instance_number: "{{ ascs_instance_number|lower }}"
+      release_name: "{{ release_name }}"
+      staging_location: "{{ app_staging_location }}"
+      upload_bucket: "{{ upload_bucket }}"
+      upload_location: "{{ upload_location }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      aws_security_token: "{{ aws_security_token }}"
+
+##### Play2
+- name: Play2 Stop SAP and HANA
+  hosts: hanadb,sapapp
+  gather_facts: false
+
+  tasks:
+  - name: "Check if {{ staging_location }}/{{ release_name }}/APP exists"
+    stat:
+      path: "{{ staging_location }}/{{ release_name }}/APP"
+    register: destination_app
+
+  - name: "Check if {{ staging_location }}/{{ release_name }}/DB exists"
+    stat:
+      path: "{{ staging_location }}/{{ release_name }}/DB"
+    register: destination_db
+
+  - name: Fail if destiantion folders already exist
+    fail:
+      msg: "Destination folders already exists! Please remove the DB and APP folder and rerun script."
+    when:
+      destination_app.stat.exists == true or
+      destination_db.stat.exists == true
+
+  - name: "BLOCK - Stop SAP with sapcontrol"
+    block:
+    - name: "Stop SAP with sapcontrol on 00 instance SAPApp"
+      shell: "sapcontrol -nr 00 -function Stop"
+      become: yes
+      become_user: "{{ sid|lower }}adm"
+      become_flags: '-i'
+      failed_when: "'Stop\nOK' not in sapappstop_00_output.stdout"
+      register: sapappstop_00_output
+
+    - name: "SAPApp 00 Stop output"
+      debug:
+        var: sapappstop_00_output.stdout_lines
+
+    - name: "Stop SAP with sapcontrol on {{ agcs_instance_number }} instance SAPApp"
+      shell: "sapcontrol -nr {{ agcs_instance_number }} -function Stop"
+      become: yes
+      become_user: "{{ sid|lower }}adm"
+      become_flags: '-i'
+      failed_when: "'Stop\nOK' not in sapappstop_agcs_output.stdout"
+      register: sapappstop_agcs_output
+
+    - name: "SAPApp {{ agcs_instance_number }} Stop output"
+      debug:
+        var: sapappstop_agcs_output.stdout_lines
+
+    - name: StopSystem SAP with sapcontrol on SAPApp
+      shell: "sapcontrol -nr 00 -function StopSystem ALL"
+      become: yes
+      become_user: "{{ sid|lower }}adm"
+      become_flags: '-i'
+      failed_when: "'StopSystem\nOK' not in sapappstopsystem_output.stdout"
+      register: sapappstopsystem_output
+
+    - name: "SAPApp StopSystem output"
+      debug:
+        var: sapappstopsystem_output.stdout_lines
+    when: inventory_hostname in groups['sapapp']
+    # End "BLOCK - Stop SAP with sapcontrol"
+
+  - name: "Stopping HANA DB"
+    command: "/usr/sap/{{ sid|upper }}/HDB{{ hdb_instance_number }}/HDB stop"
+    become: true
+    become_user: "{{ sid|lower }}adm"
+    when: inventory_hostname in groups['hanadb']
+    failed_when: "'hdbdaemon is stopped.' not in hdbstop_output.stdout"
+    register: hdbstop_output
+
+  - name: "HDB Stop output"
+    debug:
+      var: hdbstop_output.stdout_lines
+    when: inventory_hostname in groups['hanadb']
+
+  - name: "Get saphostagent status"
+    command: "/usr/sap/hostctrl/exe/saphostexec -status"
+    become: true
+    register: saphostagent_status
+    failed_when: "'FAILED' in saphostagent_status.stderr"
+    changed_when: false
+
+  - name: "Display saphostagent status"
+    debug:
+      var: saphostagent_status.stderr_lines
+
+  - name: "BLOCK - Stop saphostagent"
+    block:
+    - name: "Stop saphostagent as root"
+      command: "/usr/sap/hostctrl/exe/saphostexec -stop"
+      become: true
+
+    - name: "Get saphostagent status"
+      command: "/usr/sap/hostctrl/exe/saphostexec -status"
+      become: true
+      register: saphostagent_statusblock
+      failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+      changed_when: false
+
+    - name: "Display saphostagent status"
+      debug:
+        var: saphostagent_statusblock.stderr_lines
+    when: saphostagent_status.stderr != 'saphostexec stopped '
+    #End "BLOCK - Stop saphostagent"
+
+  - name: "Find sidadm processes"
+    shell: "ps -fu {{ sid }}adm"
+    become: true
+    register: "pssidadm_output"
+    failed_when: "'FAILED' in pssidadm_output.stderr"
+    changed_when: false
+
+  - name: "List process to kill"
+    debug:
+      var: pssidadm_output.stdout_lines
+
+  - name: "Stop sidadm processes"
+    command: "pkill -9 -fu {{ sid }}adm"
+    become: true
+    failed_when: "'FAILED' in pkillsidadm_output.stderr"
+    register: pkillsidadm_output
+
+  - name: "Display stop sidadm output if verbosity >= 1"
+    debug:
+      var: pkillsidadm_output
+      verbosity: 1
+
+  - name: "Clean IPC"
+    shell: "/usr/sap/{{ sid|upper }}/SYS/exe/uc/linuxx86_64/cleanipc {{ item }} remove"
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    register: cleanipc_output
+    when: inventory_hostname in groups['sapapp']
+    loop:
+    - "00"
+    - "{{ agcs_instance_number }}"
+
+  - name: "Show cleanipc results"
+    debug:
+      var: cleanipc_output
+      verbosity: 1
+
+  - name: "Get IPC Status"
+    shell: /bin/ipcs
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    register: ipcs_output
+
+  - name: "Show IPC Status"
+    debug:
+      var: ipcs_output
+      verbosity: 1
+
+##### Play3
+- name: Play3 Create tar files
+  hosts: hanadb,sapapp
+  gather_facts: false
+
+  tasks:
+  - name: "Create {{ staging_location }}/{{ release_name }}/APP folder"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}/APP"
+      state: directory
+    become: true
+    when: inventory_hostname in groups['sapapp']
+
+  - name: "Create {{ staging_location }}/{{ release_name }}/DB folder"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}/DB"
+      state: directory
+    become: true
+    when: inventory_hostname in groups['hanadb']
+
+  - name: "Create {{ staging_location }}/{{ release_name }}/SAPHOSTAGENT folder"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}/SAPHOSTAGENT"
+      state: directory
+    become: true
+    when: inventory_hostname in groups['hanadb']
+
+  - name: "Create Hana Tars"
+    shell: "/bin/tar -cvzf - {{ item.path }}/* | split -b 2000M - {{ item.name }}"
+    become: true
+    args:
+      chdir: "{{ staging_location }}/{{ release_name }}/DB"
+    loop:
+    - path: "/hana/data"
+      name: "hana-data.tgz-"
+    - path: "/hana/log"
+      name: "hana-log.tgz-"
+    - path: "/hana/shared"
+      name: "hana-shared.tgz-"
+    - path: "/usr/sap"
+      name: "usr-sap.tgz-"
+    when: inventory_hostname in groups['hanadb']
+    async: 14400 # set async timeout to 4 hours
+    poll: 0
+    register: hanatarcreate_status
+
+  - name: "Create SapAPP Tars"
+    shell: "/bin/tar -cvzf - {{ item.path }}/* | split -b 2000M - {{ item.name }}"
+    become: true
+    args:
+      chdir: "{{ staging_location }}/{{ release_name }}/APP"
+    loop:
+    - path: "/sapmnt"
+      name: "sapmnt.tgz-"
+    - path: "/usr/sap"
+      name: "usrsap.tgz-"
+    when: inventory_hostname in groups['sapapp']
+
+  - name: "Create SapAPP SidADM Tars"
+    shell: "/bin/tar -cvzf - {{ item.path }} | split -b 2000M - {{ item.name }}"
+    become: true
+    args:
+      chdir: "{{ staging_location }}/{{ release_name }}/APP"
+    loop:
+    - path: "/home/br1adm"
+      name: "home-sidadm.tgz-"
+    when: inventory_hostname in groups['sapapp']
+
+  - name: "Wait for Hana Tar Creation to finish"
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+    become: true
+    register: job_result
+    until: job_result.finished
+    delay: 60  # Check every 60 seconds. Adjust as you like.
+    retries: 240  # Retry for 4 hours
+    loop: "{{ hanatarcreate_status.results }}"
+    when: inventory_hostname in groups['hanadb']
+
+  - name: "Copy the SAPHOSTAGENT to {{ staging_location }}/{{ release_name }}/SAPHOSTAGENT"
+    copy:
+      dest: "{{ staging_location }}/{{ release_name }}/SAPHOSTAGENT"
+      src: "/usr/sap/hostctrl/exe/"
+      remote_src: yes
+    become: true
+    when: inventory_hostname in groups['hanadb']
+
+##### Play4
+- name: Play4 Upload to S3
+  hosts: hanadb,sapapp
+  gather_facts: false
+
+  tasks:
+  - name: "Upload HanaDB files to S3"
+    s3_sync:
+      file_root: "{{ staging_location }}/{{ release_name }}/DB/"
+      bucket: "{{ upload_bucket }}"
+      mode: push # required. choices: push. sync direction.
+      file_change_strategy: date_size
+      permission: bucket-owner-full-control
+      key_prefix: "{{ upload_location }}/{{ release_name }}/DB/"
+      delete: false
+      security_token: "{{ aws_security_token }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+    when: inventory_hostname in groups['hanadb']
+    become: true
+    register: hanaupload_status
+    async: 14400 # timeout in seconds (4 hours)
+    poll: 0
+
+  - name: "Upload SapAPP files to S3"
+    s3_sync:
+      file_root: "{{ staging_location }}/{{ release_name }}/APP/"
+      bucket: "{{ upload_bucket }}"
+      mode: push # required. choices: push. sync direction.
+      file_change_strategy: date_size
+      permission: bucket-owner-full-control
+      key_prefix: "{{ upload_location }}/{{ release_name }}/APP/"
+      delete: false
+      security_token: "{{ aws_security_token }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+    when: inventory_hostname in groups['sapapp']
+    become: true
+
+  - name: "Wait for Hana Tar Upload to finish"
+    async_status:
+      jid: "{{ hanaupload_status.ansible_job_id }}"
+    become: true
+    register: job_result
+    until: job_result.finished
+    delay: 60  # Check every 60 seconds. Adjust as you like.
+    retries: 240  # Retry for 4 hours
+    when: inventory_hostname in groups['hanadb']
+
+  - name: "Upload SAPHOSTAGENT to S3"
+    s3_sync:
+      file_root: "/usr/sap/hostctrl/exe/"
+      bucket: "{{ upload_bucket }}"
+      mode: push # required. choices: push. sync direction.
+      file_change_strategy: date_size
+      permission: bucket-owner-full-control
+      key_prefix: "{{ upload_location }}/{{ release_name }}/SAPHOSTAGENT/"
+      delete: false
+      security_token: "{{ aws_security_token }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+    when: inventory_hostname in groups['hanadb']
+    become: true
+
+##### Play5
+- name: Play5 Restart Hana and SAPApp services
+  hosts: hanadb,sapapp
+  gather_facts: false
+
+  tasks:
+  - name: "Get App Hostname"
+    command: hostname
+    register: sapapphostname_output
+
+  - name: "Save App Hostname"
+    set_fact:
+      sapapphostname: "{{ sapapphostname_output.stdout }}"
+
+  - name: "Run sapstartsrv"
+    shell: "{{ item }}"
+    become: true
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    when: inventory_hostname in groups['sapapp']
+    register: sapstartsrv_output
+    loop:
+    - "/usr/sap/{{ sid|upper }}/ASCS{{ ascs_instance_number }}/exe/sapstartsrv pf=/usr/sap/{{ sid|upper }}/SYS/profile/{{ sid|upper }}_ASCS{{ ascs_instance_number }}_{{ sapapphostname }} -D -u {{ sid|lower }}adm"
+    - "/usr/sap/{{ sid|upper }}/D00/exe/sapstartsrv pf=/usr/sap/{{ sid|upper }}/SYS/profile/{{ sid|upper }}_D00_{{ sapapphostname }} -D -u {{ sid|lower }}adm"
+
+  - name: "Get saphostagent status"
+    command: "/usr/sap/hostctrl/exe/saphostexec -status"
+    become: true
+    register: saphostagent_status
+    failed_when: "'FAILED' in saphostagent_status.stderr"
+    changed_when: false
+
+  - name: "Display saphostagent status"
+    debug:
+      var: saphostagent_status.stderr_lines
+
+  - name: "BLOCK - Start saphostagent"
+    block:
+    - name: "Start saphostagent as root"
+      command: "/usr/sap/hostctrl/exe/saphostexec -restart"
+      become: true
+
+    - name: "Get saphostagent status"
+      command: "/usr/sap/hostctrl/exe/saphostexec -status"
+      become: true
+      register: saphostagent_statusblock
+      failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+      changed_when: false
+
+    - name: "Display saphostagent status"
+      debug:
+        var: saphostagent_statusblock.stderr_lines
+    when: "'saphostexec stopped' in saphostagent_status.stderr"
+    #End "BLOCK - Start saphostagent"
+
+  - name: "Start Hana DB"
+#    shell: "/usr/sap/{{ sid|upper }}/HDB02/HDB start"
+    shell: "/usr/sap/{{ sid|upper }}/HDB{{ hdb_instance_number }}/HDB start"
+    become: true
+    become_user: "{{ sid|lower }}adm"
+    when: inventory_hostname in groups['hanadb']
+    register: hdbstart_output
+
+  - name: "Get Hana DB status"
+ #   shell: "/usr/sap/{{ sid|upper }}/HDB02/HDB info"
+    shell: "/usr/sap/{{ sid|upper }}/HDB{{ hdb_instance_number }}/HDB info"
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    when: inventory_hostname in groups['hanadb']
+    register: hdbinfo
+
+  - name: "Display HDB Status"
+    debug:
+      var: hdbinfo.stdout_lines
+    when: inventory_hostname in groups['hanadb']
+
+  - name: "Check HDB connectivity with R3trans"
+    shell: "R3trans -d"
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    register: r3trans_output
+    retries: 3
+    delay: 10
+    until: "'R3trans finished (0000).' in r3trans_output.stdout"
+    when: inventory_hostname in groups['sapapp']
+
+  - name: "Display R3trans results"
+    debug:
+      var: r3trans_output.stdout_lines
+    when: inventory_hostname in groups['sapapp']
+
+  - name: "Start SAP with sapcontrol on SAPApp"
+    shell: "sapcontrol -nr 96 -function Start"
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    failed_when: "'StartSystem\nOK' not in sapappstart96_output.stdout"
+    register: sapappstart96_output
+
+  - name: "SAPApp Start output"
+    debug:
+      var: sapappstart96_output
+
+
+  - name: "Start SAP with sapcontrol on SAPApp"
+    shell: "sapcontrol -nr 00 -function Start"
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    failed_when: "'StartSystem\nOK' not in sapappstart00_output.stdout"
+    register: sapappstart00_output
+
+  - name: "SAPApp Start output"
+    debug:
+      var: sapappstart00_output
+
+...

@@ -1,0 +1,18 @@
+---
+tests:
+  - name: gcp:system_event:1
+    inputs:
+      - insert_at: gcp_project_logs
+        type: log
+        log_fields:
+          message: '{"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","authenticationInfo":{"principalEmail":"system@google.com"},"methodName":"ScheduledSnapshots","request":{"@type":"type.googleapis.com/ScheduledSnapshots"},"response":{"id":"2319076996344964212","name":"operation-1665555099164-5ead0440a2103-4fe31835-339c4251","zone":"https://www.googleapis.com/compute/v1/projects/s4-cre-pce/zones/northamerica-northeast1-c","operationType":"createSnapshot","targetLink":"https://www.googleapis.com/compute/v1/projects/s4-cre-pce/zones/northamerica-northeast1-c/disks/c008dbhdw-6fd15312125b8db8-sde","targetId":"5665177517165851334","status":"DONE","user":"cloud-cluster-manager@prod.google.com","progress":"100","insertTime":"2022-10-11T23:11:39.450-07:00","startTime":"2022-10-11T23:11:39.453-07:00","endTime":"2022-10-11T23:12:18.377-07:00","selfLink":"https://www.googleapis.com/compute/v1/projects/s4-cre-pce/zones/northamerica-northeast1-c/operations/operation-1665555099164-5ead0440a2103-4fe31835-339c4251","selfLinkWithId":"https://www.googleapis.com/compute/v1/projects/s4-cre-pce/zones/northamerica-northeast1-c/operations/2319076996344964212","@type":"type.googleapis.com/operation"}},"insertId":"5kbo0yd52js","resource":{"type":"gce_disk","labels":{"disk_id":"5665177517165851334","zone":"northamerica-northeast1-c","project_id":"s4-cre-pce"}},"timestamp":"2022-10-12T06:12:20.743635Z","severity":"INFO","logName":"projects/s4-cre-pce/logs/cloudaudit.googleapis.com%2Fsystem_event","operation":{"id":"operation-1665555099164-5ead0440a2103-4fe31835-339c4251","producer":"compute.googleapis.com","last":true},"receiveTimestamp":"2022-10-12T06:12:21.746858344Z"}'
+    outputs:
+      - extract_from: gcp_proto__enriched_out
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!(.metadata.sourcetype, "gcp:cloudaudit")
+              assert_eq!(.metadata.custom.index.suffix, "gcp")
+              assert_eq!(.metadata.source, "123456789012:northamerica-northeast1-c:system_event")
+              assert_eq!(.metadata.custom.gcp.log_name, "projects/s4-cre-pce/logs/cloudaudit.googleapis.com/system_event")
+...

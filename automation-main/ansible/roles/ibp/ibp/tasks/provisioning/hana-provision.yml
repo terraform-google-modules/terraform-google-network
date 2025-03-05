@@ -1,0 +1,103 @@
+---
+# Synopsis: Provision HANA DB
+# Inputs:
+#   - hana_tar_source - path to the source tar folder (version unique)
+#   - backend_sid - SAP ID assigned to the server instance
+#   - system_usage - (production|test|development) SAP Environment
+# Outputs: Configured and running IBP HANA system
+# Comments: N/A
+
+- name: Get EC2 Metadata
+  ec2_metadata_facts:
+  register: ec2_metadata
+
+- name: Validate environment
+  include_tasks: general/directories-validate.yml
+  vars:
+    folder_path: "{{ item }}"
+  loop:
+  - "{{ ibp_staging_hana }}/Scripts"
+  - "{{ hana_tar_source }}"
+    # No RDS = Prod environemt
+    # RDS = Non Prod environment
+
+- name: Set the Hostname
+  hostname:
+    name: "{{ ibp_hostname }}"
+  become: true
+
+- name: Create SAP Groups
+  become: true
+  group:
+    name: "{{ item.name }}"
+    gid: "{{ item.gid }}"
+    state: present
+    local: yes
+  loop:
+    - name: 'sapsys'
+      gid: '79'
+    - name: "{{ backend_sid|lower }}crypt"
+      gid: '80'
+
+#dependencies for hana > 16.0
+
+- name: Set package compat map
+  set_fact:
+    compat_package_map:
+      RedHat8: compat-sap-c++-11.x86_64
+      RedHat9: compat-sap-c++-13.x86_64
+
+- name: Get Specific compat package
+  set_fact:
+    compat_package: "{{ compat_package_map[ansible_distribution + ansible_distribution_major_version] }}"
+
+- name: Install required yum packages
+  become: true
+  ansible.builtin.yum:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - "{{ compat_package }}"
+    - tuned-profiles-sap-hana.noarch
+    - libatomic
+    - libstdc++.so.6
+
+#end dependencies
+
+- name: Run DB Rebuild
+  include_tasks: provisioning/database-rebuild.yml
+
+- name: Get Hana DB status
+  shell: "/usr/sap/{{ backend_sid|upper }}/HDB02/HDB info"
+  become: yes
+  become_user: "{{ backend_sid|lower }}adm"
+  # become_flags: '-i'
+  register: hdbinfo
+
+- name: Display {{ backend_sid|lower }} Status
+  debug:
+    var: hdbinfo.stdout_lines
+
+- name: Reset sapadm password
+  user:
+    name: sapadm
+    update_password: always
+    password: "{{ default_password }}"
+  become: true
+
+##### Using command instead of file/state=absent for speed
+- name: Cleanup ibpdb-n00 files
+  command: "find . -iname '*ibpdb-n00*' -exec rm -Rf {} \\;"
+  args:
+    chdir: /hana/shared/{{ backend_sid|upper }}/HDB02/{{ ibp_hostname }}/trace/
+  become: true
+
+- name : "Create libstdc++.so.6 symlink in /usr/sap/SYS"
+  become: true
+  ansible.builtin.file:
+    src: "/opt/rh/SAP/lib64/{{ compat_package | regex_replace('.x86_64', '.so') }}"
+    dest: "/usr/sap/{{ sid | upper }}/SYS/exe/hdb/libstdc++.so.6"
+    state: link
+    owner: sapadm
+    group: sapsys
+...

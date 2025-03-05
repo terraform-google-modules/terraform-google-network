@@ -1,0 +1,3 @@
+{% for orig, masq in postfix_envelope_sender.items() %}
+/(.+)@{{ orig.strip() | replace('.', '\.')  }}/ ${1}-{{- orig.strip() -}}@{{- masq.strip() }}
+{% endfor %}

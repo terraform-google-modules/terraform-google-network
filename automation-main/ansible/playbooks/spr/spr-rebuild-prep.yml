@@ -1,0 +1,83 @@
+---
+
+# Playbook Name: spr-rebuild-prep.yml
+# Description: Clean test instance in the spr-dev landscape after upgrades / testing
+#              1) Killing all APP/DB processes
+#              2) Cleaning APP/DB required paths
+#              3) Cleaning the hostfile
+# Prerequisites:
+#   - Ansible v2.9
+# Variables:
+# Example:
+#   The following will clean APP and DB instances for their next upgrade
+#     ansible-playbook spr-rebuild-prep.yml -i X.X.X.X
+# Authors: Sean-Thomas Saloom
+# Version: 2.9-000001
+# Modified: 2022-01-11 - Created
+# Comments: None
+
+- hosts: all
+
+  tasks:
+
+  - name: Get running processes list from remote host
+    shell: "ps -few | grep -e 'sap\\|hdb' | awk '{print $2}'"
+    register: running_processes
+
+  - name: Stop running processes for SAP application or database
+    shell: "kill {{ item }}"
+    with_items: "{{ running_processes.stdout_lines }}"
+    become: true
+    failed_when: false
+
+  - name: Wait for running_processes to stop
+    wait_for:
+      path: "/proc/{{ item }}/status"
+      state: absent
+    with_items: "{{ running_processes.stdout_lines }}"
+    register: sap_processes
+    failed_when: false
+
+  - name: Force kill stuck processes
+    shell: "kill -9 {{ item }}"
+    with_items: "{{ sap_processes.results | select('failed') | map(attribute='item') | list }}"
+    become: true
+    failed_when: false
+
+  - name: Clean used APP and DB paths
+    file:
+      state: absent
+      path: "{{ item }}"
+    with_items:
+      - /tmp/
+      - /sapmnt/
+      - /usr/sap/
+      - /hana/data/
+      - /hana/log/
+      - /hana/shared/
+      - /hana/backups/
+    become: true
+    failed_when: false
+
+  - name: Remove Users
+    user:
+      name: '{{ item }}'
+      state: absent
+      remove: yes
+    with_items:
+      - g00adm
+      - g01adm
+      - v00adm
+      - v01adm
+      - t00adm
+      - t01adm
+    become: true
+    failed_when: false
+
+  - name: Remove /etc/hosts entry spr.sapns2.us
+    lineinfile:
+      path: /etc/hosts
+      regexp: spr.sapns2.us
+      state: absent
+    become: true
+...

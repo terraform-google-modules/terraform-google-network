@@ -1,0 +1,35 @@
+Welcome to the STE Generic Workspace container!
+
+Running this Docker Container:
+
+STE_AUTOMATION=~/Repos/scs/ste/automation   # REQUIRED Path to STE Automation repo
+MY_REPOS_PATH=~/Repos                       # (Optional) Path to your other repos
+MY_AWS_CONFIG_PATH=~/.aws/config            # (Optional) Path to your AWS config
+MY_AWS_CREDENTIAL_PATH=~/.aws/credentials   # (Optional) Path to your AWS credentials
+TF_VAR_build_user="i999999"                 # (Optional) Build user (for Terraform)
+AWS_PROFILE="ibpdev"                        # (Optional) AWS profile
+docker run -it \
+  -v $STE_AUTOMATION:/mnt/ste_automation \
+  -v $MY_REPOS_PATH:/mnt/repos \
+  -v $MY_AWS_CONFIG_PATH:/root/.aws/config \
+  -v $MY_AWS_CREDENTIAL_PATH:/root/.aws/credentials \
+  --env TF_VAR_build_user=$TF_VAR_build_user \
+  --env AWS_PROFILE=$AWS_PROFILE \
+  --rm dev_general/generic_workspace:$version
+
+Some useful commands:
+
+- Replay this message:                    cat /etc/motd
+- Shortcut to STE Automation folder:      cd $STE_AUTOMATION
+- Shortcut to your other Repos:           cd /mnt/repos
+- Verify your Ansible Roles:              ansible-playbook $STE_AUTOMATION/ansible/playbooks/tools/test-ste-roles-path.yml
+- Azure:
+  - Find available Clouds:                az cloud list
+  - Change the cloud:                     az cloud set --name ___CLOUD_NAME___
+  - Login to Azure:                       az login
+  - Change Subscription:                  az account set --subscription ___SUBSCRIPTION_ID___
+- AWS:
+  - Configure AWS:                        aws configure
+  - Export Profile:                       export AWS_PROFILE=___PROFILE_NAME___
+- Terraform:
+  - Switch Teraform Version:              tfenv use min-required

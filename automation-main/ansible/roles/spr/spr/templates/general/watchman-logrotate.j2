@@ -1,0 +1,13 @@
+{{ spr_logrotate_file_path }}
+{
+    maxsize {{ spr_logrotate_maxsize }}
+    rotate {{ spr_logrotate_rotate }}
+    compress
+    missingok
+    notifempty
+    daily
+    create 0644 {{ spr_watchman_setup_service_user }} {{ spr_watchman_setup_service_user }}
+    postrotate
+      /usr/bin/systemctl restart watchman@{{ spr_watchman_setup_service_user }}.service
+    endscript
+}

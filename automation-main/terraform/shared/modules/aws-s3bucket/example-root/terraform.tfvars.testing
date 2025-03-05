@@ -1,0 +1,36 @@
+/*
+  Description: Terraform variables for module run; The variables in this file are specifically for testing executions of the terraform module
+  Comments:
+    - Run the terraform module with this command: terraform apply -var-file=terraform.tfvars.testing
+    - Destroy the terraform module with this command: terraform destroy -var-file=terraform.tfvars.testing
+*/
+
+##### AWS Variables
+aws_region = "us-gov-west-1"
+build_user = "testing-user"
+s3_bucket_map = {
+  name = "test-bucket1234512"
+  versioning = "Enabled"
+  bucket_expiration = "Disabled"
+  bucket_policy = <<POLICY
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws-us-gov:iam::723712175675:user/Administrator"
+            },
+            "Action": "s3:*",
+            "Resource": "arn:aws-us-gov:s3:::test-bucket1234512"
+        }
+    ]
+}
+POLICY
+  restrict_public_buckets = true
+  ignore_public_acls      = true
+  block_public_acls       = true
+  block_public_policy     = true
+  tag_description         = "This is a test Bucket"
+}

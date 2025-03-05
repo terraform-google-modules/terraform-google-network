@@ -1,0 +1,18 @@
+---
+tests:
+  - name: gcp:data_access:1
+    inputs:
+      - insert_at: gcp_project_logs
+        type: log
+        log_fields:
+          message: '{"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"billing-export-bigquery@system.gserviceaccount.com"},"requestMetadata":{},"serviceName":"bigquery.googleapis.com","methodName":"google.cloud.bigquery.v2.JobService.InsertJob","authorizationInfo":[{"resource":"projects/s4-cre-pce/datasets/cre_pce_cost_export/tables/gcp_billing_export_v1_01E04F_95897E_B3EF03","permission":"bigquery.tables.updateData","granted":true}],"resourceName":"projects/s4-cre-pce/datasets/cre_pce_cost_export/tables/gcp_billing_export_v1_01E04F_95897E_B3EF03$20221012","metadata":{"tableDataChange":{"insertedRowsCount":"131632","truncated":true,"reason":"JOB","jobName":"projects/google.com:bigquery-billing-export/jobs/usage_export_01E04F-95897E-B3EF03_20221012_trial_e78ec363-c181-4b00-926a-960c09206ed7"},"@type":"type.googleapis.com/google.cloud.audit.BigQueryAuditMetadata"}},"insertId":"-7hmi9be75wf5","resource":{"type":"bigquery_dataset","labels":{"dataset_id":"cre_pce_cost_export","project_id":"s4-cre-pce"}},"timestamp":"2022-10-12T14:35:33.311420Z","severity":"INFO","logName":"projects/s4-cre-pce/logs/cloudaudit.googleapis.com%2Fdata_access","receiveTimestamp":"2022-10-12T14:35:33.928030370Z"}'
+    outputs:
+      - extract_from: gcp_proto__enriched_out
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!(.metadata.sourcetype, "gcp:cloudaudit")
+              assert_eq!(.metadata.custom.index.suffix, "gcp")
+              assert_eq!(.metadata.source, "123456789012:global:data_access")
+              assert_eq!(.metadata.custom.gcp.log_name, "projects/s4-cre-pce/logs/cloudaudit.googleapis.com/data_access")
+...

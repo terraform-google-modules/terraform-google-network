@@ -1,0 +1,72 @@
+---
+# Synopsis: Does a hard stop of SAPAPP
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+# Outputs: Started SAPAPP
+# Comments: N/A
+
+- name: "Run sapstartsrv on SapApp"
+  shell: "{{ item }}"
+  become: true
+  become_user: "{{ spr_sid|lower }}adm"
+  become_flags: '-i'
+  register: sapstartsrv_output
+  loop:
+  - "/usr/sap/{{ spr_sid|upper }}/ASCS01/exe/sapstartsrv pf=/usr/sap/{{ spr_sid|upper }}/SYS/profile/{{ spr_sid|upper }}_ASCS01_scsps4app1-{{ spr_sid|lower }} -D"
+  - "/usr/sap/{{ spr_sid|upper }}/D00/exe/sapstartsrv pf=/usr/sap/{{ spr_sid|upper }}/SYS/profile/{{ spr_sid|upper }}_D00_scsps4app1-{{ spr_sid|lower }} -D"
+
+- name: Stop SAPAPP
+  include_tasks: operations/sapapp-softstop.yml
+
+- name: "Get saphostagent status"
+  command: "/usr/sap/hostctrl/exe/saphostexec -status"
+  become: true
+  register: saphostagent_status
+  failed_when: "'FAILED' in saphostagent_status.stderr"
+  changed_when: false
+
+- name: "Display saphostagent status"
+  debug:
+    var: saphostagent_status.stderr_lines
+
+- name: "BLOCK - Stop saphostagent"
+  block:
+  - name: "Stop saphostagent as root"
+    command: "/usr/sap/hostctrl/exe/saphostexec -stop"
+    become: true
+
+  - name: "Get saphostagent status"
+    command: "/usr/sap/hostctrl/exe/saphostexec -status"
+    become: true
+    register: saphostagent_statusblock
+    failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+    changed_when: false
+
+  - name: "Display saphostagent status"
+    debug:
+      var: saphostagent_statusblock.stderr_lines
+  when: saphostagent_status.stderr != 'saphostexec stopped '
+  #End "BLOCK - Stop saphostagent"
+
+- name: "Find sidadm processes"
+  shell: "ps -fu {{ spr_sid|lower }}adm"
+  become: true
+  register: "pssidadm_output"
+  failed_when: "'FAILED' in pssidadm_output.stderr"
+  changed_when: false
+
+- name: "List process to kill"
+  debug:
+    var: pssidadm_output.stdout_lines
+
+- name: "Stop sidadm processes"
+  command: "pkill -9 -fu {{ spr_sid|lower }}adm"
+  become: true
+  failed_when: "'FAILED' in pkillsidadm_output.stderr"
+  register: pkillsidadm_output
+
+- name: "Display stop sidadm output if verbosity >= 1"
+  debug:
+    var: pkillsidadm_output
+    verbosity: 1
+...

@@ -1,0 +1,55 @@
+- name: "Apply System Configuration global.ini"
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  community.sap_libs.sap_hdbsql:
+    sid: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}"
+    instance: "{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}"
+    password: "{{ distributed_hana_config_sap_hana_hsr_hana_db_system_password }}"
+    database: SYSTEMDB
+    user: SYSTEM
+    query: ["ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM') SET ('{{ hana_query.section }}', '{{ hana_query.option }}') = '{{ hana_query.value }}' WITH RECONFIGURE;"]
+  loop_control:
+    loop_var: hana_query
+  loop:
+    - section: inifile_checker
+      option: replicate
+      value: true
+    - section: system_replication
+      option: logshipping_max_retention_size
+      value: 204800
+    - section: system_replication
+      option: datashipping_snapshot_max_retention_time
+      value: 60
+    - section: system_replication
+      option: logshipping_async_wait_on_buffer_full
+      value: false
+    - section: communication
+      option: tcp_backlog
+      value: 2048
+    - section: system_replication_communication
+      option: enable_ssl
+      value: on
+
+- name: "Apply System Configuration indexserver.ini"
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  community.sap_libs.sap_hdbsql:
+    sid: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}"
+    instance: "{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}"
+    password: "{{ distributed_hana_config_sap_hana_hsr_hana_db_system_password }}"
+    database: SYSTEMDB
+    user: SYSTEM
+    query: ["ALTER SYSTEM ALTER CONFIGURATION ('indexserver.ini', 'SYSTEM') SET ('{{ hana_query.section }}', '{{ hana_query.option }}') = '{{ hana_query.value }}' WITH RECONFIGURE;"]
+  loop_control:
+    loop_var: hana_query
+  loop:
+    - section: system_replication
+      option: logshipping_replay_push_persistent_segment_count
+      value: 64
+    - section: system_replication
+      option: logshipping_replay_logbuffer_cache_size
+      value: 21474836480
+    - section: pitrestart
+      option: replay_step_size
+      value: 1073741824
+

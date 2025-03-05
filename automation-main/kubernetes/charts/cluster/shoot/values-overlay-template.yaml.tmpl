@@ -1,0 +1,103 @@
+{{ $envConfig := (datasource "envConfig") }}
+project: {{ .Env.projectName }}
+name: {{ $envConfig.shootName }}
+
+secret: {{ $envConfig.gardenerInfraSecretName }}
+
+add_dns: true
+dns:
+  providers:
+    - type: aws-route53
+      secretName: {{ $envConfig.dnsSecretName }}
+      primary: false
+      domains:
+        include:
+          - {{ $envConfig.envBaseDomain }}
+
+type: aws
+region: us-gov-west-1
+zones:
+- us-gov-west-1a
+- us-gov-west-1b
+- us-gov-west-1c
+
+user_email: {{ $envConfig.shootOwnerEmail }}
+purpose: production
+enable_cluster_audit: false
+
+k8s_version: {{ $envConfig.k8s_version }}
+auto_hibernate: false
+
+{{ if test.IsKind "invalid" $envConfig.vpc_id -}}
+cidr: {{ $envConfig.vpc_cidr }}
+{{ else -}}
+vpc_id: {{ $envConfig.vpc_id }}
+{{- end }}
+
+network_enable_endpoints:
+  - s3
+
+provider:
+  aws:
+    networks:
+      nodes: {{ $envConfig.vpc_cidr }}
+      pods: {{ if or (test.IsKind "invalid" $envConfig.vpcConfig) (test.IsKind "invalid" $envConfig.vpcConfig.pods) -}}100.96.0.0/11{{- else -}}{{- $envConfig.vpcConfig.pods -}}{{- end }}
+      services: {{ if or (test.IsKind "invalid" $envConfig.vpcConfig) (test.IsKind "invalid" $envConfig.vpcConfig.services) -}}100.64.0.0/13{{- else -}}{{- $envConfig.vpcConfig.services -}}{{- end }}
+    zonenet:
+{{- if or (test.IsKind "invalid" $envConfig.vpcConfig) (test.IsKind "invalid" $envConfig.vpcConfig.zonenet) }}
+{{- $vpcMask := conv.ToInt .Env.vpc_subnet_mask -}}
+{{- $subAdj0 := conv.ToInt .Env.subnetCidrVal0 -}}
+{{- $subAdj1 := conv.ToInt .Env.subnetCidrVal1 -}}
+{{- $subAdj2 := conv.ToInt .Env.subnetCidrVal2 -}}
+{{- $subnetIP := (net.CIDRSubnetSizes (math.Sub $subAdj2 $vpcMask) (math.Sub $subAdj1 $vpcMask) (math.Sub $subAdj1 $vpcMask) (math.Sub $subAdj1 $vpcMask) (math.Sub $subAdj0 $vpcMask) (math.Sub $subAdj0 $vpcMask) (math.Sub $subAdj1 $vpcMask) (math.Sub $subAdj0 $vpcMask) (math.Sub $subAdj0 $vpcMask) $envConfig.vpc_cidr) }}
+      - workers: {{ index $subnetIP 0 }}
+        public: {{ index $subnetIP 1 }}
+        internal: {{ index $subnetIP 2 }}
+      - workers: {{ index $subnetIP 3 }}
+        public: {{ index $subnetIP 4 }}
+        internal: {{ index $subnetIP 5 }}
+      - workers: {{ index $subnetIP 6 }}
+        public: {{ index $subnetIP 7 }}
+        internal: {{ index $subnetIP 8 }}
+{{ else }}
+{{ $envConfig.vpcConfig.zonenet | toYAML | indent 6 }}
+{{- end }}
+cniType: cilium
+hubbleEnable: true
+istioEnable: true
+
+haControlPlane: {{ $envConfig.haControlPlane }}
+
+systemComponents:
+  nodeLocalDNS:
+    enabled: true
+    disableForwardToUpstreamDNS: true
+
+workergroups:
+  system:
+    imdsv2_enable: true
+    machineimage:
+      name: ubuntu
+      version: {{ $envConfig.ubuntu_version }}
+    cri:
+      name: containerd
+    min: 3
+    max: 9
+    machine: r6i.2xlarge
+    vol_size: 150Gi
+    vol_type: gp3
+    # providerConfig:
+    #   iamInstanceProfile:
+    #     name: dev-s4-west-mgmtnew-management-gardener-shoot-worker-default
+  application:
+    imdsv2_enable: true
+    machineimage:
+      name: ubuntu
+      version: {{ $envConfig.ubuntu_version }}
+    cri:
+      name: containerd
+    min: 3
+    max: 9
+    machine: c6i.4xlarge
+    vol_size: 100Gi
+    vol_type: gp3

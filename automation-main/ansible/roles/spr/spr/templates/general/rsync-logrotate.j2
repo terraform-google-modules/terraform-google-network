@@ -1,0 +1,9 @@
+{{ spr_logrotate_file_path }}
+{
+    maxsize {{ spr_logrotate_maxsize }}
+    rotate {{ spr_logrotate_rotate }}
+    compress
+    missingok
+    notifempty
+    daily
+ }

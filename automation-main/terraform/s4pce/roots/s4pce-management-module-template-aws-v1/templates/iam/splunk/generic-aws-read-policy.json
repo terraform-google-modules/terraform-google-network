@@ -1,0 +1,64 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowDefaultSplunkAWSTechnicalAddon",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeReservedInstances",
+        "ec2:DescribeSnapshots",
+        "ec2:DescribeRegions",
+        "ec2:DescribeKeyPairs",
+        "ec2:DescribeNetworkAcls",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeVpcs",
+        "ec2:DescribeImages",
+        "ec2:DescribeAddresses",
+        "lambda:ListFunctions",
+        "rds:DescribeDBInstances",
+        "cloudfront:ListDistributions",
+        "iam:GetUser",
+        "iam:ListUsers",
+        "iam:GetAccountPasswordPolicy",
+        "iam:ListAccessKeys",
+        "iam:GetAccessKeyLastUsed",
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "elasticloadbalancing:DescribeInstanceHealth",
+        "elasticloadbalancing:DescribeTags",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:DescribeListeners",
+        "s3:ListAllMyBuckets",
+        "s3:GetAccelerateConfiguration",
+        "s3:GetBucketCORS",
+        "s3:GetLifecycleConfiguration",
+        "s3:GetBucketLocation",
+        "s3:GetBucketLogging",
+        "s3:GetBucketTagging"
+      ],
+      "Resource": [
+        "*"
+      ]
+    },
+    {
+      "Sid": "AllowInspectorSplunkAWSTechnicalAddon",
+      "Effect": "Allow",
+      "Action": [
+        "inspector:Describe*",
+        "inspector:List*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowSplunkCMDBReportingCapabilities",
+      "Effect": "Allow",
+      "Action": [
+          "ec2:DescribeNetworkInterfaces"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

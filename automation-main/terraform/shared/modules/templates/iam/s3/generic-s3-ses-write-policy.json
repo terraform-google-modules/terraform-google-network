@@ -1,0 +1,19 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowSESPuts",
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "ses.amazonaws.com"
+            },
+            "Action": "s3:PutObject",
+            "Resource": "${ s3_bucket_arn }/*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:Referer": "${ account_id }"
+                }
+            }
+        }
+    ]
+}

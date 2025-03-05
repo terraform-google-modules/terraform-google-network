@@ -1,0 +1,39 @@
+---
+# Playbook Name: fips-remote.yml
+# Description:
+#   This playbook enables or disables FIPS on a remote or local system. This playbook is similar to the 'fips-enable.yml' or
+#   'fips-disable.yml' playbooks, except it can be ran against remote target instances.
+# Dependencies:
+#   - RHEL 7.4+
+#   - Repositories enabled on the target systems.
+# Variables:
+#   - fips_mode_enabled: (bool) Whether to enable or disable FIPS mode. Set to true to enable FIPS mode. Set to false to disable FIPS mode.
+#   - fips_reboot_host: (bool) Whether to reboot the system after enabling or disabling FIPS.
+# Example
+#   Enables FIPS mode on a remote system:
+#     ansible-playbook -i 10.0.0.2, /etc/ansible/playbooks/fips-remote.yml -e "fips_mode_enabled=true"
+#
+# Authors: Matt Bittner
+# Version: 2.9-000001
+# Modified: 2021-03-05 - Created
+# Comments: None
+
+- hosts: all
+  become: true       # Required to modify Grub
+
+  vars:
+    fips_mode_enabled:
+    fips_reboot_host: false
+
+  tasks:
+
+    - name: Ensure that the 'fips_mode_enabled' variable is properly configured
+      fail:
+        msg: "The 'fips_mode_enabled' variable must be set to true or false."
+      when: fips_mode_enabled is undefined or fips_mode_enabled is none
+
+    - name: Run the FIPS role
+      include_role:
+        name: fips
+
+...

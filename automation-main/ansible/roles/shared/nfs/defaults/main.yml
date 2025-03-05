@@ -1,0 +1,75 @@
+---
+# Synopsis: default variables file for nfs role
+
+# current cloud provider target host is running within
+#   currently supports: aws, azure, gcp, unknown, <null>
+cloud_provider: aws
+
+# (mandatory, must be explicitly passed) dictionary of network file shares to configure
+#   structure:
+#     key_name:   // name of the network file share, e.g. `nfs_home`
+#       path: <str - filepath>   // (*mandatory*) path to where the network file share will be mounted, e.g. `/nfs/home`
+#       src: <str>               // device to be mounted on `path`, required when `state` undefined or set to `present`, e.g. fs-RANDOMID.efs.us-gov-west-1.amazonaws.com, 10.xxx.xxx.xxx
+#       src_root: <str>          // (optional) defaults to `/`, path to mount to within network file share
+#       state: <str>             // defaults when empty to `present`, `present` - nfs will be configured, `absent` - nfs will be removed
+#       owner: <str>             // defaults to value of `nfs_default_owner`, the owner for network file share mount path
+#       group: <str>             // defaults to value of `nfs_default_group`, the group for network file share mount path
+#       mode: <str>              // defaults to value of `nfs_default_mode`, the mode for network file share mount path
+#       access_point_id: <str>   // (optional) ID to mount AWS EFS Access Point
+#       efs_mount_target: <str>  // (optional) EFS mount target IP address (required to mount AWS EFS Access Point across accounts)
+#       efs_enable_fips: <bool>  // (optional) Use FIPS-mode for stunnel
+nfs_dictionary:
+
+# flag to toggle feature to remove all network file shares on/off
+nfs_remove_all: false
+
+# flag to synchronize nfs shares from nfs_dictionary to remote state
+nfs_sync: false
+
+# flag to force a remount on all shares
+nfs_force_remount: false
+
+
+### Flattened Defaults
+
+# path to mount to within network file share
+nfs_default_src_root: /
+# default owner for network file share mount path
+nfs_default_owner: root
+# default group for network file share mount path
+nfs_default_group: root
+# default mode for network file share mount path
+nfs_default_mode: '0755'
+# default mount options for mounting network file shares in different hypervisors
+#   Documentation Links:
+#     aws: https://docs.aws.amazon.com/efs/latest/ug/mounting-fs-nfs-mount-settings.html
+#     azure: https://docs.microsoft.com/en-us/azure/storage/files/storage-files-how-to-mount-nfs-shares
+#     gcp: https://cloud.google.com/filestore/docs/mounting-fileshares
+nfs_mount_options:
+  aws: nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev,nofail
+  azure: vers=4,minorversion=1,sec=sys
+  gcp: rsize=1048576,wsize=1048576,hard,timeo=600,retrans=3,resvport
+  # For case where cloud provider is 'unknown', do not provide any special options
+  unknown:
+
+
+### AWS EFS Utils Configuration
+
+# (optional, must be explicity passed) s3 bucket to pull down pre-built aws-efs-utils RPM/DEB files, will assume package available through package manager if not provided
+nfs_aws_efs_utils_s3_bucket: ''
+
+# (optional, defaults to false) flag to enable the CloudWatch Logs feature in amazon-efs-utils
+nfs_enable_cloudwatch_logging: false
+
+# (optional, defaults to false) flag to enable FIPS-mode for stunnel in amazon-efs-utils
+efs_enable_fips: false
+
+# (optional, must be explicity passed) path within s3 bucket to pull down pre-built aws-efs-utils RPM/DEB files
+#   must be passed when `nfs_aws_efs_utils_s3_bucket` is defined
+nfs_aws_efs_utils_s3_path: ''
+
+### SSSD Home Directory Configuration
+
+# (optional, must be explicitly passed) when defined, will set the SSSD `override_homedir` for user home directories, e.g. `/nfs/home/%u@%d`
+nfs_set_sssd_home:
+...

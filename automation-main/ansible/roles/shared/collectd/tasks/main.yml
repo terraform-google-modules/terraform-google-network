@@ -1,0 +1,105 @@
+---
+# Synopsis:
+# Inputs:
+#   - cloudwatch_integrate : 'true' to configure the Cloudwatch plugin within Collectd
+#   - collectd_cloudwatch_plugins_directory : '/opt/colllectd-cloudwatch'
+#   - collectd_cloudwatch_whitelist_pass_through : 'false'
+#   - collectd_cloudwatch_debug : 'false'
+#   - aws_region : 'us-gov-west-1'
+#   - cw_preset_selection: 'default'
+#
+# Outputs:
+#   - Collectd will be installed, configured with a plugin, and started
+
+  - name: Set redhat packages
+    set_fact:
+      collectd_redhat_packages: [collectd, collectd-curl, yajl]
+
+  - name: Ensure collectd and plugins are installed for Red Hat
+    package:
+      name: '{{ item }}'
+      state: present
+    become: true
+    loop: "{% if ansible_distribution | lower == 'amazon' %}{{ collectd_redhat_packages | difference(['yajl']) }}{% else %}{{ collectd_redhat_packages }}{%\
+      \ endif %}"
+    when: ansible_os_family == 'RedHat'
+
+  - name: Ensure collectd and plugins are installed for Ubuntu
+    package:
+      name: '{{ item }}'
+      state: present
+    become: true
+    loop:
+      - collectd
+      - collectd-core
+    when: ansible_os_family == 'Debian'
+
+  - name: Ensure collectd is installed for Suse
+    package:
+      name: collectd
+      state: present
+    become: true
+    when: ansible_os_family == 'Suse'
+
+  - name: Create collectd-plugins/cloudwatch/config directory
+    file:
+      state: directory
+      path: '{{ collectd_cloudwatch_plugins_directory }}/cloudwatch/config'
+    become: true
+
+  - name: Determine SAP availability log location
+    find:
+      paths:
+        - /hana
+        - /usr/sap
+      patterns: available.log
+      recurse: true
+    become: true
+    ignore_errors: true
+    when: |
+      cw_preset_selection in [
+        'cpids',
+        'webdispatcher',
+        'sap',
+        'ibp_hana',
+        'hana',
+        'bobj',
+        'lumira',
+        'sapapp_abap',
+        'sapapp_java',
+      ]
+    register: available_file_path
+
+  - name: Template collectd plugin configuration file
+    template:
+      src: plugin/plugin.conf
+      dest: '{{ collectd_cloudwatch_plugins_directory }}/cloudwatch/config/plugin.conf'
+    become: true
+
+  - name: Apply Collectd whitelist config file
+    template:
+      src: plugin/whitelist.conf.j2
+      dest: '{{ collectd_cloudwatch_plugins_directory }}/cloudwatch/config/whitelist.conf'
+    become: true
+    when: cw_preset_selection != "default"
+    notify: Restart collectd after plugin configuration
+
+  - name: Apply collectd.conf file
+    template:
+      src: plugin/collectd.conf.j2
+      dest: '{{ collectd_config_path[ansible_os_family | lower] }}'
+    vars:
+      collectd_config_path:
+        redhat: /etc/collectd.conf
+        suse: /etc/collectd.conf
+        debian: /etc/collectd/collectd.conf
+    become: true
+    notify: Restart collectd after plugin configuration
+
+  - name: Ensure Collectd is started and enabled on boot
+    service:
+      name: collectd
+      state: started
+      enabled: true
+    become: true
+...

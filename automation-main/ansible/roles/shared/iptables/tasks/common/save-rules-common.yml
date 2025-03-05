@@ -1,0 +1,130 @@
+---
+# Synopsis: Idempotently saves ANSIBLE_MANAGED iptables rules to persistent location.
+# Inputs:
+#   - iptables_persistent_save_file : Internal variable use to tell this taskfile what file to save persistent iptables rules to
+#   - iptables_default_input_chain_behavior - Default INPUT chain behavior, e.g. ACCEPT, DROP
+#   - iptables_default_forward_chain_behavior - Default FORWARD chain behavior, e.g. ACCEPT, DROP
+# Outputs:
+#   - Only ANSIBLE_MANAGED iptables rules written to persistent location
+#       e.g. /etc/iptables/rules.v4 (debian), /etc/sysconfig/iptables (redhat)
+
+  - name: Capture persistent rules without ANSIBLE_MANAGED content
+    ansible.builtin.shell: >-
+      cat {{ iptables_persistent_save_file }}
+      | grep -v 'ANSIBLE_MANAGED' | grep -v 'ANSIBLE MANAGED'
+    become: true
+    register: iptables_remove_ansible_chain_persistence
+    failed_when: iptables_remove_ansible_chain_persistence.rc not in [0,1]
+
+  - name: Remove all ANSIBLE_MANAGED from persistence if file defined
+    ansible.builtin.copy:
+      dest: '{{ iptables_persistent_save_file }}'
+      content: |
+        {{ iptables_remove_ansible_chain_persistence.stdout }}
+    become: true
+    when: iptables_remove_ansible_chain_persistence.rc == 0
+
+  - name: Touch {{ iptables_persistent_save_file }}
+    ansible.builtin.file:
+      path: '{{ iptables_persistent_save_file }}'
+      state: touch
+      mode: 644
+      modification_time: preserve
+      access_time: preserve
+    become: true
+
+  - name: Add persistent default filter chain if {{ iptables_persistent_save_file }} is empty
+    ansible.builtin.lineinfile:
+      path: '{{ iptables_persistent_save_file }}'
+      line: '{{ item }}'
+    loop:
+      - '*filter'
+      - :INPUT {{ iptables_default_input_chain_behavior }} [0:0]
+      - COMMIT
+    become: true
+    when: >
+      iptables_remove_ansible_chain_persistence.rc == 1 or
+      (
+        iptables_remove_ansible_chain_persistence.rc == 0 and
+        iptables_remove_ansible_chain_persistence.stdout_lines | length == 0
+      )
+
+  - name: Get contents of existing persistent rules
+    ansible.builtin.slurp:
+      src: '{{ iptables_persistent_save_file }}'
+    become: true
+    register: iptables_persistent_save_file_contents
+
+  - name: Make ANSIBLE_MANAGED chain persistent
+    ansible.builtin.replace:
+      path: '{{ iptables_persistent_save_file }}'
+      replace: |-
+        *filter
+        :INPUT {{ iptables_default_input_chain_behavior }} [0:0]
+        :ANSIBLE_MANAGED - [0:0]
+      regexp: ^\*filter.*\n^:INPUT .*
+    become: true
+
+  - name: Manage persistent FORWARD chain if necessary
+    ansible.builtin.replace:
+      path: '{{ iptables_persistent_save_file }}'
+      replace: |-
+        *filter
+        :INPUT {{ iptables_default_input_chain_behavior }} [0:0]
+        :FORWARD {{ iptables_default_forward_chain_behavior }} [0:0]
+      regexp: >-
+        {{
+          '^\*filter.*\n^:INPUT .*' if (
+            iptables_persistent_save_file_contents.content | b64decode | regex_search("\*filter.*\n:INPUT .*\n:FORWARD (.*) ", "\1") == ""
+          ) else '^\*filter.*\n^:INPUT .*\n^:FORWARD .*'
+        }}
+    become: true
+    when:
+      - iptables_default_forward_chain_behavior is defined
+      - iptables_default_forward_chain_behavior is not none
+      - iptables_default_forward_chain_behavior | length > 0
+
+  - name: Capture all active ANSIBLE_MANAGED rules
+    ansible.builtin.shell: >-
+      iptables-save | grep '^-A ANSIBLE_MANAGED'
+    become: true
+    register: iptables_capture_ansible_managed_rules
+
+  - name: Ensure active ANSIBLE_MANAGED rules are added to persistence
+    ansible.builtin.blockinfile:
+      path: '{{ iptables_persistent_save_file }}'
+      block: |-
+        -A INPUT -j ANSIBLE_MANAGED
+        {{ iptables_capture_ansible_managed_rules.stdout }}
+      insertafter: '^:ANSIBLE_MANAGED '
+    become: true
+
+  - name: Perform COMMIT check for default filter chain
+    ansible.builtin.set_fact:
+      iptables_commit_check: >-
+        {{
+          'COMMIT' in ((
+            iptables_persistent_save_file_contents.content | b64decode | regex_search('\*filter\n((.|\n)*)' + (
+              '*' + ((iptables_persistent_save_file_contents.content | b64decode | regex_search("\*filter\n(.*\n)*?(\*.*)\n", "\2"))[0] | default(""))
+          if (
+                ((iptables_persistent_save_file_contents.content | b64decode | regex_search("\*filter\n(.*\n)*?(\*.*)\n", "\2"))[0] | default("")) != ""
+                ) else ''
+              ) | replace("*", ""), '\1', multiline=True)
+          )[0] | default(""))
+        }}
+
+
+  - name: Ensure COMMIT at the end of default filter chain
+    ansible.builtin.lineinfile:
+      path: '{{ iptables_persistent_save_file }}'
+      line: COMMIT
+      insertbefore: >-
+        {{
+          '\*' + ((iptables_persistent_save_file_contents.content | b64decode | regex_search("\*filter\n(.*\n)*?(\*.*)\n", "\2"))[0]) | replace("*", "")
+        if (
+            ((iptables_persistent_save_file_contents.content | b64decode | regex_search("\*filter\n(.*\n)*?(\*.*)\n", "\2"))[0] | default("")) != ""
+          ) else 'NOT FOUND'
+        }}
+      firstmatch: true
+    when: not iptables_commit_check
+...

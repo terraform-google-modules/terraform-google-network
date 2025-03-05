@@ -1,0 +1,38 @@
+---
+# Synopsis: Validates SAP MaxDB Prerequisites
+# Inputs:
+#   spr_maxdb_install_sid : MaxDB Install SID
+#   spr_maxdb_check_swpm_source : Source folder for SWPM for installing Content Server and  SAP MaxDB
+#   spr_maxdb_check_saphostagent_source : Location of the SAPHOSTAgent source
+# Outputs:
+# Comments:
+
+
+- name: Validate paths
+  include_tasks: general/mount-check.yml
+  vars:
+    spr_mount_check_path: "{{ item.path }}"
+    spr_mount_check_size: "{{ item.size|default('0',true) }}"
+  loop:
+  - path: "/usr/sap"
+    size: "50"
+  - path: "/sapdb"
+    size: "10"
+  - path: "/sapdb/{{spr_maxdb_install_sid|upper}}/sapdata"
+    size: "100"
+  - path: "/sapdb/{{spr_maxdb_install_sid|upper}}/saplog"
+    size: "20"
+  - path: "{{ spr_maxdb_check_swpm_source}}"
+  - path: "{{ spr_maxdb_check_saphostagent_source }}"
+
+- name: "Get sapinst/SWPM info"
+  stat:
+    path: "{{ spr_maxdb_check_swpm_source }}"
+  register: sapinst_info
+
+- name: "Ensure SWPM is 1.0. Not 2.0"
+  fail:
+    msg: "Please make sure to use SWPM 1.0 for Content Server and MaxDB Installs. Not SWPM 2.0 {{spr_maxdb_check_swpm_source}}"
+  when: '"SOFTWARE_PROVISIONING_MGR_1.0" not in sapinst_info.stat.path'
+
+...

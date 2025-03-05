@@ -1,0 +1,21 @@
+---
+# List of GitLab-specific log groups for RPM-based installs of GitLab.
+# NOTE: This preset is for GitLab systems that are installed via the omnibus RPM GitLab package, NOT containerized deployments of GitLab.
+
+# When 'gitlab' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_gitlab:
+  - file_path: /var/log/gitlab/gitlab-rails/application.log
+    log_group_name: /var/log/gitlab/gitlab-rails/application
+  - file_path: /var/log/gitlab/gitlab-rails/production.log
+    log_group_name: /var/log/gitlab/gitlab-rails/production
+  - file_path: /var/log/gitlab/gitlab-rails/api_json.log
+    log_group_name: /var/log/gitlab/gitlab-rails/api_json
+  - file_path: /var/log/gitlab/gitlab-rails/integrations_json.log
+    log_group_name: /var/log/gitlab/gitlab-rails/integrations_json
+  - file_path: /var/log/gitlab/gitlab-rails/auth.log
+    log_group_name: /var/log/gitlab/gitlab-rails/auth
+  - file_path: /var/log/gitlab/gitaly/gitlab-shell.log
+    log_group_name: /var/log/gitlab/gitaly/gitlab-shell
+  - file_path: /var/log/gitlab/gitlab-shell/gitlab-shell.log
+    log_group_name: /var/log/gitlab/gitlab-shell/gitlab-shell
+...

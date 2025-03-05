@@ -1,0 +1,10 @@
+---
+# Description: Molecule converge.yml playbook used to run an Ansible role in a testing scenario.
+  - name: Converge
+    hosts: all
+    gather_facts: false
+    tasks:
+      - name: Run the 'cloud-provider-metadata' role
+        include_role:
+          name: cloud-provider-metadata
+...

@@ -1,0 +1,357 @@
+---
+
+# Playbook Name: ibp-provision-all.yml
+# Synopsis: Provisions all IBP instances
+# Description: This playbook consists of several plays which will setup the IBP environment.
+#     It will also setup post provisioning tasks for monitoring and tagging.
+#     It is designed to work with the ibp-ansible-inventory-template file.
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS CLI v1.16+
+#   - sudo capability or root privileges on target machine
+# Dependencies:
+#   - ibp ansible role
+#   - repository-management ansible role
+# Variables: N/A
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-provision-all.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>
+#
+# Example
+#   Only run provisioning  on a single instance with ip address of 192.168.1.1
+#     ansible-playbook ibp-provision-all.yml -k -i /tmp/hosts -l 192.168.1.1
+#
+# Example
+#   Execution of a specific plays 'pre-provision' and 'post-provision'
+#     ansible-playbook ibp-provision-all.yml -k -i /tmp/hosts --tags 'pre-provision,post-provision'
+#
+# Example
+#   Update the hostfiles on all servers
+#     ansible-playbook ibp-provision-all.yml -k -i /tmp/hosts --tags 'pre-provision'
+#
+# Authors: Louis Lee, Vighnesh Sivakumar
+# Version: 2.9-000019
+# Modified: 2020-03-17 - Created playbook
+#           2020-03-31 - Added incron setup
+#           2020-05-01 - Enabled automatic_preset_selection to dynamically set application preset
+#           2020-05-11 - Excluded staging mountpoint from alerting
+#           2020-05-12 - Adds CPIDS Incron and improves existing incron tasks.
+#           2020-05-14 - Mark the end of the playbook, moves cpids-provision task to subfolder
+#           2020-06-22 - Excluding /staging from clamav executions due to nfs/efs mount
+#           2020-06-23 - Merged ibp-provision and ibp-operations roles to ibp role, Use new start/stop tasks
+#           2020-06-23 - Added default cloudwatch alerting email
+#           2020-07-06 - Update task and subfolder references
+#           2020-07-17 - Update error handling to use `any_errors_fatal: yes`
+#           2020-07-28 - Removed hostvars file requirement
+#           2020-08-24 - Adds hostname set to play 1, Disabled automatic_preset_selection in favor of application preset
+#           2020-09-04 - Removed relative paths in include_role
+#           2020-12-23 - Removed post provisioning into it's own playbook
+#           2021-02-13 - Update to support new Repo-Management role
+#           2021-02-17 - Update for DSOD-1.0.11.4429+ CPIDS patch and Java8
+#           2022-07-21 - Split out mandatory prerequisites to an 'always play0'
+#           2022-08-31 - Add test to validate AWS CLI functionality and AWS IAM role availability
+#           2023-09-20 - Change the Play 0, application_preset_selection to allow sap repos to be enabled in yum.
+#           2024-12-16 - Make the internal fqdn found in hostfiles a mandatory value
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Play Tags:
+#     play0 prerequisites : Sets mandatory variables
+#     play1 pre-provision : Sets Hostfile, Hostname, and Repositories
+#     play2 provision-hana : Provisions IBP Hana systems
+#     play3 provision-ibpapp : Provisions IBP SAP Application systems
+#     play4 provision-cpids : Provisions IBP CPI-DS systems
+#     play5 provision-webdispatcher : Provisions IBP Webdispatcher systems
+#     playEND : End of the playbook
+
+#################
+##### Play0 #####
+#################
+- name: "Play0:  Prerequisites"
+  hosts: all
+  tags:
+  - play0
+  - prerequisites
+  - always
+  any_errors_fatal: yes
+
+  tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  - name: "Set AWS Region to {{ aws_region }}"
+    shell: "/usr/local/bin/aws configure set region {{ aws_region }}"
+    become: yes
+
+  - name: "Set application_preset_selection"
+    set_fact:
+      #application_preset_selection: "['epel'], + ['{{ ibp_application_preset_selection }}']"
+      # This change allows enabling sap hana repos in yum
+      application_preset_selection: "['{{ ibp_application_preset_selection }}']"
+
+
+#################
+##### Play1 #####
+#################
+- name: "Play1:  Set Hostfile, Hostname, and Repositories"
+  hosts: all
+  tags:
+  - play1
+  - hostfiles
+  any_errors_fatal: yes
+
+  pre_tasks:
+  tasks:
+  - name: "Set the host file"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hostfile-install.yml
+    vars:
+      hostfile_fqdn: "{{ input_hostfile_fqdn }}"
+
+  - name: Set the Hostname
+    hostname:
+      name: "{{ ibp_hostname }}"
+    become: true
+
+  - name: "Configure Red Hat Repositories from S3"
+    include_role:
+      name: repository-management
+    vars:
+      automatic_preset_selection: 'false'
+      redhat_repo: 'true'
+      epel_repo: 'true'
+      repo_enable: 'true'
+
+  - name: Get AWS account information
+    command: aws sts get-caller-identity
+    register: output
+    ignore_errors: true
+    delegate_to: localhost
+    become: false
+    run_once: true
+
+  - name: Validate AWS Settings
+    assert:
+      that: output.rc == 0
+      fail_msg: >-
+        There appears to be an issue with the AWS CLI.
+        Please ensure there is a valid AWS region set in your environment variables or a credentials file created.
+        This may be tested by running "aws sts get-caller-identity" on the command line.
+      success_msg: AWS Account Validated
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Provision Hana"
+  hosts: ibpdb
+  gather_facts: false
+  become: false
+  tags:
+  - play2
+  - provision-hana
+  any_errors_fatal: yes
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  tasks:
+  - name: "Provisioning Hana with these settings"
+    debug:
+      msg: |
+        Host {{ inventory_hostname }}
+        System Usage is {{ system_usage }}
+        Application Preset is {{ application_preset_selection }}
+        Hana Tar Source is {{ hana_tar_source }}
+        Sid is {{ sid }}
+        Hostname will be {{ ibp_hostname }}
+
+  - name: "Provision HANA with IBP role"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hana-provision.yml
+    vars:
+      backend_sid: "{{ sid }}"
+
+  - name: "Discover S3 Backup Bucket"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/s3-discovery.yml
+
+  - name: "IBP Backup Bucket is {{ ibp_backup_bucket_name }}"
+    debug:
+      msg: "IBP Backup Bucket is {{ ibp_backup_bucket_name }}"
+
+  - name: "Setup InCron"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hana-incron-setup.yml
+    vars:
+      incron_setup_sid: "{{ sid }}"
+      incron_setup_release_number: "{{ hana_tar_source | regex_replace('/staging/ibp/Build/(.*?)-(\\d{4})(.*)/DB','\\2') }}"
+      incron_setup_bucket_name: "{{ ibp_backup_bucket_name }}"
+      incron_setup_hostname: "{{ ibp_hostname }}"
+      incron_setup_suffix: "{{ suffix }}"
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Provision SAP Application"
+  hosts: ibpapp
+  gather_facts: false
+  become: false
+  tags:
+  - play3
+  - provision-ibpapp
+  any_errors_fatal: yes
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  tasks:
+  - name: "Provisioning SAPApp with these settings"
+    debug:
+      msg: |
+        Host {{ inventory_hostname }}
+        Application Preset is {{ application_preset_selection }}
+        SAP App Tar Source is {{ sapapp_tar_source }}
+        SAP Host Agent Source is {{ saphostagent_source }}
+        Sid is {{ sid }}
+        Hostname will be {{ ibp_hostname }}
+
+  - name: "Provision SAPAPP with IBP role"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/sapapp-provision.yml
+    vars:
+      backend_sid: "{{ sid }}"
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Provision CPIDS"
+  hosts: cpids
+  gather_facts: false
+  become: false
+  tags:
+  - play4
+  - provision-cpids
+  any_errors_fatal: yes
+
+  environment:
+# Starting with DSOD-1.0.11.4429, use java8
+#   JAVA_HOME: '/usr/sap/dsod_package/sapjvm_7'
+    JAVA_HOME: '/usr/sap/dsod_package/sapjvm_8'
+    PATH: '/usr/sap/dsod_package/sapjvm_8/bin:.:/usr/local/sbin:/usr/local/bin:{{ ansible_env.PATH }}:/root/bin'
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  tasks:
+  - name: "Provisioning CPIDS with these settings"
+    debug:
+      msg: |
+        Host {{ inventory_hostname }}
+        Application Preset is {{ application_preset_selection }}
+        CPIDS Tar Source is {{ cpids_tar_source }}
+        SAP Host Agent Source is {{ saphostagent_source }}
+        Hostname will be {{ ibp_hostname }}
+
+  - name: "Provision CPIDS with IBP role"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/cpids-provision.yml
+
+  - name: "Discover S3 Backup Bucket"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/s3-discovery.yml
+
+  - name: "IBP Backup Bucket is {{ ibp_backup_bucket_name }}"
+    debug:
+      msg: "IBP Backup Bucket is {{ ibp_backup_bucket_name }}"
+
+  - name: "Setup InCron"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/cpids-incron-setup.yml
+    vars:
+      incron_setup_sid: 'n01'
+      incron_setup_release_number: "{{ cpids_tar_source | regex_replace('/staging/cpids/Build/.*?(DSOD-.*?)-TAR.*','\\1') }}"
+      incron_setup_bucket_name: "{{ ibp_backup_bucket_name }}"
+      incron_setup_hostname: "{{ ibp_hostname }}"
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: Provision Webdispatcher"
+  hosts: webdispatcher
+  gather_facts: false
+  become: false
+  tags:
+  - play5
+  - provision-webdispatcher
+  any_errors_fatal: yes
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  tasks:
+  - name: "Provisioning Webdispatcher with these settings"
+    debug:
+      msg: |
+        Host {{ inventory_hostname }}
+        Application Preset is {{ application_preset_selection }}
+        Webdispatcher Source is {{ webdispatcher_tar_source }}
+        SAP Host Agent Source is {{ saphostagent_source }}
+        Hostname will be {{ ibp_hostname }}
+
+  - name: "Run ibp role"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/webdispatcher-provision.yml
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    debug:
+      msg: "Of the world as we know it"
+...

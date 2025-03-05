@@ -1,0 +1,76 @@
+---
+
+all:
+  hosts:
+  vars:
+    efs_staging_ip: '{{ efs_staging_ip }}'
+    efs_usrsaptrans_ip: '{{ efs_usrsaptrans_ip }}'
+    saphostagent_source: '/staging/ibp/Build/{{ sap_release_name }}/SAPHOSTAGENT'
+    aws_region: '{{ aws_region }}'
+    customer_number: '{{ customer_number }}'
+  children:
+### Product Groups
+    webdispatcher:
+      hosts:
+        {{ webdispatcher_ip }}:
+      vars:
+        webdispatcher_tar_source: '/staging/webdispatcher/Build/{{ webdispatcher_release_name }}'
+    cpids:
+      hosts:
+        {{ cpids_ip }}:
+      vars:
+        cpids_tar_source: '/staging/cpids/Build/{{ cpids_release_name }}'
+        cpids_alb_cname: '{{ cpids_alb_cname }}'
+    ibpapp:
+      hosts:
+{% for ibpapp_ip in ibpapp_ip_list %}
+        {{ ibpapp_ip }}:
+{% endfor %}
+    ibpdb:
+      hosts:
+{% for ibpdb_ip in ibpdb_ip_list %}
+        {{ ibpdb_ip }}:
+{% endfor %}
+### Landscape Groups
+    dataservices:
+      children:
+        webdispatcher:
+        cpids:
+      vars:
+    staging:
+      hosts:
+{% for staging_ip in staging_ip_list %}
+        {{ staging_ip}}:
+{% endfor %}
+      vars:
+        hana_tar_source: '/staging/ibp/Build/{{ sap_release_name }}/DB'
+        sapapp_tar_source: '/staging/ibp/Build/{{ sap_release_name }}/APP'
+        sid: '{{ staging_sid}}'
+        suffix: 'stg'
+    test:
+      hosts:
+
+      vars:
+        hana_tar_source: '/staging/ibp/Build/{{ sap_release_name }}/DB'
+        sapapp_tar_source: '/staging/ibp/Build/{{ sap_release_name }}/APP'
+        sid:
+        suffix: 'tst'
+    production:
+      hosts:
+{% for production_ip in production_ip_list %}
+        {{ production_ip }}:
+{% endfor %}
+      vars:
+        hana_tar_source: '/staging/ibp/Build/{{ sap_release_name }}/DB'
+        sapapp_tar_source: '/staging/ibp/Build/{{ sap_release_name }}/APP'
+        sid: '{{ production_sid }}'
+        suffix: 'prd'
+    disaster_recovery:
+      hosts:
+
+      vars:
+        hana_tar_source: '/staging/ibp/Build/{{ sap_release_name }}/DB'
+        sapapp_tar_source: '/staging/ibp/Build/{{ sap_release_name }}/APP'
+        suffix: 'prd-dr'
+        sid:
+...

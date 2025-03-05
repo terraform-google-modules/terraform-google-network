@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cat <&0 | sed '/sid: [[:alnum:]]\{3\} $/d' > kustomize/all.yaml
+
+kustomize build ./kustomize && rm -f kustomize/all.yaml

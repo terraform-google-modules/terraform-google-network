@@ -1,0 +1,40 @@
+---
+# +----------------------------------------------------------------------------------------+
+# | __   __      _             _                   _              ___           __ _       |
+# | \ \ / /__ __| |_ ___ _ _  | |   ___  __ _ __ _(_)_ _  __ _   / __|___ _ _  / _(_)__ _  |
+# |  \ V / -_) _|  _/ _ \ '_| | |__/ _ \/ _` / _` | | ' \/ _` | | (__/ _ \ ' \|  _| / _` | |
+# |   \_/\___\__|\__\___/_|   |____\___/\__, \__, |_|_||_\__, |  \___\___/_||_|_| |_\__, | |
+# |                                     |___/|___/       |___/                      |___/  |
+# | Managed by Ansible                                                                     |
+# +----------------------------------------------------------------------------------------+
+#
+# Description: SAP HTTP Work Access Log Transforms
+# Vector Output Name: work_http_access_log__sap_logs_parsed
+# Notes:
+#  - Cookie is taken redacted from these logs
+# +----------------------------------------------------------------------------------------+
+
+type: remap
+inputs:
+  - work_http_access_log_metadata
+drop_on_error: true
+reroute_dropped: true
+source: |
+  log("blah", level: "info", rate_limit_secs: 0)
+  .fields, err = parse_grok(.message, "\\[%{HAPROXYDATE:date}\\] - %{QUOTEDSTRING:request} {(\\[host : %{DATA:host}])?(\\[user\\-agent : %{DATA:user_agent}])?(\\[accept : %{DATA:accept}])?(\\[x\\-forwarded\\-for : %{DATA:x_forwarded_for}])?(\\[sap-web-dispatcher : %{DATA:sap_web_dispatcher}])?(\\[clientprotocol : %{DATA:clientprotocol}])?(\\[ssl_cipher_usekeysize : %{INT:ssl_cipher_usekeysize}])?(\\[ssl_cipher_suite : %{DATA:ssl_cipher_suite}])?\\} %{INT:response_code} %{INT} \\[.*] {(\\[content\\-type : %{DATA:content_type}])?(\\[content\\-length : %{INT:content_length}])?(\\[cache\\-control : %{DATA:cache_control}])?(\\[pragma : %{DATA:pragma}])?(\\[expires : %{DATA:expires}])?(\\[connection : %{DATA:connection}])?(\\[sap\\-server : %{DATA:sap_server}])?(\\[sap\\-icm\\-log\\-dtrace : %{DATA:sap_icm_log_dtrace}])?(\\[sap\\-icm\\-log\\-uname : %{DATA:sap_icm_log_uname}])?(\\[sap\\-icm\\-log\\-mandt : %{DATA:sap_icm_log_mandt}])?(\\[sap\\-perf\\-fesrec : %{DATA:sap_perf_fesrec}])?((?:\\[set\\-cookie : %{DATA:cookie}]))?+} {%{DATA:metadata}} \\|")
+  if err != null {
+      abort "error parsing log: {{err}}"
+  }
+
+  .message, err = replace(.message, .fields.cookie, "**REDACTED**")
+  if err != null {
+      abort "error redacting cookie: {{err}}"
+  }
+
+  .timestamp, err = parse_timestamp(.fields.date, "%d/%B/%Y:%H:%M:%S %z")
+  if err != null {
+      abort "error parsing timestamp: {{err}}"
+  }
+
+  del(.fields.cookie)
+...

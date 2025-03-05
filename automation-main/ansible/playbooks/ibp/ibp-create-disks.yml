@@ -1,0 +1,285 @@
+---
+
+# Playbook Name: ibp-disks.yml
+# Synopsis: Creates and mounts necessary EBS and EFS mounts on IBP systems.
+# Description: This playbook is specifcally written to mount the appropriate EBS and EFS volumes to new IBP Systems.
+#     It is designed to work with the ibp-ansible-inventory-template file and should require extra-var or variable input.
+# Prerequisites:
+# - Ansible v2.9+
+# - AWS CLI v1.16+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# Dependencies:
+# - disk-management ansible role
+# Variables:
+#   - efs_staging_ip: IP Address of the staging EFS to be mounted.
+#   - efs_usrsaptrans_ip: IP Address of the /usr/sap/trans EFS to be mounted.
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-create-disks.tml -k -i /<PATH-TO>/<IBP-HOST-INVENTORY-FILE>
+# Authors: Louis Lee, Jian Ouyang
+# Version: 2.9-000004
+# Modified: 2020-03-17 - Created playbook
+#           2020-04-07 - Added maximum disk size for hana_shared and hana_log
+#           2020-09-04 - Removed relative paths in include_role
+#           2022-02-15 - Add repository management
+#           2022-04-06 - Adding tags
+#           2024-12-03 - Removed Direct Region References
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+
+- name: Play0 Dependencies
+  hosts: all
+  tags: always
+
+  tasks:
+  - name: "Configure Base Red Hat Repositories from S3"
+    include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: 'base'
+
+
+- name: Play1 CPIDS and Hana EBS Volumes
+  hosts: cpids, ibpdb
+  tags:
+    - play1
+    - cpids
+    - ibpdb
+
+  tasks:
+  - name: "{{ inventory_hostname }} has {{ (ansible_facts.memtotal_mb/1000)|round|int }}Gb of system memory"
+    set_fact:
+      ram_size: "{{ (ansible_facts.memtotal_mb/1000)|round|int }}"
+
+  - name: "Caluculate disk size"
+    set_fact:
+      hana_shared_size: >-
+          {% if ram_size|int < 1000 %} {{ ram_size|int }}
+          {% else %} 1000
+          {% endif %}
+      hana_log_size: >-
+          {% if ram_size|int < 2000 %} {{ (ram_size|int / 2)|int  }}
+          {% else %} 1000
+          {% endif %}
+
+  - name: "Mount volumes for {{ inventory_hostname }}"
+    include_role:
+      name: disk-management
+    vars:
+      disk_create: true
+      disk_encryption: true
+      disk_encryption_key_default: ''
+      disk_preset_selection: 'custom'
+      custom:
+        hana_data:
+          mount_point: '/hana/data'
+          size: "{{ ram_size|int * 2 }}"
+        hana_log:
+          mount_point: '/hana/log'    #limit this to max of 1 terabyte
+          size: "{{ hana_log_size|int }}"
+        hana_shared:
+          mount_point: '/hana/shared'   #limit this to max of 1 terabyte
+          size: "{{ hana_shared_size|int }}"
+        hana_backups:
+          mount_point: '/hana/backups'
+          size: "{{ ram_size|int * 2 }}"
+        usr_sap:
+          mount_point: '/usr/sap'
+          size: 50
+
+- name: Play2 Webdispatcher Volumes
+  hosts: webdispatcher
+  tags:
+    - play2
+    - webdispatcher
+
+  tasks:
+  - name: Include disk management role to create, attach, parition, format, and mount disks
+    include_role:
+      name: disk-management
+    vars:
+      disk_create: true
+      disk_encryption: true
+      disk_encryption_key_default: ''
+      disk_preset_selection: 'custom'
+      custom:
+        usr_sap:
+          mount_point: '/usr/sap'
+          size: 50
+
+- name: Play3 IBP App Volumes
+  hosts: ibpapp
+  tags:
+    - play3
+    - ibpapp
+
+  tasks:
+  - name: "{{ inventory_hostname }} has {{ (ansible_facts.memtotal_mb/1000)|round|int }}Gb of system memory"
+    set_fact:
+      ram_size: "{{ (ansible_facts.memtotal_mb/1000)|round|int }}"
+
+  - name: "Caluculate swap size"
+    set_fact:
+      swap_size: >-
+          {% if ram_size|int < 32 %} {{ ram_size|int * 2 }}
+          {% elif ram_size|int < 64 %} 64
+          {% elif ram_size|int < 128 %} 96
+          {% elif ram_size|int < 256 %} 128
+          {% elif ram_size|int < 512 %} 160
+          {% elif ram_size|int < 1024 %} 192
+          {% elif ram_size|int < 2048 %} 224
+          {% elif ram_size|int < 4096 %} 256
+          {% elif ram_size|int < 8192 %} 288
+          {% else %} 320
+          {% endif %}
+
+  - name: "Additional swap size will be {{ swap_size|int }}G"
+    set_fact:
+      swap_size: "{{ swap_size|int }}"
+
+  - name: Include disk management role to create, attach, parition, format, and mount disks
+    include_role:
+      name: disk-management
+    vars:
+      disk_create: true
+      disk_encryption: true
+      disk_encryption_key_default: ''
+      disk_preset_selection: 'custom'
+      custom:
+        usr_sap:
+          mount_point: '/usr/sap'
+          size: 50
+        sapmnt:
+          mount_point: '/sapmnt'
+          size: 50
+        swap:
+          mount_point: '/swap'
+          size: "{{ swap_size|int }}"
+
+- name: Play4 EFS Common Staging Mount
+  hosts: all
+  become: yes        # Permissions to create mount points and mounting
+  gather_facts: yes
+  tags:
+    - play4
+    - staging
+
+  vars:
+    aws_region: "{{ aws_region }}"
+    nfs_package: 'nfs-utils'
+    efs_file_system_id: ''
+    efs_ipaddress: "{{ efs_staging_ip }}"
+    efs_mount_dir: '/staging'
+
+  tasks:
+  - name: Validate inputs
+    fail:
+      msg: "Specify only one of the two - efs_ipaddress or efs_file_system_id"
+    when: ( efs_ipaddress != '') and ( efs_file_system_id != '')
+
+  - name: Ensure NFS is installed.
+    package: "name={{ nfs_package }} state=installed"
+
+  - name: Ensure mount directory exists.
+    file:
+      path: "{{ efs_mount_dir }}"
+      state: directory
+      mode: 0755
+
+  - name: Get current availability zone from AWS.
+    uri:
+      url: http://169.254.169.254/latest/meta-data/placement/availability-zone
+      return_content: yes
+    register: aws_current_az
+
+  - name: Ensure EFS volume is mounted using AWS route53
+    mount:
+      name: "{{ efs_mount_dir }}"
+      src: "{{ aws_current_az.content }}.{{ efs_file_system_id }}.efs.{{ aws_region }}.amazonaws.com:/"
+      fstype: nfs4
+      opts: nfsvers=4.1
+      state: mounted
+    when: efs_file_system_id != ''
+
+  - name: Ensure EFS volume is mounted using static IP address
+    mount:
+      name: "{{ efs_mount_dir }}"
+      src: "{{ efs_ipaddress }}:/"
+      fstype: nfs4
+      opts: nfsvers=4.1
+      state: mounted
+    when: efs_ipaddress != ''
+
+  - name: Get mount information
+    command: "ls -lah {{ efs_mount_dir }}"
+    register: efs_contents
+
+  - name: Display mount information
+    debug:
+      var: efs_contents
+
+
+- name: Play5 EFS USR/SAP/Trans Mount
+  hosts: ibpapp
+  become: yes        # Permissions to create mount points and mounting
+  gather_facts: yes
+  tags:
+    - play5
+    - ibpapp
+
+  vars:
+    aws_region: "{{ aws_region }}"
+    nfs_package: 'nfs-utils'
+    efs_file_system_id: ''
+    efs_ipaddress: "{{ efs_usrsaptrans_ip }}"
+    efs_mount_dir: '/usr/sap/trans'
+
+  tasks:
+  - name: Validate inputs
+    fail:
+      msg: "Specify only one of the two - efs_ipaddress or efs_file_system_id"
+    when: ( efs_ipaddress != '') and ( efs_file_system_id != '')
+
+  - name: Ensure NFS is installed.
+    package: "name={{ nfs_package }} state=installed"
+
+  - name: Ensure mount directory exists.
+    file:
+      path: "{{ efs_mount_dir }}"
+      state: directory
+      mode: 0755
+
+  - name: Get current availability zone from AWS.
+    uri:
+      url: http://169.254.169.254/latest/meta-data/placement/availability-zone
+      return_content: yes
+    register: aws_current_az
+
+  - name: Ensure EFS volume is mounted using AWS route53
+    mount:
+      name: "{{ efs_mount_dir }}"
+      src: "{{ aws_current_az.content }}.{{ efs_file_system_id }}.efs.{{ aws_region }}.amazonaws.com:/"
+      fstype: nfs4
+      opts: nfsvers=4.1
+      state: mounted
+    when: efs_file_system_id != ''
+
+  - name: Ensure EFS volume is mounted using static IP address
+    mount:
+      name: "{{ efs_mount_dir }}"
+      src: "{{ efs_ipaddress }}:/"
+      fstype: nfs4
+      opts: nfsvers=4.1
+      state: mounted
+    when: efs_ipaddress != ''
+
+  - name: Get mount information
+    command: "ls -lah {{ efs_mount_dir }}"
+    register: efs_contents
+
+  - name: Display mount information
+    debug:
+      var: efs_contents
+...

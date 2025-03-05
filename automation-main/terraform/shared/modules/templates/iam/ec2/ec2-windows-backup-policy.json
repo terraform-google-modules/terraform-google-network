@@ -1,0 +1,93 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowEC2SnapshotManagement",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CopySnapshot",
+                "ec2:CreateTags",
+                "ec2:DeleteSnapshot",
+                "ec2:CreateSnapshot",
+                "ec2:DescribeVolumes",
+                "ec2:DescribeSnapshots"
+            ],
+            "Resource": "arn:${ aws_partition }:ec2:*::snapshot/*"
+        },
+        {
+            "Sid": "AllowEC2DescribeAndCopy",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CopyImage",
+                "ec2:CreateImage",
+                "ec2:DeregisterImage",
+                "ec2:DescribeSnapshots",
+                "ec2:DescribeTags",
+                "ec2:DescribeImages",
+                "ec2:DescribeInstances",
+                "ec2:DescribeInstanceAttribute",
+                "ec2:DescribeInstanceCreditSpecifications",
+                "ec2:DescribeNetworkInterfaces",
+                "ec2:DescribeElasticGpus",
+                "ec2:DescribeSpotInstanceRequests"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowEC2TagCreation",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CreateTags"
+            ],
+            "Resource": "arn:${ aws_partition }:ec2:*:*:image/*"
+        },
+        {
+            "Sid": "AllowAWSBackupAccess",
+            "Effect": "Allow",
+            "Action": [
+                "backup:DescribeBackupVault",
+                "backup:CopyIntoBackupVault"
+            ],
+            "Resource": "arn:${ aws_partition }:backup:*:*:backup-vault:*"
+        },
+        {
+            "Sid": "AllowEc2SnapshotVolumeManagement",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:CreateSnapshot",
+                "ec2:DeleteSnapshot",
+                "ec2:DescribeVolumes",
+                "ec2:DescribeSnapshots"
+            ],
+            "Resource": [
+                "arn:${ aws_partition }:ec2:*:*:volume/*"
+            ]
+        },
+        {
+            "Sid": "AllowGettingTagResources",
+            "Effect": "Allow",
+            "Action": [
+                "tag:GetResources"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowSSMManagement",
+            "Effect": "Allow",
+            "Action": [
+                "ssm:CancelCommand",
+                "ssm:GetCommandInvocation"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowSendingSSMCommandsforVSSBackup",
+            "Effect": "Allow",
+            "Action": "ssm:SendCommand",
+            "Resource": [
+                "arn:${ aws_partition }:ssm:*:*:document/AWSEC2-CreateVssSnapshot",
+                "arn:${ aws_partition }:ec2:*:*:instance/*"
+            ]
+        }
+    ]
+}

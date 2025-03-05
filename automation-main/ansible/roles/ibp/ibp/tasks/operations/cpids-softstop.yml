@@ -1,0 +1,77 @@
+---
+# Synopsis: Does a software stop of CPIDS
+# Inputs:
+# Outputs: Stopped CPIDS
+# Comments: This task is also functions as a hard stop of cpids.
+# Update script for changes in directory structure changes - SCSTE-933 (Trushar Desai-i000173)
+
+- name: "Check if kotyo exists"
+  become: true
+  stat:
+    path: '/usr/sap/dsod_package/kotyo/bin/shutdown.sh'
+    follow: yes
+  register: check_file_output
+
+
+# Stop Kotyo and ActiveMQ
+- name: "Use Post Patch40 Code (DSOD-1.0.11.4429+)"
+  when: check_file_output.stat.exists|bool
+  include_tasks: operations/cpids-stop-kotyo.yml
+
+- name: "Use Legacy Code (Pre DSOD-1.0.11.4429)"
+  when: not check_file_output.stat.exists|bool
+  include_tasks: operations/cpids-stop-legacy.yml
+
+
+# Stop HANA DB
+- name: "Get Process list"
+  shell: 'sapcontrol -nr 00 -function GetProcessList'
+  args:
+    executable: '/bin/csh'
+  become: true
+  become_user: "n01adm"
+  failed_when: false
+  changed_when: false
+  register: hdb_process_output
+
+- name: "Check if HANA DB is already stopped"
+  assert:
+    that: "'GREEN' not in hdb_process_output.stdout"
+    fail_msg: HANA DB process detected. Stopping in next block
+    success_msg: "Hana DB is already stopped. Skipping next block"
+  changed_when: false
+  failed_when: false
+
+- name: "BLOCK: Stop HANA DB"
+  when: "'GREEN' in hdb_process_output.stdout"
+  become: true
+  become_user: "n01adm"
+  block:
+  - name: "Stopping HANA DB"
+    shell: 'HDB stop'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+
+  - name: "Get Process list after stop"
+    shell: 'sapcontrol -nr 00 -function GetProcessList'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+    changed_when: false
+    register: hdb_poststop_process_output
+
+  - name: "Validate HANA DB Stop"
+    assert:
+      that: "'GREEN' not in hdb_poststop_process_output.stdout"
+      fail_msg: |
+        HANA DB did not stop
+         {{ hdb_poststop_process_output.stdout_lines }}
+      success_msg: HANA DB Stopped
+
+  - name: "Output post-stop processes"
+    debug:
+      var: hdb_poststop_process_output.stdout_lines
+  # End "BLOCK: Stop HANA DB"
+
+...

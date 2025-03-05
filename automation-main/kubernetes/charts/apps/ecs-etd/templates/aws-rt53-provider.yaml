@@ -1,0 +1,21 @@
+apiVersion: dns.gardener.cloud/v1alpha1
+kind: DNSProvider
+metadata:
+  name: "{{ .Values.customer }}-rt53-dns-provider"
+  annotations:
+    avp.kubernetes.io/path: "{{ default (printf "%s/%s/ecs-etd" .Values.vaultBasePath .Values.customer) .Values.vaultPath }}/route53"
+    dns.gardener.cloud/class: garden
+  labels:
+    {{- include ".helpers_override.labels" $ | nindent 4 }}
+spec:
+  type: aws-route53
+  secretRef:
+    name: "rt53-credentials"
+  domains:
+    include:
+    - <BASE_DOMAIN>
+    exclude:
+    - {{ .Values.envBaseDomain }}
+  zones:
+   include:
+   - <ZONEID>

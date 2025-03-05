@@ -1,0 +1,125 @@
+---
+# Playbook Name: spr-iq-deploy.yml
+# Description: This playbook provision SAP IQ.
+# Dependencies:
+# - Ansible v2.9+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# - SPR Ansible Role
+# Variables:
+#   - Groupvars and Hostvars from inventory
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook spr-iq-deploy.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Katja Cresanti, Jian Ouyang
+# Version: 2.9-000002
+# Modified: 2022-04-14 - Created playbook
+#           2022-08-03 - case sensitivity handling
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+#   For the purposes of this playbook, all variables should be set in the inventory file.
+#   Inventory file examples can be found under the spr ansible role vars/business/ directory.
+#
+#   Tags:
+#     play0 always                          : Dynamic group assignment
+#     play1 hostnames hostfiles             : Prepare hostnames and hostfiles
+#     play2 prerequisites                   : Check the instance(s) for hardware prerequisites
+#     play3 provision                       : Install and configure SAP IQ
+#     playEND always                        : End of playbook
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Set Hostnames and Host Files"
+  gather_facts: false
+  hosts: all
+  tags:
+  - play1
+  - hostnames
+  - hostfiles
+
+  tasks:
+  - name: "Set the host file"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/hostfile-install.yml
+
+  - name: "Set the Hostname"
+    become: true
+    hostname:
+      name: "{{ spr_hostname|lower }}"
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Prerequisites"
+  gather_facts: false
+  hosts: iq
+  tags:
+  - play2
+  - prerequisites
+
+  tasks:
+  - name: "IQ Prerequisite Check"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: prerequisites/iq-check.yml
+    vars:
+      spr_iq_check_source: "{{ spr_db_source }}"
+      spr_iq_install_sid: "{{ spr_sid|upper}}"
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Provision"
+  gather_facts: false
+  hosts: iq
+  tags:
+  - play3
+  - provision
+
+  tasks:
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+  - name: "App Prerequisite Check"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/iq-install.yml
+    vars:
+      spr_iq_install_sid: "{{ spr_sid|upper}}"
+      spr_iq_install_source: "{{ spr_db_source }}"
+      spr_iq_file_install_rsp: "{{ spr_file_install_rsp }}"
+      spr_iq_install_hostname: "{{ spr_hostname|lower }}"
+      spr_iq_install_domain: "{{ spr_domain }}"
+      spr_iq_product: "{{ spr_productname}}"
+      spr_iq_file_install_rsp_xml: "{{ spr_file_install_rsp_xml }}"
+...

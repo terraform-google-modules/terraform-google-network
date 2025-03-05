@@ -1,0 +1,195 @@
+{
+    "schemaVersion": "2.2",
+    "assumeRole": "{{AutomationAssumeRole}}",
+    "description": "InstallNessusAgent",
+    "parameters": {
+      "NessusS3BucketName": {
+        "default": "${ binaries_bucket_id }",
+        "type": "String",
+        "description": "(Required) The S3 bucket for the Nessus Agent binary."
+      },
+      "NessusS3Path": {
+        "default": "media/tenable",
+        "type": "String",
+        "description": "(Required) The S3 path for the Nessus Agent binary."
+      },
+      "AWSRegion": {
+        "default": "${ aws_region }",
+        "type": "String",
+        "description": "(Required) The AWS region for aws cli commands e.g., \"us-gov-west-1\"."
+      },
+      "NessusPackageVersion": {
+        "default": "8.1.0",
+        "type": "String",
+        "description": "(Required) The Nessus Agent binary version e.g., \"8.1.0\"."
+      },
+      "NessusRegistrationKey": {
+        "default": "${ nessus_registration_key }",
+        "type": "String",
+        "description": "(Required) The Nessus registration key allows the Nessus Agent to authenticate to the Nessus Manager."
+      },
+      "NessusManagerAddress": {
+        "default": "${ nessus_manager_address }",
+        "type": "String",
+        "description": "(Required) The IP address or fully qualified domain name (FQDN) address of the Nessus Manager."
+      },
+      "NessusAgentGroup": {
+        "default": "${ nessus_agent_group }",
+        "type": "String",
+        "description": "(Required) The Nessus Agent group is required to scan this instance."
+      },
+      "NessusPort": {
+        "default": "8834",
+        "type": "String",
+        "description": "(Required) The Nessus Manager port for the Nessus Agent to communicate on e.g., \"8834\"."
+      },
+      "OfflineInstallLinux": {
+        "default": "--offline-install",
+        "type": "String",
+        "description": "(Required) Additional parameter to allow Nessus Agent install on Linux even if the system is offline e.g., \"--offline-install\"."
+      },
+      "OfflineInstallWindows": {
+        "default": "NESSUS_OFFLINE_INSTALL=\"yes\",",
+        "type": "String",
+        "description": "(Required) Additional parameter to allow Nessus Agent install on Windows even if the system is offline e.g., \"NESSUS_OFFLINE_INSTALL=\"yes\",\"."
+      },
+      "AutomationAssumeRole": {
+        "default": "",
+        "type": "String",
+        "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf."
+      }
+    },
+    "mainSteps": [
+      {
+        "action": "aws:runShellScript",
+        "name": "InstallNessusAgentOnLinux",
+        "precondition": {
+          "StringEquals": [
+            "platformType",
+            "Linux"
+          ]
+        },
+        "inputs": {
+          "runCommand": [
+            "#!/bin/bash",
+            "if [[ $(/usr/bin/id -u) -ne 0 ]]; then",
+            "    echo \"You are not running as the root user.  Please try again with root privileges to install the Nessus Agent.\"",
+            "    logger -t \"You are not running as the root user.  Please try again with root privileges to install the Nessus Agent.\"",
+            "    exit 1",
+            "fi",
+            "if ps -ef | grep nessus_agent | grep -v grep > /dev/null 2>&1; then",
+            "    echo \"Nessus Agent is already running.\"",
+            "    logger -t \"Nessus Agent is already running.\"",
+            "    exit 0",
+            "fi",
+            "if ! type aws >/dev/null 2>&1; then",
+            "    echo \"Please install aws cli before running the Nessus Agent install.\"",
+            "    logger -t \"Please install aws cli before running this Nessus Agent install.\"",
+            "    exit 1",
+            "fi",
+            "if ! type curl >/dev/null 2>&1; then",
+            "    echo \"Please install curl before running the Nessus Agent install.\"",
+            "    logger \"Please install curl before running the Nessus Agent install.\"",
+            "    exit 1",
+            "fi",
+            "aws_instance_id=`curl -s http://169.254.169.254/latest/meta-data/instance-id`",
+            "instance_os=`aws ssm describe-instance-information --region '{{AWSRegion}}' --query 'InstanceInformationList[*].[PlatformName]' --filters \"Key=InstanceIds,Values=$${aws_instance_id}\" --output text`",
+            "os_major_ver=`aws ssm describe-instance-information --region '{{AWSRegion}}' --query 'InstanceInformationList[*].[PlatformVersion]' --filters \"Key=InstanceIds,Values=$${aws_instance_id}\" --output text | sed 's/\\..*//'`",
+            "if [[ $${instance_os} =~ ^Red.* ]]; then",
+            "    s3filename=\"NessusAgent-{{NessusPackageVersion}}-es$${os_major_ver}.x86_64.rpm\"",
+            "elif [[ $${instance_os} =~ ^SLES.* ]]; then",
+            "    s3filename=\"NessusAgent-{{NessusPackageVersion}}-suse12.x86_64.rpm\"",
+            "elif [[ $${instance_os} =~ ^Ubuntu.* ]]; then",
+            "    s3filename=\"NessusAgent-{{NessusPackageVersion}}-ubuntu1110_amd64.deb\"",
+            "elif [[ $${instance_os} =~ ^Amazon.* ]]; then",
+            "    s3filename=\"NessusAgent-{{NessusPackageVersion}}-amzn.x86_64.rpm\"",
+            "else",
+            "    echo \"Unsupported platform is detected for Nessus Agent install.\"",
+            "    logger -t \"Unsupported platform is detected for Nessus Agent install.\"",
+            "fi ",
+            "aws s3 cp s3://{{NessusS3BucketName}}/{{NessusS3Path}}/$${s3filename} /tmp/$${s3filename} --region {{AWSRegion}}",
+            "echo \"Installing Nessus Agent package...\"",
+            "logger -t \"Installing Nessus Agent package...\"",
+            "rc=1",
+            "if [[ $${s3filename} =~ .*rpm$ ]]; then",
+            "    sudo rpm -ivh --nosignature /tmp/$${s3filename}",
+            "    rc=$?",
+            "elif [[ $${s3filename} =~ .*deb$ ]]; then",
+            "    sudo dpkg -i /tmp/$${s3filename}",
+            "    rc=$?",
+            "else",
+            "    echo \"Failed to download the Nessus Agent package from S3.\"",
+            "    logger -t \"Failed to download the Nessus Agent package from S3.\"",
+            "    exit 1",
+            "fi",
+            "if [[ $${rc} != 0 ]]; then",
+            "    echo \"Failed to install the Nessus Agent package.\"",
+            "    logger -t \"Failed to install the Nessus Agent package.\"",
+            "    exit 1",
+            "fi",
+            "echo \"Installed the Nessus Agent package successfully.\"",
+            "logger -t \"Installed the Nessus Agent package successfully.\"",
+            "sudo /opt/nessus_agent/sbin/nessuscli agent link --groups=\"{{NessusAgentGroup}}\" --host=\"{{NessusManagerAddress}}\" --key=\"{{NessusRegistrationKey}}\" --port=\"{{NessusPort}}\" {{OfflineInstallLinux}}",
+            "rc=$?",
+            "if [[ $${rc} != 0 ]]; then",
+            "    echo \"Failed to run the nessuscli agent link command.\"",
+            "    logger -t \"Failed to run the nessuscli agent link command.\"",
+            "    exit 1",
+            "fi",
+            "sudo service nessusagent restart",
+            "rc=$?",
+            "if [[ $${rc} != 0 ]]; then",
+            "    echo \"Failed to start the Nessus Agent package.\"",
+            "    logger -t \"Failed to start the Nessus Agent package.\"",
+            "    exit 1",
+            "fi",
+            "exit 0"
+          ]
+        }
+      },
+      {
+        "action": "aws:runPowerShellScript",
+        "name": "InstallNessusAgentOnWindows",
+        "precondition": {
+          "StringEquals": [
+            "platformType",
+            "Windows"
+          ]
+        },
+        "inputs": {
+          "runCommand": [
+            "if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] \"Administrator\"))",
+            "{",
+            "   Write-Warning \"You are not running as an Administrator. Please try again with admin privileges.\"",
+            "   exit 1",
+            "}",
+            "if ( (Get-Process -Name nessus* | Select-object * | select-string -pattern \"Nessus Agent\").length -gt 0 )",
+            "{",
+            "   echo \"Nessus Agent is already running.\"",
+            "   exit 0",
+            "}",
+            "$env:LogPath = \"$env:appdata\\Nessus\\Agent\\installer\"",
+            "if (-NOT (Test-Path -LiteralPath $env:LogPath))",
+            "{",
+            "     New-Item -path $env:LogPath -type directory",
+            "}",
+            "Start-Transcript -path \"$env:LogPath\\nessus_agent_deploy.log\" -append",
+            "echo \"$(Get-Date -format T) - Nessus Agent download started\"",
+            "echo \"$(Get-Date -format T) - Download Nessus Agent Package\"",
+            "Read-S3Object -BucketName \"{{ NessusS3BucketName }}\" -Key \"{{ NessusS3Path }}/NessusAgent-{{NessusPackageVersion}}-x64.msi\" -File \"$env:temp\\NessusAgent-{{NessusPackageVersion}}-x64.msi\" -RegionToCall {{AWSRegion}}",
+            "if ( (Get-Item \"$env:temp\\NessusAgent-{{NessusPackageVersion}}-x64.msi\").length -eq 0 )",
+            "{",
+            "echo \"Failed to download the Nessus Agent for Windows from S3 bucket.\"",
+            " exit 1",
+            "}",
+            "echo \"$(Get-Date -format T) - Downloaded File Size:\" (Get-Item \"$env:temp\\NessusAgent-{{NessusPackageVersion}}-x64.msi\").length",
+            "echo \"$(Get-Date -format T) - Nessus Agent install started\"",
+            "echo \"$(Get-Date -format T) - Installer Exit Code:\" (Start-Process -FilePath msiexec -ArgumentList /i, $env:temp\\NessusAgent-{{NessusPackageVersion}}-x64.msi, NESSUS_GROUPS=\"{{ NessusAgentGroup }}\", NESSUS_SERVER=\"{{ NessusManagerAddress }}:{{NessusPort}}\", NESSUS_KEY=\"{{ NessusRegistrationKey }}\", {{OfflineInstallWindows}} /qn, ADDLOCAL=ALL, /l*v, `\"$env:LogPath\\nessus_agent_install.log`\" -Wait -PassThru).ExitCode ",
+            "echo \"$(Get-Date -format T) - Nessus Agent Deployment Finished\"",
+            "Stop-Transcript",
+            "echo \"$(Get-Date -format T) - Nessus Agent Deployment Script Finished\""
+          ]
+        }
+      }
+    ]
+  }

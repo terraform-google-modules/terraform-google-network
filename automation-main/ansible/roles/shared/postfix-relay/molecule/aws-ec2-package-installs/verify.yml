@@ -1,0 +1,17 @@
+---
+  - name: Verify
+    hosts: all
+    gather_facts: false
+    tasks:
+
+      - name: Verify expected packages are installed
+        block:
+          - name: Gather the package facts
+            ansible.builtin.package_facts:
+              manager: auto
+          - name: Ensure postfix package is installed
+            assert:
+              that: "'postfix' in ansible_facts.packages"
+              success_msg: success, postfix package is installed
+              fail_msg: fail, postfix package not found
+...

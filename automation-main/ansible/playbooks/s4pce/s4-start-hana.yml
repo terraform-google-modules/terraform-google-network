@@ -1,0 +1,83 @@
+---
+# Playbook Name: s4-start-hana.yml
+# Synopsis: Starts the S4 Hana Database
+# Description: Standalone playbook that starts the S4 Hana Database
+# Prerequisites:
+#   - Ansible v2.9+
+#   - Functional S4 Hana Database Install
+# Dependencies: N/A
+# Variables:
+#   - sid : SAP ID of the SAP Landscape
+#   - hdb_instance_number : Hana Dabase Instance Number
+# Example:
+#   Starts the Hana Dabase remotely
+#    ansible-playbook s4-start-hana -i 192.168.0.1, -e sid=bh1 -e hdb_instance_number=00
+# Authors: Louis Lee,
+# Version: 2.9-000001
+# Modified: 2020-02-27 - Created
+#
+# Comments: N/A
+
+- hosts: all
+  become: true      # Almost every operation in this playbook/role will require root access
+  vars:
+    sid: 'bh1'
+    hdb_instance_number: '00'
+
+  tasks:
+  - name: "Get saphostagent status"
+    command: "/usr/sap/hostctrl/exe/saphostexec -status"
+    become: true
+    register: saphostagent_status
+    failed_when: "'FAILED' in saphostagent_status.stderr"
+    changed_when: false
+
+  - name: "Display saphostagent status"
+    debug:
+      var: saphostagent_status.stderr_lines
+
+  - name: "BLOCK - Start saphostagent"
+    block:
+    - name: "Start saphostagent as root"
+      command: "/usr/sap/hostctrl/exe/saphostexec -restart"
+      become: true
+
+    - name: "Get saphostagent status"
+      command: "/usr/sap/hostctrl/exe/saphostexec -status"
+      become: true
+      register: saphostagent_statusblock
+      failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+      changed_when: false
+
+    - name: "Display saphostagent status"
+      debug:
+        var: saphostagent_statusblock.stderr_lines
+    when: "'saphostexec stopped' in saphostagent_status.stderr"
+    #End "BLOCK - Start saphostagent"
+
+  - name: "Start Hana DB"
+    shell: "/usr/sap/{{ sid|upper }}/HDB{{ hdb_instance_number }}/HDB start"
+    become: true
+    become_user: "{{ sid|lower }}adm"
+    register: hdbstart_output
+
+  - name: "Get Hana DB status"
+    shell: "/usr/sap/{{ sid|upper }}/HDB{{ hdb_instance_number }}/HDB info"
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    register: hdbinfo
+
+  - name: "Display HDB Status"
+    debug:
+      var: hdbinfo.stdout_lines
+
+  - name: "Get {{ sid|lower }}adm processes"
+    command: "ps -fu {{ sid|lower }}adm"
+    become: yes
+    failed_when: "'FAILED' in sidadmin_processes.stderr"
+    register: sidadmin_processes
+
+  - name: "Show {{ sid|lower }}adm processes"
+    debug:
+      var: sidadmin_processes.stdout_lines
+...

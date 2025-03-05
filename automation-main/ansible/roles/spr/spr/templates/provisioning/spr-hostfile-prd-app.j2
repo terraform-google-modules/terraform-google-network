@@ -1,0 +1,166 @@
+127.0.0.1       localhost.localdomain   localhost
+::1        localhost6.localdomain6   localhost6
+{% set group_all_products = groups.access_control
+  | union(groups.access_control_s4hana)
+  | union(groups.ads)
+  | union(groups.apache_ftp)
+  | union(groups.attp)
+  | union(groups.bobj)
+  | union(groups.bobj_bip)
+  | union(groups.bw4hana_addons)
+  | union(groups.bw4hana_bpc)
+  | union(groups.bw4hana)
+  | union(groups.bwnetweaver)
+  | union(groups.car)
+  | union(groups.cloudconnector)
+  | union(groups.contentserver)
+  | union(groups.convergent_charging)
+  | union(groups.convergent_mediation)
+  | union(groups.cors)
+  | union(groups.cpids_agent)
+  | union(groups.crm)
+  | union(groups.data_services)
+  | union(groups.data_warehouse)
+  | union(groups.dpagent)
+  | union(groups.ehp7_erp)
+  | union(groups.ehp8_erp)
+  | union(groups.fiori_carab)
+  | union(groups.fiori_fes)
+  | union(groups.gbtr)
+  | union(groups.gts)
+  | union(groups.gts_ed4hana)
+  | union(groups.hana_ee)
+  | union(groups.hanacockpit)
+  | union(groups.ilm)
+  | union(groups.information_steward)
+  | union(groups.iq)
+  | union(groups.lama_ent_java)
+  | union(groups.lumira)
+  | union(groups.mii)
+  | union(groups.non_spr)
+  | union(groups.optimizer)
+  | union(groups.payroll)
+  | union(groups.platform_edition)
+  | union(groups.plc)
+  | union(groups.po)
+  | union(groups.portal)
+  | union(groups.router)
+  | union(groups.s4hana_addons)
+  | union(groups.s4hana_foundation)
+  | union(groups.s4hana_livecache)
+  | union(groups.s4hana)
+  | union(groups.sac_agent)
+  | union(groups.scm)
+  | union(groups.slt)
+  | union(groups.solman_abap)
+  | union(groups.solman_hdb)
+  | union(groups.solman_java)
+  | union(groups.srm)
+  | union(groups.sso)
+  | union(groups.tm)
+  | union(groups.webdispatcher)
+  | union(groups.frun)
+%}
+
+#=========================================================================================
+# Hostfile
+#=========================================================================================
+# Landscape Development
+#=========================================================================================
+{% for server in groups.dev %}
+{% if server in groups.app %}
+{% if server in group_all_products %}
+{{ hostvars[server].ansible_default_ipv4.address }}    {{ hostvars[server].spr_hostname|lower }}.{{ hostvars[server].spr_domain|lower }}   {{ hostvars[server].spr_hostname|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endif %}
+{% if server in groups.db %}
+{% if server in group_all_products %}
+{{ hostvars[server].ansible_default_ipv4.address }}    {{ hostvars[server].spr_hostname|lower }}.{{ hostvars[server].spr_domain|lower }}   {{ hostvars[server].spr_hostname|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endif %}
+{% endfor %}
+
+#=========================================================================================
+# Landscape Production
+#=========================================================================================
+{% for server in groups.prd %}
+{% if server in groups.app %}
+{% if server in group_all_products %}
+{{ hostvars[server].ansible_default_ipv4.address }}    {{ hostvars[server].spr_hostname|lower }}.{{ hostvars[server].spr_domain|lower }}   {{ hostvars[server].spr_hostname|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endif %}
+{% if server in groups.db %}
+{% if server in group_all_products %}
+{{ hostvars[server].ansible_default_ipv4.address }}    {{ hostvars[server].spr_hostname|lower }}.{{ hostvars[server].spr_domain|lower }}   {{ hostvars[server].spr_hostname|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endif %}
+{% endfor %}
+
+#=========================================================================================
+# Landscape Quality Assurance
+#=========================================================================================
+{% for server in groups.qas %}
+{% if server in groups.app %}
+{% if server in group_all_products %}
+{{ hostvars[server].ansible_default_ipv4.address }}    {{ hostvars[server].spr_hostname|lower }}.{{ hostvars[server].spr_domain|lower }}   {{ hostvars[server].spr_hostname|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endif %}
+{% if server in groups.db %}
+{% if server in group_all_products %}
+{{ hostvars[server].ansible_default_ipv4.address }}    {{ hostvars[server].spr_hostname|lower }}.{{ hostvars[server].spr_domain|lower }}   {{ hostvars[server].spr_hostname|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endif %}
+{% endfor %}
+
+#=========================================================================================
+# Landscape Disaster Recovery
+#=========================================================================================
+{% for server in groups.dr %}
+{% if server in groups.app %}
+{% if server in group_all_products %}
+# {{ hostvars[server].ansible_default_ipv4.address }}    {{ hostvars[server].spr_hostname|lower }}.{{ hostvars[server].spr_domain|lower }}   {{ hostvars[server].spr_hostname|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endif %}
+{% if server in groups.db %}
+{% if server in group_all_products %}
+{{ hostvars[server].ansible_default_ipv4.address }}    {{ hostvars[server].spr_hostname|lower }}.{{ hostvars[server].spr_domain|lower }}   {{ hostvars[server].spr_hostname|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endif %}
+{% endfor %}
+
+#=========================================================================================
+# Landscape Sandbox
+#=========================================================================================
+{% for server in groups.sbx %}
+{% if server in groups.app %}
+{% if server in group_all_products %}
+{{ hostvars[server].ansible_default_ipv4.address }}    {{ hostvars[server].spr_hostname|lower }}.{{ hostvars[server].spr_domain|lower }}   {{ hostvars[server].spr_hostname|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endif %}
+{% if server in groups.db %}
+{% if server in group_all_products %}
+{{ hostvars[server].ansible_default_ipv4.address }}    {{ hostvars[server].spr_hostname|lower }}.{{ hostvars[server].spr_domain|lower }}   {{ hostvars[server].spr_hostname|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endif %}
+{% endfor %}
+
+{% if spr_custom_hostfile_entries is defined and
+      spr_custom_hostfile_entries != none and
+      spr_custom_hostfile_entries|length > 0 %}
+#=========================================================================================
+# Custom Entries
+#=========================================================================================
+{% for entry in spr_custom_hostfile_entries %}
+{{ entry }}
+{% endfor %}
+{% endif %}

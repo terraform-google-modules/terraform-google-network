@@ -1,0 +1,70 @@
+---
+# Synopsis: Leverages volume metadata and tags to determine if an unattached volume should be deleted
+# Inputs:
+#   - bool|volume_delete_force_all
+#   - volume_deletion_date: the date that the tagged volume will be deleted
+# Outputs:
+#   - removes detached volumes with specific tags e.g., test-* and temporary-* after 3 days
+#   - removes untagged detached volumes after 3 days
+#   - immediately deletes all available volumes when volume_delete_force_all=true
+
+  - name: Set date
+    set_fact:
+      volume_deletion_date: "{{ '%Y-%m-%d' | strftime( ( ansible_date_time.epoch | int ) + ( 86400 * volume_delete_grace_period | int )  ) }}"
+      current_date: '{{ ansible_date_time.date }}'
+
+  - name: Generate a list of available volumes tagged 'test-*'
+    shell: aws ec2 describe-volumes --filter "Name=tag:Name,Values={{ volume_delete_list | join(', ') }}" "Name=status,Values=available" --query 'Volumes[*].{ID:VolumeId}'
+      --region {{ aws_region }} --output text | sort
+    register: tagged_volumes
+
+  - name: Generate a list of available volumes with no tags
+    shell: aws ec2 describe-volumes --filter "Name=status,Values=available" --query 'Volumes[?!not_null(Tags[?Key == `Name`])].{ID:VolumeId}' --region {{
+      aws_region }} --output text | sort
+    register: untagged_volumes
+
+  - name: Tag the list of known-bad volumes for deletion
+    ec2_tag:
+      region: '{{ aws_region }}'
+      resource: '{{ item }}'
+      state: present
+      tags:
+        Status: PENDING DELETION
+        DeletionDate: '{{ volume_deletion_date }}'
+    loop: '{{ untagged_volumes.stdout_lines + tagged_volumes.stdout_lines | list }}'
+
+# TODO: consider switching to tag-based search so you can do the grace period differently
+# aws ec2 describe-tags --filter Name=resource-type,Values=volume Name=tag:DeletionDate,Values=* --query 'Tags[?Value<=`{{ current_date }}`].{ID:ResourceId}'
+
+  - name: Generate a list of volumes tagged for deletion that are past their grace period
+    shell: aws ec2 describe-volumes --filter Name=tag:Status,Values='PENDING DELETION' 'Name=tag:DeletionDate,Values=*' --query 'Volumes[?(Tags[?Value<=`{{
+      current_date }}`])].{ID:VolumeId}' --region {{ aws_region }} --output text | sort
+    register: delete_volumes
+
+  - name: 'Debug: Notify if nothing to delete'
+    debug:
+      msg: No volumes pending deletion
+    when: delete_volumes|length == 0
+
+  - name: Delete volumes tagged 'PENDING DELETION' that are past their grace period
+    local_action:
+      module: ec2_vol
+      region: '{{ aws_region }}'
+      state: absent
+      id: '{{ item }}'
+    loop: '{{ delete_volumes.stdout_lines | list }}'
+    when: delete_volumes|length > 0
+
+  - name: Generate a list of all available volumes
+    shell: aws ec2 describe-volumes --filter "Name=status,Values=available" --query 'Volumes[*].{ID:VolumeId}' --output text | sort
+    register: available_volumes
+
+  - name: Force delete all available volumes
+    local_action:
+      module: ec2_vol
+      region: '{{ aws_region }}'
+      state: absent
+      id: '{{ item }}'
+    loop: '{{ available_volumes.stdout_lines | list }}'
+    when: volume_delete_force_all|bool
+...

@@ -1,0 +1,37 @@
+---
+# Synopsis: Vars for Solman DB Install
+# Inputs: N/A
+# Outputs: N/A
+# Comments: Be sure to include the defaults.yml as an additional inventory.
+
+all:
+  vars:
+    #solman_hdb defaults
+    sap_hana_hsr_hana_instance_number: "00" # This will always stay as default
+    sap_hana_hsr_rep_mode: "sync" #This will always stay as default
+    sap_hana_hsr_oper_mode: "logreplay" #This will always stay as default
+
+    # setup_solman_hana_replication variables
+    sap_hana_hsr_hana_db_system_password: "" # HANA System password
+
+  hosts:
+  children:
+    dbservers:
+      hosts: # Populate with the inventory key of the appropriate Database Hosts
+        ___EXAMPLE01___:
+        ___EXAMPLE02___:
+
+    dbprimary:
+      vars:
+        sap_hana_hsr_role: "primary" #This will always stay as default
+        sap_hana_hsr_alias: "DC1" #This will always stay as default
+      hosts: # Populate with the inventory key of the appropriate Database Hosts
+        ___EXAMPLE01___:
+
+    dbsecondary:
+      vars:
+        sap_hana_hsr_role: "secondary" #This will always stay as default
+        sap_hana_hsr_alias: "DC2" #This will always stay as default
+      hosts: # Populate with the inventory key of the appropriate Database Hosts
+        ___EXAMPLE02___:
+...

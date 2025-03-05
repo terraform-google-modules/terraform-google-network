@@ -1,0 +1,9 @@
+/var/log/ansible.log
+{
+  missingok
+  maxsize 5000
+  monthly
+  rotate 7
+  notifempty
+  compress
+}

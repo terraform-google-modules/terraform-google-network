@@ -1,0 +1,37 @@
+---
+# Place any DISA STIG configuration variables in this file that differ from what the 'primary.yml' variables file has.
+# This file takes precedence over 'primary.yml'.
+
+# This file is automatically included by the role when the 'application_preset_selection' variable is set to 'hana' as
+# per the mapping in the 'main.yml' variables file.
+
+DISA_STIG_RHEL_08_040100: false # A firewall must be installed on RHEL 8.
+DISA_STIG_RHEL_08_040090: false # A RHEL 8 firewall must employ a deny-all, allow-by-exception policy for allowing connections to other systems.
+DISA_STIG_RHEL_08_040101: false # A firewall must be active on RHEL 8.
+DISA_STIG_RHEL_08_020260: true # RHEL 8 account identifiers (individuals, groups, roles, and devices) must disabled after 35 days of inactivity.
+DISA_STIG_RHEL_08_010670: true # RHEL 8 must disable kernel dumps unless needed. kdump should be disabled as per SAP Note 2777782.
+var_accounts_maximum_age_login_defs: '180'
+
+# FIPS mode
+DISA_STIG_RHEL_08_010020: false # FIPS - RHEL 8 must implement NIST FIPS-validated cryptography for the following: to provision digital signatures, to generate cryptographic hashes, and to protect data requiring data-at-rest protections in accordance with applicable federal laws, Executive Orders, directives, policies, regulations, and standards.
+DISA_STIG_RHEL_08_010110: false # RHEL 8 must encrypt all stored passwords with a FIPS 140-2 approved cryptographic hashing algorithm.
+DISA_STIG_RHEL_08_010120: false # RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms for all stored passwords.
+DISA_STIG_RHEL_08_010130: false # The RHEL 8 password-auth file must be configured to use a sufficient number of hashing rounds.
+DISA_STIG_RHEL_08_010160: false # The RHEL 8 pam_unix.so module must be configured in the password-auth file to use a FIPS 140-2 approved cryptographic hashing algorithm for system authentication.
+DISA_STIG_RHEL_08_010290: false # The RHEL 8 SSH server must be configured to use only Message Authentication Codes (MACs) employing FIPS 140-2 validated cryptographic hash algorithms.
+DISA_STIG_RHEL_08_010293: false # The RHEL 8 operating system must implement DoD-approved encryption in the OpenSSL package.
+
+# App files in /tmp during app operation conflict with this STIG.
+# -rw-rw-rw-.  1 sapadm sapsys        0 Sep 10 17:33 .sapstartsrv99_sapstartsrv.log
+# srwx------.  1 sapadm sapsys        0 Sep 10 17:34 .sapstream1128
+DISA_STIG_RHEL_08_010660: false # Local RHEL 8 initialization files must not execute world_writable programs.
+
+# noexec and nosuid cannot be set on /tmp.
+DISA_STIG_RHEL_08_040124: false # RHEL 8 must mount /tmp with the nosuid option.
+DISA_STIG_RHEL_08_040125: false # RHEL 8 must mount /tmp with the noexec option.
+
+# Packages needed by SAP applications.
+DISA_STIG_RHEL_08_040380: false # The iprutils package must not be installed unless mission essential on RHEL 8.
+DISA_STIG_RHEL_08_040390: false # The tuned package must not be installed unless mission essential on RHEL 8.
+
+...

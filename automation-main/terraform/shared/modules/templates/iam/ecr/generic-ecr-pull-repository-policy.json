@@ -1,0 +1,17 @@
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEcrPull",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "${ iam_principal_arn }"
+      },
+      "Action": [
+        "ecr:ListImages",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage"
+      ]
+    }
+  ]
+}

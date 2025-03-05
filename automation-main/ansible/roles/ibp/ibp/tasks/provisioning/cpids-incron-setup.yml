@@ -1,0 +1,57 @@
+---
+# Synopsis: Sets up incron backups
+# Inputs:
+#   - incron_setup_sid : (provided by playbook) SAP ID of the system
+#   - incron_setup_release_number : Major release number.  Used in naming the backup location.
+#   - incron_setup_bucket_name : Where the backups will be moved to
+#   - incron_setup_hostname : Hostname for the backup filepath
+# Outputs: Configured file in incron.d (named after major release number)
+# Comments:
+#  - Specifically for CPIDS
+
+- name: "Create backup folders"
+  file:
+    path: "{{ item }}"
+    group: "sapsys"
+    state: directory
+    mode: 0754
+    owner: "{{ incron_setup_sid|lower }}adm"
+  become: true
+  loop:
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB00/backup/data"
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB00/backup/log"
+
+- name: "Setup incron.d file"
+  template:
+    dest: "/etc/incron.d/{{ incron_setup_release_number}}.incron"
+    src: "provisioning/cpids-incron.j2"
+  vars:
+    ibp_incron_sid: "{{ incron_setup_sid }}"
+    ibp_incron_instance_number: "00"
+    ibp_incron_release_number: "{{ incron_setup_release_number }}"
+    ibp_incron_bucket_name: "{{ incron_setup_bucket_name }}"
+    ibp_incron_hostname: "{{ incron_setup_hostname }}"
+  become: true
+
+- name: "Restart the incron service"
+  service:
+    name: incrond
+    state: restarted
+  become: true
+
+- name: "Pausing for 60 seconds"
+  pause:
+    seconds: 60
+
+- name: "Create backup test files"
+  copy:
+    dest: "{{ item }}/backup_test.txt"
+    group: "sapsys"
+    content: "hello world"
+    mode: 0640
+    owner: "{{ incron_setup_sid|lower }}adm"
+  become: true
+  loop:
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB00/backup/data"
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB00/backup/log"
+...

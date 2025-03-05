@@ -1,0 +1,66 @@
+---
+tests:
+  - name: var.log.messages::1
+    inputs:
+      - insert_at: syslog_metadata
+        type: log
+        log_fields:
+          file: /var/log/messages
+          message: 'Jan  2 19:01:02 bastion-35092bebcac1723e auditd[1235]: Audit daemon log file is larger than max size'
+    outputs:
+      - extract_from: system_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!("/var/log/messages", .metadata.custom.log_group, "missing NS2 Log Group")
+              checkTimestamp = join!([format_timestamp!(now(), "%Y"), "01-02T19:01:02"], "-")
+              assert_eq!(parse_timestamp!(checkTimestamp, "%Y-%m-%dT%H:%M:%S"), .timestamp, "timestamp parsing incorrect")
+
+  - name: var.log.maillog::1
+    inputs:
+      - insert_at: syslog_metadata
+        type: log
+        log_fields:
+          file: /var/log/maillog
+          message: 'Jan  2 15:26:21 s001app01djs postfix/smtpd[2632290]: connect from ip-10-64-10-36.us-gov-west-1.compute.internal[10.64.10.36]'
+    outputs:
+      - extract_from: system_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!("/var/log/maillog", .metadata.custom.log_group, "missing NS2 Log Group")
+              checkTimestamp = join!([format_timestamp!(now(), "%Y"), "01-02T15:26:21"], "-")
+              assert_eq!(parse_timestamp!(checkTimestamp, "%Y-%m-%dT%H:%M:%S"), .timestamp, "timestamp parsing incorrect")
+
+  - name: var.log.secure::1
+    inputs:
+      - insert_at: syslog_metadata
+        type: log
+        log_fields:
+          file: /var/log/secure
+          message: 'Jan  2 08:01:01 bastion-35092bebcac1723e systemd[2303217]: pam_unix(systemd-user:session): session opened for user root by (uid=0)'
+    outputs:
+      - extract_from: system_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!("/var/log/secure", .metadata.custom.log_group, "missing NS2 Log Group")
+              checkTimestamp = join!([format_timestamp!(now(), "%Y"), "01-02T08:01:01"], "-")
+              assert_eq!(parse_timestamp!(checkTimestamp, "%Y-%m-%dT%H:%M:%S"), .timestamp, "timestamp parsing incorrect")
+
+  - name: var.log.cron::1
+    inputs:
+      - insert_at: syslog_metadata
+        type: log
+        log_fields:
+          file: /var/log/cron.log
+          message: "Mar 31 15:01:02 base anacron[61880]: Will run job `cron.daily' in 16 min."
+    outputs:
+      - extract_from: system_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!("/var/log/cron.log", .metadata.custom.log_group, "missing NS2 Log Group")
+              checkTimestamp = join!([format_timestamp!(now(), "%Y"), "03-31T15:01:02"], "-")
+              assert_eq!(parse_timestamp!(checkTimestamp, "%Y-%m-%dT%H:%M:%S"), .timestamp, "timestamp parsing incorrect")
+...

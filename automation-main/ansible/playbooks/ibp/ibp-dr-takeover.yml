@@ -1,0 +1,157 @@
+---
+# Playbook Name: ibp-dr-takeover.yml
+# Synopsis: Performs takeover from primary DB to secondary DB
+# Description: This playbook will check if the former primary DB is reachable,
+#              stop it, and then make the former secondary the new primary DB
+#
+# Prerequisites:
+#   - Ansible v2.9+
+#   - sudo capability or root privileges on target machines
+#   - IBP Production and Disaster Recovery Landscapes with replication already enabled.
+#
+# Dependencies:
+#   - ibp ansible role
+#   - ibp ansible inventory host file
+#
+# Variables:
+#   - sid : (provided by ansible inventory hostfile) The SAP ID of the instance
+#   - groups/group_names: (provided by ansible inventory hostfile) The landscapes groups that each instance belongs to.
+#   - hana_takeover_comment: (defaults to datetime stamp) Descriptive string for the takeover log.
+#
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-dr-takeover.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>' -e hana_takeover_comment='Reason for takeover'
+#
+# Example
+#   Execution specifically on production and disaster recovery DB instances
+#     ansible-playbook ibp-dr-takeover.yml -k -i /customer00xx/hosts -l 192.168.1.1,192.168.1.2
+#
+# Example
+#   Don't check on former primary DB. Go Straight to takeover
+#     ansible-playbook iibp-dr-takeover.yml -k -i /customer00xx/hosts --skip-tags play1
+#
+# Authors: Louis Lee
+# Version: 2.9-000003
+# Modified: 2020-04-16 - Created playbook
+#           2020-06-01 - Rename playbook
+#           2020-06-23 - Merged ibp-provision and ibp-operations roles to ibp role
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Some plays are prerequisites for other plays and are tagged accordingly.
+#
+#   Play Tags:
+#     play0 always : This play always runs. Decides which will be the new primary DB
+#     play1 : Detects and stops production HANA DB
+#     play2 : Starts takeover on disaster recovery HANA DB
+
+
+#################
+##### Play0 #####
+#################
+# The first play calls upon the intersection of hosts to create within, a new grouping that shall dictate the order of that which follows.
+- name: "Play0: Confirm new primary replication site"
+  # Select hosts in the production and disaster_recovery groups that also exist in ibpdb
+  hosts: production:disaster_recovery:&ibpdb
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - always
+    - play0
+
+  vars_prompt:
+  - name: ibp_takeover_new_primary
+    prompt: "Which will be the new primary HANA DB in the replication site? ( production or disaster_recovery )"
+    private: no
+    default: 'disaster_recovery'
+
+  pre_tasks:
+  - name: "Fail on invalid input"
+    fail:
+      msg: 'Invalid input please select production or disaster_recovery.  Quitting now.'
+    run_once: true
+    when:
+    - ibp_takeover_new_primary != 'production'
+    - ibp_takeover_new_primary != 'disaster_recovery'
+
+  # Future request from Rakesh: put validation prompt here.
+
+  tasks:
+  - name: "Add DB to replication_primary"
+    group_by:
+      key: replication_primary
+    when: ibp_takeover_new_primary in group_names
+
+  - name: "Add DB to replication_secondary"
+    group_by:
+      key: replication_secondary
+    when: ibp_takeover_new_primary not in group_names
+
+  post_tasks:
+  - name: "Fail if more than one primary is selected"
+    fail:
+      msg: "The group replication_primary doesn't contain only one host: {{ groups.replication_primary }}"
+    run_once: true
+    when: groups.replication_primary|count != 1
+
+  - name: "Fail if more than one secondary is selected"
+    fail:
+      msg: "The group replication_secondary doesn't contain only one host: {{ groups.replication_secondary }}"
+    run_once: true
+    when: groups.replication_secondary|count != 1
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Detect and stop former primary Hana DB"
+  hosts: replication_secondary
+  any_errors_fatal: false
+  gather_facts: false
+  tags:
+    - play1
+
+  pre_tasks:
+  # Future request from Rakesh put validation step here: make sure the secondary is fully recoverable.  (SQL Statement )
+
+  - name: "BLOCK: Connection test"
+    block:
+    - name: "Initialize test"
+      set_fact:
+        skip_play: false
+
+    - name: "Test connection to {{ groups.replication_secondary }}"
+      wait_for_connection:
+        timeout: 5
+    rescue:
+    - name: "Can't reach host"
+      set_fact:
+        skip_play: true
+  #End "BLOCK: Connection test"
+
+  - name: "End play if can't connect"
+    meta: end_play
+    when: skip_play|bool
+
+  tasks:
+  - name: "Hard stop primary HANA DB"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-hardstop.yml
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Perform takeover, make secondary the new primary HANA DB"
+  hosts: replication_primary
+  gather_facts: true
+  any_errors_fatal: false
+  tags:
+    - play2
+
+  tasks:
+  - name: "Perform takeover"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-takeover.yml
+...

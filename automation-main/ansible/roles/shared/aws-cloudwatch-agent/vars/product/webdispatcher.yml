@@ -1,0 +1,106 @@
+---
+# List of hana-specific log groups
+# When 'hana' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_webdispatcher:
+  - file_path: /usr/sap/*/*/*/trace/compileserver*oom*.trc
+    log_group_name: /usr/sap/trace/available
+  - file_path: /usr/sap/*/*/*/trace/webserver*oom*.trc
+    log_group_name: /usr/sap/trace/webserver_oom
+  - file_path: /usr/sap/*/*/*/trace/scriptserver*oom*.trc
+    log_group_name: /usr/sap/trace/scriptserver_oom
+  - file_path: /usr/sap/*/*/*/trace/indexserver*crashdump*.trc
+    log_group_name: /usr/sap/trace/indexserver_crashdump
+  - file_path: /usr/sap/*/*/*/trace/nameserver*crashdump*.trc
+    log_group_name: /usr/sap/trace/nameserver_crashdumps
+  - file_path: /usr/sap/*/*/*/trace/compileserver*crashdump*.trc
+    log_group_name: /usr/sap/trace/compileserver_crashdumps
+  - file_path: /usr/sap/*/*/*/trace/webserver*crashdump*.trc
+    log_group_name: /usr/sap/trace/webserver_crashdumps
+  - file_path: /usr/sap/*/*/*/trace/scriptserver*crashdump*.trc
+    log_group_name: /usr/sap/trace/scriptserver_crashdumps
+  - file_path: /usr/sap/*/*/*/trace/preprocessor*crashdump*.trc
+    log_group_name: /usr/sap/trace/preprocessor_crashdumps
+  - file_path: /usr/sap/*/*/*/trace/webdispatcher*crashdump*.trc
+    log_group_name: /usr/sap/trace/webdispatcher_crashdumps
+  - file_path: /usr/sap/*/*/*/trace/compileserver*rtedump*.trc
+    log_group_name: /usr/sap/trace/compileserver_rtedumps
+  - file_path: /usr/sap/*/*/*/trace/webserver*rtedump*.trc
+    log_group_name: /usr/sap/trace/webserver_rtedumps
+  - file_path: /usr/sap/*/*/*/trace/scriptserver*rtedump*.trc
+    log_group_name: /usr/sap/trace/scriptserver_rtedumps
+  - file_path: /usr/sap/*/*/*/trace/preprocessor*rtedump*.trc
+    log_group_name: /usr/sap/trace/preprocessor_rtedumps
+  - file_path: /usr/sap/*/*/*/trace/compileserver_alert*.trc
+    log_group_name: /usr/sap/trace/compileserver_alerts
+    # timestamp:  2020-12-16 01:26:51.082069
+    timestamp_format: '%Y-%m-%d %H:%M:%S.%f'
+  - file_path: /usr/sap/*/*/*/trace/daemon_alert*.trc
+    log_group_name: /usr/sap/trace/daemon_alerts
+  - file_path: /usr/sap/*/*/*/trace/daemon_ip*.trc
+    log_group_name: /usr/sap/trace/daemon_ips
+  - file_path: /usr/sap/*/*/*/trace/indexserver_alert*.trc
+    log_group_name: /usr/sap/trace/indexserver_alerts
+    # timestamp: 2019-11-22 20:09:30.773901
+    timestamp_format: '%Y-%m-%d %H:%M:%S.%f'
+  - file_path: /usr/sap/*/*/*/trace/indexserver_ip_unloads*.trc
+    log_group_name: /usr/sap/trace/indexserver_ip_unloads
+  - file_path: /usr/sap/*/*/*/trace/indexserver_*.trc
+    log_group_name: /usr/sap/trace/indexserver_trace
+    # timestamp: 2020-12-16 01:10:42.805608
+    timestamp_format: '%Y-%m-%d %H:%M:%S.%f'
+  - file_path: /usr/sap/*/*/*/trace/nameserver_alert*.trc
+    log_group_name: /usr/sap/trace/nameserver_alerts
+    timestamp_format: '%Y-%m-%dT%H:%M:%S.%f'
+  - file_path: /usr/sap/*/*/*/trace/nameserver_ip*.trc
+    log_group_name: /usr/sap/trace/nameserver_ips
+  - file_path: /usr/sap/*/*/*/trace/preprocessor_alert*.trc
+    log_group_name: /usr/sap/trace/preprocessor_alerts
+    timestamp_format: '%Y-%m-%d %H:%M:%S.%f'
+  - file_path: /usr/sap/*/*/*/trace/sqltrace_*.py
+    log_group_name: /usr/sap/trace/sqltraces
+  - file_path: /usr/sap/*/*/*/trace/extrace*.py
+    log_group_name: /usr/sap/trace/extraces
+  - file_path: /usr/sap/*/*/*/trace/webdispatcher_alert*.trc
+    log_group_name: /usr/sap/trace/webdispatcher_alerts
+    timestamp_format: '%Y-%m-%d %H:%M:%S.%f'
+  - file_path: /usr/sap/*/*/*/trace/xsengine_alert*.trc
+    log_group_name: /usr/sap/trace/xsengine_alerts
+  - file_path: /usr/sap/*/*/*/trace/indexserver_profiler*.prf
+    log_group_name: /usr/sap/trace/indexserver_performance_profiler
+  - file_path: /usr/sap/*/*/*/trace/indexserver*.prf
+    log_group_name: /usr/sap/trace/indexserver_performance
+  - file_path: /usr/sap/*/*/*/trace/nameserver*.prf
+    log_group_name: /usr/sap/trace/nameserver_performance
+  - file_path: /usr/sap/*/*/*/trace/backup.log
+    log_group_name: /usr/sap/trace/backup
+    # timestamp: 2020-12-16T01:21:04+00:00
+    timestamp_format: '%Y-%m-%dT%H:%M:%S%z'
+  - file_path: /usr/sap/*/*/*/trace/dev_icm_sec
+    log_group_name: /usr/sap/trace/dev_icm_sec
+    timestamp_format: '%a %b %d %H:%M:%S %Y'
+  - file_path: /usr/sap/*/*/*/trace/available.log
+    log_group_name: /usr/sap/trace/available
+  - file_path: /usr/sap/*/*/*/trace/hdbdaemon.status
+    log_group_name: /usr/sap/trace/hdbdaemon_status
+    multi_line_start_pattern: \d+ 1 /
+  - file_path: /usr/sap/*/*/*/trace/hdb_client_inst_*.log
+    log_group_name: /usr/sap/trace/hdb_client_inst
+  - file_path: /usr/sap/*/*/*/trace/hdbinst_epm_hdbinst_*.log
+    log_group_name: /usr/sap/trace/hdbinst_epm_hdbinst
+  - file_path: /usr/sap/*/*/*/trace/hdbinst_sap_afl_sdk_apl_hdbinst_*.log
+    log_group_name: /usr/sap/trace/hdbinst_sap_afl_sdk_apl_hdbinst
+  - file_path: /usr/sap/*/*/*/trace/hdbupdconf_*.log
+    log_group_name: /usr/sap/trace/hdbupdconf
+  - file_path: /usr/sap/*/*/*/trace/hdbupd_*.log
+    log_group_name: /usr/sap/trace/hdbupd
+  - file_path: /usr/sap/*/*/*/trace/sapstart.log
+    log_group_name: /usr/sap/trace/sapstart
+    # timestamp: Starting at 2020/12/10 20:04:46
+    timestamp_format: '%Y/%m/%d %H:%M:%S'
+  - file_path: /usr/sap/*/*/*/trace/sapstartsrv.log
+    log_group_name: /usr/sap/trace/sapstartsrv
+    # timestamp: [Thr 140467572651968] Wed Oct 21 13:40:53 2020
+    timestamp_format: '%a %b %d %H:%M:%S %Y'
+  - file_path: /usr/sap/*/*/*/trace/stderr*
+    log_group_name: /usr/sap/trace/stderr
+...

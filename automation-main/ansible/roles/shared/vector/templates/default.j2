@@ -1,0 +1,60 @@
+### ANSIBLE MANAGED
+
+{% for (k, v) in vector_additional_environment_variables.items() %}
+{{ k -}}={{- v | to_json }}
+{% endfor %}
+
+{% if vector_deployment_type == "aggregator" %}
+VECTOR_VRL_VCS_TO_SPLUNK="/etc/vector/ns2/aggregator_processing/transforms/vcs_to_splunk.vrl"
+VECTOR_TLS_CERT_KEY_PASS={{vector_tls_cert_key_pass}}
+
+{% if vector_splunk_index_override | length > 0 %}
+VECTOR_SPLUNK_INDEX_OVERRIDE={{vector_splunk_index_override}}
+{% endif %}
+
+{% if vector_splunk_index_prefix_override | length > 0 %}
+VECTOR_SPLUNK_INDEX_PREFIX_OVERRIDE={{vector_splunk_index_prefix_override}}
+{% endif %}
+
+{% if vector_default_splunk_index | length > 0 %}
+VECTOR_DEFAULT_SPLUNK_INDEX={{vector_default_splunk_index}}
+{% endif %}
+
+{% if vector_sink_firehose %}
+VECTOR_SPLUNK_LOGS_KINESIS_STREAM_NAME={{vector_splunk_logs_kinesis_stream_name}}
+VECTOR_SPLUNK_LOGS_KINESIS_REGION={{vector_splunk_logs_kinesis_region}}
+AWS_ACCESS_KEY_ID={{vector_aws_access_key_id}}
+AWS_SECRET_ACCESS_KEY={{vector_aws_secret_access_key}}
+{% endif %}
+
+{% if vector_sink_azure_storage %}
+#VECTOR_SINK_AZURE_BLOB_STORAGE_ACCOUNT=""
+#VECTOR_SINK_AZURE_BLOB_CONTAINER_NAME={{vector_azure_blob_storage_container_name}}
+#VECTOR_SINK_AZURE_BLOB_PREFIX=""
+
+VECTOR_SINK_AZURE_BLOB_CONTAINER_NAME={{vector_azure_blob_storage_container_name}}
+VECTOR_SINK_AZURE_BLOB_CONNECTION_STRING={{vector_azure_blob_storage_connection_string}}
+{% endif %}
+
+{% if ns2_azure_activity_event_hub_endpoint | length > 0 %}
+NS2_AZURE_ACTIVITY_EVENT_HUB_ENDPOINT={{ns2_azure_activity_event_hub_endpoint}}
+NS2_AZURE_ACTIVITY_EVENT_HUB_TOPIC_PREFIX={{ns2_azure_activity_event_hub_topic_prefix}}
+NS2_AZURE_ACTIVITY_EVENT_HUB_CONNECTION_STRING={{ns2_azure_activity_event_hub_connection_string}}
+{% endif %}
+
+{% if vector_gcp_project_logs_pubsub_subscription | length > 0 %}
+VECTOR_GCP_PROJECT_LOGS_PUBSUB_SUBSCRIPTION={{vector_gcp_project_logs_pubsub_subscription}}
+{% endif %}
+
+{% endif %}
+
+{% if vector_deployment_type == "agent" %}
+VECTOR_AGGREGATOR_SINK_ADDRESS="{{vector_aggregator_sink_address}}"
+VECTOR_TLS_CA_FILE="/etc/vector/certs/ca.pem"
+{% endif %}
+
+VECTOR_SPLUNK_INDEX_PREFIX = "{{vector_splunk_index_prefix}}"
+
+VECTOR_CONFIG_DIR = /etc/vector/ns2/*,/etc/vector/log_collectors/*
+VECTOR_CONFIG = /etc/vector/vector.yaml
+VECTOR_LOG=error

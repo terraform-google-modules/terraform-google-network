@@ -1,0 +1,63 @@
+---
+# defaults file for bastion
+
+#main
+bastion_ansible_logging: true
+bastion_ansible_logging_config_folder: /etc/ansible
+bastion_ansible_logging_path: /var/log/ansible.log
+
+#terraform setup
+bastion_terraform_setup: true
+
+# Whether to download terraform from url
+bastion_terraform_setup_version: 0.13.5
+bastion_terraform_setup_tfenv: false
+bastion_terraform_setup_url: https://releases.hashicorp.com/terraform/{{ terraform_setup_version }}/terraform_{{ terraform_setup_version }}_linux_amd64.zip
+
+# When defined will download terraform zip file from s3
+bastion_setup_terraform_s3_bucket_name: ''
+
+# path to terraform zip in S3 bucket (required if needed to terraform file from s3)
+bastion_setup_terraform_s3_filepath: ''
+
+bastion_jinja2_update: false
+
+bastion_boto_install: false
+
+bastion_ssm_agent_update: true
+
+bastion_saml2aws_setup: false
+bastion_saml2aws_version: 2.26.2
+
+bastion_fly_cli_setup: false
+bastion_fly_cli_version: 6.7.4
+
+bastion_yq_setup: false
+bastion_yq_version: 4.40.5
+
+bastion_additional_packages: []
+  # - example_package1
+  # - example_package2
+
+bastion_cron_jobs: []
+
+# Whether to download fly cli and saml setup files from s3
+# Aws s3 bucket name (required if needed to download fly cli and saml setup files from s3)
+bastion_setup_s3_bucket_name: ''
+
+# required if non-login accounts and bastion_setup_s3_bucket_name is set
+# when defined, updates bastion ansible with necessary AWS_CA_BUNDLE environment
+# variable with supplied filepath to ensure Bastion can interact with S3
+bastion_setup_aws_ca_bundle_path: ''
+
+# AWS region where bastion has been deployed. Required if the
+# ec2_metadata_facts (ansible_ec2_placement_region) is different from the aws_region.
+bastion_setup_s3_bucket_region: ''
+
+# Whether to remove pip package
+remove_pip: true
+
+# Used with sms-provision-bastion to ensure Bastion can interact with ec2 if the
+# ec2_metadata_facts (ansible_ec2_placement_region) is different from the aws_region.
+bastion_setup_ec2_placement_region: ''
+...

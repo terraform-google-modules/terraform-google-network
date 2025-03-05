@@ -1,0 +1,127 @@
+---
+# Description: Rebuild HANA DB with tars
+# Inputs:
+#   - hana_rebuild_profile_tars: path to the hana source folder (version unique)
+#   - hana_rebuild_profile_saphostagent_source - path to the SAPHOSTAGENT install files (version unique)
+#   - hana_rebuild_profile_hostname:
+#   - hana_rebuild_profile_sid:
+# Outputs: Configured s4pce HANA system
+# Comments: N/A
+
+- name: Get EC2 Metadata
+  ec2_metadata_facts:
+  register: ec2_metadata
+
+- name: Validate environment
+  include_tasks: general/directories-validate.yml
+  vars:
+    folder_path: "{{ item }}"
+  loop: "{{ hana_rebuild_profile_tars + [hana_rebuild_profile_saphostagent_source] | list}}"
+
+- name: Disable Firewall
+  service:
+    name: firewalld
+    enabled: false
+    state: stopped
+  become: true
+
+- name: Set the Hostname
+  hostname:
+    name: "{{ hana_rebuild_profile_hostname }}"
+  become: true
+
+- name: Ensure Sapsys group has GID of 79
+  group:
+    name: sapsys
+    state: present
+    gid: 79
+    local: yes
+  become: true
+
+- name: "Create {{hana_rebuild_profile_sid|lower}}adm SAP System Administrator"
+  user:
+    name: "{{hana_rebuild_profile_sid|lower}}adm"
+    comment: "SAP HANA Database System Administrator"
+    create_home: yes
+    home: "/usr/sap/{{hana_rebuild_profile_sid|upper}}/home"
+    uid: "1001"
+    group: "79"
+    shell: /bin/sh
+    state: present
+  become: true
+
+- name: "Create sapadm user account"
+  user:
+    name: "sapadm"
+    create_home: yes
+    home: "/home/sapadm"
+    uid: "20202"
+    group: "79"
+    shell: /bin/bash
+    state: present
+  become: true
+
+- name: "Create folder structure"
+  file:
+    path: "{{ item }}"
+    group: "sapsys"
+    state: directory
+    mode: 0755
+    owner: "{{ hana_rebuild_profile_sid|lower }}adm"
+  become: true
+  loop:
+    - "/hana/data/{{ hana_rebuild_profile_sid|upper }}"
+    - "/hana/log/{{ hana_rebuild_profile_sid|upper }}"
+    - "/hana/shared/{{ hana_rebuild_profile_sid|upper }}"
+    - "/hana/backups/{{ hana_rebuild_profile_sid|upper }}/HDB00/backup/data"
+    - "/hana/backups/{{ hana_rebuild_profile_sid|upper }}/HDB00/backup/log"
+
+- name: Extract Profile tars
+  become: true
+  ignore_errors: true
+  unarchive:
+    src: "{{ item }}"
+    dest: "/"
+    remote_src: yes
+    list_files: no
+  loop: "{{ hana_rebuild_profile_tars }}"
+
+- name: Check execute mode on saphostexec
+  become: true
+  file:
+    path: "{{ hana_rebuild_profile_saphostagent_source }}/saphostexec"
+    mode: 'u+x'
+
+- name: Run the SAP Host Agent Setup script
+  command: "./saphostexec -install"
+  args:
+    chdir: "{{ hana_rebuild_profile_saphostagent_source }}"
+  become: true
+
+- name: Restart SAP Host Agent
+  become: true
+  command: "./saphostexec -restart"
+  args:
+    chdir: "/usr/sap/hostctrl/exe"
+  register: results_restart_saphostagent
+
+- name: Show SAP Host Agent Status
+  debug:
+    var: results_restart_saphostagent.stderr_lines
+
+- name: Reset sapadm password
+  become: true
+  user:
+    name: sapadm
+    update_password: always
+    password: "{{ default_password }}"
+
+
+- name: Reset {{ hana_rebuild_profile_sid|lower }}adm password
+  become: true
+  user:
+    name: "{{ hana_rebuild_profile_sid|lower }}adm"
+    update_password: always
+    password: "{{ default_password }}"
+
+...

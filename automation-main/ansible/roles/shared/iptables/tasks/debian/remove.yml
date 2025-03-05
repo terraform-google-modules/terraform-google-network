@@ -1,0 +1,52 @@
+---
+# Synopsis: Removes the iptables-persistent package and service from the system, removing all iptables rules as well.
+# Inputs:
+#   - N/A
+#
+# Outputs:
+#   - Removes the iptables-persistent package and restores the logrotate rule for '/var/log/messages' to its default state.
+
+  - name: Remove ANSILBE_MANGED chain
+    ansible.builtin.include_tasks: common/remove-common.yml
+
+  - name: Remove the iptables-persistent package
+    ansible.builtin.package:
+      name: iptables-persistent
+      state: absent
+    become: true
+
+  - name: Unmask the ufw service
+    ansible.builtin.service:
+      name: ufw
+      masked: false
+    become: true
+
+  - name: Parse out any persistent ANSILBE_MANGED iptables rules to be removed
+    ansible.builtin.shell: cat /etc/iptables/rules.v4 | grep 'ANSIBLE_MANAGED'
+    become: true
+    register: iptables_remove_persistent_rules
+
+  - name: Remove persistent ANSILBE_MANGED iptables rules
+    ansible.builtin.lineinfile:
+      path: /etc/iptables/rules.v4
+      line: '{{ item }}'
+      state: absent
+    loop: '{{ iptables_remove_persistent_rules.stdout_lines }}'
+    become: true
+
+# TODO: remove once we are confident no old systems still need this present to cleanup old configurations
+  - name: Restore the original iptables rules if the file exists
+    ansible.builtin.shell: iptables-restore < /etc/iptables/rules.v4-ORIGINAL
+    when: original_iptables_rules_result.stat.exists | bool
+    become: true
+
+  - name: Save the original iptables rules
+    ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
+    become: true
+
+  - name: Remove the logrotate cron job for syslog and messages
+    ansible.builtin.cron:
+      name: Run logrotate for syslog and messages
+      state: absent
+    become: true
+...

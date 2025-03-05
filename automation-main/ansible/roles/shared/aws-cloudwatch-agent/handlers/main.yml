@@ -1,0 +1,38 @@
+---
+  - name: Reload systemd to reread configurations
+    systemd:
+      daemon_reload: yes
+    when: ansible_virtualization_type != "docker"
+
+  - name: Reload {{ cwa_package }}
+    shell: |
+      {{ cwa_agent_ctl }} -a fetch-config -m {{ cwa_agent_mode }} -c file:{{ cwa_agent_config_file }}
+      if [ "{{ ansible_service_mgr }}" = "systemd" ] && [ -f /etc/systemd/system/amazon-cloudwatch-agent.service ]; then
+        systemctl restart amazon-cloudwatch-agent.service
+      else
+        {{ cwa_agent_ctl }} -a fetch-config -m {{ cwa_agent_mode }} -c file:{{ cwa_agent_config_file }} -s
+      fi
+    notify: Leave a copy of configuration
+    when: ansible_virtualization_type != "docker"
+
+  - name: Reload {{ cwa_logrotate_daemon }}
+    command: '{{ cwa_logrotate_daemon }} -d {{ cwa_logrotate_config_file }}'
+    when: ansible_virtualization_type != "docker"
+
+# Use configuration file from template
+  - name: Leave {{ cwa_package }} agent configuration file from default template
+    template:
+      src: agent/amazon-cloudwatch-agent.json.j2
+      dest: '{{ cwa_agent_config_file }}'
+      force: true
+    listen: Leave a copy of configuration
+    when: cwa_use_conf_json_template
+
+# Use custom file from variable
+  - name: Leave {{ cwa_package }} agent custom configuration file from file content
+    copy:
+      content: '{{ cwa_conf_json_file_content | to_nice_json }}'
+      dest: '{{ cwa_agent_config_file }}'
+    listen: Leave a copy of configuration
+    when: not cwa_use_conf_json_template
+...

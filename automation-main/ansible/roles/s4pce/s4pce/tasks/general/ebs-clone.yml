@@ -1,0 +1,148 @@
+---
+# Description: Clones all ebs volumes to another instance
+#   Checks the target instance and ensure it only has one volume attached.
+#   Makes a snapshot of all source volumes except for root.
+#   Creates volumes from those snapshots and attaches to the target instance.
+#
+#   !NOTE!  This task file only attaches the volumes in aws. Mounting them on
+#   an OS level is outside the scope.
+#
+# Inputs:
+#   - ebs_clone_source_instance: Instance ID of the source
+#   - ebs_clone_target_instance: Instance ID of the target
+#   - ebs_clone_region: Region where the Instances, Volumes, and Snapshots reside.
+#   - ebs_clone_shutdown: Boolean, default true. When true, shudown source instance before creating snapshot.
+#   - ebs_clone_cleanup: Boolean, default true. When true, delete the snapshots at the end.
+# Outputs: Target Instance has attached EBS volumes cloned from source
+# Comments:
+#   Required IAM Permissions:
+#    - ec2:DescribeVolumes
+#    - ec2:AttachVolume
+#    - ec2:CreateVolume
+#    - ec2:StopInstances (optional)
+#    - ec2:StartInstances (optional)
+#    - ec2:Describe* (ansible aws requires something in here to start/stop instances. like wtf)
+#    - ec2:CreateSnapshot
+#    - ec2:DeleteSnapshot (optional)
+
+
+- name: "Find volumes attached to source instance"
+  delegate_to: localhost
+  run_once: true
+  ec2_vol_info:
+    filters:
+      "attachment.instance-id": "{{ ebs_clone_source_instance }}"
+  register: vol_info_source_output
+
+- name: "Find volumes attached to target instance"
+  delegate_to: localhost
+  run_once: true
+  ec2_vol_info:
+    filters:
+      "attachment.instance-id": "{{ ebs_clone_target_instance }}"
+  register: vol_info_target_output
+
+- name: "Fail if target instance already has volumes mounted"
+  fail:
+    msg: "Target instance {{ ebs_clone_target_instance }} already has {{
+      vol_info_target_output.volumes|count }} mounted volumes"
+  when: vol_info_target_output.volumes|count != 1
+
+- name: "BLOCK: Migrate Volumes"
+  when: vol_info_target_output.volumes|count == 1
+  block:
+  - name: "Save Source Volume List"
+    set_fact:
+      volume_list: >
+        {{ volume_list|default([]) + [{ 'id': item.id, 'device_name':
+        item.attachment_set[0].device }] }}
+    loop: "{{ vol_info_source_output.volumes }}"
+    loop_control:
+      label: "{{ item.id }}"
+    when: item.attachment_set[0].device != '/dev/sda1'
+
+  - name: "Stop Source EC2 instance {{ ebs_clone_source_instance }}"
+    delegate_to: localhost
+    run_once: true
+    when: ebs_clone_shutdown|default(true)|bool
+    amazon.aws.ec2_instance:
+      instance_ids: "{{ ebs_clone_source_instance }}"
+      state: stopped
+      wait: true
+      wait_timeout: 600
+      region: "{{ ebs_clone_region }}" #required for legacy boto compatibility
+
+  - name: "Create EBS Snapshots"
+    delegate_to: localhost
+    run_once: true
+    amazon.aws.ec2_snapshot:
+      volume_id: "{{ item.id }}"
+      description: "Migration Snapshot"
+      wait: yes
+      region: "{{ ebs_clone_region }}" #required for legacy boto compatibility
+      snapshot_tags:
+        Instance: "{{ ebs_clone_source_instance }}"
+        Volume: "{{ item.id }}"
+        Mount: "{{ item.device_name }}"
+      wait_timeout: 14400
+    loop: "{{ volume_list }}"
+    register: ebs_snapshots_output
+    async: 14400 # set async timeout to 4 hours
+    poll: 0
+
+  - name: "Wait for EBS Snapshots to finish"
+    delegate_to: localhost
+    run_once: true
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+    register: job_result
+    until: job_result.finished
+    delay: 120 # Check every 60 seconds. Adjust as you like.
+    retries: 240 # Retry for 4 hours
+    loop: "{{ ebs_snapshots_output.results }}"
+
+  - name: "Save snapshot list"
+    set_fact:
+      snapshot_list: >
+        {{ snapshot_list|default([]) + [{
+          'id': item.snapshot_id,
+          'device_name': item.item.item.device_name,
+          'volume': item.volume_id
+        }] }}
+    loop: "{{ job_result.results }}"
+    loop_control:
+      label: "{{ item.snapshot_id }}"
+
+  - name: "Create and Attach Volumes"
+    delegate_to: localhost
+    run_once: true
+    ec2_vol:
+      instance: "{{ ebs_clone_target_instance }}"
+      snapshot: "{{ item.id }}"
+      device_name: "{{ item.device_name }}"
+      volume_type: "gp2"
+      encrypted: true
+      region: "{{ ebs_clone_region}}" #required for legacy boto compatibility
+    loop: "{{ snapshot_list }}"
+
+  - name: "Start Source EC2 instance {{ ebs_clone_source_instance }}"
+    delegate_to: localhost
+    run_once: true
+    when: ebs_clone_shutdown|default(true)|bool
+    amazon.aws.ec2_instance:
+      instance_ids: "{{ ebs_clone_source_instance }}"
+      state: running
+      wait: true
+      wait_timeout: 600
+      region: "{{ ebs_clone_region }}" #required for legacy boto compatibility
+
+  - name: "Cleanup Snapshots"
+    delegate_to: localhost
+    run_once: true
+    when: ebs_clone_cleanup|default(true)|bool
+    ec2_snapshot:
+      snapshot_id: "{{ item.id }}"
+      state: absent
+      region: "{{ ebs_clone_region }}" #required for legacy boto compatibility
+    loop: "{{ snapshot_list }}"
+... ### END BLOCK: Migrate Volumes

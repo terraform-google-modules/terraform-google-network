@@ -1,0 +1,135 @@
+---
+# Synopsis: Configures iptables with the rules based on the provided ports.
+# Inputs:
+#   - iptables_internal_chain : Internal variable use to tell this taskfile what iptables chain to configure
+#   - iptables_tcp_source_ports : The list of TCP source ports to create iptables rules for. Packets containing these ports will not be logged.
+#   - iptables_tcp_destination_ports : The list of TCP destination ports to create iptables rules for. Packets containing these ports will not be logged.
+#   - iptables_udp_source_ports : The list of UDP source ports to create iptables rules for. Packets containing this will these ports be logged.
+#   - iptables_udp_destination_ports : The list of UDP destination ports to create iptables rules for. Packets containing these ports will not be logged.
+#   - iptables_default_ansible_managed_chain_behavior : Default ANSIBLE_MANAGED chain behavior, e.g. '{{ iptables_default_ansible_managed_chain_behavior }}', RETURN
+#
+# Outputs:
+#   - Configures iptables with rules. Can be viewed on the system using 'iptables -L'
+
+# NOTE: Adding multiple rules for localhost traffic that we don't want to log.
+  - name: Exclude localhost traffic from the iptables logs using the loopback IP address
+    ansible.builtin.iptables:
+      action: insert
+      wait: '{{ iptables_lock_wait }}'
+      chain: '{{ iptables_internal_chain }}'
+      protocol: all
+      in_interface: lo
+      jump: '{{ iptables_default_ansible_managed_chain_behavior }}'
+    become: true
+
+  - name: Exclude localhost traffic from the iptables logs using the system's IP address at interface 'eth0'
+    ansible.builtin.iptables:
+      action: insert
+      wait: '{{ iptables_lock_wait }}'
+      chain: '{{ iptables_internal_chain }}'
+      protocol: all
+      source: '{{ ansible_default_ipv4.address }}'
+      destination: '{{ ansible_default_ipv4.address }}'
+      jump: '{{ iptables_default_ansible_managed_chain_behavior }}'
+    become: true
+
+  - name: Exclude AWS localhost traffic from the iptables logs
+    ansible.builtin.iptables:
+      action: insert
+      wait: '{{ iptables_lock_wait }}'
+      chain: '{{ iptables_internal_chain }}'
+      protocol: tcp
+      source: 169.254.169.254
+      destination: '{{ ansible_default_ipv4.address }}'
+      source_port: '80'
+      jump: '{{ iptables_default_ansible_managed_chain_behavior }}'
+    become: true
+
+# Exclude DNS traffic, without this EVERY lookup gets logged, making the logs very chatty and large.
+  - name: Exclude DNS traffic from the iptables logs
+    ansible.builtin.iptables:
+      action: insert
+      wait: '{{ iptables_lock_wait }}'
+      chain: '{{ iptables_internal_chain }}'
+      protocol: udp
+      source_port: '53'
+      jump: '{{ iptables_default_ansible_managed_chain_behavior }}'
+    become: true
+
+# NOTE: Loops through the list of TCP source ports. For any source port that has 'nn' in the port number, replace that with the system's instance number.
+#       If the instance number is not defined or it's empty, default to the SAP defined default of '00'. If the port number has 'nx' in it, replace that
+#       with the system's instance number incremented by one. If the instance number is not defined or it's empty, default to the SAP defined default of '01'.
+
+  - name: Add the list of TCP source ports to exclude from the iptables logs
+    ansible.builtin.iptables:
+      action: insert
+      wait: '{{ iptables_lock_wait }}'
+      chain: '{{ iptables_internal_chain }}'
+      protocol: tcp
+      source_port: "{{ item | string | lower | replace('nn', system_instance_number | default ('00', true)) | replace('nx', '%02d' | format(system_instance_number\
+        \ | default ('01', true) | int + 1 ) | string) }}"
+      jump: '{{ iptables_default_ansible_managed_chain_behavior }}'
+    loop: '{{ iptables_tcp_source_ports }}'
+    when: iptables_tcp_source_ports | length > 0
+    become: true
+
+  - name: Add the list of TCP destination ports to exclude from the iptables logs
+    ansible.builtin.iptables:
+      action: insert
+      wait: '{{ iptables_lock_wait }}'
+      chain: '{{ iptables_internal_chain }}'
+      protocol: tcp
+      destination_port: "{{ item | string | lower | replace('nn', system_instance_number | default ('00', true)) | replace('nx', '%02d' | format(system_instance_number\
+        \ | default ('01', true) | int + 1 ) | string) }}"
+      jump: '{{ iptables_default_ansible_managed_chain_behavior }}'
+    loop: '{{ iptables_tcp_destination_ports }}'
+    when: iptables_tcp_destination_ports | length > 0
+    become: true
+
+  - name: Add the list of UDP source ports to exclude from the iptables logs
+    ansible.builtin.iptables:
+      action: insert
+      wait: '{{ iptables_lock_wait }}'
+      chain: '{{ iptables_internal_chain }}'
+      protocol: udp
+      source_port: "{{ item | string | lower | replace('nn', system_instance_number | default ('00', true)) | replace('nx', '%02d' | format(system_instance_number\
+        \ | default ('01', true) | int + 1 ) | string) }}"
+      jump: '{{ iptables_default_ansible_managed_chain_behavior }}'
+    loop: '{{ iptables_udp_source_ports }}'
+    when: iptables_udp_source_ports | length > 0
+    become: true
+
+  - name: Add the list of UDP destination ports to exclude from the iptables logs
+    ansible.builtin.iptables:
+      action: insert
+      wait: '{{ iptables_lock_wait }}'
+      chain: '{{ iptables_internal_chain }}'
+      protocol: udp
+      destination_port: "{{ item | string | lower | replace('nn', system_instance_number | default ('00', true)) | replace('nx', '%02d' | format(system_instance_number\
+        \ | default ('01', true) | int + 1 ) | string) }}"
+      jump: '{{ iptables_default_ansible_managed_chain_behavior }}'
+    loop: '{{ iptables_udp_destination_ports }}'
+    when: iptables_udp_destination_ports | length > 0
+    become: true
+
+  - name: Add the 'LOG' action to the ''{{ iptables_internal_chain }}'' chain
+    ansible.builtin.iptables:
+      action: append
+      chain: '{{ iptables_internal_chain }}'
+      protocol: all
+      ctstate: NEW
+      limit: '{{ iptables_log_limit }}'
+      limit_burst: '{{ iptables_log_limit_burst }}'
+      jump: LOG
+      wait: '{{ iptables_lock_wait }}'
+    become: true
+
+  - name: Add the 'RETURN' action to the ''{{ iptables_internal_chain }}'' chain
+    ansible.builtin.iptables:
+      action: append
+      chain: '{{ iptables_internal_chain }}'
+      protocol: all
+      jump: RETURN
+      wait: '{{ iptables_lock_wait }}'
+    become: true
+...

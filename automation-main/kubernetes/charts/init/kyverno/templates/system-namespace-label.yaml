@@ -1,0 +1,32 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: label-system-namespaces
+  annotations:
+    policies.kyverno.io/title: Label System Namespaces
+    policies.kyverno.io/subject: Namespace
+    policies.kyverno.io/description: >-
+      Adds lable to namespaces required to allow network connectivity to customer app deployments.
+spec:
+  mutateExistingOnPolicyUpdate: true
+  webhookTimeoutSeconds: 5
+  rules:
+  - name: label-system-namespaces
+    match:
+      any:
+      - resources:
+          kinds:
+          - Namespace
+          names:
+          - nginx
+          - rook-ceph
+          - monitoring
+    mutate:
+      targets:
+        - apiVersion: v1
+          kind: Namespace
+          name: "{{`{{request.object.metadata.name}}`}}"
+      patchStrategicMerge:
+        metadata:
+          labels:
+            sftpApp: allowed

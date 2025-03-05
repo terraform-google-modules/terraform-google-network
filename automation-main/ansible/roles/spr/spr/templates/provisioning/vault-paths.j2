@@ -1,0 +1,248 @@
+#=========================================================================================
+# DB
+#=========================================================================================
+{% for server in groups.db %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/SYSTEMDB-SYSTEM
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/TENANTDB{{ hostvars[server].spr_sid|upper }}-SYSTEM
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/TENANTDB{{ hostvars[server].spr_sid|upper }}-SAPHANADB
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HDBLicense
+#-----------------------------------------------------------------------------------------
+{% endfor %}
+
+#=========================================================================================
+# APP
+#=========================================================================================
+{% for server in groups.app %}
+{% if server in groups.ads %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/Administrator
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.attp %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.bobj %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.bobj_bip %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.bw4hana %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.bw4hana_addons %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.car %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.car %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.cloudconnector %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/cloudconnector
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.convergent_charging %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.convergent_mediation %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.cpids_agent %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/cpids_agent
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.crm %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.data_services %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.dpagent %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/dpagent
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.fiori_carab %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.fiori_fes %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.gts %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.lumira %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.mii %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/Administrator
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.optimizer %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.payroll %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.po %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/Administrator
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.portal %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/Administrator
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.s4hana %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.sac_agent %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/sacagent
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.scm %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.slt %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.solman_abap %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.solman_java %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/Administrator
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.sso %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/Administrator
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.tm %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% if server in groups.webdispatcher %}
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-DDIC
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/000-MASTER
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-{{ hostvars[server].spr_sid|lower }}adm
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-HWKey
+{{ customer_number }}/{{ hostvars[server].spr_landscape|upper }}/{{ hostvars[server].spr_nodetype|upper }}/{{ hostvars[server].spr_sid|upper }}/{{ hostvars[server].spr_hostname|lower }}-SAPLicense
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endfor %}

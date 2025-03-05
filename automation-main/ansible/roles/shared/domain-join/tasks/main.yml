@@ -1,0 +1,442 @@
+---
+# Synopsis: Attempts to join a linux instance to a supplied domain
+# Inputs:
+#   Please see all entries in defaults/main.yml
+# Outputs: Host is joined to the domain
+# Comments:
+#   - Requires gather_facts set to true
+#   - Requires force_handlers set to true
+
+  - name: Validate Variables
+    fail:
+      msg: You left one or more required variables blank
+    when: >
+      domain_password | length == 0 or
+      domain_user | length == 0 or
+      domain_sudo_group | length == 0 or
+      domain_sudo_group == 'sg_<LineOfBusiness>_os_sudo,sg_<LineOfBusiness>_os_sudo' or
+      domain_fqdn | length == 0 or
+      (
+        domain_restrict_ssh | bool and
+        (
+          domain_login_group | length == 0 or
+          domain_login_group == 'sg_<LineOfBusiness>_os_login,sg_<LineOfBusiness2>_os_login'
+        )
+      )
+
+  - name: Save Original Hostname
+    set_fact:
+      original_hostname: '{{ ansible_hostname }}'
+
+  - name: Leave any previously joined Domain
+    shell: /usr/sbin/realm leave
+    when: (domain_force_join | bool ) == true
+    ignore_errors: true
+    become: true
+
+  - name: Install realmd package dependencies for redhat systems
+    yum:
+      name:
+        - realmd
+        - oddjob
+        - oddjob-mkhomedir
+        - sssd
+        - samba-common-tools
+      state: installed
+      disable_gpg_check: yes  # Skipping GPG check for systems with dirty repositories
+      disable_plugin: '*'
+    when: ansible_os_family | lower == 'redhat'
+    become: true
+
+  - name: Install realmd package dependencies for Debian-based systems
+    package:
+      state: present
+      name:
+        - realmd
+        - oddjob
+        - oddjob-mkhomedir
+        - sssd
+        - samba-common-bin
+        - krb5-config
+        - packagekit
+        - apt-utils
+    when: ansible_os_family | lower == 'debian'
+    become: true
+
+  - name: Install additional realmd package dependencies for Ubuntu 20.04+
+    package:
+      state: present
+      name:
+        - libsss-certmap0
+        - sssd-ad
+        - sssd-tools
+        - adcli
+    when:
+      - ansible_os_family | lower == 'debian'
+      - ansible_distribution_version is version('20.04', '>=')
+    become: true
+
+  - name: Create the /etc/sssd/sssd.conf file on Debian-based systems and RHEL8
+    copy:
+      dest: /etc/sssd/sssd.conf
+      force: false
+      content: |
+        [sssd]
+        config_file_version = 2
+        services = nss, pam
+    when: >
+      ansible_os_family | lower == 'debian' or
+      (ansible_os_family | lower == 'redhat')
+    become: true
+
+  - name: Ensure file permissions are 0600 on /etc/sssd/sssd.conf
+    file:
+      path: /etc/sssd/sssd.conf
+      mode: 0600
+    become: true
+
+  - name: Configure the /etc/krb5.conf file with the appropriate settings on Debian-based systems
+    copy:
+      dest: /etc/krb5.conf
+      force: true
+      content: |
+        [libdefaults]
+         default_realm = {{ domain_fqdn | upper }}
+         rdns = false
+
+        # The following krb5.conf variables are only for MIT Kerberos.
+         kdc_timesync = 1
+         ccache_type = 4
+         forwardable = true
+         proxiable = true
+
+        # The following libdefaults parameters are only for Heimdal Kerberos.
+         fcc-mit-ticketflags = true
+
+        [realms]
+         {{ domain_fqdn | upper }} = {
+         }
+
+        [domain_realm]
+         {{ domain_fqdn }} = {{ domain_fqdn | upper }}
+         .{{ domain_fqdn }} = {{ domain_fqdn | upper }}
+    when: ansible_os_family | lower == 'debian'
+    become: true
+
+  - name: BLOCK - Configure resolve.conf
+    become: true
+    block:
+      - name: Add domain dns servers to resolve.conf
+        blockinfile:
+          path: /etc/resolv.conf
+          insertbefore: ^nameserver
+          block: |
+            nameserver {{ domain_dns1 }}
+            nameserver {{ domain_dns2 }}
+
+      - name: Add dns search prefix to resolve.conf
+        lineinfile:
+          dest: /etc/resolv.conf
+          line: search {{ domain_fqdn }}
+          regexp: ^search
+
+      - name: Add local domain to to resolve.conf
+        lineinfile:
+          dest: /etc/resolv.conf
+          line: domain {{ domain_fqdn }}
+          regexp: ^domain
+
+    when: domain_set_dns|bool
+  # End block "Configure resolve.conf"
+
+  - name: Get current realm status
+    shell: /usr/sbin/realm list --name-only
+    become: true
+    register: realmlist_output
+
+  - name: Check if system is joined to the domain
+    debug:
+      msg: 'Already joined to a Domain : {{ realmlist_output.stdout }} '
+    when: realmlist_output.stdout != ''
+
+  - name: Get information about cloud provider from metedata endpoints
+    shell: |
+      AWS_INSTANCE_ID=$( curl -s http://169.254.169.254/latest/meta-data/instance-id )
+      AZURE_VM_ID=$( curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute/vmId?api-version=2017-08-01&format=text" )
+      GCP_INSTANCE_ID=$( curl -s -H Metadata-Flavor:Google http://metadata.google.internal/computeMetadata/v1/instance/id )
+      if [[ $AWS_INSTANCE_ID == i-* ]]; then
+        echo "aws"
+        echo $AWS_INSTANCE_ID | tail -c 16
+      elif [[ $AZURE_VM_ID =~ ^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$ ]]; then
+        echo "azure"
+        echo $AZURE_VM_ID | sed 's/-//g' | tail -c 16
+      elif [[ $GCP_INSTANCE_ID =~ ^[0-9]{19}$ ]]; then
+        echo "gcp"
+        echo $GCP_INSTANCE_ID | tail -c 16
+      else
+        echo "unknown"
+        echo $( hostname )
+      fi
+    args:
+      executable: /bin/bash
+    register: cloud_provider_metadata
+
+  - name: Set facts with parsed metadata
+    set_fact:
+      cloud_provider: '{{ cloud_provider_metadata.stdout_lines[0] }}'
+      machine_id: '{{ cloud_provider_metadata.stdout_lines[1] }}'
+
+# Block for handling system rename before and after domain join. Ensures original hostname is restore if domain join fails.
+  - name: BLOCK - Rename system, join domain, restore original hostname.
+    block:
+      - name: Set hostname to parsed machine ID before domain join
+        hostname:
+          name: '{{ machine_id }}'
+        when: >
+          realmlist_output.stdout == '' and
+          (
+            domain_set_hostname | bool or
+            ansible_distribution_version == '16.04'
+          )
+        become: true
+
+      - name: Set the hostname in the /etc/hosts file on Debian-based systems
+        lineinfile:
+          dest: /etc/hosts
+          line: "127.0.1.1\t{{ machine_id }}.localdomain\t{{ machine_id }}"
+          regexp: ^127\.0\.1\.1
+        when:
+          - realmlist_output.stdout == ''
+          - domain_set_hostname | bool
+          - ansible_os_family | lower == 'debian'
+        become: true
+
+      - name: Join system to domain with realmd
+        shell: echo '{{ domain_password }}' | /usr/sbin/realm join {{ '--computer-name ' + machine_id if ansible_distribution_version != '16.04' }}  -v
+          -U {{ domain_user }} {{ domain_fqdn }}
+        when: realmlist_output.stdout == ''
+        become: true
+        no_log: '{{ realm_no_log }}'                 ##### Set this to false for debugging
+
+    always:
+      - name: Restore original hostname
+        hostname:
+          name: '{{ original_hostname }}'
+        when:
+          - realmlist_output.stdout == ''
+          - domain_set_hostname | bool
+        become: true
+# End BLOCK - "Rename system, join domain, restore original hostname."
+
+  - name: Parse passed list of sudoer groups
+    set_fact:
+      domain_sudo_group_list: "{{ domain_sudo_group.split(',') }}"
+
+  - name: Add Sudoers content
+    lineinfile:
+      dest: /etc/sudoers.d/{{ item }}
+      line: '%{{ item }} ALL=(ALL:ALL) {% if domain_require_sudo_password | bool %}PASSWD:ALL{% else %}NOPASSWD:ALL{% endif %}'
+      regexp: ^%{{ item }}
+      validate: /usr/sbin/visudo -cf %s
+      state: present
+      mode: 0440
+      create: yes
+    loop: '{{ domain_sudo_group_list }}'
+    become: true
+
+  - name: Set krb5_store_password_if_offline
+    become: true
+    ini_file:
+      section: domain/{{ domain_fqdn }}
+      path: /etc/sssd/sssd.conf
+      option: krb5_store_password_if_offline
+      value: '{{ domain_krb5_store_password_if_offline }}'
+    when:
+      - domain_krb5_store_password_if_offline is defined
+      - domain_krb5_store_password_if_offline is not none
+      - domain_krb5_store_password_if_offline | length > 0
+    notify: Restart_sssd
+
+  - name: Set SSSD log level
+    become: true
+    ini_file:
+      section: domain/{{ domain_fqdn }}
+      path: /etc/sssd/sssd.conf
+      state: '{{ "present" if domain_log_level | int > 0 else "absent" }}'
+      option: debug_level
+      value: '{{ domain_log_level | default(omit) }}'
+    notify: Restart_sssd
+
+  - name: Enable use of domain shortnames
+    lineinfile:
+      path: /etc/sssd/sssd.conf
+      line: use_fully_qualified_names = False
+      regexp: ^use_fully_qualified_names
+    notify: Restart_sssd
+    become: true
+
+  - name: Remove old config options that are no longer valid
+    become: true
+    ini_file:
+      section: domain/{{ domain_fqdn }}
+      path: /etc/sssd/sssd.conf
+      state: absent
+      option: '{{ item.option }}'
+    loop:
+      - option: ldap_groups_use_matching_rule_in_chain
+      - option: ldap_initgroups_use_matching_rule_in_chain
+      - option: ldap_group_nesting_level
+      - option: ldap_use_tokengroups
+    notify: Restart_sssd
+    when: remove_invalid_config_options | bool
+
+  - name: Add performance settings to sssd.conf
+    become: true
+    ini_file:
+      section: domain/{{ domain_fqdn }}
+      path: /etc/sssd/sssd.conf
+      state: present
+      option: '{{ item.option }}'
+      value: '{{ item.value }}'
+    loop:
+      # We use group membership for access control, not AD GPO's
+      - option: ad_gpo_access_control
+        value: disabled
+      - option: dyndns_update
+        value: '{{ domain_set_dns | capitalize }}'
+    notify: Restart_sssd
+
+  - name: Add custom ldap_group_nesting_level to sssd.conf
+    become: true
+    ini_file:
+      section: domain/{{ domain_fqdn }}
+      path: /etc/sssd/sssd.conf
+      state: present
+      option: ldap_group_nesting_level
+      value: '{{ sssd_ldap_group_nesting_level }}'
+    notify: Restart_sssd
+    when:
+      - sssd_ldap_group_nesting_level is defined
+      - sssd_ldap_group_nesting_level is not none
+      - sssd_ldap_group_nesting_level | length > 0
+
+  - name: Add ignore_group_members to sssd.conf
+    become: true
+    ini_file:
+      section: domain/{{ domain_fqdn }}
+      path: /etc/sssd/sssd.conf
+      state: present
+      option: ignore_group_members
+      value: 'True'
+    when: sssd_ignore_group_members | bool
+    notify: Restart_sssd
+
+  - name: Ensure SSHD is configured to permit PasswordAuthentication
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      line: PasswordAuthentication yes
+      regexp: ^PasswordAuthentication
+    notify: Restart_sshd
+    become: true
+
+  - name: Parse passed list of sudoer groups
+    set_fact:
+      domain_login_group_list: "{{ domain_login_group.split(',') }}"
+
+  - name: Check which default users exist on the system
+    getent:
+      database: passwd
+      key: '{{ item }}'
+      fail_key: no
+    become: true
+    register: default_users_check
+    loop: >-
+      {{
+        ["ec2-user","cloud-user"] + (
+          [custom_default_user] if (
+            custom_default_user is defined and
+            custom_default_user is not none and
+            custom_default_user | length > 0
+          ) else []
+        )
+      }}
+
+  - name: Parse list of default users
+    set_fact:
+      default_users: '{{ default_users | default([]) + [item.item] }}'
+    loop: '{{ default_users_check.results }}'
+    when: item.ansible_facts.getent_passwd[item.item] is not none
+
+  - name: Restrict SSH logins
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      line: >
+        AllowGroups {% for default_user in default_users %}{{ default_user }} {% endfor -%}
+        {% for login_group in domain_login_group_list %}{{ login_group }} {% endfor %}
+      regexp: ^AllowGroups
+    notify: Restart_sshd
+    when: domain_restrict_ssh|bool
+    become: true
+
+  - name: Set sssd fallback home directory
+    lineinfile:
+      path: /etc/sssd/sssd.conf
+      line: fallback_homedir = /home/%u{% if domain_full_home_directories | bool %}@%d{% endif %}
+      regexp: ^fallback_homedir
+    notify: Restart_sssd
+    become: true
+
+  - name: Set sssd override home directory
+    lineinfile:
+      path: /etc/sssd/sssd.conf
+      line: >
+        override_homedir = {% if domain_chroot_home_directories | bool %}{{ domain_user_home_path }}
+        {% else %}{{ domain_user_home_path }}/%u{% endif %}{% if domain_full_home_directories | bool %}@%d{% endif %}
+      regexp: ^override_homedir
+    notify: Restart_sssd
+    become: true
+
+  - name: Setup config for creating home directories automatically on Debian-based systems
+    copy:
+      dest: /usr/share/pam-configs/mkhomedir
+      content: |
+        Name: activate mkhomedir
+        Default: yes
+        Priority: 900
+        Session-Type: Additional
+        Session:
+          required pam_mkhomedir.so umask=0022 skel=/etc/skel
+    register: debian_create_home_dir_results
+    notify: Restart_sssd
+    when: ansible_os_family | lower == 'debian'
+    become: true
+
+  - name: Detect if automatic home directory creation is enabled on Debian-based systems
+    command: grep -q 'required pam_mkhomedir' /etc/pam.d/common-session
+    register: debian_create_home_dir_check
+    failed_when: debian_create_home_dir_check.rc > 1
+    when: ansible_os_family | lower == 'debian'
+    become: true
+
+  - name: Configure the pam-update-auth to create home directories on Debian-based systems
+    shell: pam-auth-update --enable mkhomedir --force
+    become: true
+    notify: Restart_sssd
+    when: >
+      ansible_os_family | lower == 'debian' and
+      (
+        debian_create_home_dir_results.changed | bool or
+        debian_create_home_dir_check.rc != 0
+      )
+
+  - name: Reset SSSD cache to pick up any changes to the domain RBAC immediately
+    shell: sss_cache -E
+    become: true
+    when: domain_reset_cache | bool
+
+  - name: Ensure SSSD service is started
+    service:
+      name: sssd
+      state: started
+    become: true
+...

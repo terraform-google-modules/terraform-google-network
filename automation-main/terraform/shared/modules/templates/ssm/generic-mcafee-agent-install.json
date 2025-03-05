@@ -1,0 +1,127 @@
+{
+    "schemaVersion": "2.2",
+    "assumeRole": "{{AutomationAssumeRole}}",
+    "description": "InstallMcAfeeAgent",
+    "parameters": {
+      "ManagerFQDN": {
+        "default": "${ mcafee_manager_address }",
+        "type": "String",
+        "description": "(Required) The McAfee ePO FQDN or IP address."
+      },
+      "ManagerPort": {
+        "default": "8443",
+        "type": "String",
+        "description": "(Required) Port McAfee server is running on."
+      },
+      "WindowsAgentURI": {
+        "default": "Static/FramePkg.exe",
+        "type": "String",
+        "description": "(Required) The URI of the Windows installation package."
+      },
+      "LinuxAgentURI": {
+        "default": "Static/install.sh",
+        "type": "String",
+        "description": "(Required) The URI of the Linux installation package."
+      },
+      "AutomationAssumeRole": {
+        "default": "",
+        "type": "String",
+        "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf."
+      }
+    },
+    "mainSteps": [
+      {
+        "action": "aws:runPowerShellScript",
+        "name": "InstallMcAfeeAgentOnWindows",
+        "precondition": {
+          "StringEquals": [
+            "platformType",
+            "Windows"
+          ]
+        },
+        "inputs": {
+          "runCommand": [
+            "if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] \"Administrator\"))",
+            "{",
+            "   Write-Warning \"You are not running as an Administrator. Please try again with admin privileges.\"",
+            "   exit 1",
+            "}",
+            "if (Get-Process -Name masvc* | Select-object *)",
+            "{",
+            "   echo \"McAfee Agent is already running.\"",
+            "   exit 0",
+            "}",
+            "$env:LogPath = \"$env:appdata\\McAfee\\Agent\\installer\"",
+            "if (-NOT (Test-Path -LiteralPath $env:LogPath))",
+            "{",
+            "     New-Item -path $env:LogPath -type directory",
+            "}",
+            "Start-Transcript -path \"$env:LogPath\\mcafee_agent_deploy.log\" -append",
+            "echo \"$(Get-Date -format T) - McAfee Agent download started\"",
+            "echo \"$(Get-Date -format T) - Downloading McAfee Agent Package\"",
+            "$sourceUrl = \"https://{{ ManagerFQDN }}:{{ ManagerPort }}/{{ WindowsAgentURI }}\"",
+            "$WebClient = New-Object System.Net.WebClient",
+            "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12;",
+            "[Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}",
+            "$WebClient.DownloadFile($sourceUrl,  \"$env:temp\\framepkg.exe\")",
+            "if ( (Get-Item \"$env:temp\\framepkg.exe\").length -eq 0 )",
+            "{",
+            "echo \"Failed to download the McAfee Agent for Windows from ePO server.\"",
+            " exit 1",
+            "}",
+            "echo \"$(Get-Date -format T) - Downloaded File Size:\" (Get-Item \"$env:temp\\framepkg.exe\").length",
+            "echo \"$(Get-Date -format T) - McAfee Agent install started\"",
+            "echo \"$(Get-Date -format T) - Installer Exit Code:\" (Start-Process -FilePath $env:temp\\framepkg.exe -ArgumentList '/install=agent /forceinstall /silent' -Wait -PassThru).ExitCode",
+            "echo \"$(Get-Date -format T) - McAfee Agent Deployment Finished\"",
+            "Stop-Transcript",
+            "echo \"$(Get-Date -format T) - McAfee Agent Deployment Script Finished\""
+          ]
+        }
+      },
+      {
+        "action": "aws:runShellScript",
+        "name": "InstallMcAfeeAgentOnLinux",
+        "precondition": {
+          "StringEquals": [
+            "platformType",
+            "Linux"
+          ]
+        },
+        "inputs": {
+          "runCommand": [
+            "#!/bin/bash",
+            "LOCAL_INSTALLER_FULL_PATH=\"/usr/local/sbin/mcafee-agent-install.sh\"",
+            "LOGGER_TAG=\"mcafee-agent-install\"",
+            "if [[ $(/usr/bin/id -u) -ne 0 ]]; then",
+            "    logger -t $LOGGER_TAG -s \"You are not running as the root user.  Please try again with root privileges to install the McAfee Agent.\"",
+            "    exit 1",
+            "fi",
+            "if ps -ef | grep McAfee | grep agent | grep -v grep > /dev/null 2>&1; then",
+            "    logger -t $LOGGER_TAG -s \"McAfee Agent is already running.\"",
+            "    exit 0",
+            "fi",
+            "if ! type curl >/dev/null 2>&1; then",
+            "    logger -t $LOGGER_TAG -s \"Please install curl before running the McAfee Agent install.\"",
+            "    exit 1",
+            "fi",
+            "curl https://{{ ManagerFQDN }}:{{ ManagerPort }}/{{LinuxAgentURI}} -o $LOCAL_INSTALLER_FULL_PATH --silent --tlsv1.2 --insecure",
+            "rc=$?",
+            "if [[ $rc != 0 ]]; then",
+            "    logger -t $LOGGER_TAG -s \"Failed to download the McAfee Agent package.\"",
+            "    exit 1",
+            "fi",
+            "logger -t $LOGGER_TAG -s \"Installing McAfee Agent package...\"",
+            "chmod +x $LOCAL_INSTALLER_FULL_PATH",
+            "$LOCAL_INSTALLER_FULL_PATH -i",
+            "rc=$?",
+            "if [[ $rc != 0 ]]; then",
+            "    logger -t $LOGGER_TAG -s \"Failed to install the McAfee Agent package.\"",
+            "    exit 1",
+            "fi",
+            "logger -t $LOGGER_TAG -s \"Installed the McAfee Agent package successfully.\"",
+            "exit 0"
+          ]
+        }
+      }
+    ]
+  }

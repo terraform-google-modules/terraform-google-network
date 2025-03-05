@@ -1,0 +1,83 @@
+---
+# Synopsis: Does a hard stop of HANA DB
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+# Outputs: Stopped HANA DB
+# Comments: N/A
+
+- name: "Get Process list"
+  shell: 'sapcontrol -nr 02 -function GetProcessList'
+  args:
+    executable: '/bin/csh'
+  become: true
+  become_method: sudo
+  become_user: "{{ sid|lower }}adm"
+  failed_when: "not 'set: standard error: Inappropriate ioctl for device'"
+  changed_when: false
+  register: hdb_process_output
+
+- name: "Stopping HANA DB"
+  command: "/usr/sap/{{ sid|upper }}/HDB02/HDB stop"
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  failed_when: "'hdbdaemon is stopped.' not in hdbstop_output.stdout"
+  register: hdbstop_output
+  when: "'GREEN' in hdb_process_output.stdout"
+
+- name: "HDB Stop output"
+  debug:
+    var: hdbstop_output.stdout_lines
+  when: "'GREEN' in hdb_process_output.stdout"
+
+- name: "Get saphostagent status"
+  command: "/usr/sap/hostctrl/exe/saphostexec -status"
+  become: true
+  register: saphostagent_status
+  failed_when: "'FAILED' in saphostagent_status.stderr"
+  changed_when: false
+
+- name: "Display saphostagent status"
+  debug:
+    var: saphostagent_status.stderr_lines
+
+- name: "BLOCK - Stop saphostagent"
+  block:
+  - name: "Stop saphostagent as root"
+    command: "/usr/sap/hostctrl/exe/saphostexec -stop"
+    become: true
+
+  - name: "Get saphostagent status"
+    command: "/usr/sap/hostctrl/exe/saphostexec -status"
+    become: true
+    register: saphostagent_statusblock
+    failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+    changed_when: false
+
+  - name: "Display saphostagent status"
+    debug:
+      var: saphostagent_statusblock.stderr_lines
+  when: saphostagent_status.stderr != 'saphostexec stopped '
+  #End "BLOCK - Stop saphostagent"
+
+- name: "Find sidadm processes"
+  shell: "ps -fu {{ sid|lower }}adm"
+  become: true
+  register: "pssidadm_output"
+  failed_when: "'FAILED' in pssidadm_output.stderr"
+  changed_when: false
+
+- name: "List process to kill"
+  debug:
+    var: pssidadm_output.stdout_lines
+
+- name: "Stop sidadm processes"
+  command: "pkill -9 -fu {{ sid|lower }}adm"
+  become: true
+  failed_when: "'FAILED' in pkillsidadm_output.stderr"
+  register: pkillsidadm_output
+
+- name: "Display stop sidadm output if verbosity >= 1"
+  debug:
+    var: pkillsidadm_output
+    verbosity: 1
+...

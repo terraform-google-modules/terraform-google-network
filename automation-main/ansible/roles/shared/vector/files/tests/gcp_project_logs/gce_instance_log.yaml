@@ -1,0 +1,19 @@
+---
+tests:
+  - name: gcp:instance_log:1
+    inputs:
+      - insert_at: gcp_project_logs
+        type: log
+        log_fields:
+          message: '{"insertId":"10dgv64f5094wh","jsonPayload":{"message":"type=NETFILTER_CFG msg=audit(1712342049.204:4071677): table=nat family=2 entries=13674","metadata":{"sourcetype":"linux_auditd","source":"/var/log/audit","custom":{"index":{"suffix":"linux"},"formatted":"host_formatted"}}},"resource":{"type":"gce_instance","labels":{"zone":"us-central1-a","instance_id":"1000317935284513496","project_id":"ariba-preprod2-app"}},"timestamp":"2024-04-05T18:34:09.212736886Z","labels":{"compute.googleapis.com/resource_name":"shoot--ariba-pp--gkp-pp5-default-z1-7d475-d488x","agent.googleapis.com/log_file_path":"/var/log/audit/audit.log"},"logName":"projects/ariba-preprod2-app/logs/audit","receiveTimestamp":"2024-04-05T18:34:09.984912565Z"}'
+    outputs:
+      - extract_from: splunk_formatter
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!(.sourcetype, "linux_auditd")
+              assert_eq!(.index, "test-index_linux")
+              assert_eq!(.source, "/var/log/audit")
+              assert_eq!(is_timestamp(.time), true)
+              assert_eq!(.time, t'2024-04-05T18:34:09.212736886Z')
+...

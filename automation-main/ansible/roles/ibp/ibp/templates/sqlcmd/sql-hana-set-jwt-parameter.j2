@@ -1,0 +1,1 @@
+ALTER SYSTEM ALTER CONFIGURATION ('indexserver.ini', 'SYSTEM') SET ('jwt_identity_provider', 'issuer') = ' hana://{{ sql_hostname|lower }}/{{ sql_sid|upper }}/{{ sql_sid|upper }}' WITH RECONFIGURE;

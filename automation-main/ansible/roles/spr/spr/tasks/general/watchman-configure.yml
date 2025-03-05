@@ -1,0 +1,87 @@
+---
+# Synopsis: Configures the watchman watchlist and triggers
+# Inputs:
+#   spr_watchman_configure_replication_pair : task required input   # Unique pair name. Should be max of 15 characters due to linux group name limitations.
+#   spr_watchman_configure_target_folder : task required input # The target folder to replicate.
+#   spr_watchman_configure_trigger_name : task required input # Name of the Watchman trigger to use
+#   spr_watchman_configure_exclusion_list : task required input # List of file/folders (regex) to exclude
+#   spr_watchman_configure_force : When true, overwrites the current Watchman configuration. Default False
+#   spr_watchman_configure_rsync_bandwidth : (Default 5000) Limit local rsync I/O to KBytes per second
+#   host_app_node_type: pas/aas/nfsonly
+# Outputs:
+#   Watchman folders and triggers are setup
+# Comments:
+
+- name: "Watch Folder {{ spr_watchman_configure_target_folder }} : Clear current watch-list if force flag true"
+  when: (spr_watchman_configure_force) | bool
+  become: true
+  command: "watchman watch-del {{ spr_watchman_configure_target_folder }}"
+
+- name: "Watch Folder {{ spr_watchman_configure_target_folder }} : Check for current watch"
+  become: true
+  shell: "watchman watch-list | grep {{ spr_watchman_configure_target_folder }}"
+  register: check_watch_output
+  changed_when: false
+  failed_when: false
+
+- name: "Watch Folder {{ spr_watchman_configure_target_folder }} : Create Watchman watch"
+  when: check_watch_output.stdout == ""
+  become: true
+  command: "watchman watch-project {{ spr_watchman_configure_target_folder }}"
+  register: create_watchman_watch_output
+
+- name: "Watch Folder {{ spr_watchman_configure_target_folder }} : Create Watchman watch results"
+  when: check_watch_output.stdout == ""
+  debug:
+    var: create_watchman_watch_output.stdout_lines
+
+- name: "Watch Folder {{ spr_watchman_configure_target_folder }} : Setup replication command for Watchman"
+  become: true
+  template:
+    src: general/watchman-trigger-action.j2
+    dest: "/home/svc_replication_{{ spr_watchman_configure_replication_pair|lower }}/{{ spr_watchman_configure_trigger_name }}.sh"
+  when: host_app_node_type != 'nfsonly'
+
+- name: "Watch Folder {{ spr_watchman_configure_target_folder }} : Setup nfs replication command for Watchman"
+  become: true
+  template:
+    src: general/watchman-trigger-action-nfs.j2
+    dest: "/home/svc_replication_{{ spr_watchman_configure_replication_pair|lower }}/{{ spr_watchman_configure_trigger_name }}.sh"
+  when: host_app_node_type == 'nfsonly'
+
+- name: "Watch Folder {{ spr_watchman_configure_target_folder }} : Setup cron job for Watchman"
+  become: true
+  cron:
+      name: "nfs replication trigger"
+      user: 'root'
+      state: 'present'
+      minute: '*/5'
+      job: "touch /usr/sap/a.out"
+  when: host_app_node_type == 'nfsonly'
+
+  #Note: Template Vars
+  # spr_watchman_configure_target_folder
+  # spr_watchman_configure_exclusion_list
+  # spr_watchman_configure_rsync_bandwidth
+
+- name: "Watch Folder {{ spr_watchman_configure_target_folder }} : Check for current trigger"
+  become: true
+  shell: "watchman trigger-list {{ spr_watchman_configure_target_folder }} {{ spr_watchman_configure_trigger_name }} | grep {{ spr_watchman_configure_trigger_name }}"
+  register: check_trigger_output
+  changed_when: false
+  failed_when: false
+
+- name: "Convert exclusion list to string"
+  set_fact:
+      spr_watchman_configure_exclusion_string: '{{ spr_watchman_configure_exclusion_list | map("regex_replace", "(.+)", "-p ''\1''") | join(" ") }}'
+
+- name: "Watch Folder {{ spr_watchman_configure_target_folder }} : Create Watchman trigger"
+  when: check_trigger_output.stdout == ""
+  become: true
+  command: "watchman -- trigger {{ spr_watchman_configure_target_folder }} {{ spr_watchman_configure_trigger_name }} -X {{ spr_watchman_configure_exclusion_string }} -- /bin/sh /home/svc_replication_{{ spr_watchman_configure_replication_pair|lower }}/{{ spr_watchman_configure_trigger_name }}.sh"
+  register: create_trigger_watch_output
+
+- name: "Watch Folder {{ spr_watchman_configure_target_folder }} : Create Watchman trigger results"
+  when: check_trigger_output.stdout == ""
+  debug:
+    var: create_trigger_watch_output.stdout_lines

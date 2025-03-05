@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: etd-lc-ib-lb
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: init-container
+        image: alpine
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          chmod 570 /etd/secrets && echo "Permissions set to 570 for /etd/secrets"
+        volumeMounts:
+          - name: etd-secrets
+            mountPath: /etd/secrets
+      containers:
+        - name: etds-lc
+          volumeMounts:
+            - name: logcollector-jwt-token-prd
+              mountPath: /etd/secrets/jwt-key.txt
+              subPath: jwt-key.txt
+            - name: etd-secrets
+              mountPath: /etd/secrets
+      volumes:
+      - name: logcollector-jwt-token-prd
+        secret:
+          secretName: logcollector-jwt-token-prd
+          defaultMode: 0464
+      - name: etd-secrets
+        emptyDir: {}

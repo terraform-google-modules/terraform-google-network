@@ -1,0 +1,75 @@
+---
+# Synopsis: This task file validates the Vault token
+#
+# Inputs:
+#   - vault_token: The token used to authenticate with Vault. If the 'vault_token' Ansible variable is not provided, then the 'VAULT_TOKEN' environment variable
+#                  will be checked for a value, followed by the '~/.vault-token' file on the localhost.
+#   - vault_address: The address of the Vault server (Include https:// in the value).
+#   - vault_ssl_verify: Whether to verify SSL certificates of the Vault server. Defaults to true.
+#
+# Outputs:
+#
+# Comments:
+#   Example usage of this task file:
+#   - name: Validate the Vault token
+#     include_role:
+#       name: ../roles/vault-auth
+#       tasks_from: 'validate-token.yml'
+#     vars:
+#       vault_address: 'https://build-vault.ns2-build-dev.sapns2.us'
+
+  - name: Save the Vault address as a fact
+    set_fact:
+      vault_address: "{{ vault_address | default(lookup('env', 'VAULT_ADDR'), true) }}"
+
+  - name: Ensure that the Vault address is set
+    assert:
+      that:
+        - vault_address is defined and vault_address | length > 0
+      fail_msg: The Vault address is empty. Please specify a Vault address in either the 'vault_address' Ansible variable or the 'VAULT_ADDR' environment
+        variable.
+    run_once: true
+
+  - name: Save the Vault token as a fact
+    set_fact:
+      vault_token: "{{ vault_token | default(lookup('env', 'VAULT_TOKEN') | default(lookup('file', '~/.vault-token', errors='ignore'), true), true) }}"
+    no_log: true
+
+  - name: Ensure that the Vault token is set
+    assert:
+      that:
+        - vault_token is defined and vault_token | length > 0
+      fail_msg: The Vault token is empty. Please specify a Vault token in either the 'vault_token' Ansible variable, the 'VAULT_TOKEN' environment variable,
+        or the '~/.vault-token' file.
+    run_once: true
+
+  - name: Ensure that the Vault token is valid
+    uri:
+      url: '{{ vault_address }}/v1/auth/token/lookup-self'
+      method: GET
+      validate_certs: '{{ vault_ssl_verify | default(true) }}'
+      headers:
+        X-Vault-Token: '{{ vault_token }}'
+      status_code: [200, 403]
+    register: vault_check_token_results
+    delegate_to: '{{ vault_delegate | default(omit, true) }}'
+    ignore_errors: yes
+    no_log: true
+
+  - name: Check for SSL verification failure
+    fail:
+      msg: SSL verification failed for {{ vault_address }}. Consider running with flag '-e vault_ssl_verify=false'
+    when:
+      - vault_check_token_results.status == -1
+      - '"CERTIFICATE_VERIFY_FAILED" in vault_check_token_results.msg'
+
+  - name: Check whether the Vault token is valid
+    fail:
+      msg: The provided Vault token is either expired or not valid.
+    when: vault_check_token_results.status == 403
+
+  - name: Check for any other Vault token verification errors
+    fail:
+      msg: Something went wrong verifying the vault token against {{ vault_address }}.
+    when: vault_check_token_results.status != 200
+...

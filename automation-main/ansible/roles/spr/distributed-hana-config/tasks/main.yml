@@ -1,0 +1,6 @@
+- name: "Test - Hana Config"
+  block:
+  # Long tasks should be ran at the end
+  - name: "Run db-hana-sync.yml"
+    ansible.builtin.include_tasks: tests/db-hana-sync.yml
+    when: distributed_hana_config_test_db_hana_sync

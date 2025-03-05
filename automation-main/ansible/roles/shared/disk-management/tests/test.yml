@@ -1,0 +1,38 @@
+---
+  - hosts: all
+    gather_facts: true
+    tasks:
+      - name: Run the 'repository-management' role to enable the base, EPEL, and Azure repositories
+        include_role:
+          name: repository-management
+        vars:
+          repo_enable: true
+      - name: Mount volumes for {{ inventory_hostname }}
+        include_role:
+          name: disk-management
+        vars:
+          gcp_service_account_file: ''
+          disk_create: true
+          gcp_disk_type: pd-standard
+          disk_encryption: true
+          disk_encryption_keyring_default: east1-keyring1
+          disk_encryption_key_default: ''
+          disk_preset_selection: custom
+          custom:
+            test1:
+              mount_point: /test1
+              size: '20'
+            test2:
+              mount_point: /test2
+              size: '30'
+              disk_type: pd-standard
+              disk_encryption_keyring: east1-keyring1
+              disk_encryption_key: east1-key1
+            test3:
+              mount_point: /test3
+              size: '30'
+              disk_type: pd-standard
+            swap:
+              mount_point: /swap
+              size: '10'
+...

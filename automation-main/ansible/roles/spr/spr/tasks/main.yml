@@ -1,0 +1,33 @@
+---
+# Synopsis: Default main task list
+# Inputs:
+#   inventory variables: See inventory files for defined groups, group vars, and host vars
+# Outputs:
+# Comments:
+
+##### Pre_Tasks for All
+- name: "Dynamic Group Assignment"
+  group_by:
+    key: "{{ item }}"
+  when: "item != 'undefined'"
+  loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+
+- name: "Set the host file"
+  include_role:
+    name: spr
+    allow_duplicates: yes
+    tasks_from: provisioning/hostfile-install.yml
+
+- name: "Set the Hostname"
+  become: true
+  hostname:
+    name: "{{ spr_hostname|lower }}"
+
+- name: "Validate spr_defaults checksum"
+  when: spr_defaults_validate | default(false, true)
+  ansible.builtin.include_tasks: prerequisites/defaults_check.yml
+##### End Pre_Tasks for All
+...

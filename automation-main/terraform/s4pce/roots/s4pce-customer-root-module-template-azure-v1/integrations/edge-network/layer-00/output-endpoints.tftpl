@@ -1,0 +1,6 @@
+##
+| Name                | Type | Data |
+| ------------------- | ---- | ---- |
+%{ for key, value in endpoint_list ~}
+|  ${raw_instance_list[key].hostname} | A | ${value.endpoints[key].private_ip_address}  |
+%{ endfor ~}

@@ -1,0 +1,154 @@
+# Playbook Name: spr-dev-validation.yml
+# Playbook Description:
+#   Validates the HANA DB License and check if artifacts are loaded to S3
+#     - Playbook will fail on hard errors like unsynced files and HANA DB
+#       license expiring in less than 1 year
+#     - Playbook will output the OS info, HANA DB License Expiration Date,
+#       and HANA DB Version
+# Dependencies:
+# - Ansible v2.9+
+# - Ansible Collection: community.sap_libs
+# Supports:
+#   - RHEL-based HANA DB nodetypes
+# Variables:
+# - Hostvars from inventory and role defaults
+# Usage:
+#   ansible-playbook -i /<PATH-TO>/<SPR-ROLE/DEFAULTS>/spr_defaults.yml spr-dev-validation.yml \
+#   -i /<PATH-TO>/<INVENTORY-FILE>
+# Modified:
+#           2024-12-09 - Creation
+# Authors: Abdal Garuba
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+
+  # Retrieve OS name
+  - name: Retrieve OS version
+    become: true
+    ansible.builtin.command:
+      cmd: cat /etc/redhat-release
+    register: os_version
+
+  - name: Set OS version fact
+    set_fact:
+      os_version: "{{ os_version.stdout }}"
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Start HANA DB"
+  hosts: db:!hanacockpit:!iq:!non_spr:!contentserver
+  gather_facts: false
+  tags:
+  - play1
+  - db
+  - start
+
+  tasks:
+  - name: "Start DB"
+    include_role:
+      name: spr
+      tasks_from: operations/hana-start.yml
+    vars:
+      spr_hana_start_sid: "{{ spr_sid|upper}}"
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Validate HANA DB License"
+  hosts: db
+  tags:
+  - play2
+  - db
+  - validate
+
+  tasks:
+  - name: "Check HANA DB license expiration date"
+    include_role:
+      name: spr
+      tasks_from: prerequisites/hana-db-license-check.yml
+    vars:
+      spr_db_sid: "{{ spr_sid }}"
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Confirm Folder has been synced to S3"
+  hosts: db
+  tags:
+  - play3
+  - db
+  - sync_check
+
+  tasks:
+  - name: "Check S3 EFS is synced to S3"
+    include_role:
+      name: spr
+      tasks_from: prerequisites/spr-s3-sync-check.yml
+    vars:
+      spr_product_source: "{{ spr_application_source }}"
+
+  - name: Check for unsynced files
+    fail:
+      msg: "All/Some files have not been synced to the SPR S3 bucket"
+    when: sync_output.stdout_lines
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Display validation results"
+  hosts: db
+  gather_facts: false
+  tags:
+  - play4
+  - db
+  - summary
+
+  tasks:
+  - name: Display validation results
+    debug:
+      msg:
+        - Operating System Version: "{{ os_version }}"
+        - HANA DB License Expiration Date: >-
+            {%- if (hana_expiration_date == '9999-12-31 00:00:00') %}unlimited
+            {%- else -%}
+            {{ hana_expiration_date | to_datetime }}
+            {%- endif -%}
+        - HANA DB Version: "{{ hana_version }}"
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

@@ -1,0 +1,211 @@
+{
+  "base_context": {
+    "resource_prefix": null,
+    "tags": {
+      "BuildUser": "c5309336",
+      "Business": "ns2",
+      "Customer": "ns2",
+      "DeploymentLayer": "layer-01",
+      "Environment": "dev",
+      "Generated-By": "terraform",
+      "Managed-By": "terraform",
+      "Module": "example-root-module",
+      "ModuleOwner": "c5309336",
+      "ModuleVersion": "1.0.0",
+      "Owner": "sapns2",
+      "ProvisionDate": "2020-08-12T23:43:23Z",
+      "SecurityBoundary": "scp",
+      "SecurityBoundaryName": "Build Dev (scp)"
+    }
+  },
+  "binaries_storage": {
+    "description": "Binary cloud storage for client-001",
+    "name": "ns2-client-001-scp-dev-binaries",
+    "tags": {
+      "BuildUser": "c5309336",
+      "Business": "ns2",
+      "Customer": "client-001",
+      "DeploymentLayer": "layer-01",
+      "Description": "Binary cloud storage for client-001",
+      "Environment": "dev",
+      "Generated-By": "terraform",
+      "Managed-By": "terraform",
+      "Module": "example-root-module",
+      "ModuleOwner": "c5309336",
+      "ModuleVersion": "1.0.0",
+      "Name": "binaries",
+      "Owner": "sapns2",
+      "ProvisionDate": "2020-08-13T01:06:10Z",
+      "SecurityBoundary": "scp",
+      "SecurityBoundaryName": "Build Dev (scp)"
+    }
+  },
+  "client_dev_instance": {
+    "description": "Instance develop and test metasploit packages",
+    "name": "ns2-client-001-scp-dev-metasploit",
+    "tags": {
+      "BuildUser": "c5309336",
+      "Business": "ns2",
+      "Customer": "client-001",
+      "DeploymentLayer": "layer-01",
+      "Description": "Instance develop and test metasploit packages",
+      "Environment": "dev",
+      "Generated-By": "terraform",
+      "Managed-By": "terraform",
+      "Module": "dev-module",
+      "ModuleOwner": "c5309336",
+      "ModuleVersion": "0.0.1",
+      "Name": "metasploit",
+      "Owner": "sapns2",
+      "Platform": "Ubuntu",
+      "ProductName": "metasploit",
+      "ProvisionDate": "2020-08-13T01:23:23Z",
+      "RootModule": "example-root-module",
+      "RootModuleVersion": "1.0.0",
+      "SecurityBoundary": "scp",
+      "SecurityBoundaryName": "Build Dev (scp)",
+      "TESTING": "this resource is a test resource deployed by c5309336"
+    }
+  },
+  "dev_module_instance": {
+    "description": "Instance develop and test metasploit packages",
+    "name": "ns2-scp-dev-metasploit",
+    "tags": {
+      "BuildUser": "c5309336",
+      "Business": "ns2",
+      "Customer": "ns2",
+      "DeploymentLayer": "layer-01",
+      "Description": "Instance develop and test metasploit packages",
+      "Environment": "dev",
+      "Generated-By": "terraform",
+      "Managed-By": "terraform",
+      "Module": "dev-module",
+      "ModuleOwner": "c5309336",
+      "ModuleVersion": "0.0.1",
+      "Name": "metasploit",
+      "Owner": "sapns2",
+      "Platform": "Ubuntu",
+      "ProductName": "metasploit",
+      "ProvisionDate": "2020-08-13T01:21:07Z",
+      "RootModule": "example-root-module",
+      "RootModuleVersion": "1.0.0",
+      "SecurityBoundary": "scp",
+      "SecurityBoundaryName": "Build Dev (scp)",
+      "TESTING": "this resource is a test resource deployed by c5309336"
+    }
+  },
+  "example_containers": [
+    {
+      "description": "Docker Hashcat Container 1/3",
+      "name": "ns2-scp-dev-docker-1-hashcat",
+      "tags": {
+        "BuildUser": "c5309336",
+        "Business": "ns2",
+        "ClusterIdentifier": "1",
+        "Customer": "ns2",
+        "DeploymentLayer": "layer-01",
+        "Description": "Docker Hashcat Container 1/3",
+        "Environment": "dev",
+        "Generated-By": "terraform",
+        "Managed-By": "terraform",
+        "Module": "example-containers-module",
+        "ModuleVersion": "13.0.1",
+        "Name": "hashcat",
+        "Owner": "sapns2",
+        "Platform": "linux",
+        "ProductCluster": "example-cluster",
+        "ProductName": "docker",
+        "ProductVersion": "19.0.1",
+        "ProvisionDate": "2020-08-13T00:23:37Z",
+        "RootModule": "example-root-module",
+        "RootModuleVersion": "1.0.0",
+        "SecurityBoundary": "scp",
+        "SecurityBoundaryName": "Build Dev (scp)"
+      }
+    },
+    {
+      "description": "Docker Hashcat Container 2/3",
+      "name": "ns2-scp-dev-docker-2-hashcat",
+      "tags": {
+        "BuildUser": "c5309336",
+        "Business": "ns2",
+        "ClusterIdentifier": "2",
+        "Customer": "ns2",
+        "DeploymentLayer": "layer-01",
+        "Description": "Docker Hashcat Container 2/3",
+        "Environment": "dev",
+        "Generated-By": "terraform",
+        "Managed-By": "terraform",
+        "Module": "example-containers-module",
+        "ModuleVersion": "13.0.1",
+        "Name": "hashcat",
+        "Owner": "sapns2",
+        "Platform": "linux",
+        "ProductCluster": "example-cluster",
+        "ProductName": "docker",
+        "ProductVersion": "19.0.1",
+        "ProvisionDate": "2020-08-13T00:23:37Z",
+        "RootModule": "example-root-module",
+        "RootModuleVersion": "1.0.0",
+        "SecurityBoundary": "scp",
+        "SecurityBoundaryName": "Build Dev (scp)"
+      }
+    },
+    {
+      "description": "Docker Hashcat Container 3/3",
+      "name": "ns2-scp-dev-docker-3-hashcat",
+      "tags": {
+        "BuildUser": "c5309336",
+        "Business": "ns2",
+        "ClusterIdentifier": "3",
+        "Customer": "ns2",
+        "DeploymentLayer": "layer-01",
+        "Description": "Docker Hashcat Container 3/3",
+        "Environment": "dev",
+        "Generated-By": "terraform",
+        "Managed-By": "terraform",
+        "Module": "example-containers-module",
+        "ModuleVersion": "13.0.1",
+        "Name": "hashcat",
+        "Owner": "sapns2",
+        "Platform": "linux",
+        "ProductCluster": "example-cluster",
+        "ProductName": "docker",
+        "ProductVersion": "19.0.1",
+        "ProvisionDate": "2020-08-13T00:23:37Z",
+        "RootModule": "example-root-module",
+        "RootModuleVersion": "1.0.0",
+        "SecurityBoundary": "scp",
+        "SecurityBoundaryName": "Build Dev (scp)"
+      }
+    }
+  ],
+  "example_resource": {
+    "allowed_subnets": [
+      "192.168.1.1/24",
+      "10.0.0.1/24"
+    ],
+    "properties": {
+      "description": "Cloud storage bucket for root module",
+      "name": "ns2-scp-dev-root-module-cloud-storage"
+    },
+    "tags": {
+      "BuildUser": "c5309336",
+      "Business": "ns2",
+      "Customer": "ns2",
+      "DeploymentLayer": "layer-01",
+      "Description": "Cloud storage bucket for root module",
+      "Environment": "dev",
+      "Generated-By": "terraform",
+      "Managed-By": "terraform",
+      "Module": "example-root-module",
+      "ModuleOwner": "c5309336",
+      "ModuleVersion": "1.0.0",
+      "Name": "root-module-cloud-storage",
+      "Owner": "sapns2",
+      "ProvisionDate": "2020-08-12T23:53:20Z",
+      "SecurityBoundary": "scp",
+      "SecurityBoundaryName": "Build Dev (scp)"
+    }
+  }
+}

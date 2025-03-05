@@ -1,0 +1,33 @@
+---
+# List of sap-specific log groups
+# When 'cpids' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_cpids:
+  - file_path: /usr/sap/*/*/work/available.log
+    log_group_name: /usr/sap/work/available
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/*/work/*log*
+    log_group_name: /usr/sap/work/log
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/*/work/*.trc
+    log_group_name: /usr/sap/work/trc
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/*/work/*err*
+    log_group_name: /usr/sap/work/err
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/*/work/*out*
+    log_group_name: /usr/sap/work/out
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/*/log/audit_*
+    log_group_name: /usr/sap/log/audit
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/*/log/gw_log-*
+    log_group_name: /usr/sap/log/gw_log
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+    timestamp_format: '%a %b %d %Y %H:%M:%S:%f'
+  - file_path: /usr/sap/*/*/log/SLOG*
+    log_group_name: /usr/sap/log/SLOG
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/*/log/AL*
+    log_group_name: /usr/sap/log/AL
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+...

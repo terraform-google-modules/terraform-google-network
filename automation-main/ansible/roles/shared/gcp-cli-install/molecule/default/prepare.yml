@@ -1,0 +1,15 @@
+---
+# Description: Molecule prepare.yml playbook used to ensure that repositories are configured.
+
+  - name: Prepare
+    hosts: all
+    gather_facts: true
+    tasks:
+
+      - name: Configure repositories using the 'repository-management' role
+        include_role:
+          name: repository-management
+        vars:
+          application_preset_selection: [base]
+          repo_enable: true
+...

@@ -1,0 +1,38 @@
+---
+# Synopsis: Provision DR SAPApp
+# Inputs:
+#   - sid: SAP Id
+#   - dr_sapapp_provision_efs_ipaddress: IP address of the EFS volume to mount
+# Outputs: Configured and running SAPApp system
+# Comments:
+#   - R3trans has a default ttl of 2 minutes to move from primary to secondary
+
+- name: "Ensure NFS is installed"
+  package:
+    name: 'nfs-utils'
+    state: 'present'
+  become: true
+
+- name: "Unmount previous efs"
+  mount:
+    state: absent
+    path: '/usr/sap/trans'
+  become: true
+
+- name: "Ensure EFS volume is mounted using static IP address"
+  mount:
+    path: '/usr/sap/trans'
+    src: "{{ dr_sapapp_provision_efs_ipaddress }}:/"
+    fstype: nfs4
+    opts: nfsvers=4.1
+    state: mounted
+  become: true
+
+- name: "Update DEFAULT.PFL"
+  replace:
+    path:  "/sapmnt/{{ sid|upper }}/profile/DEFAULT.PFL"
+    regexp: "ibpdb-{{ sid|lower }}"
+    replace: "ibpdr-{{ sid|lower }}"
+  become: true
+  become_user: "{{ sid|lower }}adm"
+...

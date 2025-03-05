@@ -1,0 +1,13 @@
+---
+# List of tenable nessus-specific log groups
+# When 'nessus' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_nessus:
+  - file_path: /opt/nessus/var/nessus/logs/backend.log
+    log_group_name: /opt/nessus/var/nessus/logs/backend
+  - file_path: /opt/nessus/var/nessus/logs/nessusd.dump
+    log_group_name: /opt/nessus/var/nessus/logs/dump
+  - file_path: /opt/nessus/var/nessus/logs/nessusd.messages
+    log_group_name: /opt/nessus/var/nessus/logs/messages
+  - file_path: /opt/nessus/var/nessus/logs/www_server.log
+    log_group_name: /opt/nessus/var/nessus/logs/server
+...

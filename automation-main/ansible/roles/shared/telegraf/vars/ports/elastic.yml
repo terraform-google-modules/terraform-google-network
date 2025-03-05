@@ -1,0 +1,17 @@
+---
+net_ports:
+  - name: elastic-http
+    host: localhost
+    port: 9200
+    protocol: tcp
+    application: elastic
+    service: elk
+    description: elastic http (9200)
+  - name: elastic-transport
+    host: localhost
+    port: 9300
+    protocol: tcp
+    application: elastic
+    service: elk
+    description: elastic transport (9200)
+...

@@ -1,0 +1,86 @@
+---
+# Synopsis: Does a software start of abap-based SAP application
+# Inputs:
+#   - spr_app_start_sid : (provided by playbook) SAP ID of the system
+# Outputs: Starts abap-based SAP application
+
+- name: "Get Process list"
+  shell: '/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function GetProcessList'
+  become: true
+  environment:
+    LD_LIBRARY_PATH: "/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64"
+  failed_when: false
+  changed_when: false
+  register: sapapp_process_output
+
+- name: "Check if SAPAPP is already stopped"
+  assert:
+    that: |
+        'GREEN' not in sapapp_process_output.stdout
+    success_msg: Application process not detected. Starting in next block
+    fail_msg: Application is already started. Skipping next block
+  changed_when: false
+  failed_when: false
+
+- name: "BLOCK: Start application"
+  when: "'GREEN' not in sapapp_process_output.stdout"
+  become: true
+  become_user: "{{ spr_app_start_sid|lower }}adm"
+  block:
+#  - name: "Check if HANA DB is accessible"
+#    shell: "/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64/R3trans -d"
+#    environment:
+#      LD_LIBRARY_PATH: '/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/run:/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64:/usr/sap/{{ spr_app_start_sid|upper }}/hdbclient'
+#      DIR_LIBRARY: '/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/run'
+#    become: yes
+#    become_user: "{{ spr_app_start_sid|lower }}adm"
+#    register: r3trans_output
+#    retries: 3
+#    delay: 10
+#    until: "'R3trans finished (0000).' in r3trans_output.stdout"sssss
+
+  - name: "Starting SAPAPP Service 00"
+    shell: '/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function StartService {{ spr_app_start_sid|upper }}'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64"
+
+  - name: "Starting SAPAPP Service 01"
+    shell: '/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 01 -function StartService {{ spr_app_start_sid|upper }}'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64"
+
+  - name: "Pause for SAP service to start"
+    pause:
+      seconds: 10
+
+  - name: "Starting SAPAPP"
+    shell: '/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function StartSystem ALL'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64"
+
+  - name: "Starting SAPAPP"
+    shell: '/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 01 -function StartSystem ALL'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64"
+
+  - name: "Wait for process to start"
+    shell: '/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_app_start_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sapapp_poststart_process_output
+    retries: 10
+    delay: 10
+    until: |
+      'GRAY' not in sapapp_poststart_process_output.stdout and
+      'YELLOW' not in sapapp_poststart_process_output.stdout
+
+  - name: "Output post-start processes"
+    debug:
+      var: sapapp_poststart_process_output.stdout_lines
+...

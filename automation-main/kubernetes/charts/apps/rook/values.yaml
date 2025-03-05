@@ -1,0 +1,49 @@
+operatorNamespace: rook-ceph
+csiDriverNamePrefix: rook-ceph
+
+cephFileSystems:
+  name: ""
+  
+  cephCluster:
+    namespace: rook-ceph
+
+  spec:
+    metadataPool:
+      replicated:
+        size: 3
+    dataPools:
+      - failureDomain: host
+        replicated:
+          size: 3
+        # Optional and highly recommended, 'data0' by default, see https://github.com/rook/rook/blob/v1.14.5/Documentation/CRDs/Shared-Filesystem/ceph-filesystem-crd.md#pools
+        name: data0
+    metadataServer:
+      activeCount: 1
+      activeStandby: true
+      resources:
+        limits:
+          memory: "2Gi"
+        requests:
+          cpu: "100Mi"
+          memory: "256Mi"
+      priorityClassName: system-cluster-critical
+  
+  storageClass:
+    name: ""
+    enabled: true
+    isDefault: false
+    parameters:
+      clusterID: rook-ceph
+      csi.storage.k8s.io/controller-expand-secret-name: rook-csi-cephfs-provisioner
+      csi.storage.k8s.io/controller-expand-secret-namespace: rook-ceph
+      csi.storage.k8s.io/fstype: ext4
+      csi.storage.k8s.io/node-stage-secret-name: rook-csi-cephfs-node
+      csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
+      csi.storage.k8s.io/provisioner-secret-name: rook-csi-cephfs-provisioner
+      csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
+      fsName: ""
+      pool: ""
+    reclaimPolicy: Delete
+    allowVolumeExpansion: true
+    volumeBindingMode: Immediate
+    # mountOptions: []

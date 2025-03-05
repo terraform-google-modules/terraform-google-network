@@ -1,0 +1,20 @@
+---
+tests:
+  - name: var.log.audit::1
+    inputs:
+      - insert_at: audit_metadata
+        type: log
+        log_fields:
+          file: /var/log/audit/audit.log
+          message: |
+            node=localhost.localdomain type=USER_CMD msg=audit(1659145100.171:66971): pid=85316 uid=1000 auid=1000 ses=20 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 msg='cwd=\"/home/cloud-user\" cmd=2F62696E2F7368202D63206563686F204245434F4D452D535543434553532D6E6C6E786576757A62757567626F6E676A6A73706C6B74717461626D6B69796B203B202F7573722F6C6962657865632F706C6174666F726D2D707974686F6E202F686F6D652F636C6F75642D757365722F2E616E7369626C652F746D702F616E7369626C652D746D702D313635393134343933332E3535343231392D33323934372D3237353231343730363931323136392F416E736962616C6C5A5F737461742E7079 exe=\"/usr/bin/sudo\" terminal=pts/2 res=success'\u001dUID=\"cloud-user\" AUID=\"cloud-user\"
+    outputs:
+      - extract_from: mock_processor__enriched_out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2022-07-30T01:38:20.171Z", to_string!(.timestamp), "timestamp parsing incorrect")
+              assert_eq!("/var/log/audit", .metadata.custom.log_group)
+              assert_eq!("test-index_linux", .metadata.index)
+...

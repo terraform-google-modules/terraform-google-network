@@ -1,0 +1,71 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: vagrant
+  provider:
+    name: virtualbox
+
+lint:
+  name: yamllint
+  options:
+    config-data:
+      ignore: venv
+
+platforms:
+  - name: centos-6
+    box: centos/6
+    memory: 512
+    cpus: 1
+
+  - name: centos-7
+    box: centos/7
+    memory: 512
+    cpus: 1
+
+  - name: amazonlinux-2
+    box: gbailey/amzn2
+    memory: 512
+    cpus: 1
+
+  - name: ubuntu-14.04
+    box: ubuntu/trusty64
+    memory: 512
+    cpus: 1
+
+  - name: ubuntu-16.04
+    box: ubuntu/xenial64
+    memory: 512
+    cpus: 1
+
+  - name: ubuntu-18.04
+    box: ubuntu/bionic64
+    memory: 512
+    cpus: 1
+
+  - name: debian-8
+    box: debian/jessie64
+    memory: 512
+    cpus: 1
+
+  - name: debian-9
+    box: debian/stretch64
+    memory: 512
+    cpus: 1
+
+provisioner:
+  name: ansible
+  lint:
+    name: ansible-lint
+    options:
+      x: ['403']
+
+scenario:
+  name: vagrant
+
+verifier:
+  name: testinfra
+  lint:
+    name: flake8
+...

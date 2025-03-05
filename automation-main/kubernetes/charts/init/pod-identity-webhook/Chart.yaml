@@ -1,0 +1,11 @@
+apiVersion: v2
+name: pod-identity-webhook
+description: A Helm chart with pod-identity-webhook with custom values
+type: application
+version: 2.3.0
+appVersion: "v0.6.1"
+dependencies:
+  - name: amazon-eks-pod-identity-webhook
+    version: 2.3.0
+    repository: https://jkroepke.github.io/helm-charts/
+    alias: pod-identity-webhook

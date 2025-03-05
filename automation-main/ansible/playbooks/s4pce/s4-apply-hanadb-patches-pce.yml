@@ -1,0 +1,223 @@
+---
+# Playbook Name: s4-apply-hanadb-patches-pce.yml
+# Description: Apply HANA DB patches to target HANA Databases
+# Dependencies:
+#   - Ansible v2.9+
+#   - sudo capability or root privileges on target machine
+# Variables:
+#   - TASK:
+# Example:
+#   Execution on remote systems using the any inventory host file
+#     ansible-playbook -i <PATH-TO-INVENTORY> s4-apply-hanadb-patches-pce.yml -kK
+#
+# Authors: Naresh Awasthi
+# Version: 2.9-000005
+# History:
+#
+# Modified: 2023-03-29 - Initial playbook creation
+#           2023-04-04 - Included task to stop HANA database
+#           2023-04-05 - Removed tasks that were not needed anymore.
+#           2023-04-05 - Added check to validate if server has HANA database or not
+#           2023-04-06 - Removed validation of WRN: to determine if patch has failed.
+#           2023-04-11 - Removed become: true and become_use: {{ sid | lower }}adm at global level and included at task level. Also changed become: yes to become: true
+# Comments: |
+
+
+- hosts: all
+  gather_facts: false
+
+  vars:
+    group_var: "sapsys"
+    owner_var: "{{ sid | lower }}adm"
+    hdb_var: "HDB"
+    a_timestamp: "{{ timestamp.stdout }}"
+
+  vars_prompt:
+    - name: SYSTEM_ADMIN_PW
+      prompt: Enter SYSTEM user password
+      unsafe: true
+      private: true
+      confirm: true
+
+    - name: STAGING_DIR
+      prompt: Enter path location for patch staging [/staging/HANA_DB_PATCH_2.67/SAP_HANA_DATABASE]
+      unsafe: true
+      private: false
+
+  tasks:
+    - name: Check if compat-sap-c++-10 is installed
+      ansible.builtin.package:
+        name: compat-sap-c++-10
+        state: present
+      check_mode: true
+      register: mypackage_check
+      become: true
+      become_user: root
+
+    - name: Fail if compat-sap-c++-10 is not installed
+      ansible.builtin.fail:
+        msg: "compat-sap-c++-10 is not installed. Exiting..."
+      when: mypackage_check.changed
+
+    - name: Check if libatomic installed
+      ansible.builtin.dnf:
+        name: libatomic
+        state: present
+      check_mode: true
+      register: mypackage_check2
+      become: true
+      become_user: root
+
+    - name: Fail if libatomic is not installed
+      ansible.builtin.fail:
+        msg: "libatomic is not installed. Exiting..."
+      when: mypackage_check2.changed
+
+    - name: Get a timestamp
+      ansible.builtin.command: date +%Y%m%d%H%M%S
+      register: timestamp
+
+    - name: Check if user exists
+      ansible.builtin.shell: "cat /etc/passwd | grep {{ owner_var }}: | awk -F: '{print $1}' "
+      register: chk_user_exists
+
+    - name: Fail if user does not exist
+      ansible.builtin.fail:
+        msg: "user {{ owner_var }} does not exist. Exiting"
+      when: chk_user_exists.stdout != owner_var
+
+    - name: Check user home dir
+      ansible.builtin.shell: "cat /etc/passwd | grep {{ owner_var }}: | awk -F: '{print $6}' "
+      register: chk_user_homedir
+
+    - name: Get home_dir value
+      ansible.builtin.set_fact:
+        home_dir: "{{ chk_user_homedir.stdout }}"
+
+    - name: Check if {{ STAGING_DIR }}/hdblcm exists
+      ansible.builtin.stat:
+        path: "{{ STAGING_DIR }}/hdblcm"
+      register: stat_result
+
+    - name: Fail if {{ STAGING_DIR }}/hdblcm does not exist
+      ansible.builtin.fail:
+        msg: "{{ STAGING_DIR }}/hdblcm does not exist"
+      when: not stat_result.stat.exists
+      become: true
+      become_user: "{{ sid | lower }}adm"
+
+    - name: Check current version before the patch
+      ansible.builtin.shell: ". {{ home_dir }}/.bashrc && HDB version && /hana/shared/{{ sid | upper }}/hdblcm/hdblcm --format=table --action=print_component_list"
+      register: show_version
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "{{ sid | lower }}adm"
+
+    - name: Display current version before the patch
+      ansible.builtin.debug:
+        var: show_version.stdout_lines
+
+    - name: Rename /var/tmp/hdblcm.log
+      ansible.builtin.shell: "if [ -f /var/tmp/hdblcm.log ]; then mv /var/tmp/hdblcm.log /var/tmp/hdblcm_{{ a_timestamp }}.log; fi"
+      become: true
+      become_user: "root"
+
+    - name: Set XSA_FLAG to NONE
+      ansible.builtin.set_fact:
+        XSA_FLAG: "NONE"
+
+    - name: Set XSA_FLAG to UPDATE if SAP_EXTENDED_APP_SERVICES is found
+      ansible.builtin.set_fact:
+        XSA_FLAG: "UPDATE"
+      when: show_version.stdout | regex_search('SAP_EXTENDED_APP_SERVICES')
+
+    - name: Apply HANA patches
+      ansible.builtin.shell: |
+       cd {{ STAGING_DIR }}
+       if [ "{{ XSA_FLAG }}" = "NONE" ]; then
+                ./hdblcm --action=update --batch --sid={{ sid | upper }} --system_user_password={{ SYSTEM_ADMIN_PW }} >>/var/tmp/{{ sid | upper }}_apply_hana_patch_log_{{ a_timestamp }}.txt 2>&1
+       else
+                 ./hdblcm --action=update --batch --sid={{ sid | upper }} --system_user_password="{{ SYSTEM_ADMIN_PW }}" --org_manager_user=XSA_ADMIN --org_manager_password="{{ SYSTEM_ADMIN_PW }}" >>/var/tmp/{{ sid | upper }}_apply_hana_patch_log_{{ a_timestamp }}.txt 2>&1
+       fi
+       MSG=`cat /var/tmp/hdblcm.log |egrep 'ERR :|WRN :'`
+       if [ -z "$MSG" ]; then
+           echo "No errors or warnings found in /var/tmp/hdblcm.log file."
+           echo "$MSG"
+       else
+           echo "$MSG"
+       fi
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "root"
+      register: apply_patch
+      async: 30000
+      poll: 30
+
+    - name: Display apply patch output
+      ansible.builtin.debug:
+        var: apply_patch.stdout_lines
+
+    - name: Check if patch failed
+      ansible.builtin.shell: cat /var/tmp/hdblcm.log |egrep 'ERR :' > /dev/null
+      ignore_errors: true
+      failed_when: false
+      register: find_failure
+      become: true
+      become_user: "root"
+
+    - name: Fail if error found in hdblcm.log file
+      ansible.builtin.fail:
+        msg: "HANA patch failed.  Please investigate and resolve the issue"
+      when: find_failure.rc == 0
+
+    - name: Check current version after the patch
+      ansible.builtin.shell: ". {{ home_dir }}/.bashrc && HDB version && /hana/shared/{{ sid | upper }}/hdblcm/hdblcm --format=table --action=print_component_list | tee -a /tmp/show_hana_version_{{ a_timestamp }}.txt 2>&1"
+      register: show_version
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "{{ sid | lower }}adm"
+
+    - name: Display last 20 lines of log files contents and HANA version
+      ansible.builtin.shell: "tail -20 /var/tmp/{{ sid | upper }}_apply_hana_patch_log_{{ a_timestamp }}.txt; cat /tmp/show_hana_version_{{ a_timestamp }}.txt"
+      register: cat_output
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "root"
+
+    - name: Display last 20 lines of log files contents
+      ansible.builtin.debug:
+        var: cat_output.stdout_lines
+
+    - name: Stop Hana database
+      ansible.builtin.command: "/usr/sap/{{ sid | upper }}/HDB00/exe/sapcontrol -nr 00 -function StopSystem"
+      become: true
+      register: sapcontrol_stop
+      failed_when: false
+      become_user: "{{ sid | lower }}adm"
+
+    - name: Show current status of Hana database
+      ansible.builtin.command: "/usr/sap/{{ sid | upper }}/HDB00/exe/sapcontrol -nr 00 -function GetProcessList"
+      become: true
+      register: sapcontrol_status
+      failed_when: false
+      become_user: "{{ sid | lower }}adm"
+
+    - name: Display current status of Hana database
+      ansible.builtin.debug:
+        var: sapcontrol_status.stdout_lines
+
+    - name: Check log file
+      ansible.builtin.debug:
+        msg: "Please review the above output and /var/tmp/hdblcm.log to confirm that patch(es) are applied successfully or not."
+      delegate_to: localhost
+      run_once: true
+
+    - name: Provide command to check Hana status
+      ansible.builtin.debug:
+        msg: "Note: Run 'ansible-playbook s4-all-stop-start-hana.yml -i <db_host_file> -kK -e function=STATUS' command to get the database status to make sure database(s) went down successfully."
+      delegate_to: localhost
+      run_once: true

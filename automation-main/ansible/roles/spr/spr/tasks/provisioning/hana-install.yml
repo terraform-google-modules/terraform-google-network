@@ -1,0 +1,206 @@
+---
+# Synopsis: Provisions hana
+# Inputs:
+#   spr_hana_install_source : Source folder for the Application install binaries
+#   spr_hana_file_install_rsp_xml : Location of the install.rsp.xml file
+#   spr_hana_file_install_rsp : Location of the install.rsp file
+#   spr_hana_install_hostname: Hostname of the instance where hana will be installed
+#   spr_hana_install_sid: Sid of the hana instance
+#   spr_hana_product: Type of product
+# Outputs:
+# Comments:
+
+- name: Extract "{{ spr_hana_product }}" tars
+  include_tasks: general/tar-extract.yml
+  vars:
+    spr_tar_extract_list:
+      - "{{ spr_hana_install_source }}/usr-sap.tgz-*"
+      - "{{ spr_hana_install_source }}/hana-data.tgz-*"
+      - "{{ spr_hana_install_source }}/hana-log.tgz-*"
+      - "{{ spr_hana_install_source }}/hana-shared.tgz-*"
+    spr_tar_extract_overwrite: false
+    spr_tar_extract_async: false
+
+- name: Check for /hana/backups/G01/HDB00/backup/log
+  become: true
+  stat:
+    path: '/hana/backups/G01/HDB00/backup/log'
+  register: hana_backups_G01_HDB00_backup_log
+
+- name: Check for /hana/backups/G01/HDB00/backup/data
+  become: true
+  stat:
+    path: '/hana/backups/G01/HDB00/backup/data'
+  register: hana_backups_G01_HDB00_backup_data
+
+- name: Create /hana/backups/G01/HDB00/backup/log if it does not exist
+  when: hana_backups_G01_HDB00_backup_log.stat.exists == false
+  become: true
+  file:
+    path: /hana/backups/G01/HDB00/backup/log
+    state: directory
+
+- name: Create /hana/backups/G01/HDB00/backup/data if it does not exist
+  when: hana_backups_G01_HDB00_backup_data.stat.exists == false
+  become: true
+  file:
+    path: /hana/backups/G01/HDB00/backup/data
+    state: directory
+
+#Added below code to remove basepath_catalogbackup parameter if it exists in TENANTDB/hosts per SCSTE-2264
+
+- name: Remove the basepath_catalogbackup from TENANT DB global.ini if it exists
+  become: true
+  ini_file:
+    path: /hana/shared/G01/global/hdb/custom/config/DB_G01/global.ini
+    state: absent
+    section: persistence
+    option: basepath_catalogbackup
+
+- name: Remove the basepath_catalogbackup from /hana/shared/G01/HDB00/hdb-g01/global.ini if it exists
+  become: true
+  ini_file:
+    path: /hana/shared/G01/HDB00/hdb-g01/global.ini
+    state: absent
+    section: persistence
+    option: basepath_catalogbackup
+
+#End of code change  to remove basepath_catalogbackup parameter if it exists in TENANTDB/hosts per SCSTE-2264
+
+- name: "Create Symlink to {{ compat_package | regex_replace('\\..*', '.so') }} from libstdc++.so.6"
+  become: true
+  file:
+    dest: '/usr/sap/G01/SYS/exe/hdb/libstdc++.so.6'
+    src: "/opt/rh/SAP/lib64/{{ compat_package | regex_replace('\\..*', '.so') }}"
+    state: link
+
+- name: "BLOCK: Execute Hana DB rename"
+  become: true
+  block:
+      - name: "Create /tmp/{{ spr_hana_product }}"
+        file:
+          path: '/tmp/{{ spr_hana_product }}'
+          state: directory
+
+      - name: "Save Configuration Files to /tmp/{{ spr_hana_product }}"
+        copy:
+          dest: '/tmp/{{ spr_hana_product }}/'
+          src: "{{ item }}"
+          force: yes
+          remote_src: yes
+        loop_control:
+          label: "Saving /tmp/{{ spr_hana_product }}/{{ item | basename }}"
+        loop:
+          - "{{ spr_hana_file_install_rsp_xml }}"
+          - "{{ spr_hana_file_install_rsp }}"
+
+      - name: "Update install.rsp.xml values"
+        no_log: true
+        replace:
+          path: "/tmp/{{ spr_hana_product }}/{{ spr_hana_file_install_rsp_xml.split('/')[-1] }}"
+          regexp: '[*]{3}'
+          replace: "{{ standard_deployment_password }}"
+
+      - name: "Update install.rsp values"
+        replace:
+          path: "/tmp/{{ spr_hana_product }}/{{ spr_hana_file_install_rsp.split('/')[-1] }}"
+          regexp: "{{ item.regexp }}"
+          replace: "{{ item.replace }}"
+        loop:
+        - regexp: 'listen_interface='
+          replace: 'listen_interface=global'
+        - regexp: 'number='
+          replace: 'number=00'
+
+# Since HANA_EE no longer based on XSA, remove the when condition. Reference # SCSTE-3143
+      - name: "Execute rename command for Non PLC Databases"
+        no_log: true
+        shell: >-
+          cat /tmp/{{ spr_hana_product }}/install.rsp.xml | /hana/shared/G01/hdblcm/hdblcm --action rename_system --configfile=/tmp/{{ spr_hana_product }}/install.rsp --target_sid {{ spr_hana_install_sid|upper }} --hostmap=hdb-g01={{ spr_hana_install_hostname }} --target_password={{ standard_deployment_password }} --read_password_from_stdin=xml --batch -nostart
+        args:
+          chdir: '/'
+        when: "spr_hana_product != 'plc'"
+
+# Since HANA_EE no longer based on XSA, remove the when condition. Reference # SCSTE-3143
+      - name: "Execute rename command for XSA based DBs like PLC. Note: HANA_EE no longer XSA based"
+        no_log: true
+        shell: >-
+          cat /tmp/{{ spr_hana_product }}/install.rsp.xml | /hana/shared/G01/hdblcm/hdblcm --action rename_system --configfile=/tmp/{{ spr_hana_product }}/install.rsp --target_sid {{ spr_hana_install_sid|upper }} --hostmap=hdb-g01={{ spr_hana_install_hostname }} --target_password={{ standard_deployment_password }} --read_password_from_stdin=xml --xs_domain_name={{ spr_hana_install_hostname }}.{{ spr_hana_install_domain }} --batch -nostart
+        args:
+          chdir: '/'
+        when: "spr_hana_product == 'plc'"
+
+# Below code addition is to address SCSTE-2084 and SAP OSS note 3190917 bug with hdblcm rename process.
+      - name: "Update /hana/shared/{{ spr_sid|upper }}/lm_structure/landscapeVariables.properties values"
+        ini_file:
+          path: "/hana/shared/{{ spr_sid|upper }}/lm_structure/landscapeVariables.properties"
+          create: no
+          section: null
+          option: "{{ item.name }}"
+          value: '{{ item.value }}'
+          no_extra_spaces: true
+        loop_control:
+          label: "Modifying value of {{ item.name }} to {{ item.value }} in /hana/shared/{{ spr_sid|upper }}/lm_structure/landscapeVariables.properties"
+        loop:
+          - { name: 'SID', value: '{{ spr_sid|upper }}' } # This is not mandatory. Already reflecting the correct value
+          - { name: 'centralserver', value: '{{ spr_hana_install_hostname }}' }
+
+# NOTE: The following is required as a redundancy for the case when the primary tenant is not listening on the default port 30013.
+
+      - name: "Start the database"
+        include_role:
+          name: spr
+          allow_duplicates: yes
+          tasks_from: operations/hana-start.yml
+        vars:
+          spr_hana_start_sid: "{{ spr_sid|upper }}"
+
+      - name: "Stop primary tenant database"
+        no_log: true
+        shell: 'hdbsql -xj -i 00 -n {{ spr_hana_install_hostname }}:30013 -u SYSTEM -p {{ standard_deployment_password }} alter system stop database G01'
+        become_user: "{{ spr_hana_install_sid|lower }}adm"
+        args:
+          executable: '/bin/csh'
+        failed_when: false
+        register: hdb_stop_java_tenant
+        environment:
+          LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe"
+
+      - name: "Rename primary tenant database"
+        no_log: true
+        shell: 'hdbsql -xj -i 00 -n {{ spr_hana_install_hostname }}:30013 -u SYSTEM -p {{ standard_deployment_password }} rename database G01 to {{ spr_hana_install_sid|upper }}'
+        args:
+          executable: '/bin/csh'
+        become_user: "{{ spr_hana_install_sid|lower }}adm"
+        failed_when: false
+        environment:
+          LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe"
+
+      - name: "Start primary tenant database"
+        no_log: true
+        shell: 'hdbsql -xj -i 00 -n {{ spr_hana_install_hostname }}:30013 -u SYSTEM -p {{ standard_deployment_password }} alter system start database {{ spr_hana_install_sid|upper }}'
+        become_user: "{{ spr_hana_install_sid|lower }}adm"
+        args:
+          executable: '/bin/csh'
+        failed_when: false
+        environment:
+          LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe"
+
+      - name: "chown scriptserver.ini file"
+        ansible.builtin.file:
+          path: '/usr/sap/{{ spr_hana_install_sid|upper }}/SYS/global/hdb/custom/config/scriptserver.ini'
+          owner: "{{ spr_hana_install_sid|lower }}adm"
+          group: sapsys
+
+      - name: "chown /hana/backups directory"
+        ansible.builtin.file:
+          path: '/hana/backups'
+          owner: "{{ spr_hana_install_sid|lower }}adm"
+          group: sapsys
+          recurse: true
+
+      - name: "Remove /tmp/{{ spr_hana_product }}"
+        file:
+          path: '/tmp/{{ spr_hana_product }}'
+          state: absent
+...

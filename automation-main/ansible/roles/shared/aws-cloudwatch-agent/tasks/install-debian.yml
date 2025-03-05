@@ -1,0 +1,122 @@
+---
+  - name: Update apt cache
+    become: true
+    apt:
+      update_cache: true
+      cache_valid_time: 86400
+    tags:
+      - update-cache
+
+  - name: Add {{ cwa_package }} key
+    become: true
+    apt_key:
+      id: '{{ cwa_package_gpg_id }}'
+      state: present
+      url: '{{ cwa_package_gpg }}'
+    tags:
+      - add-key
+      - download
+      - install
+
+  - name: Download {{ cwa_package }}.deb.sig
+    get_url:
+      url: '{{ cwa_package_url }}'
+      dest: '{{ cwa_temp_path }}/{{ cwa_package }}.deb.sig'
+      timeout: '{{ cwa_global_downloads_timeout }}'
+    become: true
+    tags:
+      - download-signature
+      - verify-signature
+      - download
+      - install
+    register: cwa_package_deb_sig_download
+    until: cwa_package_deb_sig_download is not failed
+    retries: 10
+    delay: 5
+
+  - name: Download {{ cwa_package }}.deb
+    get_url:
+      url: '{{ cwa_package_url }}'
+      dest: '{{ cwa_temp_path }}/{{ cwa_package }}.deb'
+      timeout: '{{ cwa_global_downloads_timeout }}'
+    become: true
+    tags:
+      - download
+      - verify-signature
+      - install
+    register: cwa_package_deb_download
+    until: cwa_package_deb_download is not failed
+    retries: 10
+    delay: 5
+
+  - name: Verify {{ cwa_package }} package signature
+    command: gpg --verify {{ cwa_package }}.deb.sig {{ cwa_package }}.deb
+    register: verified_sig
+    failed_when: "'BAD' in verified_sig.stderr"
+    changed_when: false
+    args:
+      chdir: '{{ cwa_temp_path }}'
+    tags:
+      - verify-signature
+      - install
+
+  - name: Install {{ cwa_package }} dependencies
+    become: true
+    apt:
+      name: '{{ cwa_dependencies_packages }}'
+      state: present
+      force: true
+    register: package_ok
+    retries: '{{ cwa_global_downloads_retries }}'
+    delay: '{{ cwa_global_downloads_delay }}'
+    until: package_ok is success
+    tags:
+      - install
+
+  - name: Install {{ cwa_package }}.deb
+    become: true
+    apt:
+      deb: '{{ cwa_temp_path }}/{{ cwa_package }}.deb'
+      state: present
+    tags:
+      - install
+
+  - name: Create systemd override directory for amazon-cloudwatch-agent
+    ansible.builtin.file:
+      path: /etc/systemd/system/amazon-cloudwatch-agent.service.d/
+      owner: root
+      group: root
+      mode: '755'
+      state: directory
+    become: true
+    when:
+      - ansible_virtualization_type != "docker"
+      - ansible_service_mgr == "systemd"
+
+  - name: Copy the always restart configuration for amazon-cloudwatch-agent
+    ansible.builtin.copy:
+      src: systemd-alwaysrestart.conf
+      dest: /etc/systemd/system/amazon-cloudwatch-agent.service.d/alwaysrestart.conf
+      owner: root
+      group: root
+      mode: '644'
+    become: true
+    when:
+      - ansible_virtualization_type != "docker"
+      - ansible_service_mgr == "systemd"
+    notify: Reload systemd to reread configurations
+
+  - name: Copy the systemd proxy configuration template for amazon-cloudwatch-agent
+    ansible.builtin.template:
+      src: proxy/systemd-proxy.j2
+      dest: /etc/systemd/system/amazon-cloudwatch-agent.service.d/proxy.conf
+      owner: root
+      group: root
+      mode: '644'
+    become: true
+    when:
+      - ansible_virtualization_type != "docker"
+      - ansible_service_mgr == "systemd"
+      - cwa_use_proxy | bool
+    notify: Reload systemd to reread configurations
+...

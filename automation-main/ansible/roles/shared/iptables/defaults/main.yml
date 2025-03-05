@@ -1,0 +1,538 @@
+---
+# defaults file for iptables role
+
+# The type of system to setup iptables rules for. Must be one of the items listed in the 'application_variants' default variable.
+firewall_preset_selection: default
+
+# Whether or not to dynamically determine the application type.
+# NOTE: Overrides value given in firewall_preset_selection. If the dynamically determined value does not match any 'application_variants', rules are made via the open ports shown by netstat -nltu.
+dynamic_preset_selection: false
+
+# Whether or not to configure iptables rules based on application variant specified by the 'ProductName' tag of the instance.
+# NOTE: Requires that 'dynamic_preset_selection' is set to true as well.
+#       Requires authentication with AWS either via an access key and secret key or an IAM role.
+iptables_use_instance_tags: false
+
+# The host to delegate the tasks to that interact with the cloud providers.
+# NOTE: To have these tasks run on the remote hosts, set this variable to an empty string ''.
+#       The host that these tasks are delegated must be authenticated with the cloud provider.
+task_delegation: localhost
+
+# Whether or not to configure iptables with rules. Setting this to false will only install the iptables package and service.
+iptables_configure_rules: true
+
+# Whether or not to remove the iptables package and service from the system.
+iptables_remove: false
+
+# Amount of packets to log in the format x/period, e.g.: 1/sec, once the limit burst defined in 'iptables_limit_burst' is reached ('--limit' option in iptables).
+iptables_log_limit: 12/min
+
+# Amount of packets to log before the limit defined in the 'iptables_log_limit' is enforced for the duration of the limit interval ('--limit-burst' option in iptables).
+iptables_log_limit_burst: '5'
+
+# Wait N seconds for the xtables lock to prevent multiple instances of the program from running concurrently.
+# https://docs.ansible.com/ansible/latest/collections/ansible/builtin/iptables_module.html
+iptables_lock_wait: '4'
+
+# Default INPUT chain behavior, e.g. ACCEPT, DROP
+iptables_default_input_chain_behavior: ACCEPT
+
+# (optional) Default FORWARD chain behavior, e.g. ACCEPT, DROP
+iptables_default_forward_chain_behavior:
+# Default ANSIBLE_MANAGED chain behavior, e.g. ACCEPT, RETURN
+iptables_default_ansible_managed_chain_behavior: ACCEPT
+
+# List of ports for each instance type.
+# NOTE: The string 'nn' is automatically replaced with the SAP application's instance number if present. The string 'nx' is automatically
+#       replaced with the instance number + 1. This comes from the following SAP documentation: https://help.sap.com/viewer/ports
+application_variants:
+  # Used for instances when 'firewall_preset_selection' is left as default.
+  default:
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+    udp:
+      src: []
+      dest: []
+  # Default ports for IBP.
+  default_ibp:
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+    udp:
+      src: []
+      dest: []
+  # Default ports for SAC.
+  default_sac:
+    tcp:
+      src:
+        - 22
+        - 80
+        - 443
+        - 4300
+        - 8000
+        - 8300
+        - 8080
+        - 8301
+        - 8302
+        - 8834 # Used by Tenable Nessus Agent
+        - 9998
+        - 30015
+      dest:
+        - 22
+        - 443
+        - 4300
+        - 8000
+        - 8300
+        - 8080
+        - 8301
+        - 8302
+        - 8834 # Used by Tenable Nessus Agent
+        - 9998
+        - 30015
+    udp:
+      src:
+        - 123
+        - 8301
+        - 8302
+      dest:
+        - 8301
+        - 8302
+
+  # Used for instances running the SAP Business Objects (BOBJ).
+  bobj: # See: https://launchpad.support.sap.com/#/notes/0002423420 - List of default ports used in BI Platform
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+        - 6400 # Central Management Server (CMS Name Server port)
+        - 6410 # Server Intelligence Agent (SIA)
+        - 6405 # Web Application Container Server (WACS)
+        - 8080 # Apache Tomcat Web Application Server (Tomcat)
+        - 8443 # Apache Tomcat Web Application Server (Tomcat)
+    udp:
+      src: []
+      dest: []
+  # Used for instances running the SAP Business Objects (BOBJ).
+  bobj_bip: # See: https://launchpad.support.sap.com/#/notes/0002423420 - List of default ports used in BI Platform
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+        - 6400 # Central Management Server (CMS Name Server port)
+        - 6410 # Server Intelligence Agent (SIA)
+        - 6405 # Web Application Container Server (WACS)
+        - 8080 # Apache Tomcat Web Application Server (Tomcat)
+        - 8443 # Apache Tomcat Web Application Server (Tomcat)
+    udp:
+      src: []
+      dest: []
+  # Used for instances running CloudConnector SAP instances.
+  cloudconnector:
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+        - 80
+        - 443
+        - 8080
+        - 8443
+    udp:
+      src: []
+      dest: []
+  # Used for instances running CPIDS SAP instances.
+  cpids:
+    tcp:
+      src:
+        - 22
+        - 443 # Not completely sure. Noticed in logs.
+        - 2049 # Not completely sure. See: https://blogs.sap.com/2015/08/06/sap-network-port-arena/
+        - 389 # Used by sssd.
+      dest:
+        - 22
+        - 1128
+        - 1129
+        - 43nn
+        - 80nn
+        - 3nn00:3nn10
+        - 3nx01:3nx05
+        - 3nx07
+        - 3nn13:3nn15
+        - 3nn17
+        - 3nn19
+        - 3nn25
+        - 3nn29:3nn33
+        - 3nn40
+        - 3nn42
+        - 3nn40:3nn97
+        - 3nn40:3nn99
+        - 3nx40:3nx99
+        - 3nn41
+        - 4nn01
+        - 4nn02
+        - 4nn06
+        - 4nn14
+        - 4nn40:4nn97
+        - 5nn13
+        - 5nn14
+        - 50000:50999
+        - 50001 # As per our IBP environment specifics
+        - 51000:51500
+    udp:
+      src: []
+      dest: []
+  # Used for instances running the SAP Data Services.
+  data_services:
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+        - 3500 # Job Server port or TCP/IP port
+        - 4000 # Access Server
+        - 4010 # APS Listener port
+        - 4011 # APS JMX Connector
+        - 4012 # DS Listener port
+        - 4013 # DS JMX Connector
+        - 5001 # Debugger port
+        - 8005 # Apache Tomcat Web Application Server (Tomcat)
+        - 8080 # Apache Tomcat Web Application Server (Tomcat)
+    udp:
+      src: []
+      dest: []
+  # Used for instances running HANA database (SAP HANA Platform).
+  hana:
+    tcp:
+      src:
+        - 22
+        - 443 # Not completely sure. Noticed in logs.
+        - 2049 # Not completely sure. See: https://blogs.sap.com/2015/08/06/sap-network-port-arena/
+        - 389 # Used by sssd.
+      dest:
+        - 22
+        - 1128
+        - 1129
+        - 43nn
+        - 80nn
+        - 3nn00:3nn10
+        - 3nx01:3nx05
+        - 3nx07
+        - 3nn13:3nn15
+        - 3nn17
+        - 3nn19
+        - 3nn25
+        - 3nn29:3nn33
+        - 3nn40
+        - 3nn42
+        - 3nn40:3nn97
+        - 3nn40:3nn99
+        - 3nx40:3nx99
+        - 3nn41
+        - 4nn01
+        - 4nn02
+        - 4nn06
+        - 4nn14
+        - 4nn40:4nn97
+        - 5nn13
+        - 5nn14
+        - 50000:50999
+        - 51000:51500
+    udp:
+      src: []
+      dest: []
+  # Used for instances running HANA cockpit.
+  hanacockpit:
+    tcp:
+      src:
+        - 22
+        - 443 # Not completely sure. Noticed in logs.
+        - 389 # Used by sssd.
+      dest:
+        - 22
+        - 80
+        - 443
+        - 1128
+        - 1129
+        - 43nn
+        - 80nn
+        - 3nn00:3nn10
+        - 3nx01:3nx05
+        - 3nx07
+        - 3nn13:3nn15
+        - 3nn17
+        - 3nn19
+        - 3nn25
+        - 3nn29:3nn33
+        - 3nn40
+        - 3nn42
+        - 3nn40:3nn97
+        - 3nn40:3nn99
+        - 3nx40:3nx99
+        - 3nn41
+        - 4nn01
+        - 4nn02
+        - 4nn06
+        - 4nn14
+        - 4nn40:4nn97
+        - 5nn13
+        - 5nn14
+        - 50000:50999
+        - 51000:51500
+        - 51029 # Specific to HANA Cockpit.
+        - 51031 # Specific to HANA Cockpit.
+    udp:
+      src: []
+      dest: []
+  # Used for instances running the IBP App (Application Server ABAP).
+  ibpapp: # See: https://help.sap.com/viewer/ports and filter by 'Product Name' of 'Application Server ABAP'
+    tcp:
+      src:
+        - 22
+        - 100
+        - 443 # Not completely sure. Noticed in logs.
+        - 2049 # Not completely sure. See: https://blogs.sap.com/2015/08/06/sap-network-port-arena/
+        - 389 # Used by sssd.
+      dest:
+        - 22
+        - 32nn
+        - 33nn
+        - 36nn
+        - 48nn
+        - 80nn
+        - 81nn
+        - 443nn
+        - 444nn
+        - 50001 # As per our IBP environment specifics
+        - 5nn13
+        - 5nn14
+    udp:
+      src: []
+      dest: []
+  # Used for instances running the SAP Information Steward.
+  information_steward:
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+        - 5005 # Remote Job Server
+        - 6576 # DCA repo
+        - 8080 # Default WAS http
+        - 8443 # Default WAS https
+    udp:
+      src: []
+      dest: []
+  # Used for instances running the SAP Lumira.
+  lumira:
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+        - 6400 # Central Management Server (CMS Name Server port)
+        - 6401 # SAP Lumira Discovery
+        - 6405 # Web Application Container Server (WACS)
+        - 6410 # Server Intelligence Agent (SIA)
+        - 4520:4539
+    udp:
+      src: []
+      dest: []
+  # Used for instances running OpenVPN.
+  openvpn:
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+    udp:
+      src: []
+      dest:
+        - 1194
+
+  # Used for instances running OpenVPN.
+  concourse:
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+        - 8080
+        - 2222
+    udp:
+      src: []
+      dest: []
+  # Used for instances running the SAP App (Application Server ABAP).
+  sapapp_abap: # See: https://help.sap.com/viewer/ports and filter by 'Product Name' of 'Application Server ABAP'
+    tcp:
+      src:
+        - 22
+        - 100
+        - 443 # Not completely sure. Noticed in logs.
+        - 2049 # Not completely sure. See: https://blogs.sap.com/2015/08/06/sap-network-port-arena/
+        - 389 # Used by sssd.
+      dest:
+        - 22
+        - 32nn # Used by SAP GUI for Windows and Java
+        - 33nn # Used for CPIC and RFC communication
+        - 36nn # Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+        - 48nn # SNC secured for CPIC and RFC communication
+        - 80nn # ICM HTTP You can configure to port 80 after installation
+        - 81nn # Message server HTTP Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+        - 443nn # ICM HTTPS Must be configured after installation
+        - 444nn # Message server HTTPS Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+        - 5nn13 # On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50113
+        - 5nn14 # On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50114
+    udp:
+      src: []
+      dest: []
+  # Used for instances running the SAP App (Application Server JAVA).
+  sapapp_java: # See: https://help.sap.com/viewer/ports and filter by 'Product Name' of 'Application Server JAVA'
+    tcp:
+      src:
+        - 22
+        - 100
+        - 443 # Not completely sure. Noticed in logs.
+        - 2049 # Not completely sure. See: https://blogs.sap.com/2015/08/06/sap-network-port-arena/
+        - 389 # Used by sssd.
+      dest:
+        - 22
+        - 5nn00 # HTTP
+        - 5nn01 # HTTPS
+        - 5nn02 # IIOP initial context
+        - 5nn03 # IIOP over SSL
+        - 5nn04 # P4
+        - 5nn05 # P4 over HTTP tunneling : Relevant only for releases up to and including SAP NetWeaver 7.0x with Java Dispatcher
+        - 5nn06 # P4 over SSL
+        - 5nn07 # IIOP
+        - 5nn08 # Telnet
+        - 5nn10 # JMS : Relevant only for releases up to and including SAP NetWeaver 7.0x with Java Dispatcher
+        - 5nn13 # HTTP : On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50113.
+        - 5nn14 # HTTPS : On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50114.
+    udp:
+      src: []
+      dest: []
+  # Used for instances running SAP IQ
+  sapiq:
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+        - 4282 # HTTP
+        - 4283 # HTTPS
+        - 4992 # RMI
+        - 4998 # TDS
+    udp:
+      src: []
+      dest: []
+  # Used for instances running HashiCorp Vault.
+  vault:
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+        - 8200
+        - 8500
+    udp:
+      src: []
+      dest: []
+  postfix:
+    tcp:
+      src:
+        - 22
+      dest:
+        - 22
+        - 25 # SMTP
+        - 465 # SMTPS
+        - 587 # Submission
+    udp:
+      src: []
+      dest: []
+  # Used for instances running the SAP WebDispatcher application.
+  webdispatcher:
+    tcp:
+      src:
+        - 22
+        - 443 # Not completely sure. Noticed in logs.
+        - 2049 # Not completely sure. See: https://blogs.sap.com/2015/08/06/sap-network-port-arena/
+        - 81nn # Not completely sure. Noticed in logs and appears that it could be applicable according to: https://help.sap.com/viewer/ports and filter by 'Product Name' of 'Application Server ABAP'
+        - 389 # Used by sssd.
+      dest:
+        - 22
+        - 443nn # open up any other sids
+        - 44301:44303 # For IBP, inbound ports should always be 44301 for test, 44301 for dev, 44303 for production.
+    udp:
+      src: []
+      dest: []
+  gardener-shoot:
+    tcp:
+      src:
+        - 22
+        - 30000:32767
+        - 80
+        - 443
+        - 4300
+        - 8000
+        - 8300
+        - 8080
+        - 8301
+        - 8302
+        - 8834
+        - 9998
+        - 30015
+      dest:
+        - 22
+        - 30000:32767
+        - 443
+        - 4300
+        - 8000
+        - 8300
+        - 8080
+        - 8301
+        - 8302
+        - 8834
+        - 9998
+        - 30015
+    udp:
+      src:
+        - 30000:32767
+        - 123
+        - 8301
+        - 8302
+      dest:
+        - 30000:32767
+        - 8301
+        - 8302
+
+  # Application Variants for Tenable Products
+  security_center:
+    tcp:
+      src:
+        - 22
+        - 443
+      dest:
+        - 22
+        - 443
+    udp:
+      src: []
+      dest: []
+  nessus_manager:
+    tcp:
+      src:
+        - 22
+        - 8834
+      dest:
+        - 22
+        - 8834
+    udp:
+      src: []
+      dest: []
+...

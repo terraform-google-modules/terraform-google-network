@@ -1,0 +1,44 @@
+---
+# Description: Get the list of repositories to enable/disable via the 'application_preset_selection' value that
+#              was used to create the image that this system was created from.
+# Inputs:
+#   - repository_list_selected: (list) A list of repositories to enable/disable.
+# Outputs:
+#   - repository_list_selected: (list) A list of repositories to enable/disable.
+
+  - name: Check whether the file '/etc/ns2-release' exists
+    ansible.builtin.stat:
+      path: /etc/ns2-release
+    register: stat_ns2_release_file_output
+
+  - name: Check whether the file '/etc/scs-release' exists
+    ansible.builtin.stat:
+      path: /etc/scs-release
+    register: stat_scs_release_file_output
+
+  - name: Determine which image release file to use (either '/etc/ns2-release' or '/etc/scs-release')
+    ansible.builtin.set_fact:
+      custom_image_release_file: "{{ '/etc/ns2-release' if (stat_ns2_release_file_output.stat.exists | bool) else '/etc/scs-release' }}"
+    when: (stat_ns2_release_file_output.stat.exists | bool) or (stat_scs_release_file_output.stat.exists | bool)
+
+  - name: "[BLOCK] - Get the 'application_preset_selection' value from the file '{{ custom_image_release_file }}'"
+    block:
+      - name: Get the 'application_preset_selection' value from the file '{{ custom_image_release_file }}'
+        ansible.builtin.shell: cat {{ custom_image_release_file }} | grep -i 'application_preset_selection' | sed -E 's|^application_preset_selection="(.*)"$|\1|g'
+        changed_when: false
+        register: image_application_preset_selection_results
+
+    # NOTE: Added the 'difference( nonexistent_repositories )' filter to this task so that the role will not attempt to enable
+    #       repositories that do not exist for the given operating system (For example, 'rhel-7-server-eus-rpms' does not exist
+    #       for RHEL 7.9).
+
+      - name: Add the repositories associated with the image's 'application_preset_selection' value to the 'repository_list_selected' fact
+        ansible.builtin.set_fact:
+          repository_list_selected: "{{ repository_list_selected | default([], true) | union( repository_list[ ansible_distribution | lower + '_' + ansible_distribution_major_version\
+            \ ][ image_application_preset_selection_results.stdout ] | default([], true) ) | difference( nonexistent_repositories[ ansible_distribution\
+            \ | lower + '_' + ( latest_os_versions[ ansible_distribution | lower + '_' + ansible_distribution_major_version ] if repo_latest | bool else\
+            \ ansible_distribution_version ) ] | default([], true) ) }}"
+
+    when: custom_image_release_file is defined # End BLOCK
+
+...

@@ -1,0 +1,49 @@
+---
+########################################################################################################################
+########################################################################################################################
+# Description: Vector config file for:
+# - /usr/sap/*/J*/j2ee/cluster/server*/log/system/httpaccess/responses_*.trc
+#
+# Vector Output Name: sap_java_cluster_server_response__out
+#
+# Last Updated & Tested: 2022/02/03
+########################################################################################################################
+########################################################################################################################
+tests:
+  - name: sap.java.server.response::1
+    inputs:
+      - insert_at: cluster_server_system_response__sap_java_metadata
+        type: log
+        log_fields:
+          message: |
+            [Dec 3, 2020 6:00:55 AM   ] - 10.201.1.30 : POST /AdapterFramework/util/servlet/DeliveryServlet?target=ejb:localejbs/AF/JobDispatcherBean HTTP/1.1 404 1835 [3]
+    outputs:
+      - extract_from: sap_java_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(!exists(.err), "error field is present")
+              assert!(is_timestamp(.timestamp))
+              assert_eq!(parse_timestamp!("2020-12-03T06:00:55", "%Y-%m-%dT%H:%M:%S"), .timestamp, "timestamp parsing incorrect")
+
+  - name: sap.java.server.response::0 [filter file header]
+    no_outputs_from:
+      - sap_java_logs__out
+    inputs:
+      - insert_at: cluster_server_system_response__sap_java_metadata
+        type: log
+        log_fields:
+          message: |
+            <!--LOGHEADER[START]/-->
+            <!--HELP[Manual modification of the header may cause parsing problem!]/-->
+            <!--LOGGINGVERSION[2.0.7.1006]/-->
+            <!--NAME[./log/system/httpaccess/responses_00.trc]/-->
+            <!--PATTERN[responses_00.trc]/-->
+            <!--FORMATTER[com.sap.tc.logging.TraceFormatter([%25d] - %m)]/-->
+            <!--ENCODING[UTF8]/-->
+            <!--FILESET[0, 5, 10485760]/-->
+            <!--PREVIOUSFILE[responses_00.4.trc]/-->
+            <!--NEXTFILE[responses_00.1.trc]/-->
+            <!--ENGINEVERSION[7.50.3301.382056.20150709124709]/-->
+            <!--LOGHEADER[END]/-->
+...

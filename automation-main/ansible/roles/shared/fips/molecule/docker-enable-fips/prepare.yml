@@ -1,0 +1,20 @@
+---
+# Description: Molecule prepare.yml playbook used to prepare an environment created by the create.yml playbook for testing.
+
+  - name: Prepare
+    hosts: all
+    become: true
+    gather_facts: false
+    tasks:
+      - name: Ensure that the '/etc/default/' directory exists
+        file:
+          path: /etc/default
+          state: directory
+          mode: '0755'
+
+      - name: Ensure that the '/etc/default/grub' file exists
+        file:
+          path: /etc/default/grub
+          state: touch
+          mode: '0766'
+...

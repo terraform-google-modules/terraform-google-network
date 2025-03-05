@@ -1,0 +1,20 @@
+---
+# Description: Updates Jinja2
+# Inputs:
+#   - remove_pip: Whether to remove pip package
+# Outputs: Jinja2 updated to latest via pip
+# Comments: N/A
+
+  - name: Add pip
+    become: true
+    package:
+      state: present
+      name: python3-pip
+    notify: remove pip
+
+  - name: Update Jinja2
+    become: true
+    pip:
+      name: jinja2
+      state: latest
+...

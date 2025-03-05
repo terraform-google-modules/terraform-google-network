@@ -1,0 +1,17 @@
+[Unit]
+Description=Watchman for user %i
+After=remote-fs.target
+Conflicts=shutdown.target
+
+[Service]
+ExecStart=/usr/local/bin/watchman --foreground --inetd
+ExecStop=pkill -u %i -x watchman
+Restart=on-failure
+User=%i
+Group=users
+StandardInput=socket
+StandardOutput=syslog
+SyslogIdentifier=watchman-%i
+
+[Install]
+WantedBy=multi-user.target

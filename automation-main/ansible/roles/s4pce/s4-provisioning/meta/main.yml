@@ -1,0 +1,16 @@
+galaxy_info:
+  role_name: s4_provisioning
+  namespace: ns2
+  author: louis lee
+  description: devops engineer
+  company: sap ns2
+
+  issue_tracker_url: https://gitlab.core.sapns2.us/golden-ami-dev/ansible-roles/issues
+
+  license: BSD
+
+  min_ansible_version: 2.9
+
+  galaxy_tags: []
+
+dependencies: []

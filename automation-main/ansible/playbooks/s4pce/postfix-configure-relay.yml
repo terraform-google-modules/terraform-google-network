@@ -1,0 +1,95 @@
+---
+# Playbook Name: postfix-configure-relay.yml
+#
+# Synopsis: Configures postfix to send outbound email through an email relay.
+#
+# Description: This playbook configures postfix to send all outbound email through an email relay.
+#
+# Variables:
+#
+# - postfix_relay_smtp_address: the address/ip of the relay host
+# - postfix_relay_smtp_port: the port of the relay host (default: 25)
+# - postfix_relay_username: the username to authenticate with
+# - postfix_relay_password: the password to authenticate with
+# - postfix_relay_valid_from: What is considered a valid MAIL FROM.
+#     Example: *@example.com
+# - postfix_relay_valid_recipients: List of what is considered a valid RCPT TO.
+#     Example: ['*@example.net']
+# - postfix_relay_valid_networks: List of valid networks that are allowed unfettered relay access
+#     Example: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
+#
+# For more variables, please see postfix-relay/defaults/main.yml
+
+# Dependencies:
+#   - Ansible v2.9
+#   - RHEL 7/8
+#   - SMTP credentials (Created in the AWS Console for example).
+#   - Verified domain or email address if using AWS SES (Outbound email must be sent from a verified email address or domain).
+#
+# Variables:
+#
+# Example:
+#   configure mail relay:
+#     ansible-playbook -i mail.sms.cre.sapns2.internal, playbooks/postfix-configure-relay.yml -e "@roles/postfix-relay/vars/businesses/sms-cre/ses.yml"
+#   configure mail application:
+#     ansible-playbook -i 10.0.0.10, playbooks/postfix-configure-relay.yml -e postfix_relay_smtp_address="mail.sms.cre.sapns2.internal"
+#
+# Authors: Bert JW Regeer, Matt Bittner, Louis Lee
+# Version: 2.9-000008
+# Modified: 2019-12-10 - created playbook
+#           2020-01-24 - Fixed issue with SMTP creds file.
+#           2020-02-03 - Added ability to define generic map translations
+#           2020-09-30 - Made some fixes and allow pulling variables from vault
+#           2020-10-08 - Rewrote playbook completely to use new role
+#           2020-11-21 - Added repository management and cloudwatch
+#           2020-11-24 - Added some tags
+#           2021-02-13 - Update to support new Repo-Management role
+
+  - hosts: all
+
+    pre_tasks:
+      - name: Run the 'vault-auth' role to pull secrets from Vault
+        include_role:
+          name: vault-auth
+          apply:
+            become: false
+            tags:
+              - postfix
+        when: vault_secrets is defined and vault_secrets is not none
+        tags:
+          - postfix
+
+      - name: Run the 'repository-management' role to enable base repositories
+        include_role:
+          name: repository-management
+          apply:
+            tags:
+              - repoman
+        tags:
+          - repoman
+        vars:
+          application_preset_selection: ['base','epel']
+          repo_enable: 'true'
+
+    tasks:
+      - name: Configure Postfix with the relay settings
+        include_role:
+          name: postfix-relay
+          apply:
+            tags:
+              - postfix
+        tags:
+          - postfix
+
+      - name: Install AWS CloudWatch Agent
+        include_role:
+          name: aws-cloudwatch-agent
+          apply:
+            become: true
+            tags:
+              - cloudwatch-agent
+        vars:
+          application_preset_selection: postfix
+        tags:
+          - cloudwatch-agent
+...

@@ -1,0 +1,88 @@
+---
+# Playbook Name: s4-all-stop-start-hana.yml
+# Description: Find SAP services and perform start, stop, restart, status functions
+# Dependencies:
+#   - Ansible v2.9+
+#   - sudo capability or root privileges on target machine
+# Variables:
+#   - function: Function to perform (STATUS, STOP, START and RESTART)
+# Example:
+#   Execution on remote systems using the any inventory host file
+#     ansible-playbook -i <PATH-TO-INVENTORY> s4-all-stop-start-hana.yml -kK -e function=STATUS
+#     ansible-playbook -i <PATH-TO-INVENTORY> s4-all-stop-start-hana.yml -kK -e function=STOP
+#     ansible-playbook -i <PATH-TO-INVENTORY> s4-all-stop-start-hana.yml -kK -e function=START
+#     ansible-playbook -i <PATH-TO-INVENTORY> s4-all-stop-start-hana.yml -kK -e function=RESTART
+#
+# Authors: Curtis Hoffman, Naresh Awasthi
+# Version: 2.9-000002
+# Modified: 2023-01-04 - Initial playbook creation
+#           2023-05-15 - Updated tasks "Loop over sapservices var to get instances" to skip DAA
+# Comments: |
+#
+#
+
+- name: Manage Hana Service
+  hosts: all
+  gather_facts: false
+
+  vars:
+    function: "STATUS"
+
+  tasks:
+    - name: Check if valid SAP Hana function
+      ansible.builtin.fail:
+        msg: "Invalid function, valid functions are STATUS, STOP, START and RESTART"
+      when: 'function not in "STATUS STOP START RESTART"'
+
+    - name: Get contents of /usr/sap/sapservices
+      ansible.builtin.command: cat /usr/sap/sapservices
+      register: sapservices
+
+    - name: Loop over sapservices var to get instances
+      ansible.builtin.set_fact:
+        instances: >
+          {{ instances | default([]) + [{'user': item | regex_search('-u\s(\w+)', '\1') | first, 'sid': item | regex_search('pf=.*$') | regex_search('\/\w+/\w+/(\w+)', '\1') | first | lower, 'instance_nr': item | regex_search('pf=.*$') | regex_search('\/\w+/\w+/\w+/\w+/\w+/(\w+)', '\1') | first | regex_search('_(\w+)_', '\1') | first | regex_search('\d\d')}] }}
+      loop: "{{ sapservices.stdout_lines }}"
+      when:
+         - item | regex_search('pf=.*$') is not none
+         - "'pf=/usr/sap/DAA' not in item"
+
+    - name: Get Hana Status
+      ansible.builtin.command: "/usr/sap/{{ item.sid | upper }}/HDB{{ item.instance_nr }}/exe/sapcontrol -nr {{ item.instance_nr }} -function GetProcessList"
+      become: true
+      become_user: "{{ item.user }}"
+      register: sapcontrol_status
+      failed_when: false
+      loop: "{{ instances }}"
+      when: "function == 'STATUS'"
+
+    - name: Start Hana Service
+      ansible.builtin.command: "/usr/sap/{{ item.sid | upper }}/HDB{{ item.instance_nr }}/exe/sapcontrol -nr {{ item.instance_nr }} -function StartSystem"
+      become: true
+      become_user: "{{ item.user }}"
+      register: sapcontrol_start
+      failed_when: false
+      loop: "{{ instances }}"
+      when: "function == 'START'"
+
+    - name: Stop Hana Service
+      ansible.builtin.command: "/usr/sap/{{ item.sid | upper }}/HDB{{ item.instance_nr }}/exe/sapcontrol -nr {{ item.instance_nr }} -function StopSystem"
+      become: true
+      become_user: "{{ item.user }}"
+      register: sapcontrol_stop
+      failed_when: false
+      loop: "{{ instances }}"
+      when: "function == 'STOP'"
+
+    - name: Restart Hana Service
+      ansible.builtin.command: "/usr/sap/{{ item.sid | upper }}/HDB{{ item.instance_nr }}/exe/sapcontrol -nr {{ item.instance_nr }} -function StopSystem; /usr/sap/{{ item.sid | upper }}/HDB{{ item.instance_nr }}/exe/sapcontrol -nr {{ item.instance_nr }} -function StartSystem"
+      become: true
+      become_user: "{{ item.user }}"
+      register: sapcontrol_restart
+      failed_when: false
+      loop: "{{ instances }}"
+      when: "function == 'RESTART'"
+
+    - name: Display sapcontrol output
+      ansible.builtin.debug:
+        msg: "{{ vars['sapcontrol_' + function | lower] | default(omit) | json_query('results[*].{instance: item,stdout_lines: stdout_lines}') }}"

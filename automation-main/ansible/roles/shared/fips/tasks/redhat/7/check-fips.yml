@@ -1,0 +1,38 @@
+---
+# Synopsis: Checks for FIPS status on RHEL 7
+# Outputs:
+#   - fips_state
+#   - boot_uuid
+#   - initrd_file_path
+
+  - name: Determine if FIPS is enabled
+    shell: sysctl crypto.fips_enabled | tail -c 2
+    become: true
+    register: fips_state_output
+    changed_when: false
+
+  - name: Set Fact fips_state
+    set_fact:
+      fips_state: '{{fips_state_output.stdout|bool}}'
+
+  - name: Determine uuid for boot volume
+  # Doing it this way until I can figure out how to do lookup properly.
+    shell: findmnt -no uuid /boot
+    become: true
+    register: boot_uuid_output
+    changed_when: false
+
+  - name: Set Fact boot_uuid
+    set_fact:
+      boot_uuid: '{{boot_uuid_output.stdout}}'
+
+  - name: Determine Kernel Release
+    shell: uname -r
+    register: kernel_release_output
+    changed_when: false
+
+  - name: Set Fact initrd_file_path
+  # if we use dracut -f we probably don't need this.
+    set_fact:
+      initrd_file_path: /boot/initramfs-{{kernel_release_output.stdout}}.img
+...

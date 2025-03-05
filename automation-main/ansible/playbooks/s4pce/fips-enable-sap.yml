@@ -1,0 +1,262 @@
+---
+# Description: Enables FIPS in HANA and ABAP on the application level
+#
+# Prerequisites:
+#   - Ansible 2.9+
+#   - Requires use of the desired customer inventory file
+#
+# Inputs: variables pulled directly from specified inventory file
+#   - spr_hostname
+#   - spr_nodetype
+#   - spr_sid
+#
+# Outputs:
+#  - Enables FIPS on the application level for SAP ABAP and JAVA stack applications and SAP HANA databses.
+#
+# Comments:
+#   - Requires use of the desired customer inventory file
+#
+# Example:
+#   ansible-playbook $ansibleroot/playbooks/fips-enable-sap.yml -i $ansibleroot/roles/spr/vars/business/s4pce/cre-support0001.yml
+#
+# Author: Nicholas Thompson, Jian Ouyang
+# Version: 2.09-000006
+# Modified: 2021-10-19 - Created
+#           2022-01-25 - Renamed from fips-abap-db-enable.yml to fips-enable-sap.yml
+#           2022-06-16 - Update targeted hosts to exclude non-ABAP applications
+#           2022-06-27 - Bugfix, including spr_productname in dynamic group assignment and removing MII from app section
+#           2022-07-08 - Ignore non_spr products
+#           2022-08-03 - Force case sensitivity
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype | default('undefined') | lower }}"
+    - "{{ spr_hostname | default('undefined') | lower }}"
+    - "{{ spr_sid | default('undefined') | lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Verify FIPS on HANA and ABAP"
+  gather_facts: false
+  hosts: app:db
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Retrieve contents of 'fips_enabled' file"
+    command: "cat /proc/sys/crypto/fips_enabled"
+    register: fips_enable_file_output
+
+  - name: "Verify if FIPS has been enabled"
+    assert:
+      that: "'0' not in fips_enable_file_output.stdout"
+      fail_msg: fips_enabled file shows 0. FIPS NOT enabled
+      success_msg: fips_enabled file shows 1. FIPS enabled
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Start HANA"
+  gather_facts: false
+  hosts: db:!non_spr
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Call hana-start playbook within SPR role"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: operations/hana-start.yml
+    vars:
+      spr_hana_start_sid: "{{ spr_sid|upper }}"
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Stop App"
+  gather_facts: false
+  hosts: access_control:attp:bw4hana:bw4hana_addons:bw4hana_bpc:bwnetweaver:car:crm:ehp7_erp:ehp8_erp:fiori_carab:fiori_fes:gts:ilm:optimizer:payroll:s4hana:s4hana_addons:s4hana_foundation:s4hana_livecache:scm:slt:tm:&app
+  any_errors_fatal: true
+  tags:
+  - play3
+  - stop_app
+
+  tasks:
+  - name: "Get Process list"
+    shell: 'sapcontrol -nr 00 -function GetProcessList ALL'
+    args:
+      executable: '/bin/csh'
+    become: true
+    become_user: "{{ spr_sid | lower }}adm"
+    failed_when: false
+    changed_when: false
+    register: sapapp_process_output
+
+  - name: "Check if SAPAPP is already stopped"
+    assert:
+      that: "'GREEN' not in sapapp_process_output.stdout"
+      fail_msg: "SAPAPP process detected. Stopping in next block"
+      success_msg: "SAPAPP is already stopped. Skipping next block"
+    changed_when: false
+    failed_when: false
+
+  - name: "BLOCK: Stop SAPAPP"
+    become: true
+    become_user: "{{ spr_sid | lower }}adm"
+    when: "'GREEN' in sapapp_process_output.stdout"
+    block:
+    - name: "Stopping SAPAPP"
+      shell: 'sapcontrol -nr 00 -function StopSystem ALL'
+      args:
+        executable: '/bin/csh'
+      failed_when: false
+
+    - name: "Wait for process to stop"
+      shell: 'sapcontrol -nr 00 -function GetProcessList ALL'
+      args:
+        executable: '/bin/csh'
+      failed_when: false
+      changed_when: false
+      register: sapapp_poststop_process_output
+      retries: 5
+      delay: 10
+      until: |
+        'GREEN' not in sapapp_poststop_process_output.stdout
+
+    - name: "Output post-stop processes"
+      debug:
+        var: sapapp_poststop_process_output.stdout_lines
+    # End "BLOCK: Stop SAPAPP"
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Enable FIPS for Database"
+  gather_facts: false
+  hosts: db:!non_spr
+
+  tasks:
+  - name: "Update ini file"
+    become: true
+    become_user: "{{ spr_sid | lower }}adm"
+    lineinfile:
+      path: "/usr/sap/{{ spr_sid | upper }}/SYS/global/hdb/custom/config/global.ini"
+      state: present
+      line: "{{ item }}"
+    with_items:
+      - "\n[cryptography]"
+      - "ccl_fips_enabled=true"
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: Enable FIPS for ABAP App"
+  gather_facts: false
+  hosts: access_control:attp:bw4hana:bw4hana_addons:bw4hana_bpc:bwnetweaver:car:crm:ehp7_erp:ehp8_erp:fiori_carab:fiori_fes:gts:ilm:optimizer:payroll:s4hana:s4hana_addons:s4hana_foundation:s4hana_livecache:scm:slt:tm:&app
+
+  tasks:
+  - name: "Update Configuration File"
+    become: true
+    become_user: "{{ spr_sid | lower }}adm"
+    lineinfile:
+      path: "/sapmnt/{{ spr_sid | upper }}/profile/{{ spr_sid | upper }}_D00_{{ spr_hostname|lower }}"
+      line: "ccl/fips/enable = 1"
+      state: present
+    when: spr_productname != "solman_abap"
+
+  - name: "Update Configuration File"
+    become: true
+    become_user: "{{ spr_sid | lower }}adm"
+    lineinfile:
+      path: "/sapmnt/{{ spr_sid | upper }}/profile/{{ spr_sid | upper }}_DVEBMGS00_{{ spr_hostname|lower }}"
+      line: "ccl/fips/enable = 1"
+      state: present
+    when: spr_productname == "solman_abap"
+
+#################
+##### Play6 #####
+#################
+- name: "Play6: Restart DB"
+  gather_facts: false
+  hosts: db:!non_spr
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Restarting DB"
+    become: true
+    become_user: "{{ spr_sid | lower }}adm"
+    shell: 'HDB restart'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+
+  - name: "Wait a few seconds for the restart process to start"
+    pause:
+      seconds: 5
+
+  - name: "Wait for process to restart"
+    become: true
+    become_user: "{{ spr_sid | lower }}adm"
+    shell: 'sapcontrol -nr 00 -function GetProcessList ALL'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+    changed_when: false
+    register: db_restart_process_output
+    retries: 15
+    delay: 10
+    until: |
+      'YELLOW' not in db_restart_process_output.stdout and
+      'GRAY' not in db_restart_process_output.stdout
+
+#################
+##### Play7 #####
+#################
+- name: "Play6: Start App"
+  gather_facts: false
+  hosts: access_control:attp:bw4hana:bw4hana_addons:bw4hana_bpc:bwnetweaver:car:crm:ehp7_erp:ehp8_erp:fiori_carab:fiori_fes:gts:ilm:optimizer:payroll:s4hana:s4hana_addons:s4hana_foundation:s4hana_livecache:scm:slt:tm:&app
+  any_errors_fatal: true
+  tags:
+  - play7
+  - start_app
+
+  tasks:
+  - name: "Starting App"
+    become: true
+    become_user: "{{ spr_sid | lower }}adm"
+    shell: 'sapcontrol -nr 00 -function StartSystem ALL'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+
+  - name: "Wait for process to start"
+    become: true
+    become_user: "{{ spr_sid | lower }}adm"
+    shell: 'sapcontrol -nr 00 -function GetProcessList ALL'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+    changed_when: false
+    register: app_start_process_output
+    retries: 10
+    delay: 10
+    until: |
+      'YELLOW' not in app_start_process_output.stdout and
+      'GRAY' not in app_start_process_output.stdout
+...

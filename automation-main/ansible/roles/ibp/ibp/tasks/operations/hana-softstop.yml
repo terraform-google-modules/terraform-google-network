@@ -1,0 +1,58 @@
+---
+# Synopsis: Does a software stop of HANA DB
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+# Outputs: Stopped HANA DB
+# Comments: Please see the hana-hardstop for a complete stop
+
+- name: "Get Process list"
+  shell: 'sapcontrol -nr 02 -function GetProcessList'
+  args:
+    executable: '/bin/csh'
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  failed_when: false
+  changed_when: false
+  register: hdb_process_output
+
+- name: "Check if HANA DB is already stopped"
+  assert:
+    that: "'GREEN' not in hdb_process_output.stdout"
+    fail_msg: HANA DB process detected. Stopping in next block
+    success_msg: "Hana DB is already stopped. Skipping next block"
+  changed_when: false
+  failed_when: false
+
+- name: "BLOCK: Stop HANA DB"
+  block:
+  - name: "Stopping HANA DB"
+    shell: 'HDB stop'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+
+  - name: "Get Process list after stop"
+    shell: 'sapcontrol -nr 02 -function GetProcessList'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+    changed_when: false
+    register: hdb_poststop_process_output
+
+  - name: "Validate HANA DB Stop"
+    assert:
+      that: "'GREEN' not in hdb_poststop_process_output.stdout"
+      fail_msg: |
+        HANA DB did not stop
+         {{ hdb_poststop_process_output.stdout_lines }}
+      success_msg: HANA DB Stopped
+
+  - name: "Output post-stop processes"
+    debug:
+      var: hdb_poststop_process_output.stdout_lines
+
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  when: "'GREEN' in hdb_process_output.stdout"
+  # End "BLOCK: Stop HANA DB"
+...

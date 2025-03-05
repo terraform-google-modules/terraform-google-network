@@ -1,0 +1,29 @@
+---
+tests:
+  - name: sap.trace.sapstartsrv::1
+    inputs:
+      - insert_at: trace_sapstartsrv_metadata
+        type: log
+        log_fields:
+          message: |
+            [Thr 140687727666944] Tue Oct 12 20:39:53 2021
+            Instance status:
+            hdbdaemon, HDB Daemon, GREEN, Running, 2021 10 12 20:39:16, 0:00:37, 21527
+            hdbcompileserver, HDB Compileserver, GREEN, Running, 2021 10 12 20:39:29, 0:00:24, 21766
+            hdbdiserver, HDB Deployment Infrastructure Server-HBD, GREEN, Running, 2021 10 12 20:39:46, 0:00:07, 22392
+            hdbindexserver, HDB Indexserver-HBD, GREEN, Running, 2021 10 12 20:39:30, 0:00:23, 21818
+            hdbnameserver, HDB Nameserver, GREEN, Running, 2021 10 12 20:39:17, 0:00:36, 21545
+            hdbpreprocessor, HDB Preprocessor, GREEN, Running, 2021 10 12 20:39:29, 0:00:24, 21769
+            hdbwebdispatcher, HDB Web Dispatcher, GREEN, Running, 2021 10 12 20:39:46, 0:00:07, 22395
+            hdbxsengine, HDB XSEngine-HBD, GREEN, Running, 2021 10 12 20:39:30, 0:00:23, 21821
+    outputs:
+      - extract_from: sap_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!(parse_timestamp!("2021-10-12T20:39:53-07:00", "%Y-%m-%dT%H:%M:%S%:z"), .timestamp, "timestamp parsing incorrect")
+              assert_eq!("/usr/sap/trace/sapstartsrv", .metadata.custom.log_group, "incorrect log group")
+              assert_eq!("app", .metadata.custom.index.suffix, "incorrect index")
+              assert_eq!("app:sap_trace_sapstartsrv", .metadata.sourcetype, "incorrect sourcetype")
+...

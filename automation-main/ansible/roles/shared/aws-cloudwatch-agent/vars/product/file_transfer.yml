@@ -1,0 +1,16 @@
+---
+# List of file-transfer specific logs
+# When 'file_transfer' is passed as the application_preset_selection, this group will be substituted for 'logs'
+
+logs_file_transfer:
+  - file_path: /var/log/file_transfer/events.log
+    log_group_name: /var/log/file_transfer/events
+  - file_path: /var/log/file_transfer/notifications.log
+    log_group_name: /var/log/file_transfer/notifications
+  - file_path: /var/log/file_transfer/s3_migration.log
+    log_group_name: /var/log/file_transfer/s3_migration
+  - file_path: /var/log/amazon/efs/mount.log
+    log_group_name: /var/log/amazon/efs/mount
+  - file_path: /var/log/amazon/efs/mount-watchdog.log
+    log_group_name: /var/log/amazon/efs/mount-watchdog
+...

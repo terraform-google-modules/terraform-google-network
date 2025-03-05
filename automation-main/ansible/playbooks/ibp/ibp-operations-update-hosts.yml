@@ -1,0 +1,81 @@
+---
+# Playbook Name: ibp-operations-update-hosts.yml
+# Description: Update hostname and host files across IBP Systems
+# Dependencies:
+#   - Ansible v2.9+
+#   - AWS CLI v1.16+
+#   - sudo capability or root privileges on target machine
+#   - ibp ansible role
+# Variables: N/A
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-operations-update-hosts -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>
+#
+# Example
+#   Only run provisioning  on only webdispatcher
+#     ansible-playbook ibp-operations-update-hosts -k -i /tmp/hosts -l webdispatcher
+#
+# Authors: Louis Lee
+# Version: 2.9-000001
+# Modified: 2020-10-12 - Created playbook
+#
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Play Tags:
+#     play1                    : Sets Hostfile, Hostname
+#   - play-end always the-end  : The End
+
+#################
+##### Play1 #####
+#################
+- name: "Play1:  Set Hostname and Hostfile"
+  hosts: all
+  tags:
+  - play1
+  any_errors_fatal: yes
+
+  vars_prompt:
+  - name: play_hostfile_fqdn
+    prompt: "What is the dns fqdn of the IBP Systems? (ibp.cre.sapns2.internal | ibp.sapns2.us)"
+    default: "ibp.sapns2.us"
+    private: no
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  tasks:
+  - name: "Set the host file"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hostfile-install.yml
+    vars:
+      hostfile_fqdn: "{{ play_hostfile_fqdn }}"
+
+  - name: Set the Hostname
+    become: true
+    hostname:
+      name: "{{ ibp_hostname }}"
+
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    debug:
+      msg: "Of the world as we know it"
+...

@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  role_name: repository_management
+  namespace: ns2
+  author: Matt Bittner (i869415)
+  description: This role enables repositories on an Ubuntu or RHEL system that pull from NS2 repository S3 buckets.
+  company: SAP NS2
+
+  issue_tracker_url: https://gitlab.core.sapns2.us/golden-ami-dev/ansible-roles/issues
+
+  license: BSD
+
+  min_ansible_version: 2.9
+
+  galaxy_tags:
+    - repository
+    - repositories
+    - yum
+    - dnf
+    - apt
+
+dependencies: []
+...

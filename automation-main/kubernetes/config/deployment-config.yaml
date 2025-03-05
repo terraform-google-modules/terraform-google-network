@@ -1,0 +1,55 @@
+# deploymentConfig:
+#   - customer: customer1
+#     appName: sftp
+#     deploymentName: sftpgo
+#     namespace: sftp-customer1
+#     values:
+#       vaultPath: "example/dev/gardener/customer1/sftp"
+#       sftpgo:
+#         fullnameOverride: 'customer1-sftp'
+#         nameOverride: 'customer1-sftp'
+#         # config:
+#         services:
+#           public:
+#             annotations:
+#               dns.gardener.cloud/dnsnames: sftp.custom.example.dev.scs.sap
+#         ui:
+#           ingress:
+#             annotations:
+#               dns.gardener.cloud/dnsnames: sftp-ui.custom.example.dev.scs.sap
+#             hosts:
+#               - host: sftp-ui.custom.example.dev.scs.sap
+#                 paths:
+#                   - path: /
+#                     pathType: ImplementationSpecific
+#             tls:
+#             - secretName: sftpgo-ui-tls
+#               hosts:
+#                 - sftp-ui.custom.example.dev.scs.sap
+  # - customer: customerl2
+  #   appName: sftp
+  #   deploymentName: sftpgo
+  #   namespace: sftp-customerl2
+  #   values:
+  #     vaultPath: "example/dev/gardener/customerl2/sftp"
+  #     sftpgo:
+  #       fullnameOverride: 'customerl2-sftp'
+  #       nameOverride: 'customerl2-sftp'
+  #       # config:
+  #       services:
+  #         public:
+  #           annotations:
+  #             dns.gardener.cloud/dnsnames: sftp6.custom.example.dev.scs.sap
+  #       ui:
+  #         ingress:
+  #           annotations:
+  #             dns.gardener.cloud/dnsnames: sftp6-ui.custom.example.dev.scs.sap
+  #           hosts:
+  #             - host: sftp6-ui.custom.example.dev.scs.sap
+  #               paths:
+  #                 - path: /
+  #                   pathType: ImplementationSpecific
+  #           tls:
+  #           - secretName: sftpgo-ui-tls
+  #             hosts:
+  #               - sftp6-ui.custom.example.dev.scs.sap

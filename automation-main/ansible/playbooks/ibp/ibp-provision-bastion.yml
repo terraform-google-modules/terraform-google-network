@@ -1,0 +1,258 @@
+---
+# Playbook Name: ibp-provision-bastion.yml
+# Description: Provisions a new instance to be a bastion server
+#   Leverages a number of exiting roles to ensure a securely configured system
+# Dependencies:
+#   - Ansible v2.9.19+
+#   - Ansible NFS Role
+#   - Ansible Bastion Role
+#   - Bastion Deployed on RHEL8
+#   - AWS IAM role with permissions similar to AmazonEC2ReadOnlyAccess and CloudWatchAgentServerPolicy
+#   - IAM Permissions:
+#     - ec2:DescribeInstances - (Play1: Bastion Name Tagging)
+#     - SNS:ListTopics - (Play2)
+#     - SNS:GetTopicAttributes - (Play2)
+#     - SNS:ListSubscriptions - (Play2)
+#     - SNS:TagResource - (Play2)
+#     - SNS:UntagResource - (Play2)
+#     - cloudwatch:PutMetricAlarm - (Play2)
+#     - cloudwatch:DescribeAlarms - (Play2)
+#     - ec2:DescribeImages - (Play2)
+#     - ec2:CreateTags - (Play2)
+#
+# Variables:
+#
+# Example:
+#    ansible-playbook ibp-provision-bastion.yml -i 10.0.0.1,
+# Authors: Alijohn Ghassemlouei
+# Version: 2.9-000017
+# Modified: 2020-03-01 - Created
+#           2020-04-07 - Updated terraform version.
+#           2020-04-07 - Fixed stig steps so that it won't apply all stigs.
+#           2020-04-07 - Remove redundant cloudwatch agent roles (called by cloudwatch alarms)
+#           2020-04-07 - set repo call to become:false will error when executing otherwise.
+#           2020-04-13 - Remove global become
+#           2020-04-17 - Moving tasks to align with other bastion playbooks
+#           2020-04-20 - Sets callback to profile tasks, unsorted, no limit
+#           2020-05-12 - Fixed non-root able to write to /var/log/ansible.log
+#           2020-06-22 - Excluding /staging from clamav executions due to nfs/efs mount
+#           2020-06-26 - Fix duplicate post task key
+#           2020-09-04 - Removed relative paths in include_role
+#           2020-10-21 - Support for tfenv, jinja2 upgrade, and slight refactor/reorder
+#           2020-12-15 - Added Cron entries for EBS cleanup and Git Updates. Removed global apply for aws-cloudwatch
+#           2020-12-30 - Refactored to use Bastion Role.
+#           2021-02-13 - Update to support new Repo-Management role
+#           2021-03-22 - Updated usage of the 'rhel7-disa-stig' role.
+#           2021-04-02 - Add Staging mount, selection between ibp accounts, other minor tweaks
+#           2021-04-22 - Removed folder root from nfs mount as it is now defaulted by the role and a separate input parameter when customizing
+#           2021-11-10 - Updating STIG variable names.
+#           2024-12-02 - Use variable for 'aws_region' in tag-management role.
+
+# Comments:
+#   Bastion to be deployed on rhel8
+#
+#   git-clone-ansible-roles playbook should be run at least once on new bastions.
+#
+#   Play Tags:
+#     play0 always                        : Gather Metadata
+#     play1 provisioning                  : Bastion Provisioning
+#     play2 staging                       : EFS Common Staging Mount
+#     play3 stig                          : Apply DISA STIGs
+#     play4 post-provisioning monitoring  : Bastion Post Tasks and Monitoring
+#     playEND always                      : End of the playbook
+
+
+#################
+##### Play0 #####
+#################
+  - name: 'Play0: Gather Metadata'
+    hosts: all
+    gather_facts: true
+    tags:
+      - always
+    vars:
+      fsid_dict:
+        cre: fs-bf67e8be
+        dev: fs-df67e8de
+        fedciv: fs-772f5676
+      bastion_dict:
+        cre: business/ibp.yml
+        dev: business/dev-ibp.yml
+        fedciv: business/ibp.yml
+
+    vars_prompt:
+      - name: ibp_account
+        prompt: Which 'ibp_account' are we in? (cre, dev, fedciv)
+        private: no
+        default: cre
+
+      - name: input_aws_region
+        prompt: What is the aws region?
+        private: false
+
+    pre_tasks:
+      - name: Stop if OS is not RHEL8
+        when: (ansible_distribution != 'RedHat' or ansible_distribution_major_version != '8')
+        fail:
+          msg: Bastion OS is not RHEL8
+
+    tasks:
+      - name: Fail on invalid account selection
+        when: ibp_account not in ['cre','dev','fedciv']
+        fail:
+          msg: Please select a valid ibp account (cre, dev, fedciv)
+
+      - name: Save EFS FSID
+        set_fact:
+          global_efs_fsid: '{{ fsid_dict[ ibp_account ] }}'
+          global_bastion_vars: '{{ bastion_dict[ ibp_account] }}'
+
+      - name: Save Input Variables for later playbook use.
+        set_fact:
+          playbook_aws_region: '{{ input_aws_region }}'
+
+#################
+##### Play1 #####
+#################
+  - name: 'Play1: Bastion Provisioning'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play1
+      - provisioning
+
+    pre_tasks:
+      - name: Configure Red Hat Repositories from S3
+        include_role:
+          name: repository-management
+        vars:
+          repo_enable: 'true'
+          application_preset_selection: [base, epel]
+
+
+    tasks:
+      - name: Provision Bastion
+        include_role:
+          name: bastion
+          vars_from: '{{ global_bastion_vars }}'
+
+#################
+##### Play2 #####
+#################
+  - name: 'Play2: EFS Common Staging Mount'
+    hosts: all
+    gather_facts: false
+    tags:
+      - play2
+      - staging
+
+    vars:
+      efs_file_system_id: '{{ global_efs_fsid }}'
+      efs_mount_dir: /staging
+
+    pre_tasks:
+      - name: Retrieve ec2 metadata
+        ec2_metadata_facts:
+
+    tasks:
+      - name: Mount EFS Staging
+        include_role:
+          name: nfs
+        vars:
+          nfs_dictionary:
+            staging:
+              path: '{{ efs_mount_dir }}'
+              src: '{{ efs_file_system_id }}.efs.{{ ansible_ec2_placement_region }}.amazonaws.com'
+
+
+#################
+##### Play3 #####
+#################
+  - name: 'Play3: Apply DISA STIGs'
+    hosts: all
+    become: false
+    tags:
+      - play3
+      - stig
+
+    tasks:
+      - name: Securely configure system against RHEL8 DISA STIG
+        include_role:
+          name: rhel8-disa-stig
+          apply:
+            become: true
+        vars:
+          DISA_STIG_RHEL_08_010200: true
+          DISA_STIG_RHEL_08_020020: true
+          var_accounts_max_concurrent_login_sessions: 3
+          sshd_idle_timeout_value: 900
+          var_sshd_client_alive_interval: 900
+
+
+#################
+##### Play4 #####
+#################
+  - name: 'Play4: Bastion Post Tasks and Monitoring'
+    hosts: all
+    become: false
+    tags:
+      - play4
+      - post-provisioning
+      - monitoring
+
+    tasks:
+      - name: Create AWS CloudWatch Alarms
+        include_role:
+          name: aws-cloudwatch-alarms
+        vars:
+          aws_topic_name: ibp-monitoring
+          cw_preset_selection: default
+
+      - name: Update iptables configuration
+        include_role:
+          name: iptables
+
+      - name: Update clamav configuration
+        include_role:
+          name: clamav
+        vars:
+          clamav_create_cron_schedule: true
+          clamav_dir_ignore_pattern: ^/hana/|^/dev/|^/usr/sap/|^/backup/|^/sys|^/proc|^/swap|^/staging
+
+      - name: Update aide configuration
+        include_role:
+          name: aide
+          apply:
+            become: true
+
+      - name: Retrieve ec2 metadata
+        ec2_metadata_facts:
+
+      - name: Update tags
+        include_role:
+          name: tag-management
+        vars:
+          aws_tag_business: ibp
+          aws_tag_product_name: bastion
+          aws_region: '{{ playbook_aws_region }}'
+
+###################
+##### PlayEND #####
+###################
+  - name: 'PlayEND: End of playbook'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play-end
+      - always
+      - the-end
+
+    tasks:
+      - name: This is the end
+        delegate_to: localhost
+        run_once: true
+        debug:
+          msg: Of the world as we know it
+...

@@ -1,0 +1,9 @@
+{% for url in monitor_urls %}
+[[inputs.http_response]]
+name_override = "{{ url.name }}"
+urls = {{ url.urls | to_json }}
+response_timeout = "{{ url.response_timeout if url.response_timeout is defined else '10s' }}"
+method = "{{ url.method if url.methd is defined else 'GET' }}"
+insecure_skip_verify = {{ url.insecure_skip_verify if url.insecure_skip_verify is defined else 'false' }}
+
+{% endfor %}

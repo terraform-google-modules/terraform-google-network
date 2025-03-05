@@ -1,0 +1,52 @@
+---
+# Synopsis: Does a software stop of Web Dispatcher
+# Inputs:
+# Outputs: Stopped Web Dispatcher
+
+- name: "Get Process list"
+  shell: 'sapcontrol -nr 01 -function GetProcessList'
+  args:
+    executable: '/bin/csh'
+  become: true
+  become_user: "n02adm"
+  failed_when: false
+  changed_when: false
+  register: webdispatcher_process_output
+
+- name: "Check if Web Dispatcher DB is already stopped"
+  assert:
+    that: "'GREEN' not in webdispatcher_process_output.stdout"
+    fail_msg: Web Dispatcher process detected. Stopping in next block
+    success_msg: "Web Dispatcher is already stopped. Skipping next block"
+  changed_when: false
+  failed_when: false
+
+- name: "BLOCK: Stop Web Dispatcher"
+  become: true
+  become_user: "n02adm"
+  when: "'GREEN' in webdispatcher_process_output.stdout"
+  block:
+  - name: "Stopping Web Dispatcher"
+    shell: 'sapcontrol -nr 01 -function StopSystem ALL'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+
+  - name: "Wait untill process stops"
+    shell: 'sapcontrol -nr 01 -function GetProcessList'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+    changed_when: false
+    register: webdispatcher_poststop_process_output
+    retries: 10
+    delay: 10
+    until: |
+      'GREEN' not in webdispatcher_poststop_process_output.stdout
+
+  - name: "Output post-stop processes"
+    debug:
+      var: webdispatcher_poststop_process_output.stdout_lines
+  # End "BLOCK: Stop Web Dispatcher"
+
+...

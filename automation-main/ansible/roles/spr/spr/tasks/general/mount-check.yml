@@ -1,0 +1,30 @@
+---
+# Synopsis: Validates Path exists
+# Inputs:
+#   - spr_mount_check_path: path to validate
+#   - spr_mount_check_size: Expected size in (GB) gigabytes of the mount. If set to 0, skips this check.
+#   - ansible_mounts : from ansible gather_facts
+# Outputs: Terminates script process on failure
+# Comments: requires `gather_facts: true` to validate the mount size
+
+- name: Get stats on path {{ spr_mount_check_path }}
+  become: true
+  stat:
+    path: "{{ spr_mount_check_path }}"
+  register: path_results
+
+- name: Validate the path {{ spr_mount_check_path }} exists
+  assert:
+    that: path_results.stat.size is defined
+    fail_msg: "Failed: Path {{ spr_mount_check_path }} doesn't exist"
+    success_msg: "Success: Path {{ spr_mount_check_path }} exists"
+
+- name: Validate the size of {{ spr_mount_check_path }}
+  when:
+    - spr_mount_check_size|int  > 0
+    - path_results.stat.isdir is defined
+  assert:
+    that: "{{ (spr_mount_check_size | int)*(10**9) < (ansible_mounts | selectattr('mount','eq', spr_mount_check_path) | list)[0].size_available | int }}"
+    fail_msg: "Failed: Mount {{ spr_mount_check_path }} is smaller than {{ spr_mount_check_size }}GB"
+    success_msg: "Success: Mount {{ spr_mount_check_path }} is larger than or equal to {{ spr_mount_check_size }}GB"
+...

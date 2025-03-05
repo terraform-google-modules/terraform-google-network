@@ -1,0 +1,51 @@
+---
+# Synopsis: Checks the expiration date of the HANA DB license
+# Inputs:
+#   spr_sid : SID of the system
+
+- name: Check HANA DB license expiration date
+  become: true
+  become_user: "{{ spr_db_sid|lower }}adm"
+  community.sap_libs.sap_hdbsql:
+    sid: "{{ spr_db_sid|upper }}"
+    user: SYSTEM
+    password: "{{ standard_deployment_password }}"
+    database: SYSTEMDB
+    instance: "00"
+    query: "SELECT EXPIRATION_DATE FROM SYS.M_LICENSES"
+  register: license_info
+
+- name: Set HANA DB license expiration date fact
+  set_fact:
+    hana_expiration_date: >-
+      {%- if license_info.query_result[0][0].EXPIRATION_DATE == '?' -%}
+        9999-12-31 00:00:00
+      {%- else -%}
+        {{ license_info.query_result[0][0].EXPIRATION_DATE | split('.') | first | to_datetime }}
+      {%- endif -%}
+
+- name: Fail if HANA DB license is less than 1 years
+  fail:
+    msg: "HANA DB license {{ hana_expiration_date }} is less than 1 years"
+  when: (hana_expiration_date | to_datetime - (ansible_date_time.date | to_datetime('%Y-%m-%d'))).days < 365
+
+# Retrieve HANA DB version
+- name: Retrieve HANA DB version
+  become: true
+  become_user: "{{ spr_db_sid|lower }}adm"
+  community.sap_libs.sap_hdbsql:
+    sid: "{{ spr_db_sid|upper }}"
+    user: SYSTEM
+    password: "{{ standard_deployment_password }}"
+    database: SYSTEMDB
+    instance: "00"
+    query: "Select VALUE from M_HOST_INFORMATION where KEY = 'build_version';"
+  register: version_info
+
+- name: Set HANA DB version fact
+  set_fact:
+    hana_version: "{{ version_info.query_result[0][0].VALUE }}"
+
+- name: HANA DB Version
+  debug:
+    var: hana_version

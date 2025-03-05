@@ -1,0 +1,75 @@
+---
+# Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+  - name: Verify
+    hosts: all
+    gather_facts: true
+    vars_files:
+      - ../../defaults/main.yml
+
+    tasks:
+
+      - name: Set the 'repo_latest' variable to true
+        set_fact:
+          repo_latest: true
+
+      - name: '[Red Hat] - Ensure that the enabled repositories are correct'
+        block:
+
+          - name: '[Red Hat] - Get a list of currently enabled repositories'
+            shell:
+              cmd: yum -v repolist | grep '^Repo-id' | sed -E 's|^Repo-id[[:space:]]*:[[:space:]]*||'
+            changed_when: false
+            become: true
+            register: enabled_repositories_results
+
+          - name: '[Red Hat] - Display the list of currently enabled repositories'
+            debug:
+              var: enabled_repositories_results.stdout_lines
+
+          - name: "[Red Hat] - Ensure that the list of enabled repositories matches the 'base' preset"
+            assert:
+              that: enabled_repositories_results.stdout_lines | symmetric_difference( repository_list[ ansible_distribution | lower + '_' + ansible_distribution_major_version
+                ][ 'base' ] ) | difference( nonexistent_repositories[ ansible_distribution | lower + '_' + ( latest_os_versions[ ansible_distribution |
+                lower + '_' + ansible_distribution_major_version ] if repo_latest | bool else ansible_distribution_version ) ] | default([], true) ) | length
+                == 0
+
+        when: ansible_os_family | lower == 'redhat'
+
+      - name: '[Ubuntu] - Ensure that the enabled repositories are correct'
+        block:
+
+          - name: '[Ubuntu] - Create a Python script used to get a list of enabled package repositories'
+            copy:
+              dest: /tmp/sources-list.py
+              remote_src: true
+              content: |
+                import sys
+                from aptsources.sourceslist import SourcesList, SourceEntry
+                if __name__ == "__main__":
+                    list=SourcesList()
+                    for item in list.list:
+                      if item.invalid or item.disabled:
+                        continue
+                      print(item.line.strip())
+            become: true
+
+          - name: '[Ubuntu] - Get a list of currently enabled repositories'
+            shell:
+              cmd: python3 /tmp/sources-list.py
+            changed_when: false
+            become: true
+            register: enabled_repositories_results
+
+          - name: '[Ubuntu] - Display the list of currently enabled repositories'
+            debug:
+              var: enabled_repositories_results.stdout_lines | map('regex_replace', '^deb http[^ ]+ ', '') | list
+
+          - name: "[Ubuntu] - Ensure that the list of enabled repositories matches the 'base' preset"
+            assert:
+              that: repository_list[ ansible_distribution | lower + '_' + ansible_distribution_major_version ][ 'base' ] | map('regex_replace', '^(default
+                |fips |fips-updates |ansible )', '') | list | difference( enabled_repositories_results.stdout_lines | map('regex_replace', '^deb http[^
+                ]+ ', '') | list  ) | length == 0
+
+        when: ansible_os_family | lower == 'debian'
+...

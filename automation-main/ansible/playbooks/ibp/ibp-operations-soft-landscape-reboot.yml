@@ -1,0 +1,198 @@
+---
+# Playbook Name: ibp-operations-soft-landscape-reboot.yml
+# Synopsis: Reboots an ibp landscape
+# Description: This playbook consists of several plays which will reboot the IBP environment.
+#     It is designed to work with the ibp-ansible-inventory-template file
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS CLI v1.16+
+#   - sudo capability or root privileges on target machine
+# Dependencies:
+#   - ibp ansible role
+# Variables:
+#   - sid (provided by ansible inventory hostfile)
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-operations-soft-landscape-rebootyml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>'
+#
+# Example
+#   Execution on a single instance with ip address of 192.168.1.1
+#     ansible-playbook ibp-operations-soft-landscape-rebootyml -k -i /tmp/hosts -l 192.168.1.1
+#
+# Example
+#   Execution on a single landscape 'production'
+#     ansible-playbook ibp-operations-soft-landscape-rebootyml -k -i /tmp/hosts -l production
+
+# Example
+#   Execution of a specific play 'reboot-hana'.  This will automatically include 'reboot-sap' as a pre-requisite
+#     ansible-playbook ibp-operations-soft-landscape-rebootyml -k -i /tmp/hosts --tags 'reboot-hana'
+#
+# Authors: Louis Lee, Vighnesh Sivakumar
+# Version: 2.9-000002
+# Modified: 2020-06-03 - Created playbook
+#           2020-06-23 - Merged ibp-provision and ibp-operations roles to ibp role
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Some plays are prerequisites for other plays and are tagged accordingly.
+#
+#   Play Tags:
+#     play1 reboot-sapapp reboot-hana reboot-all: Stops Sap Application systems. Prerequisite for stopping HANA
+#     play2 reboot-hana reboot-all: Stops Hana systems
+#     play3 reboot-cpids reboot-all: Stops CPIDS
+#     play4 reboot-webdispatcher reboot-all: Stops Web Dispatcher
+#     play5 reboot-hana reboot-sapapp reboot-all: Starts HANA. Prerequisite for starting SAPAPP.
+#     play6 reboot-sapapp reboot-all: Starts SAPAPP
+#     play7 reboot-cpids reboot-all: Starts CPIDS
+#     play8 reboot-webdispatcher reboot-all: Starts Web Dispatcher
+
+### Stop all services ###
+
+#################
+##### Play1 #####
+#################
+- name: "Play1:  Stop SapApp"
+  hosts: ibpapp
+  gather_facts: false
+  tags:
+  - play1
+  - reboot-sapapp
+  - reboot-hana
+  - reboot-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call sapapp-softstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-softstop.yml
+
+#################
+##### Play2 #####
+#################
+- name: "Play2:  Stop Hana"
+  hosts: ibpdb
+  gather_facts: false
+  tags:
+  - play2
+  - reboot-hana
+  - reboot-all
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Call hana-softstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-softstop.yml
+
+#################
+##### Play3 #####
+#################
+- name: "Play 3: Soft Stop CPIDS"
+  hosts: cpids
+  gather_facts: false
+  tags:
+  - play3
+  - reboot-cpids
+  - reboot-all
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Call cpids-softstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/cpids-softstop.yml
+
+#################
+##### Play4 #####
+#################
+- name: "Play 4: Soft Stop Web Dispatcher"
+  hosts: webdispatcher
+  gather_facts: false
+  tags:
+  - play4
+  - reboot-webdispatcher
+  - reboot-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call webdispatcher-softstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/webdispatcher-softstop.yml
+
+### Start all services ###
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: Soft Start Hana"
+  hosts: ibpdb
+  gather_facts: false
+  tags:
+  - play5
+  - reboot-hana
+  - reboot-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call hana-softstart task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-softstart.yml
+
+#################
+##### Play6 #####
+#################
+- name: "Play6: Soft Start SapApp"
+  hosts: ibpapp
+  gather_facts: false
+  tags:
+  - play6
+  - reboot-sapapp
+  - reboot-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call sapapp-softstart task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-softstart.yml
+
+#################
+##### Play7 #####
+#################
+- name: "Play 7: Soft Start CPIDS"
+  hosts: cpids
+  gather_facts: false
+  tags:
+  - play7
+  - reboot-cpids
+  - reboot-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call cpids-softstart task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/cpids-softstart.yml
+
+#################
+##### Play8 #####
+#################
+- name: "Play 8: Soft Start Web Dispatcher"
+  hosts: webdispatcher
+  gather_facts: false
+  tags:
+  - play8
+  - reboot-webdispatcher
+  - reboot-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call webdispatcher-softstart task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/webdispatcher-softstart.yml
+...

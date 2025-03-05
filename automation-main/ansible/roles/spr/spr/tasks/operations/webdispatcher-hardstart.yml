@@ -1,0 +1,41 @@
+---
+# Synopsis: Does a hard start of web dispatcher
+# Inputs:
+#   - spr_webdispatcher_hardstart_sid : SAP ID of the system
+# Outputs: Started web dispatcher
+# Comments: N/A
+
+- name: "Get saphostagent status"
+  command: "/usr/sap/hostctrl/exe/saphostexec -status"
+  become: true
+  register: saphostagent_status
+  failed_when: "'FAILED' in saphostagent_status.stderr"
+  changed_when: false
+
+- name: "Display saphostagent status"
+  debug:
+    var: saphostagent_status.stderr_lines
+
+- name: "BLOCK - Start saphostagent"
+  when: "'saphostexec stopped' in saphostagent_status.stderr"
+  become: true
+  block:
+    - name: "Start saphostagent"
+      command: "/usr/sap/hostctrl/exe/saphostexec -restart"
+
+    - name: "Get saphostagent status"
+      command: "/usr/sap/hostctrl/exe/saphostexec -status"
+      register: saphostagent_statusblock
+      failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+      changed_when: false
+
+    - name: "Display saphostagent status"
+      debug:
+        var: saphostagent_statusblock.stderr_lines
+  #End "BLOCK - Start saphostagent"
+
+- name: "Call Webdispatcher SoftStart"
+  include_tasks: operations/webdispatcher-softstart.yml
+  vars:
+    spr_webdispatcher_softstart_sid: "{{ spr_webdispatcher_hardstart_sid }}"
+...

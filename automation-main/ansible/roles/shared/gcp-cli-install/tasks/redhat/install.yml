@@ -1,0 +1,120 @@
+---
+
+# Description: Configures drivers and packages required for Google Cloud SDK.
+# Inputs:
+#   - N/A
+# Outputs:
+#   - Installs and configures drivers and packages for Red Hat running in GCP.
+
+  - name: Install GCP-specific Red Hat packages and drivers
+    package:
+      state: present
+      name:
+        - ca-certificates
+        - gnupg
+        - chrony
+    become: true
+
+  - name: Update DNF with Cloud SDK repo information for RHEL 7
+    copy:
+      dest: /etc/yum.repos.d/google-cloud-sdk.repo
+      content: |
+        [google-cloud-sdk]
+        name=Google Cloud SDK
+        baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el7-x86_64
+        enabled=1
+        gpgcheck=0
+        repo_gpgcheck=0
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+               https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    become: true
+    when: ansible_distribution_major_version == '7'
+
+  - name: Update DNF with Cloud SDK repo information for RHEL 8
+    copy:
+      dest: /etc/yum.repos.d/google-cloud-sdk.repo
+      content: |
+        [google-cloud-sdk]
+        name=Google Cloud SDK
+        baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el8-x86_64
+        enabled=1
+        gpgcheck=0
+        repo_gpgcheck=0
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+               https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    become: true
+    when: ansible_distribution_major_version == '8'
+
+  - name: Update DNF with Cloud SDK repo information for RHEL 9
+    copy:
+      dest: /etc/yum.repos.d/google-cloud-sdk.repo
+      content: |
+        [google-cloud-sdk]
+        name=Google Cloud SDK
+        baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el9-x86_64
+        enabled=1
+        gpgcheck=0
+        repo_gpgcheck=0
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+               https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    become: true
+    when: ansible_distribution_major_version == '9'
+
+  - name: Install Google Cloud SDK
+    package:
+      state: present
+      name:
+        - google-cloud-sdk
+    become: true
+
+  - name: Create source repo file for RHEL 7
+    copy:
+      dest: /etc/yum.repos.d/google-cloud.repo
+      content: |
+        [google-cloud-compute]
+        name=Google Cloud Compute
+        baseurl=https://packages.cloud.google.com/yum/repos/google-compute-engine-el7-x86_64-stable
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=0
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+               https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    become: true
+    when: ansible_distribution_major_version == '7'
+
+  - name: Create source repo file for RHEL 8
+    copy:
+      dest: /etc/yum.repos.d/google-cloud.repo
+      content: |
+        [google-cloud-compute]
+        name=Google Cloud Compute
+        baseurl=https://packages.cloud.google.com/yum/repos/google-compute-engine-el8-x86_64-stable
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=0
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+               https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    become: true
+    when: ansible_distribution_major_version == '8'
+
+  - name: Create source repo file for RHEL 9
+    copy:
+      dest: /etc/yum.repos.d/google-cloud.repo
+      content: |
+        [google-cloud-compute]
+        name=Google Cloud Compute
+        baseurl=https://packages.cloud.google.com/yum/repos/google-compute-engine-el9-x86_64-stable
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=0
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+               https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    become: true
+    when: ansible_distribution_major_version == '9'
+
+  - name: Update package lists
+    shell: |
+      yum makecache
+      yum updateinfo
+    become: true
+...

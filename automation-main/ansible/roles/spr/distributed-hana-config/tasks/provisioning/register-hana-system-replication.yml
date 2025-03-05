@@ -1,0 +1,14 @@
+- name: "Register dbsecondary with db for hana system replication"
+  ansible.builtin.shell: |
+    source /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+    /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/HDB{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}/exe/hdbnsutil \
+    -sr_register --name={{ distributed_hana_config_sap_hana_hsr_alias }} \
+    --remoteHost={{ distributed_hana_config_sap_hana_hsr_hana_primary_hostname }} --remoteInstance={{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }} \
+    --replicationMode={{ distributed_hana_config_sap_hana_hsr_rep_mode }} --operationMode={{ distributed_hana_config_sap_hana_hsr_oper_mode }} --force_full_replica --sapcontrol=1 \
+    {{ distributed_hana_config_sap_hana_hsr_register_additional_args | default('') }}
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  register: distributed_hana_config_registersr
+  changed_when: "'adding site' in distributed_hana_config_registersr.stdout"

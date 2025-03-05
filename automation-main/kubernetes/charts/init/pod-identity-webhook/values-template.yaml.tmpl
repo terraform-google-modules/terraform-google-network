@@ -1,0 +1,214 @@
+{{ $envConfig := (datasource "envConfig")  }}
+pod-identity-webhook:
+  # -- String to partially override amazon-eks-pod-identity-webhook.fullname template (will maintain the release name)
+  nameOverride: pod-identity-webhook
+
+  # -- String to partially override amazon-eks-pod-identity-webhook.fullname template (will maintain the release name)
+  namespaceOverride: ""
+
+  # -- String to fully override amazon-eks-pod-identity.fullname template
+  fullnameOverride: pod-identity-webhook
+
+  # -- Number of amazon-eks-pod-identity-webhook replicas to deploy
+  replicaCount: 3
+
+  # -- https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+    #maxUnavailable: 2
+
+  # -- PriorityClass applied to deployment
+  priorityClassName: ""
+
+  image:
+    pullPolicy: IfNotPresent
+    # -- amazon-eks-pod-identity-webhook image registry
+    registry: docker.io
+    # -- amazon-eks-pod-identity-webhook image repository
+    repository: amazon/amazon-eks-pod-identity-webhook
+    # -- amazon-eks-pod-identity-webhook image tag (immutable tags are recommended).
+    # @default -- `.Chart.AppVersion`
+    tag: ""
+
+  # -- registry secret names as an array
+  imagePullSecrets: []
+
+  config:
+    # -- The Service Account annotation to look for (default "eks.amazonaws.com")
+    annotationPrefix: eks.amazonaws.com
+    # -- If set, AWS_DEFAULT_REGION and AWS_REGION will be set to this value in mutated containers
+    defaultAwsRegion: {{ $envConfig.region }}
+    # -- Additional command line arguments to pass to amazon-eks-pod-identity-webhook
+    extraArgs: []
+
+    ports:
+      # -- Port to listen on for metrics and healthz (http)
+      metrics: 9999
+      # -- Port to listen on
+      webhook: 8443
+    # -- Whether to inject the AWS_STS_REGIONAL_ENDPOINTS=regional env var in mutated pods.
+    stsRegionalEndpoint: false
+    # -- The default audience for tokens. Can be overridden by annotation
+    tokenAudience: sts.amazonaws.com
+    # -- The token expiration
+    tokenExpiration: 86400
+    # -- The path to mount tokens
+    tokenMountPath: /var/run/secrets/eks.amazonaws.com/serviceaccount
+
+    podIdentityWebhookMap:
+      # -- Enabled pod-identity-webhook ConfigMap. See https://github.com/aws/amazon-eks-pod-identity-webhook#pod-identity-webhook-configmap
+      enabled: true
+      # -- Name pod-identity-webhook ConfigMap. Changing this value is not supported.
+      ## Names are hard-coded
+      ## ref: https://github.com/aws/amazon-eks-pod-identity-webhook/blob/0d254eee1537e0745679252ca60f020fa1a461f0/pkg/cache/cache.go#L259-L262
+      name: "pod-identity-webhook"
+      # -- Content of pod-identity-webhook configmap
+      data:
+        "crossplane/*":
+          RoleARN: "arn:{{ .Env.awsPartition }}:iam::{{ .Env.accountID }}:role/{{ .Env.projectName }}-{{ $envConfig.shootName }}-crossplane-admin"
+          Audience: "sts.amazonaws.com"
+        "harbor/*":
+          RoleARN: "arn:{{ .Env.awsPartition }}:iam::{{ .Env.accountID }}:role/{{ .Env.projectName }}-{{ $envConfig.shootName }}-harbor-admin"
+          Audience: "sts.amazonaws.com"
+        "aws-mountpoint-s3-csi-driver/*":
+          RoleARN: "arn:{{ .Env.awsPartition }}:iam::{{ .Env.accountID }}:role/{{ .Env.projectName }}-{{ $envConfig.shootName }}-mountpoint-admin"
+          Audience: "sts.amazonaws.com"
+        #  TokenExpiration: 0
+
+  mutatingWebhook:
+    # -- Annotations for amazon-eks-pod-identity-webhook mutating webhook
+    annotations: {}
+    # -- FailurePolicy of the amazon-eks-pod-identity-webhook mutating webhook. Fail or Ignore are allowed.
+    ## ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#failure-policy
+    failurePolicy: Ignore
+    # -- namespaceSelector for the mutating webhook to include or exclude namespace.
+    namespaceSelector: {}
+    #  matchExpressions:
+    #    - key: "kubernetes.io/metadata.name"
+    #      operator: NotIn
+    #      values: ["kube-system"]
+
+  pki:
+    certManager:
+      # -- use cert-manager to generate the webhook server certificates
+      enabled: true
+      certificate:
+        # -- lifetime of the generated server certificate. 2160h=90d
+        duration: 2160h
+        # -- renew time before server certificate expires. 360h=15d
+        renewBefore: 360h
+      existingIssuer:
+        # -- Use an existing cert-manager issuer.
+        enabled: false
+        # -- Kind of the existing cert-manager issuer.
+        kind: ClusterIssuer
+        # -- Name of the existing cert-manager issuer.
+        name: selfsigned
+    # -- ca bundle of the manual generated server tls key
+    caBundle: ""
+    # -- manual generated server tls cert. Used if pki.certManager.enabled is false
+    cert: ""
+    # -- manual generated server tls key. Used if pki.certManager.enabled is false
+    key: ""
+    # -- name of the external secret (type kubernetes.io/tls). Used if pki.certManager.enabled is false
+    existingSecret: ""
+
+  metrics:
+    serviceMonitor:
+      # -- Create serviceMonitor Resource for scraping metrics using PrometheusOperator
+      enabled: true
+      # -- Specify the namespace in which the serviceMonitor resource will be created
+      namespace: ""
+      # -- Used to pass Labels that are required by the installed Prometheus Operator
+      additionalLabels: {}
+      # -- Specify the interval at which metrics should be scraped
+      interval: 30s
+      # -- Specify the timeout after which the scrape is ended
+      scrapeTimeout: ""
+      # -- honorLabels chooses the metric's labels on collisions with target labels
+      honorLabels: false
+      # -- RelabelConfigs to apply to samples before scraping.
+      relabelings: []
+
+  readinessProbe:
+    httpGet:
+      # -- This is the readiness check endpoint
+      path: /healthz
+      port: https
+      scheme: HTTPS
+
+  livenessProbe:
+    httpGet:
+      # -- This is the liveness check endpoint
+      path: /healthz
+      port: https
+      scheme: HTTPS
+
+  # -- Annotations for amazon-eks-pod-identity-webhook deployment
+  annotations: {}
+
+  # -- Specify if host network should be enabled for amazon-eks-pod-identity-webhook pod
+  hostNetwork: false
+
+  resources:
+    # -- The resources limits for the amazon-eks-pod-identity-webhook container
+    ## Example:
+    # limits:
+    #    cpu: 100m
+    #    memory: 128Mi
+    limits: {}
+    # -- The requested resources for the amazon-eks-pod-identity-webhook container
+    ## Examples:
+    ## requests:
+    ##    cpu: 100m
+    ##    memory: 128Mi
+    requests: {}
+
+  securityContext:
+    # -- Pod securityContext: Enable read-only root filesystem
+    readOnlyRootFilesystem: true
+    # -- Pod securityContext: Run primary group id
+    runAsGroup: 1
+    # -- Pod securityContext: Disable root user
+    runAsNonRoot: false
+    # -- Pod securityContext: Run user id
+    runAsUser: 65534
+
+  service:
+    # -- Service type
+    type: ClusterIP
+    # -- Service annotations
+    annotations: {}
+
+  serviceAccount:
+    # -- Enable creation of ServiceAccount for nginx pod
+    create: true
+    # -- The name of the ServiceAccount to use.
+    # @default -- A name is generated using the `amazon-eks-pod-identity-webhook.fullname` template
+    name: ""
+    # -- Annotations for service account. Evaluated as a template.
+    annotations: {}
+
+  # -- Additional labels for amazon-eks-pod-identity-webhook pods
+  podLabels: {}
+
+  # -- Annotations for amazon-eks-pod-identity-webhook pods
+  podAnnotations: {}
+  #  prometheus.io/port: "9999"
+  #  prometheus.io/scheme: "http"
+  #  prometheus.io/scrape: "true"
+
+  # -- amazon-eks-pod-identity-webhook pods' Security Context.
+  podSecurityContext: {}
+  #  fsGroup: 2000
+
+  # -- Affinity for pod assignment
+  affinity: {}
+
+  # -- Node labels for pod assignment. Evaluated as a template.
+  nodeSelector:
+    worker.garden.sapcloud.io/group: system
+
+  # -- Tolerations for pod assignment. Evaluated as a template.
+  tolerations: []

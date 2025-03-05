@@ -1,0 +1,19 @@
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEcrPull",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": ${jsonencode(iam_principal_arns)}
+      },
+      "Action": [
+        "ecr:ListImages",
+        "ecr:DescribeImages",
+        "ecr:DescribeRepositories",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage"
+      ]
+    }
+  ]
+}

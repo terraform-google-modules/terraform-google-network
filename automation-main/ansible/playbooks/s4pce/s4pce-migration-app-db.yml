@@ -1,0 +1,600 @@
+---
+# Playbook Name: s4pce-migration-app-db.yml
+# Description: Performs a volume snapshot migration of s4pce App and DB to a new AWS Instances.
+#  Stops the app and db application and created volume snapshots of the source.
+#  New EBS Volumes are created from the snapshots. The Volumes are attached to a target
+#  instance, with no pre-existing volumes except for root. Finally the profile data is
+#  migrated from source to target instances
+#
+#  To migrate between two inventories, the old inventory must contain the word `_old` in its
+#  filename.  Likewise, the new inventory must not contain the word `_old` in its filename.
+#  To execute ansible, follow the examples provided below.
+#
+# Dependencies:
+#   - Ansible v2.9+
+#   - AWS CLI v1.18+
+#   - Jinja2 2.8+
+#   - sudo capability or root privileges on target machine
+#   - s4pce ansible role
+#   - New Instances and prepared ansible inventory files (see description)
+#   - ibp-operations-update-hosts Playbook (Completes Host entry update after migration)
+#   - ibp-operations-hardstart playbook (Used to start applications after migration)
+#   - IAM Permissions:
+#     - ec2:DescribeInstances
+#     - ec2:DescribeVolumes
+#     - ec2:AttachVolume
+#     - ec2:CreateVolume
+#     - ec2:StopInstances (optional)
+#     - ec2:StartInstances (optional)
+#     - ec2:Describe* (ansible aws requires something in here to start/stop instances. like wtf)
+#     - ec2:CreateSnapshot
+#     - ec2:DeleteSnapshot (optional)
+# Variables:
+#   - play_saphostagent_source : (optional) Alternate source for saphostagent install binaries. Leave blank to use inventory value
+#   - play_landscape_sid : (required) Lowercase SID Admin for the landscape to migrate.
+#
+# Example:
+#   Execution on remote systems
+#     ansible-playbook s4pce-migration-app-db.yml -i </PATH-TO/OLD-HOST-INVENTORY-FILE> -i </PATH-TO/NEW-HOST-INVENTORY-FILE> -k
+#
+# Example
+#   Execution on remote systems
+#     ansible-playbook s4pce-migration-app-db.yml -k -i /tmp/hosts_old -i /tmp/hosts
+#
+# Authors: Louis Lee, Jian Ouyang, Rindus Pittman, Nick Martinez
+# Version: 2.9-000004
+# Modified: 2020-10-15 - Created playbook
+#           2020-10-29 - Bugfix for fstab clone
+#           2022-02-15 - Add NFS Package, Folder ownership, LocalSecureStore support
+#           2022-02-17 - Enable fact gathering, add alert if  AWS_DEFAULT_REGION not defined
+#           2024-09-30 - Altered playbook for pce, Add Compat+ Packages, add start db and app plays
+#           2024-10-14 - Added updating target instances host file by calling spr role
+#           2024-11-07 - Added copying security conf from source db instance to target db instance
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Play Tags:
+#     play0 always hostfiles                       : Create Inventory and Generate Metadata
+#     play1 clone-ebs-hana clone-profile-hana      : Clone HanaDB Volumes
+#     play2 clone-profile-hana                     : Clone HanaDB Profile Data
+#     play3 start db                               : Start HanaDB
+#     play4 clone-ebs-sapapp clone-profile-sapapp  : Clone SapApp Volumes
+#     play5 clone-profile-sapapp                   : Clone SapApp Profile Data
+#     play6 start app                              : Start SapAPP
+#     playEND                                      : End of the playbook
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Create Inventory and Generate Metadata"
+  hosts: all
+  gather_facts: true
+  tags:
+    - play0
+    - always
+    - hostfiles
+
+  vars:
+    repo_enable: true
+    application_preset_selection: "['hana','epel','base']"
+
+  vars_prompt:
+  - name: play_saphostagent_source
+    prompt: "Alternate source for saphostagent install binaries. Leave blank to use inventory value"
+    private: no
+    default: ''
+
+  - name: play_landscape_sid
+    prompt: "Lowercase SID of the S4PCE APP & DB to migrate (comma-separated)"
+    private: no
+
+  tasks:
+  - name: Split the SIDs into a list
+    ansible.builtin.set_fact:
+      play_landscape_sid_list: "{{ play_landscape_sid.split(',') | map('trim') | list }}"
+
+  - name: "Get ec2 metadata"
+    amazon.aws.ec2_metadata_facts:
+
+  - name: Initialize matched hosts list
+    ansible.builtin.set_fact:
+      find_sid_hosts: []
+
+  - name: Find all hosts that match SIDs in hostvars
+    ansible.builtin.set_fact:
+        lower_sid_hosts: "{{ lower_sid_hosts | default([]) + (hostvars | dict2items | selectattr('value.spr_sid', 'equalto', item.lower()) | map(attribute='key') | list) }}"
+        upper_sid_hosts: "{{ upper_sid_hosts | default([]) + (hostvars | dict2items | selectattr('value.spr_sid', 'equalto', item.upper()) | map(attribute='key') | list) }}"
+    loop: "{{ play_landscape_sid_list }}"
+    loop_control:
+        label: "{{ item }}"
+
+  - name: "Combine the uppercase and lowercase results"
+    delegate_to: localhost
+    run_once: true
+    ansible.builtin.set_fact:
+      find_sid_hosts: "{{ find_sid_hosts|default([]) + lower_sid_hosts + upper_sid_hosts }}"
+
+  - name: "Add old hosts to source group"
+    ansible.builtin.group_by:
+      key: source_hosts
+    when:
+    - "'_old' in spr_hostname"
+
+  - name: "Add new hosts to target group"
+    when:
+    - "'_old' not in spr_hostname"
+    ansible.builtin.group_by:
+      key: target_hosts
+
+  - name: "Save landscape metadata"
+    ansible.builtin.set_fact:
+      play_saphostagent_source: "{{ play_saphostagent_source|default(saphostagent_source,true) }}"
+
+  - name: Set variables
+    ansible.builtin.set_fact:
+      play_source_app_instance: "{{ hostvars[(groups.source_hosts)[1]].ansible_ec2_instance_id }}"
+      play_target_app_instance: "{{ hostvars[(groups.target_hosts)[1]].ansible_ec2_instance_id }}"
+      play_source_db_instance: "{{ hostvars[(groups.source_hosts)[0]].ansible_ec2_instance_id }}"
+      play_target_db_instance: "{{ hostvars[(groups.target_hosts)[0]].ansible_ec2_instance_id }}"
+      ebs_clone_region: "{{ ansible_ec2_placement_region }}"
+
+  - name: "Dynamic Group Assignment (only for new hosts)"
+    ansible.builtin.group_by:
+      key: "{{ item }}"
+    when:
+      - "item != 'undefined'"
+      - "'target_hosts' in group_names"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+
+  - name: "Set the host file on the new hosts"
+    ansible.builtin.include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/hostfile-install.yml
+    when:
+      - "'target_hosts' in group_names"
+
+  - name: "Configure Base Red Hat Repositories from S3"
+    ansible.builtin.include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: ['hana','base','epel']
+
+  # set compat package versions based on OS, without these packages, the runbook will fail
+  - name: Set package compat map
+    ansible.builtin.set_fact:
+      compat_package_map:
+        RedHat8: compat-sap-c++-11.x86_64
+        RedHat9: compat-sap-c++-12.x86_64
+
+  - name: Get Specific compat package
+    ansible.builtin.set_fact:
+      compat_package: "{{ compat_package_map[ansible_distribution + ansible_distribution_major_version] }}"
+
+  - name: Install required yum packages
+    become: true
+    ansible.builtin.yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - "{{ compat_package }}"
+      - tuned-profiles-sap-hana.noarch
+      - libstdc++.so.6
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Clone HanaDB Volumes"
+  hosts: source_hosts:target_hosts
+  any_errors_fatal: yes
+  gather_facts: true
+  tags:
+    - play1
+    - clone-ebs-hana
+    - clone-profile-hana
+
+  tasks:
+  - name: "Clone and Attach Volumes"
+    ansible.builtin.include_role:
+      name: s4pce
+      allow_duplicates: yes
+      tasks_from: general/ebs-clone.yml
+    vars:
+      ebs_clone_source_instance: "{{ play_source_db_instance }}"
+      ebs_clone_target_instance: "{{ play_target_db_instance }}"
+      ebs_clone_region: "{{ ansible_ec2_placement_region }}"
+    when:
+      - spr_nodetype == 'db'
+
+  - name: "Make sure instances are up and responding"
+    ansible.builtin.wait_for_connection:
+
+  - name: "Clone fstab and Mount"
+    ansible.builtin.include_role:
+      name: s4pce
+      allow_duplicates: yes
+      tasks_from: general/fstab-clone.yml
+    vars:
+      fstab_clone_mount_targets:
+        - "/hana/backups"
+        - "/hana/data"
+        - "/hana/log"
+        - "/hana/shared"
+        - "/usr/sap"
+        - "/staging"
+    when:
+      - spr_nodetype == 'db'
+
+  - name: "BLOCK - Copy conf files from source DB to target DB"
+    block:
+    - name: Set fact for conf files to copy over
+      ansible.builtin.set_fact:
+        play_conf_files:
+          - local: /tmp/99-sap.conf
+            remote: /etc/security/limits.d/99-sap.conf
+          - local: /tmp/99-sapsys.conf
+            remote: /etc/security/limits.d/99-sapsys.conf
+
+    - name: Copy conf files from source DB to local
+      become: true
+      ansible.posix.synchronize:
+        src: "{{ item.remote }}"
+        dest: "{{ item.local }}"
+        mode: pull
+      when:
+        - spr_nodetype == 'db'
+        - "'source_hosts' in group_names"
+      loop: "{{ play_conf_files }}"
+
+    - name: Ensure the /etc/security/limits.d/ directory exists
+      become: true
+      ansible.builtin.file:
+          path: /etc/security/limits.d/
+          state: directory
+      when:
+        - spr_nodetype == 'db'
+        - "'target_hosts' in group_names"
+
+    - name: Copy conf files from local to target DB
+      ansible.posix.synchronize:
+        src: "{{ item.local }}"
+        dest: "{{ item.remote }}"
+        mode: push
+        perms: true
+        archive: true
+        delete: true
+      become: true
+      when:
+        - spr_nodetype == 'db'
+        - "'target_hosts' in group_names"
+      loop: "{{ play_conf_files }}"
+
+    - name: Ensure conf file permissions are correct
+      ansible.builtin.file:
+        path: "{{ item.remote }}"
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+      when:
+        - spr_nodetype == 'db'
+        - "'target_hosts' in group_names"
+      loop: "{{ play_conf_files }}"
+
+    - name: Cleanup local conf files
+      ansible.builtin.file:
+        path: "{{ item.local }}"
+        state: absent
+      delegate_to: localhost
+      loop: "{{ play_conf_files }}"
+  # END BLOCK - Copy conf files from source DB to target DB
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Clone HanaDB Profile Data"
+  hosts: source_hosts:target_hosts
+  any_errors_fatal: yes
+  gather_facts: false
+  tags:
+    - play2
+    - clone-profile-hana
+
+  vars:
+    staging_location: '/staging/migrations'
+
+  pre_tasks:
+  - name: "Dynamic Group Assignment"
+    ansible.builtin.group_by:
+      key: "{{ item }}"
+    when:
+      - "item != 'undefined'"
+      - spr_nodetype == 'db'
+      - "'target_hosts' in group_names"
+    loop:
+      - "{{ spr_nodetype|default('undefined')|lower }}"
+      - "{{ spr_landscape|default('undefined')|lower }}"
+      - "{{ spr_productname|default('undefined')|lower }}"
+
+  - name: "Pull user metadata"
+    ansible.builtin.getent:
+      database: passwd
+      split: ":"
+
+  tasks:
+  - name: "Create destination folder"
+    when:
+      - "'source_hosts' in group_names"
+      - spr_nodetype == 'db'
+    become: true
+    ansible.builtin.file:
+      path: "{{ staging_location }}/{{ play_source_db_instance }}"
+      state: directory
+
+  - name: "Set the sidadm variable"
+    ansible.builtin.set_fact:
+      sidadm: "{{ spr_sid|lower}}adm"
+
+  - name: "Tar profile folders"
+    when:
+      - "'source_hosts' in group_names"
+      - spr_nodetype == 'db'
+    ansible.builtin.include_role:
+      name: s4pce
+      allow_duplicates: yes
+      tasks_from: general/folder-tar.yml
+    vars:
+      folder_tar_name: "{{ staging_location }}/{{ play_source_db_instance }}/ibpdb"
+      folder_tar_paths:
+      - "{{ getent_passwd[sidadm][4] }}"
+      - "{{ getent_passwd['sapadm'][4] }}"
+      - "/var/lib/hdb"
+      - "/etc/incron.d"
+
+  - name: "Setup Hana Profile on Target"
+    when:
+      - "'target_hosts' in group_names"
+      - spr_nodetype == 'db'
+    ansible.builtin.include_role:
+      name: s4pce
+      allow_duplicates: yes
+      tasks_from: provisioning/hana-rebuild-profile.yml
+    vars:
+      hana_rebuild_profile_tars:
+        - "{{ staging_location }}/{{ play_source_db_instance }}/ibpdb"
+      hana_rebuild_profile_saphostagent_source: "{{ play_saphostagent_source }}"
+      hana_rebuild_profile_hostname: "{{ spr_hostname }}"
+      hana_rebuild_profile_sid: "{{ spr_sid|lower }}"
+
+  - name: "Cleanup Hana Migration Tars"
+    when:
+      - "'target_hosts' in group_names"
+      - spr_nodetype == 'db'
+    become: true
+    ansible.builtin.file:
+      path: "{{ staging_location }}/{{ play_source_db_instance }}"
+      state: absent
+
+#################
+##### Play3 #####
+#################
+- name: "Play3:  Start Hana"
+  hosts: target_hosts
+  gather_facts: false
+  tags:
+  - play3
+  - start-hana
+  - start-all
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Call hana-hardstart task"
+    ansible.builtin.include_role:
+      name: s4pce
+      allow_duplicates: yes
+      tasks_from: operations/hana-start.yml
+    when:
+      - spr_nodetype == 'db'
+  vars:
+      spr_hana_start_sid: "{{ spr_sid|upper}}"
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Clone SapApp Volumes"
+  hosts: source_hosts:target_hosts
+  any_errors_fatal: yes
+  gather_facts: true
+  tags:
+    - play4
+    - clone-ebs-sapapp
+    - clone-profile-sapapp
+
+  tasks:
+  - name: "Clone and Attach Volumes"
+    ansible.builtin.include_role:
+      name: s4pce
+      allow_duplicates: yes
+      tasks_from: general/ebs-clone.yml
+    vars:
+      ebs_clone_source_instance: "{{ play_source_app_instance }}"
+      ebs_clone_target_instance: "{{ play_target_app_instance }}"
+      ebs_clone_region: "{{ ansible_ec2_placement_region }}"
+    when:
+      - spr_nodetype == 'app'
+
+  - name: "Make sure instances are up and responding"
+    ansible.builtin.wait_for_connection:
+
+  - name: "Clone fstab and Mount"
+    ansible.builtin.include_role:
+      name: s4pce
+      allow_duplicates: yes
+      tasks_from: general/fstab-clone.yml
+    vars:
+      fstab_clone_mount_targets:
+        - "/sapmnt"
+        - "/usr/sap"
+        - "swap"
+        - "/staging"
+        - "/usr/sap/trans"
+    when:
+      - spr_nodetype == 'app'
+
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: Clone SapApp Profile Data"
+  hosts: source_hosts:target_hosts
+  any_errors_fatal: yes
+  gather_facts: true
+  tags:
+    - play5
+    - clone-profile-sapapp
+
+  vars:
+    staging_location: '/staging/migrations'
+
+  pre_tasks:
+  - name: "Dynamic Group Assignment"
+    ansible.builtin.group_by:
+      key: "{{ item }}"
+    when:
+      - "item != 'undefined'"
+      - spr_nodetype == 'app'
+      - "'target_hosts' in group_names"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+
+  - name: "Dynamic Group Assignment for app servers"
+    ansible.builtin.group_by:
+      key: "{{ item }}"
+    when:
+      - "'target_hosts' in group_names"
+      - spr_nodetype == 'app'
+    loop:
+     - "{%- if (((( inventory_hostname | regex_replace('^.+app(?P<node>\\d\\d).*$', '\\g<node>')) == \"01\" )) and (sap_app_role is undefined)) -%} pas
+            {%- elif sap_app_role is defined and sap_app_role == \"pas\" -%} pas
+            {%- else -%} aas
+            {%- endif -%}"
+
+  - name: "Pull user metadata"
+    ansible.builtin.getent:
+      database: passwd
+      split: ":"
+
+  tasks:
+  - name: "Create destination folder"
+    when:
+      - "'source_hosts' in group_names"
+      - spr_nodetype == 'app'
+    become: true
+    ansible.builtin.file:
+      path: "{{ staging_location }}/{{ play_source_app_instance }}"
+      state: directory
+
+  - name: "Set the sidadm variable"
+    ansible.builtin.set_fact:
+      sidadm: "{{ spr_sid|lower }}adm"
+
+  - name: "Tar profile folders"
+    when:
+      - "'source_hosts' in group_names"
+      - spr_nodetype == 'app'
+    ansible.builtin.include_role:
+      name: s4pce
+      allow_duplicates: yes
+      tasks_from: general/folder-tar.yml
+    vars:
+      folder_tar_name: "{{ staging_location }}/{{ play_source_app_instance }}/ibpapp"
+      folder_tar_paths:
+      - "{{ getent_passwd[sidadm][4] }}"
+      - "{{ getent_passwd['sapadm'][4] }}"
+      - "/etc/services"
+
+  - name: "Setup SapApp Profile on Target"
+    when:
+      - "'target_hosts' in group_names"
+      - spr_nodetype == 'app'
+    ansible.builtin.include_role:
+      name: s4pce
+      allow_duplicates: yes
+      tasks_from: provisioning/sapapp-rebuild-profile.yml
+    vars:
+      sapapp_rebuild_profile_tars:
+        - "{{ staging_location }}/{{ play_source_app_instance }}/ibpapp"
+      sapapp_rebuild_profile_saphostagent_source: "{{ play_saphostagent_source }}"
+      sapapp_rebuild_profile_hostname: "{{ spr_hostname }}"
+      sapapp_rebuild_profile_sid: "{{ spr_sid|lower }}"
+
+  - name: "Cleanup SapApp Migration Tars"
+    when:
+      - "'target_hosts' in group_names"
+      - spr_nodetype == 'app'
+    become: true
+    ansible.builtin.file:
+      path: "{{ staging_location }}/{{ play_source_app_instance }}"
+      state: absent
+
+  - name: Recursively change ownership for two folders on ibpapp
+    when:
+      - "'target_hosts' in group_names"
+      - spr_nodetype == 'app'
+    become: true
+    ansible.builtin.file:
+      path: "{{ item.path }}"
+      state: directory
+      recurse: yes
+      owner: "{{ spr_sid|lower }}adm"
+      group: sapsys
+    loop:
+      - path: "/usr/sap/{{ spr_sid|upper }}"
+      - path: "/sapmnt/{{ spr_sid|upper }}"
+
+#################
+##### Play6 #####
+#################
+- name: "Play6:  Start SapApp"
+  hosts: target_hosts
+  gather_facts: false
+  tags:
+  - play6
+  - start-sapapp
+  - start-all
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Call sapapp-hardstart task"
+    ansible.builtin.include_role:
+      name: s4pce
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-hardstart.yml
+    when:
+      - spr_nodetype == 'app'
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    ansible.builtin.debug:
+      msg: "Of the world as we know it"
+...

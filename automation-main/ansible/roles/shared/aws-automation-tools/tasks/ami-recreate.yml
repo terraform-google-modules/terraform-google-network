@@ -1,0 +1,140 @@
+---
+# Synopsis: Creates an AWS VPC with build team defaults
+# Inputs:
+#   - ami_loop_item : A variable containing the name of the old AMI and the name of the new AMI to be created.
+#   - aws_region : The AWS region that the images reside in.
+#   - aws_owners : The account owner of the images. Only images with this owner can be recreated.
+#   - aws_deregister_old_image : Whether to deregister the old image before creating the new one.
+#                                NOTE: Must be set to true in order to recreate an image with the same name.
+#   - aws_apply_default_image_settings : Whether to create the new images using the settings defined under the
+#                                        variable 'aws_default_image_settings'.
+#   - aws_apply_default_block_device_mapping : Whether to create the new images using the block device mapping
+#                                              settings defined in the variable 'aws_image_default_block_device_mapping'.
+#   - aws_apply_old_tags : Whether to apply the old images' tags to the new images.
+#   - aws_apply_default_tags : Whether to apply the tags listed in the variable 'aws_default_tags' to the new
+#                              images as well.
+#   - aws_image_description : A description to be applied to all of the new images.
+#   - aws_image_virtualization : The type of virtualization that the new images will use. Valid options are 'hvm' and 'paravirtual'.
+#   - aws_image_architecture : The type of system architecture that new images will use. Valid options are 'x86_64', 'i386', and 'arm64'.
+#   - aws_image_root_device_name : The device name of the root volume. For example: '/dev/sda1'
+#   - aws_image_ena_support : Whether the new images should have ENA support enabled or not.
+#   - aws_image_default_block_device_mapping : The block device mapping to apply to all newly created images.
+#   - aws_default_tags : The tags to apply to all newly created images.
+#                        NOTE: The following default tags are special in the fact that their values can be left blank and will
+#                        be automatically determined from the new image's name: ImageType, Name, ProductName, OperatingSystem,
+#                        OperatingSystemVersion, Business, ImageVersion
+#
+# Outputs:
+#   - Creates a new AMI from the provided old AMI.
+#   - Optionally deregisters the old AMI.
+
+  - name: Check if the new AMI name is already in use
+    ec2_ami_info:
+      owners: '{{ aws_owners }}'
+      region: '{{ aws_region }}'
+      filters:
+        name: '{{ ami_loop_item.new_name }}'
+    register: ami_new_info
+
+  - name: Get the old AMI's information
+    ec2_ami_info:
+      owners: '{{ aws_owners }}'
+      region: '{{ aws_region }}'
+      filters:
+        name: '{{ ami_loop_item.old_name }}'
+    register: ami_old_info
+
+  - name: Create the new AMI from the snapshot of the old AMI
+    block:
+
+      - name: Clear the contents of item/dictionary list variables
+        set_fact:
+          ami_old_block_device_mappings: "{{ '' | default([], true) }}"
+          ami_default_tags: "{{ '' | default({}, true) }}"
+          aws_ami_tags: "{{ '' | default({}, true) }}"
+
+    # NOTE: Loop through the old AMI's block device mappings and create a list of the block device mappings, only
+    #       keeping the values needed by the 'device_mapping' parameter of the 'ec2_ami' Ansible module.
+
+      - name: Get the old AMI's block device mappings and properly format them for Ansible
+        set_fact:
+          ami_old_block_device_mappings: "{{ ami_old_block_device_mappings | default([], true) + [{ 'device_name': item.device_name, 'volume_type': item.ebs.volume_type,\
+            \ 'volume_size': item.ebs.volume_size, 'delete_on_termination': item.ebs.delete_on_termination | bool, 'snapshot_id': item.ebs.snapshot_id }]\
+            \ }}"
+        loop: '{{ ami_old_info.images[0].block_device_mappings }}'
+
+      - name: Get specific pieces of the old AMI's information
+        set_fact:
+          ami_old_image_id: "{{ ami_old_info.images[0].image_id | default('', true) }}"
+          ami_old_snapshot_id: "{{ ami_old_info | json_query(query) | join | default('', true) }}"
+          ami_old_description: '{{ ami_old_info.images[0].description }}'
+          ami_old_achitecture: '{{ ami_old_info.images[0].architecture }}'
+          ami_old_virtualization: '{{ ami_old_info.images[0].virtualization_type }}'
+          ami_old_ena_support: '{{ ami_old_info.images[0].ena_support | default(false, true) }}'
+          ami_old_root_device_name: '{{ ami_old_info.images[0].root_device_name }}'
+          ami_old_tags: '{{ ami_old_info.images[0].tags }}'
+        vars:
+          query: images[0].block_device_mappings[?device_name=='{{ ami_old_info.images[0].root_device_name }}'].ebs.snapshot_id
+
+      - name: Fail if the old AMI's snapshot ID could not be retrieved
+        fail:
+          msg: Could not find the snapshot ID of the AMI named '{{ ami_loop_item.old_name }}'.
+        when: ami_old_snapshot_id is not defined or ami_old_snapshot_id is none or ami_old_snapshot_id | length == 0
+
+      - name: Get the default tags and store them in a variable
+        set_fact:
+          ami_default_tags: '{{ aws_default_tags | default({}, true) }}'
+        when: aws_apply_default_tags | bool
+
+      - name: Automatically find values for special default tags based on the new AMI's name
+        set_fact:
+          ami_default_tags: '{{ ami_default_tags | default({}, true) | combine(item) }}'
+        loop:
+          - {Name: "{{ aws_default_tags['Name'] | default( ami_loop_item.new_name, true ) }}"}
+          - {Business: "{{ aws_default_tags['Business'] | default( ami_loop_item.new_name | regex_replace('^(Golden|Green)-([a-zA-Z0-9]*)-([a-zA-Z0-9]*-[0-9]*\\\
+              .[0-9]*)-(.*)-[vV]([0-9][0-9]?\\.[0-9])$', '\\2') | lower | default('', true), true ) }}"}
+          - {ProductName: "{{ aws_default_tags['ProductName'] | default( ami_loop_item.new_name | regex_replace('^(Golden|Green)-([a-zA-Z0-9]*)-([a-zA-Z0-9]*-[0-9]*\\\
+              .[0-9]*)-(.*)-[vV]([0-9][0-9]?\\.[0-9])$', '\\4') | default('', true), true ) }}"}
+          - {OperatingSystem: "{{ aws_default_tags['OperatingSystem'] | default( ami_loop_item.new_name | regex_replace('^(Golden|Green)-([a-zA-Z0-9]*)-([a-zA-Z0-9]*)-([0-9]*\\\
+              .[0-9]*)-(.*)-[vV]([0-9][0-9]?\\.[0-9])$', '\\3') | lower | default('', true), true ) }}"}
+          - {OperatingSystemVersion: "{{ aws_default_tags['OperatingSystemVersion'] | default( ami_loop_item.new_name | regex_replace('^(Golden|Green)-([a-zA-Z0-9]*)-([a-zA-Z0-9]*-[0-9]*\\\
+              .[0-9]*)-(.*)-[vV]([0-9][0-9]?\\.[0-9])$', '\\3') | lower | default('', true), true ) }}"}
+          - {ImageVersion: "{{ aws_default_tags['version'] | default( ami_loop_item.new_name | regex_replace('^(Golden|Green)-([a-zA-Z0-9]*)-([a-zA-Z0-9]*-[0-9]*\\\
+              .[0-9]*)-(.*)-[vV]([0-9][0-9]?\\.[0-9])$', '\\5') | lower | default('', true), true ) }}"}
+          - {ImageType: "{{ aws_default_tags['ImageType'] | default( ami_loop_item.new_name | regex_replace('^(Golden|Green)-([a-zA-Z0-9]*)-([a-zA-Z0-9]*-[0-9]*\\\
+              .[0-9]*)-(.*)-[vV]([0-9][0-9]?\\.[0-9])$', '\\1') | default('', true), true ) }}"}
+          - {Release: "{{ aws_default_tags['Release'] | default('', true) }}"}
+        when: aws_apply_default_tags | bool
+
+      - name: Store all of the tags for the new AMI in one dictionary variable
+        set_fact:
+          aws_ami_tags: '{{ aws_ami_tags | default({}, true) | combine(item) }}'
+        loop:
+          - '{{ ami_default_tags | default( {}, true) }}'
+          - '{{ ami_old_tags | default( {}, true) if aws_apply_old_tags | bool else {} }}'
+
+      - name: Deregister the old AMI '{{ ami_old_image_id }}' if 'aws_deregister_old_image' is set to true
+        ec2_ami:
+          image_id: '{{ ami_old_image_id }}'
+          delete_snapshot: false
+          state: absent
+        when: aws_deregister_old_image | bool
+
+      - name: Create the new AMI from the old AMI's snapshot '{{ ami_old_snapshot_id }}'
+        ec2_ami:
+          name: '{{ ami_loop_item.new_name }}'
+          state: present
+          description: '{{ aws_image_description if aws_apply_default_image_settings | bool else ami_old_description }}'
+          architecture: '{{ aws_image_architecture if aws_apply_default_image_settings | bool else ami_old_achitecture }}'
+          virtualization_type: '{{ aws_image_virtualization if aws_apply_default_image_settings | bool else ami_old_virtualization }}'
+          enhanced_networking: '{{ aws_image_ena_support | bool if aws_apply_default_image_settings | bool else ami_old_ena_support | bool }}'
+          root_device_name: '{{ aws_image_root_device_name if aws_apply_default_image_settings | bool else ami_old_root_device_name }}'
+          device_mapping: '{{ aws_image_default_block_device_mapping if aws_apply_default_block_device_mapping | bool else ami_old_block_device_mappings
+            }}'
+          tags: '{{ aws_ami_tags }}'
+
+    when: >
+      ami_new_info.images[0].name | default('', true) != ami_loop_item.new_name
+      or (ami_old_info.images[0].name is defined and ami_old_info.images[0].name == ami_loop_item.new_name and aws_deregister_old_image | bool)
+
+...

@@ -1,0 +1,129 @@
+---
+# Playbook Name: ibp-hotfix-kerneltuning.yml
+# Description: Adds kernel tuning and missing symlink
+#     Gitlab issue: https://gitlab.core.sapns2.us/golden-ami-dev/ansible-roles/-/issues/370
+#     Targets all except cpids to create the symlink
+#     Targets only HDB instances with the kernel tuning
+# Dependencies:
+# - Ansible v2.9+
+# - AWS CLI v1.16+
+# - sudo capability or root privileges on target machine
+# - IBP inventory file
+# Variables: N/A
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-hotfix-kerneltuning.yml -k -i /<PATH-TO>/<IBP-HOST-INVENTORY-FILE>
+#
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-hotfix-kerneltuning.yml -k -i /tmp/testing0001.yml
+#
+# Authors: Louis Lee
+# Version: 2.9-000002
+# Modified: 2020-11-12 - Created playbook
+#           2020-11-23 - Added tunable variable. Added Play comments and tags
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#
+#   Play Tags:
+#     play0 always                                 : Create Inventory and Generate Metadata
+#     play1 update-libnsl check-tuned              : Updates libnsl symlink and check tuned profile
+#     play2 ibpapp-kernel-tune                     : Update kernel tunables on IBP App
+#     playEND                                      : End of the playbook
+
+
+#################
+##### Play0 #####
+#################
+- name: "Get metadata"
+  hosts: all:!cpids
+  gather_facts: true
+  tags:
+  - play0
+  - always
+
+  vars_prompt:
+  - name: ibpapp_shmall
+    prompt: "Value for IBP App's kernel shmall value"
+    private: no
+    default: '6291456'
+
+  tasks:
+  - name: "Save ibpapp_small"
+    set_fact:
+      play_ibpapp_shmall: "{{ ibpapp_shmall }}"
+
+#################
+##### Play1 #####
+#################
+- name: "Update Symlink and Check Tuned Profile"
+  hosts: all:!cpids
+  gather_facts: false
+  tags:
+  - play1
+  - update-libnsl
+  - check-tuned
+
+  tasks:
+  - name: "Create libnsl.so.1 symlink"
+    become: true
+    file:
+      state: link
+      src: '/usr/lib64/libnsl.so.2.0.0'
+      path: '/usr/lib64/libnsl.so.1'
+    when: ansible_distribution_major_version == "8"
+
+  - name: "Query Active Tuned Profile"
+    become: true
+    command: /usr/sbin/tuned-adm active
+    register: active_tuned_results
+
+  - name: "Display Active Tuned Profile"
+    debug:
+      msg: "Tuned Profile {{ active_tuned_results.stdout }} on Host {{ ansible_hostname }} aka {{ inventory_hostname }}"
+
+#################
+##### Play2 #####
+#################
+- name: "Kernel Tuning for IBP App"
+  hosts: ibpapp
+  gather_facts: false
+  tags:
+  - play2
+  - ibpapp-kernel-tune
+
+  tasks:
+  - name: "Set Kernel Tunables"
+    become: true
+    sysctl: name={{ item.name }} value={{ item.value }} state=present sysctl_set=yes reload=yes
+    loop:
+      - name: kernel.sem
+        value: "1250 256000 100 8192"
+      - name: vm.max_map_count
+        value: 2147483647
+      - name: kernel.shmmax
+        value: 23136829430
+      - name: kernel.shmall
+        value: "{{ play_ibpapp_shmall }}"
+      - name: kernel.pid_max
+        value: 4194304
+
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

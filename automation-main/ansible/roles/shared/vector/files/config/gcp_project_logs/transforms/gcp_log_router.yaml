@@ -1,0 +1,65 @@
+---
+# +----------------------------------------------------------------------------------------+
+# | __   __      _             _                   _              ___           __ _       |
+# | \ \ / /__ __| |_ ___ _ _  | |   ___  __ _ __ _(_)_ _  __ _   / __|___ _ _  / _(_)__ _  |
+# |  \ V / -_) _|  _/ _ \ '_| | |__/ _ \/ _` / _` | | ' \/ _` | | (__/ _ \ ' \|  _| / _` | |
+# |   \_/\___\__|\__\___/_|   |____\___/\__, \__, |_|_||_\__, |  \___\___/_||_|_| |_\__, | |
+# |                                     |___/|___/       |___/                      |___/  |
+# | Managed by Ansible                                                                     |
+# +----------------------------------------------------------------------------------------+
+#
+# Description: Router for GCP Project Logs
+# Vector Output Name: gcp_log_router
+# Notes:
+#
+# +----------------------------------------------------------------------------------------+
+
+type: route
+inputs:
+  - gcp*project_logs_metadata
+route:
+  # Cross Project Formatted Logs
+  ## Formatted Host Logs - These are logs from GCP Ops Agent using custom formatting
+  host_logs: .jsonPayload.metadata.custom.formatted == "host_formatted"
+
+  # K8 Logs
+  kubernetes_logs: 'starts_with(string!(.resource.type), "k8s_", case_sensitive: false)'
+
+  # JsonPayload
+  cloud_error_insights: >-
+    ends_with(string!(.logName), "clouderrorreporting.googleapis.com%2Finsights", case_sensitive: false)
+  cloud_scheduler_executions: >-
+    ends_with(string!(.logName), "cloudscheduler.googleapis.com%2Fexecutions", case_sensitive: false)
+  gce_guest_agent: >-
+    ends_with(string!(.logName), "GCEGuestAgent", case_sensitive: false)
+  gce_metadata_scrips: >-
+    ends_with(string!(.logName), "GCEMetadataScripts", case_sensitive: false)
+  gce_ops_agent_fluent_bit: >-
+    ends_with(string!(.logName), "ops-agent-fluent-bit", case_sensitive: false)
+  nat_flows: >-
+    ends_with(string!(.logName), "compute.googleapis.com%2Fnat_flows", case_sensitive: false)
+  os_config_agent: >-
+    ends_with(string!(.logName), "OSConfigAgent", case_sensitive: false)
+  vpc_flows: >-
+    ends_with(string!(.logName), "compute.googleapis.com%2Fvpc_flows", case_sensitive: false)
+
+  # TextPayload
+  cloud_functions: >-
+    ends_with(string!(.logName), "cloudfunctions.googleapis.com%2Fcloud-functions", case_sensitive: false)
+  ipsec_events: >-
+    ends_with(string!(.logName), "cloud.googleapis.com%2Fipsec_events", case_sensitive: false)
+  logging_sink_error: >-
+    ends_with(string!(.logName), "logging.googleapis.com%2Fsink_error", case_sensitive: false)
+  router_events: >-
+    ends_with(string!(.logName), "compute.googleapis.com%2Frouter_events", case_sensitive: false)
+  text_postgres_logs: >-
+    ends_with(string!(.logName), "cloudsql.googleapis.com%2Fpostgres.log", case_sensitive: false)
+
+  # ProtoPayload
+  activity: >-
+    ends_with(string!(.logName), "cloudaudit.googleapis.com%2Factivity", case_sensitive: false)
+  data_access: >-
+    ends_with(string!(.logName), "cloudaudit.googleapis.com%2Fdata_access", case_sensitive: false)
+  system_event: >-
+    ends_with(string!(.logName), "cloudaudit.googleapis.com%2Fsystem_event", case_sensitive: false)
+...

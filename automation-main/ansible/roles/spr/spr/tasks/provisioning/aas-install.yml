@@ -1,0 +1,200 @@
+# Synopsis: Provisions additional application servers (AAS)
+# Inputs:
+#  spr_pas_sid: PAS sid hostname
+#  spr_pas_hostname: PAS hostname
+#  spr_aas_install_folder: Installation folder for additional server
+#  spr_pas_sid_uid: PAS sid user ID
+#  spr_aas_sid: AAS sid
+# Outputs:
+# Modified: 2022-10-06 - Repurposed play to provision JAVA AA servers
+# Comments: This tasks provisions JAVA additional servers
+
+- name: Create primary user sidadm on the AA server
+  become: true
+  user:
+    name: "{{ spr_pas_sid }}adm"
+    comment: "SAP System Administrator"
+    shell: /bin/csh
+    uid: '{{spr_pas_sid_uid}}'
+    group: '79'
+    password: "{{ standard_deployment_password | password_hash('sha512') }}"
+
+- name: "Ensure /usr/sap/install exists"
+  become: true
+  file:
+    state: directory
+    path: '/usr/sap/install'
+    owner: root
+    group: root
+    mode: 0775
+
+#Below is required for SAP Service to be created during sapinst process
+- name: "Ensure /usr/sap/lib exists"
+  become: true
+  file:
+    state: directory
+    path: '/usr/sap/lib'
+    owner: "{{ spr_aas_sid|lower }}adm"
+    group: sapsys
+    mode: 0775
+- name: "Update compat-sap-c++-10.so as libstdc++.so.6"
+  become: true
+  file:
+    state: link
+    src: '/opt/rh/SAP/lib64/compat-sap-c++-10.so'
+    path: '/usr/sap/lib/libstdc++.so.6'
+  when: ansible_distribution_major_version == "8"
+
+- name: Copy AAS silent install parameter file
+  become: true
+  copy:
+    remote_src: yes
+    src: "{{ spr_aas_install_folder }}/G00-aasserver-inifile.params"
+    dest: /usr/sap/install/{{ spr_aas_sid|upper }}-aasserver-inifile.params
+
+- name: Copy AAS instkey.pkey
+  become: true
+  copy:
+    remote_src: yes
+    src: "{{ spr_aas_install_folder }}/instkey.pkey"
+    dest: /usr/sap/install/
+
+# keydb may not be necessary
+# - name: Copy AAS keydb.xml
+#   become: true
+#   copy:
+#     remote_src: yes
+#     src: "{{ spr_aas_install_folder }}/keydb.xml"
+#     dest: /usr/sap/install/
+
+- name: update AAS configuration file
+  become: true
+  block:
+  - name: Update Hostname
+    replace:
+      path: /usr/sap/install/{{ spr_aas_sid|upper }}-aasserver-inifile.params
+      regexp: '^NW_DI_Instance.virtualHostname(.*)'
+      replace: 'NW_DI_Instance.virtualHostname = {{spr_hostname }}'
+  - name: Update sidAdm UID
+    replace:
+      path: /usr/sap/install/{{ spr_aas_sid|upper }}-aasserver-inifile.params
+      regexp: '^nwUsers.sidAdmUID(.*)'
+      replace: 'nwUsers.sidAdmUID = {{ spr_pas_sid_uid }}'
+  - name: Update HDB_CLIENT location
+    replace:
+      path: /usr/sap/install/{{ spr_aas_sid|upper }}-aasserver-inifile.params
+      regexp: '^SAPINST.CD.PACKAGE.RDBMS-HDB-CLIENT(.*)'
+      replace: 'SAPINST.CD.PACKAGE.RDBMS-HDB-CLIENT = {{ spr_hana_client_source }}'
+  - name: Update Media source path
+    replace:
+      path: /usr/sap/install/{{ spr_aas_sid|upper }}-aasserver-inifile.params
+      regexp: '^archives.downloadBasket(.*)'
+      replace: "archives.downloadBasket = {{ spr_application_source | replace('Tar_Image/APP', 'Media' ) }}"
+
+  # Below need to be updated for provisioning systems with different SID
+  - name: Update Profile Directory
+    replace:
+      path: /usr/sap/install/{{ spr_aas_sid|upper }}-aasserver-inifile.params
+      regexp: '^NW_readProfileDir.profileDir(.*)'
+      replace: 'NW_readProfileDir.profileDir = /sapmnt/{{ spr_pas_sid | upper }}/profile'
+
+- name: "Remove /tmp/sapinst_instdir"
+  become: true
+  file:
+    path: '/tmp/sapinst_instdir'
+    state: absent
+
+- name: execute AAS server install using the parameter file
+  become: true
+  shell: "/staging/product-line/software_logistics_toolset/SL_TOOLSET/SL_TOOLSET_1.0/SOFTWARE_PROVISIONING_MGR_1.0/Media/SWPM/sapinst SAPINST_INPUT_PARAMETERS_URL=/usr/sap/install/{{ spr_aas_sid|upper }}-aasserver-inifile.params  SAPINST_EXECUTE_PRODUCT_ID=NW_DI:NW750.HDB.PD SAPINST_SKIP_DIALOGS=true SAPINST_START_GUISERVER=false"
+  args:
+    chdir: "/"
+    executable: /bin/bash
+
+# Stop SAPAPP on PAS
+- name: "Get Process list"
+  shell: 'sapcontrol -nr 00 -function GetProcessList ALL'
+  args:
+    executable: '/bin/csh'
+  become: true
+  become_user: "{{ spr_pas_sid | lower }}adm"
+  failed_when: false
+  changed_when: false
+  register: sapapp_process_output
+  when: inventory_hostname in groups.pas
+
+- name: "Check if SAPAPP is already stopped"
+  assert:
+    that: "'GREEN' not in sapapp_process_output.stdout"
+    fail_msg: "SAPAPP process detected. Stopping in next block"
+    success_msg: "SAPAPP is already stopped. Skipping next block"
+  changed_when: false
+  failed_when: false
+  when: inventory_hostname in groups.pas
+
+- name: "BLOCK: Stop SAPAPP"
+  become: true
+  become_user: "{{ spr_pas_sid | lower }}adm"
+  when:
+    - inventory_hostname in groups.pas
+    - "'GREEN' in sapapp_process_output.stdout"
+  block:
+  - name: "Stopping SAPAPP"
+    shell: 'sapcontrol -nr 00 -function StopSystem ALL'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+
+  - name: "Wait for process to stop"
+    shell: 'sapcontrol -nr 00 -function GetProcessList ALL'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+    changed_when: false
+    register: sapapp_poststop_process_output
+    retries: 5
+    delay: 10
+    until: |
+      'GREEN' not in sapapp_poststop_process_output.stdout
+
+  - name: "Output post-stop processes"
+    debug:
+      var: sapapp_poststop_process_output.stdout_lines
+  # End "BLOCK: Stop SAPAPP"
+
+# START SAPAPP on PAS. It should automatically start SAPAPP on AAS
+- name: "BLOCK: Start SAPAPP on PAS"
+  become: true
+  become_user: "{{ spr_pas_sid | lower }}adm"
+  when:
+    - inventory_hostname in groups.pas
+    - "'GREEN' in sapapp_process_output.stdout"
+  block:
+  - name: "Starting SAPAPP"
+    shell: 'sapcontrol -nr 00 -function StartSystem ALL'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+
+  - name: "Pause for SAP service to start"
+    pause:
+      seconds: 10
+
+  - name: "Wait for process to start"
+    shell: 'sapcontrol -nr 00 -function GetProcessList ALL'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+    changed_when: false
+    register: sapapp_poststart_process_output
+    retries: 5
+    delay: 10
+    until: |
+      'GRAY' not in sapapp_poststart_process_output.stdout and
+      'YELLOW' not in sapapp_poststart_process_output.stdout
+
+  - name: "Output post-start processes"
+    debug:
+      var: sapapp_poststart_process_output.stdout_lines
+  # End "BLOCK: Stop SAPAPP"
+...

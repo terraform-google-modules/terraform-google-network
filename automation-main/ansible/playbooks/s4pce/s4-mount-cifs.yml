@@ -1,0 +1,54 @@
+---
+# Playbook Name: s4-mount-cifs.yml
+# Synopsis: Mounts Azure Files CIFS on Linux
+# Description: Mounts CIFS v3.0 on linux which is used by Azure Files
+# Prerequisites:
+# - Ansible v2.9+
+# - FIPS is disable (MD5 Hash needed)
+# Dependencies:
+# Variables:
+#   - username : The Azure Storage Account Name
+#   - password : The Azure Storage Account Key
+#   - source : Location of the Azure Storage Account
+#   - mountpoint : Where to mount locally.
+# Example:
+#  Mount to share to /mnt/share
+#    ansible-playbook -i 192.168.0.1, s4-mount-cifs.yml -e username=AzureStorageAccount -e password=AzureStorageAccountKey -e source="//AzureStorage.file.core.usgovcloudapi.net/FileShare" -e mountpoint=/mnt/share
+# Authors: Louis Lee, Matt Bittner
+# Version: 2.9-000002
+# Modified: 2020-02-27
+#           2021-02-13 - Update to support new Repo-Management role
+# Comments: N/A
+
+- hosts: all
+  vars:
+    username: 'examplestorage'     # this is the Storage Account Name
+    password: 'abcdefg12345'       # this is the Storage Account Key
+    source: '//examplestorage.file.core.usgovcloudapi.net/exampleshare'      # This should be //server/share
+    mountpoint: '/staging'
+
+  tasks:
+  - name: Add the Base Repo
+    include_role:
+      name: repository-management
+    vars:
+      repo_enable: true
+      application_preset_selection: 'base'
+
+  - name: Make sure cifs-util is up to date
+    yum:
+      name: cifs-utils
+      state: latest
+    become: yes
+
+  # NOTE: FIPS must be disabled.
+
+  - name: Mount CIFS
+    mount:
+      fstype: cifs
+      src: "{{ source }}"
+      path: "{{ mountpoint }}"
+      opts: "vers=3.0,username={{ username }},password={{ password }},dir_mode=0777,file_mode=0777,serverino"
+      state: mounted
+    become: yes
+...

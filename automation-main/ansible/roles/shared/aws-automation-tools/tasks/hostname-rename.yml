@@ -1,0 +1,24 @@
+---
+# Synopsis: Renames hostnames to their AWS tag names. Targets instances by their private ip address.
+# Inputs:
+#   - aws_private_ip: private ip of the instance to rename
+# Outputs:
+#   - hostname renamed on instance
+
+  - name: Retrieve the ec2 metadata for {{ aws_private_ip }}
+    local_action:
+      module: ec2_instance_info
+      region: us-east-1
+      filters:
+        private-ip-address: '{{ aws_private_ip }}'
+    register: aws_facts
+
+  - name: Save Hostname Fact for {{ aws_private_ip }}
+    set_fact:
+      aws_tag_name: "{{ aws_facts.instances[0].tags.Name | replace('/','-') }}"
+
+  - name: Rename {{ aws_private_ip }} hostname to {{ aws_tag_name }}
+    hostname:
+      name: '{{ aws_tag_name }}'
+    become: true
+...

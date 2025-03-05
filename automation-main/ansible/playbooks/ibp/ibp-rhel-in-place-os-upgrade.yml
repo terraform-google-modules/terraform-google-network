@@ -1,0 +1,277 @@
+---
+# Playbook Name: ibp-rhel-in-place-os-upgrade.yml
+# Synopsis: Upgrade OS to target version (default 8.6).
+# Description: This playbook will upgrade RHEL, tag the instances with newly upgraded os version and reboot the instances.
+# Prerequisites: Instance which are already on the same RHEL major version of targeted upgrade, instance being upgraded from 8.4 to 8.6 is a valid use case.
+# - Ansible v2.9+
+# - sudo capability or root privileges on target machine
+# Dependencies:
+# - none
+# Variables:
+#   - target_os_version: targeted os version
+# Example:
+#   Execution on remote systems using the any inventory host file
+#     ansible-playbook ibp-rhel-in-place-os-upgrade.yml -k -i /<PATH-TO>/<IBP-HOST-INVENTORY-FILE>
+#     ansible-playbook ibp-rhel-in-place-os-upgrade.yml -k -i <comma delimited instances IPs or CNAMES, ended with comma>
+#     ansible-playbook ibp-rhel-in-place-os-upgrade.yml -u ec2-user --private-key=$Key/test_key -i ibp-dev-support0010-test.yml
+#
+# Authors: Jian Ouyang, Sean-Thomas Saloom
+# Version: 2.9-000006
+# Modified: 2022-03-30 - Created playbook
+#           2022-06-06 - Bugfix for broken dependencies
+#           2022-06-21 - Bugfix for comment
+#           2023-11-20 - Refactored playbook, removed from general 'OS' folder and moved into 'IBP' as this is now an IBP specific playbook
+#           2023-11-29 - Updating compat-sap-c++-9.so for libstdc++.so.6 symlink instead of Update compat-sap-c++-10.so
+#           2023-12-1  - Fixed play6/play7 tags, reverted DNF upgrade module to stay true to Ansible 2.9 compatibility
+#           2024-12-02 - Use variable for 'aws_region' in tag-management role.
+
+# Comments: |
+#   1. This playbook WILL REBOOT the remote instance.
+#   2. before running this playbook, all SAP services should be gracefully shutdown on targeting VMs
+#   3. backup the VMs in case of upgrade failure
+#   4. after migration /etc/os-realease will be updated to target version, but /etc/ns2-release will retain the original image that's been used
+#   Tags:
+#     play0 Prerequisites                                  : Request RHEL version for upgrade
+#     play1 Remove current repository file                 : Prepare hostnames and hostfiles
+#     play2 Download new repository file for DB instances  : Check the db instances for hardware prerequisites
+#     play3 Download new repository file for APP instances : Check the app instances for hardware prerequisites
+#     play4 Upgrade using new repository                   : Install and rename databases
+#     play5 Bugfix for release 2005 and above              : Creates new symlink required for IBP application start
+#     play6 CPIDS Bugfix                                   : Creates new symlink required for CPIDS application start
+#     play7 Update Tags                                    : Start databases
+#     play8 Reboot                                         : Install content server
+#     playEND always                                       : End of playbook
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prerequisites"
+  hosts: all
+  tags:
+  - play0
+  - prerequisites
+  - always
+  any_errors_fatal: yes
+  vars_prompt:
+
+  - name: target_os_version
+    prompt: "What is the targeted os version: "
+    private: no
+    default: '8.6'
+
+  - name: input_aws_region
+    prompt: What is the aws region?
+    private: false
+
+  tasks:
+    - name: Set upgrade version
+      set_fact:
+        target_os_version: '{{ target_os_version }}'
+
+    - name: Save Input Variables for later playbook use.
+      set_fact:
+        playbook_aws_region: '{{ input_aws_region }}'
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Remove current repository file"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play1
+  any_errors_fatal: yes
+  tasks:
+  - name: Remove current repository file
+    ansible.builtin.include_role:
+        name: repository-management
+    vars:
+      repo_delete: 'true'
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Download new repository file for DB instances"
+  hosts: ibpdb
+  gather_facts: false
+  become: false
+  tags:
+  - play2
+  any_errors_fatal: yes
+
+  tasks:
+  - name: Downloading "{{ target_os_version }}" repository file
+    ansible.builtin.include_role:
+        name: repository-management
+    vars:
+      repo_enable: 'true'
+      repo_force: 'true'
+      application_preset_selection: ['base','epel','hana']
+      ansible_distribution_version: '{{ target_os_version }}'
+
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Download new repository file for APP instances"
+  hosts: ibpapp:cpids:webdispatcher
+  gather_facts: false
+  become: false
+  tags:
+  - play3
+  any_errors_fatal: yes
+
+  tasks:
+  - name: Downloading "{{ target_os_version }}" repository file
+    ansible.builtin.include_role:
+        name: repository-management
+    vars:
+      repo_enable: 'true'
+      repo_force: 'true'
+      application_preset_selection: ['base','epel']
+      ansible_distribution_version: '{{ target_os_version }}'
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Upgrade using new repository"
+  hosts: all
+  gather_facts: false
+  become: true
+  tags:
+  - play4
+  any_errors_fatal: yes
+
+  tasks:
+
+  - name: Update dnf
+    shell: dnf check-update
+    register: dnf_result
+    args:
+      warn: false
+    failed_when: dnf_result.rc not in [0,100]
+    no_log: true
+
+  - name: Upgrade all packages
+    shell: yum upgrade --nobest --allowerasing --exclude=ansible -y
+
+  # - name: Upgrade all packages # Requires a minimum of Ansible 2.11
+    # dnf:
+    #   name: "*"
+    #   state: latest
+    #   nobest: yes
+    #   allowerasing: yes
+    #   exclude: ansible
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: IBPAPP/Webdispatcher Bugfix for release 2005 and above"
+  hosts: ibpapp:webdispatcher
+  gather_facts: false
+  become: true
+  tags:
+  - play5
+  any_errors_fatal: yes
+
+  tasks:
+  - name: "Delete original libstdc++.so.6.0.25 file"
+    file:
+      state: absent
+      path: '/usr/lib64/libstdc++.so.6.0.25'
+
+  - name: "Delete old symlink"
+    file:
+      state: absent
+      path: '/usr/lib64/libstdc++.so.6'
+
+  - name: "Update compat-sap-c++-6.so as libstdc++.so.6"
+    copy:
+      dest: '/usr/lib64/libstdc++.so.6'
+      src: '/opt/rh/SAP/lib64/compat-sap-c++-6.so'
+      force: yes
+      remote_src: yes
+    when: ansible_distribution_major_version == "7"
+
+  - name: "Update compat-sap-c++-9.so as libstdc++.so.6"
+    copy:
+      dest: '/usr/lib64/libstdc++.so.6'
+      src: '/opt/rh/SAP/lib64/compat-sap-c++-9.so'
+      force: yes
+      remote_src: yes
+    when: ansible_distribution_major_version == "8"
+
+#################
+##### Play6 #####
+#################
+- name: "Play6: CPIDS Bugfix"
+  hosts: cpids
+  gather_facts: false
+  become: true
+  tags:
+  - play6
+  any_errors_fatal: yes
+
+  tasks:
+  - name: "Create libnsl.so.1 symlink"
+    become: true
+    file:
+      state: link
+      src: '/usr/lib64/libnsl.so.2.0.0'
+      path: '/usr/lib64/libnsl.so.1'
+    when: ansible_distribution_major_version == "8"
+
+
+#################
+##### Play7 #####
+#################
+- name: "Play7: Update Tags"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play7
+  any_errors_fatal: yes
+
+  tasks:
+  - name: Update instance tags #os version will be updated on target instances
+    ansible.builtin.include_role:
+      name: tag-management
+      aws_region: '{{ playbook_aws_region }}'
+
+#################
+##### Play8 #####
+#################
+- name: "Play8: Reboot"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play8
+  any_errors_fatal: yes
+
+  tasks:
+  - name: Reboot instance
+    become: yes
+    reboot:
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

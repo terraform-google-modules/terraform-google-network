@@ -1,0 +1,18 @@
+---
+tests:
+  - name: var.log.tuned::1
+    inputs:
+      - insert_at: tuned_metadata
+        type: log
+        log_fields:
+          file: /var/log/tuned/tuned.log
+          message: '2021-06-25 00:02:06,300 INFO     tuned.plugins.plugin_cpu: We are running on an x86 GenuineIntel platform'
+    outputs:
+      - extract_from: system_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!(parse_timestamp!("2021-06-25 00:02:06", "%Y-%m-%d %H:%M:%S"), .timestamp, "timestamp parsing incorrect")
+              assert_eq!("/var/log/tuned", .metadata.custom.log_group)
+              assert_eq!(.message.level, "INFO")
+...

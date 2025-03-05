@@ -1,0 +1,146 @@
+---
+
+  - name: Enabling epel
+    include_role:
+      name: repository-management
+    vars:
+      epel_repo: 'true'
+      repo_enable: 'true'
+    when: cwa_enable_repositories | bool
+    tags:
+      - install
+
+  - name: Add {{ cwa_package }} key
+    become: true
+    rpm_key:
+      state: present
+      key: '{{ cwa_package_gpg }}'
+    tags:
+      - add-key
+      - download
+      - install
+
+  - name: Download {{ cwa_package }}.rpm.sig
+    get_url:
+      url: '{{ cwa_package_signature }}'
+      dest: '{{ cwa_temp_path }}/{{ cwa_package }}.rpm.sig'
+      timeout: '{{ cwa_global_downloads_timeout }}'
+    become: true
+    tags:
+      - download-signature
+      - verify-signature
+      - download
+      - install
+    register: cwa_package_rpm_sig_download
+    until: cwa_package_rpm_sig_download is not failed
+    retries: 10
+    delay: 5
+
+  - name: Download {{ cwa_package }}.rpm
+    get_url:
+      url: '{{ cwa_package_url }}'
+      dest: '{{ cwa_temp_path }}/{{ cwa_package }}.rpm'
+      timeout: '{{ cwa_global_downloads_timeout }}'
+    become: true
+    tags:
+      - download
+      - verify-signature
+      - install
+    register: cwa_package_rpm_download
+    until: cwa_package_rpm_download is not failed
+    retries: 10
+    delay: 5
+
+  - name: Verify {{ cwa_package }} package signature
+    command: gpg --verify {{ cwa_package }}.rpm.sig {{ cwa_package }}.rpm
+    register: verified_sig
+    failed_when: "'BAD' in verified_sig.stderr"
+    changed_when: false
+    args:
+      chdir: '{{ cwa_temp_path }}'
+    tags:
+      - verify-signature
+      - install
+
+  - name: Install "{{ cwa_dependencies_packages }}" dependency
+    yum:
+      name: '{{ cwa_dependencies_packages }}'
+      state: present
+    register: package_ok
+    retries: '{{ cwa_global_downloads_retries }}'
+    delay: '{{ cwa_global_downloads_delay }}'
+    until: package_ok is success
+    tags:
+      - install
+    become: true
+
+  - name: Install "{{ cwa_dependencies_packages_rhel8 }}" dependency
+    yum:
+      name: '{{ cwa_dependencies_packages_rhel8 }}'
+      state: present
+    register: package_ok
+    retries: '{{ cwa_global_downloads_retries }}'
+    delay: '{{ cwa_global_downloads_delay }}'
+    until: package_ok is success
+    tags:
+      - install
+    become: true
+    when: >
+      ansible_os_family == 'RedHat' and
+      ansible_distribution == 'RedHat'
+      and (
+        ansible_distribution_major_version == '8'
+      )
+
+  - name: Install {{ cwa_package }}.rpm
+    yum:
+      name: '{{ cwa_temp_path }}/{{ cwa_package }}.rpm'
+      state: present
+      disable_gpg_check: yes
+    register: package_ok
+    retries: '{{ cwa_global_downloads_retries }}'
+    delay: '{{ cwa_global_downloads_delay }}'
+    until: package_ok is success
+    tags:
+      - install
+    become: true
+
+  - name: Create systemd override directory for amazon-cloudwatch-agent
+    ansible.builtin.file:
+      path: /etc/systemd/system/amazon-cloudwatch-agent.service.d/
+      owner: root
+      group: root
+      mode: '755'
+      state: directory
+    become: true
+    when:
+      - ansible_virtualization_type != "docker"
+      - ansible_service_mgr == "systemd"
+
+  - name: Copy the always restart configuration for amazon-cloudwatch-agent
+    ansible.builtin.copy:
+      src: systemd-alwaysrestart.conf
+      dest: /etc/systemd/system/amazon-cloudwatch-agent.service.d/alwaysrestart.conf
+      owner: root
+      group: root
+      mode: '644'
+    become: true
+    when:
+      - ansible_virtualization_type != "docker"
+      - ansible_service_mgr == "systemd"
+    notify: Reload systemd to reread configurations
+
+  - name: Copy the systemd proxy configuration template for amazon-cloudwatch-agent
+    ansible.builtin.template:
+      src: proxy/systemd-proxy.j2
+      dest: /etc/systemd/system/amazon-cloudwatch-agent.service.d/proxy.conf
+      owner: root
+      group: root
+      mode: '644'
+    become: true
+    when:
+      - ansible_virtualization_type != "docker"
+      - ansible_service_mgr == "systemd"
+      - cwa_use_proxy | bool
+    notify: Reload systemd to reread configurations
+...

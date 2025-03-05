@@ -1,0 +1,51 @@
+---
+# Synopsis: Turns off HANA logging
+# Inputs:
+#   - sid : SAP ID of the system
+#   - hana_logging_off_sqlcmd_folder: Path to sql commands. (Will not overwrite)
+# Outputs: HANA Logging changed to overwrite mode
+# Comments:
+# - Require HDBuserstore keys have already been created for 'SYSTEMDB-ADMIN' and TENANTDB-ADMIN'
+
+- name: "Ensure sql commands exist"
+  copy:
+    dest: "{{ hana_logging_off_sqlcmd_folder }}/{{ item }}"
+    src: "sqlcmd/{{ item }}"
+    force: no
+  become: true
+  run_once: true
+  loop:
+  - 'change-log-mode-overwrite.sql'
+  - 'show_log_mode.sql'
+
+- name: "Change sql log mode to overwrite"
+  include_tasks: operations/sqlcmd-run.yml
+  args:
+    apply:
+      become: true
+      become_user: "{{ sid|lower }}adm"
+  vars:
+    sql_description: "change-log-mode-overwrite on {{ item }}"
+    sql_userstorekey: "{{ item }}"
+    sql_command: 'change-log-mode-overwrite.sql'
+    sql_shell: '/bin/csh'
+  loop:
+    - 'SYSTEMDB-ADMIN'
+    - 'TENANTDB-ADMIN'
+
+- name: "Get SQL log mode"
+  include_tasks: operations/sqlcmd-run.yml
+  args:
+    apply:
+      become: true
+      become_user: "{{ sid|lower }}adm"
+  vars:
+    sql_description: "show_log_mode on {{ item }}"
+    sql_userstorekey: "{{ item }}"
+    sql_command: 'show_log_mode.sql'
+    sql_shell: '/bin/csh'
+    sql_results: true
+  loop:
+    - 'SYSTEMDB-ADMIN'
+    - 'TENANTDB-ADMIN'
+...

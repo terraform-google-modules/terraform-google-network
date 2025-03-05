@@ -1,0 +1,53 @@
+---
+# Synopsis: Enables or disables FIPS mode
+# Input:
+#   - fips_mode_enabled - put the system into fips mode; defaults to true
+#   - fips_reboot_host - When true reboot the host (only works when remote)
+
+  - name: Set fact to capture OS distribution and major version
+    set_fact:
+      fips_taskfile_path: '{{ ansible_distribution | lower}}/{{ ansible_distribution_major_version }}'
+
+  - name: Check FIPS status
+    include_tasks: '{{ fips_taskfile_path }}/check-fips.yml'
+
+  - name: Report current state
+    debug:
+      msg: |
+        Currently System State reports FIPS: {{fips_state}}
+        Desired State is: {{fips_mode_enabled}}
+
+  - name: Set fact to capture FIPS state change
+    set_fact:
+      fips_state_change: >-
+        {{
+          'True' if (
+            ((not fips_state | bool) and (fips_mode_enabled | bool)) or
+            ((fips_state | bool) and (not fips_mode_enabled | bool))
+          ) else 'False'
+        }}
+
+  - name: Enable FIPS if not enabled and desired
+    include_tasks: '{{ fips_taskfile_path }}/enable-fips.yml'
+    when:
+      - not fips_state
+      - fips_mode_enabled | bool
+
+  - name: Disable FIPS if not disabled and desired
+    include_tasks: '{{ fips_taskfile_path }}/disable-fips.yml'
+    when:
+      - fips_state
+      - not fips_mode_enabled | bool
+
+  - name: Reboot message
+    debug:
+      msg: System must be rebooted to {{ 'enable' if fips_mode_enabled else 'disable' }} FIPS
+    when: fips_state_change | bool
+
+  - name: Reboot instance
+    reboot:
+    become: true
+    when:
+      - fips_state_change | bool
+      - fips_reboot_host | bool
+...

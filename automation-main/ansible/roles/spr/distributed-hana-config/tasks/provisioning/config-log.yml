@@ -1,0 +1,34 @@
+- name: "Ensure log_mode is set to normal for SYSTEMDB"
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  community.sap_libs.sap_hdbsql:
+    sid: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}"
+    instance: "{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}"
+    password: "{{ distributed_hana_config_sap_hana_hsr_hana_db_system_password }}"
+    database: SYSTEMDB
+    user: SYSTEM
+    query: ["ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM') SET ('persistence', 'log_mode') = 'normal' WITH RECONFIGURE;"]
+
+
+- name: "Ensure log_mode is set to normal for {{ distributed_hana_config_sap_hana_hsr_hana_sid }}DB"
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  community.sap_libs.sap_hdbsql:
+    sid: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}"
+    instance: "{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}"
+    password: "{{ distributed_hana_config_sap_hana_hsr_hana_db_system_password }}"
+    database: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}"
+    user: SYSTEM
+    query: ["ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM') SET ('persistence', 'log_mode') = 'normal' WITH RECONFIGURE;"]
+
+- name: "Unset host log_mode logconfiguration"
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  community.sap_libs.sap_hdbsql:
+    sid: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper}}"
+    instance: "{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}"
+    password: "{{ distributed_hana_config_sap_hana_hsr_hana_db_system_password }}"
+    database: SYSTEMDB
+    user: SYSTEM
+    query: ["ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'HOST', '{{ distributed_hana_config_spr_hostname }}') UNSET ('persistence','log_mode') WITH RECONFIGURE;"]
+

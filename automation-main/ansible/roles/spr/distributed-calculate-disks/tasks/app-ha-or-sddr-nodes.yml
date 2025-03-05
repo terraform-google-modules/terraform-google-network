@@ -1,0 +1,18 @@
+- name: "{{ inventory_hostname }} has {{ (ansible_facts.memtotal_mb/1000)|round|int }}GB of system memory"
+  ansible.builtin.set_fact:
+    distributed_calculate_disks_ram_size: "{{ (ansible_facts.memtotal_mb/1000)|round|int }}"
+
+# Ensures that custom_volume_map is empty to add new devices
+- name: "Initialize custom_volume_map"
+  ansible.builtin.set_fact:
+    distributed_calculate_disks_output_custom_volume_map:
+
+- name: "Calculate swap"
+  ansible.builtin.include_tasks: calculate-swap-size.yml
+
+- name: "Add HA or SDDR volume to custom_volume_map"
+  ansible.builtin.set_fact:
+    distributed_calculate_disks_output_custom_volume_map:
+      swap:
+        mount_point: '/swap'
+        size: "{{ distributed_calculate_disks_swap_size }}"

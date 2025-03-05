@@ -1,0 +1,6 @@
+dependencies:
+- name: kafka
+  repository: oci://harbor.dev.ste.dev.scs.sap/helm-chart-museum
+  version: 2.13.0
+digest: sha256:464609123721c407a928c7d1bcedb3085fcdde54626e4fc52a1efad81f3a62e0
+generated: "2024-08-12T13:42:41.37484-04:00"

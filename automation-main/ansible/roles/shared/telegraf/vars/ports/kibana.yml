@@ -1,0 +1,10 @@
+---
+net_ports:
+  - name: kibana
+    host: localhost
+    port: 5601
+    protocol: tcp
+    application: kibana
+    service: elk
+    description: kibana (5601)
+...

@@ -1,0 +1,33 @@
+---
+# Description: Variables file defining AWS EC2 instances to create for the given Molecule test scenario.
+# Comments: This Molecule test scenario validates that the hostname is updated correctly after executing the playbook.
+
+dependency:
+  name: galaxy
+driver:
+  name: ec2
+platforms:
+  - name: instance
+    image_owner: 723712175675
+    image_name: Golden-NS2-RHEL-8.1-Base-V6.0
+    instance_type: t2.micro
+    vpc_subnet_id: subnet-0ce49fc32959a1a07
+    region: us-gov-west-1
+    tags:
+      - Name: molecule_instance
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      all:
+        vars:
+          nessus_s3_bucket_aws_region: us-gov-west-1
+          nessus_package_version: 8.1.0
+          nessus_s3_bucket_name: ns2-cre-sms-binaries
+          nessus_s3_bucket_path: media/tenable
+          nessus_manager_address: nessus-manager.sms.cre.sapns2.internal
+          nessus_agent_group: CRE-S4-PCE
+        children:
+verifier:
+  name: ansible
+...

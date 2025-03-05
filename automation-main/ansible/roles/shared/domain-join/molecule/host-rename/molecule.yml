@@ -1,0 +1,54 @@
+---
+scenario:
+  name: host-rename
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - dependency
+    - lint
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+#   - idempotence    # NOTE: A lot of our roles aren't truly idempotent as far as Molecule understands, so you might have to comment this line out.
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: image
+    image: ubuntu:18.04
+    pre_build_image: false
+    Dockerfile: Dockerfile
+    privileged: true
+provisioner:
+  name: ansible
+verifier:
+  name: ansible
+...

@@ -1,0 +1,36 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowListAllBuckets",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetBucketLocation",
+                "s3:ListAllMyBuckets"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowListBucket",
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": ${jsonencode(bucket_arn_list)}
+        },
+        {
+            "Sid": "AllowGetBucketLocation",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Resource": ${jsonencode([for arn in bucket_arn_list : "${arn}/*"])}
+        },
+        {
+            "Sid": "AllowArtifactsDecrypt",
+            "Effect": "Allow",
+            "Action": "kms:Decrypt",
+            "Resource": ${jsonencode(kms_arn_list)}
+          }
+    ]
+  }

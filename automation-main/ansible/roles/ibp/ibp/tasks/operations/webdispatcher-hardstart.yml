@@ -1,0 +1,50 @@
+---
+# Synopsis: Does a hard start of web dispatcher
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+# Outputs: Started web dispatcher
+# Comments: N/A
+
+- name: "Get saphostagent status"
+  command: "/usr/sap/hostctrl/exe/saphostexec -status"
+  become: true
+  register: saphostagent_status
+  failed_when: "'FAILED' in saphostagent_status.stderr"
+  changed_when: false
+
+- name: "Display saphostagent status"
+  debug:
+    var: saphostagent_status.stderr_lines
+
+- name: "BLOCK - Start saphostagent"
+  block:
+  - name: "Start saphostagent as root"
+    command: "/usr/sap/hostctrl/exe/saphostexec -restart"
+    become: true
+
+  - name: "Get saphostagent status"
+    command: "/usr/sap/hostctrl/exe/saphostexec -status"
+    become: true
+    register: saphostagent_statusblock
+    failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+    changed_when: false
+
+  - name: "Display saphostagent status"
+    debug:
+      var: saphostagent_statusblock.stderr_lines
+  when: saphostagent_status.stderr == 'saphostexec stopped '
+  #End "BLOCK - Start saphostagent"
+
+- name: "Run startsap as n02adm"
+  shell: startsap
+  become: yes
+  become_user: "n02adm"
+  args:
+    executable: /bin/csh
+  register: results_startsap
+
+- name: "Display results_startsap"
+  debug:
+    var: results_startsap.stdout_lines
+
+...

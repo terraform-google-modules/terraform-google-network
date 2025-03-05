@@ -1,0 +1,12 @@
+---
+
+# Description: Calls other task files to install the Google Cloud Platform CLI tools.
+# Inputs:
+#   - N/A
+# Outputs:
+#   - Calls other task files.
+
+  - name: Install Google Cloud Platform CLI
+    include_tasks: '{{ ansible_distribution | lower }}/install.yml'
+
+...

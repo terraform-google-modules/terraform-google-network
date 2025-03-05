@@ -1,0 +1,34 @@
+---
+# defaults file for selinux-apparmor
+
+# Whether to reboot the system if required by the role.
+reboot_if_needed: false
+
+# Whether to modify the AppArmor configurations.
+apparmor_configure: true
+
+# Whether to enable or disable AppArmor. Valid options are 'enable' or 'disable'.
+apparmor_state: enable
+
+# List of AppArmor policy files to use in complain mode.
+apparmor_complain_policies:
+  - /etc/apparmor.d/*
+
+# List of AppArmor policy files to use in enforce mode.
+apparmor_enforce_policies: []
+
+# List of AppArmor policy files to disable.
+apparmor_disable_policies: []
+
+# Whether to modify the SELinux confingurations.
+selinux_configure: true
+
+# The enforcing state that SELinux should be set to. Valid options are 'disabled', 'permissive', or 'enforcing'.
+selinux_set_state: permissive
+
+# The package name of the SELinux policy.
+selinux_policy_package: selinux-policy-targeted
+
+# The policy to apply to SELinux.
+selinux_set_policy: targeted
+...

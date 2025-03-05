@@ -1,0 +1,73 @@
+---
+# Description: Setup Terraform Binaries
+# Inputs:
+#   - terraform_setup_version : Version of terraform to use when not using tfenv
+#   - terraform_setup_tfenv : (Default:False) Use tfenv to manage terraform versions
+#   - bastion_setup_terraform_s3_bucket_name: Aws s3 bucket name (if not empty will download the terraform from s3)
+#   - bastion_setup_terraform_s3_filepath: path to terraform zip in S3 bucket (Required if bastion_setup_terraform_s3_bucket_name is set)
+#   - bastion_aws_ca_bundle_path: cert path to ensure Bastion can interact with S3 (required if non-login accounts and bastion_setup_s3_bucket_name is set)
+#
+# Outputs: Terraform binaries configured on host.
+# Comments: N/A
+
+  - name: Install Terraform from HashiCorp
+    become: true
+    when: not terraform_setup_tfenv | bool
+    block:
+      - name: Download Terraform from s3
+        aws_s3:
+          bucket: '{{ bastion_setup_terraform_s3_bucket_name }}'
+          region: '{{ bastion_setup_s3_bucket_region | default(ansible_ec2_placement_region,true) }}'
+          aws_ca_bundle: '{{ bastion_setup_aws_ca_bundle_path | default(omit, true) }}'
+          object: /{{ bastion_setup_terraform_s3_filepath | regex_replace('^\/', '') }}
+          dest: /tmp/{{ bastion_setup_terraform_s3_filepath.split('/')[-1] }}
+          mode: get
+        when: >
+          bastion_setup_terraform_s3_bucket_name is defined and
+          bastion_setup_terraform_s3_bucket_name is not none and
+          bastion_setup_terraform_s3_bucket_name | length > 0
+      - name: Unzip Terraform
+        unarchive:
+          src: >-
+            {{
+              '/tmp/'+bastion_setup_terraform_s3_filepath if (
+                bastion_setup_terraform_s3_bucket_name is defined and
+                bastion_setup_terraform_s3_bucket_name is not none and
+                bastion_setup_terraform_s3_bucket_name | length > 0
+              ) else bastion_terraform_setup_url
+            }}
+          dest: /usr/bin
+          mode: u+x
+          owner: root
+          group: root
+          remote_src: true
+
+  - name: 'BLOCK: tfenv'
+    when: terraform_setup_tfenv|bool
+    block:
+      - name: Download tfenv
+        become: true
+        git:
+          dest: /etc/tfenv
+          repo: https://github.com/tfutils/tfenv.git
+          clone: yes
+          update: yes
+
+      - name: Setup tfenv for all users
+        become: true
+        copy:
+          dest: /etc/profile.d/tfenv.sh
+          content: PATH="$PATH:/etc/tfenv/bin"
+
+      - name: Setup tfenv for sudo
+        include_tasks: sudo-secure-path.yml
+        vars:
+          sudo_secure_path_target: /etc/tfenv/bin
+
+      - name: Remove terraform binary from previous installs
+        become: true
+        file:
+          path: /usr/bin/terraform
+          state: absent
+  ### End "BLOCK: tfenv"
+...

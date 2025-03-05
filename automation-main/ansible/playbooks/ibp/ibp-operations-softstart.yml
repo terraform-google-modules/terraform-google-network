@@ -1,0 +1,118 @@
+---
+# Playbook Name: ibp-operations-softstart.yml
+# Synopsis: Starts the ibp environment from a soft-stop
+# Description: This playbook consists of several plays which will start the IBP environment.
+#     It is designed to work with the ibp-ansible-inventory-template file
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS CLI v1.16+
+#   - sudo capability or root privileges on target machine
+# Dependencies:
+#   - ibp ansible role
+# Variables:
+#   - sid (provided by ansible inventory hostfile)
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-operations-softstart.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>'
+#
+# Example
+#   Execution on a single instance with ip address of 192.168.1.1
+#     ansible-playbook ibp-operations-softstart.yml -k -i /tmp/hosts -l 192.168.1.1
+#
+# Example
+#   Execution on a single landscape 'production'
+#     ansible-playbook ibp-operations-softstart.yml -k -i /tmp/hosts -l production
+#
+# Example
+#   Execution of a specific play 'start-sapapp' This will start both hana and sapapp
+#     ansible-playbook ibp-operations-softstart.yml -k -i /tmp/hosts --tags 'start-sapapp'
+#
+# Authors: Vighnesh Sivakumar
+# Version: 2.9-000004
+# Modified: 2020-05-18 - Created playbook
+#           2020-05-28 - Added CPIDS
+#           2020-06-02 - Added Web Dispatcher
+#           2020-06-23 - Merged ibp-provision and ibp-operations roles to ibp role
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Some plays are prerequisites for other plays and are tagged accordingly.
+#
+#   Play Tags:
+#     play1 start-sapapp start-hana start-all: Starts Hana systems. Prerequisite for starting Sap Application systems
+#     play2 start-sapapp start-all: Starts SAP Application systems.
+#     play3 start-cpids start-all: Starts CPIDS
+#     play4 start-webdispatcher start-all: Starts Web Dispatcher
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Soft Start Hana"
+  hosts: ibpdb
+  gather_facts: false
+  tags:
+  - play1
+  - start-hana
+  - start-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call hana-softstart task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-softstart.yml
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Soft Start SapApp"
+  hosts: ibpapp
+  gather_facts: false
+  tags:
+  - play2
+  - start-sapapp
+  - start-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call sapapp-softstart task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-softstart.yml
+
+#################
+##### Play3 #####
+#################
+- name: "Play 3: Soft Start CPIDS"
+  hosts: cpids
+  gather_facts: false
+  tags:
+  - play3
+  - start-cpids
+  - start-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call cpids-softstart task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/cpids-softstart.yml
+
+#################
+##### Play4 #####
+#################
+- name: "Play 4: Soft Start Web Dispatcher"
+  hosts: webdispatcher
+  gather_facts: false
+  tags:
+  - play4
+  - start-webdispatcher
+  - start-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call webdispatcher-softstart task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/webdispatcher-softstart.yml
+
+...

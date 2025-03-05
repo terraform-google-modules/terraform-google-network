@@ -1,0 +1,86 @@
+---
+# Synopsis: Enables or disables SELinux.
+# Inputs:
+#   - selinux_policy_package : The package name of the SELinux policy.
+#   - selinux_set_state : The enforcing state that SELinux should be set to. Valid options are 'disabled', 'permissive', or 'enforcing'.
+#   - selinux_set_policy : The policy to apply to SELinux.
+#
+# Outputs:
+#   - Enables or disables SELinux.
+
+  - name: Get the current SELinux state
+    ansible.builtin.command: getenforce
+    become: true
+    register: selinux_getenforce_results
+    changed_when: false
+    check_mode: false
+
+  - name: Set fact for the current SELinux state
+    ansible.builtin.set_fact:
+      selinux_current_state: '{{ selinux_getenforce_results.stdout | lower }}'
+
+  - name: Install the desired policy package
+    ansible.builtin.package:
+      name: '{{ selinux_policy_package }}'
+      state: present
+    become: true
+
+  - name: Set SELinux package dependencies
+    ansible.builtin.set_fact:
+      selinux_package_dependencies:
+        redhat2:
+          - policycoreutils-python
+          - policycoreutils-python
+
+  - name: Install SELinux related dependencies
+    ansible.builtin.package:
+      name: '{{ item }}'
+      state: present
+    loop: '{{ selinux_package_dependencies[(ansible_os_family | lower) + ansible_distribution_major_version] }}'
+    become: true
+
+  - name: Set the SELinux state to permissive
+    ansible.builtin.lineinfile:
+      path: /etc/selinux/config
+      regexp: ^SELINUX=
+      line: SELINUX={{ selinux_set_state }}
+    become: true
+    when: selinux_current_state != selinux_set_state and selinux_set_state == "enforcing"
+
+  - name: Set the SELinux policy
+    ansible.builtin.lineinfile:
+      path: /etc/selinux/config
+      regexp: ^SELINUXTYPE=
+      line: SELINUXTYPE={{ selinux_set_policy }}
+    become: true
+    when: selinux_current_state != "enforcing"
+
+  - name: Enable rhel-autorelabel and rhel-autorelabel-mark
+    ansible.builtin.service:
+      name: '{{ item }}'
+      enabled: true
+    become: true
+    loop:
+      - rhel-autorelabel
+      - rhel-autorelabel-mark
+    when: selinux_current_state != selinux_set_state
+
+  - name: Relabel the filesystem for SELinux
+    ansible.builtin.file:
+      path: /.autorelabel
+      owner: root
+      group: root
+      state: touch
+    become: true
+    when: selinux_current_state == 'disabled' and selinux_set_state != 'disabled'
+
+  - name: Set the SELinux state and policy
+    ansible.builtin.lineinfile:
+      path: /etc/selinux/config
+      regexp: ^SELINUX=
+      line: SELINUX={{ selinux_set_state }}
+    become: true
+    register: selinux_state_results
+    when: selinux_current_state != selinux_set_state
+    notify: reboot_system_if_required
+...

@@ -1,0 +1,39 @@
+---
+# +----------------------------------------------------------------------------------------+
+# | __   __      _             _                   _              ___           __ _       |
+# | \ \ / /__ __| |_ ___ _ _  | |   ___  __ _ __ _(_)_ _  __ _   / __|___ _ _  / _(_)__ _  |
+# |  \ V / -_) _|  _/ _ \ '_| | |__/ _ \/ _` / _` | | ' \/ _` | | (__/ _ \ ' \|  _| / _` | |
+# |   \_/\___\__|\__\___/_|   |____\___/\__, \__, |_|_||_\__, |  \___\___/_||_|_| |_\__, | |
+# |                                     |___/|___/       |___/                      |___/  |
+# | Managed by Ansible                                                                     |
+# +----------------------------------------------------------------------------------------+
+#
+# Description: GCP textPayload Dropped log parser
+# Vector Output Name: gcp_text__enriched_out_dropped
+# Notes:
+#
+# +----------------------------------------------------------------------------------------+
+
+type: remap
+inputs:
+  - text__*__metadata.dropped
+source: |
+  # Remove unnecessary fields
+  del(.insertId)
+  del(.labels)
+  del(.logName)
+  del(.receiveTimestamp)
+  del(.resource)
+  del(.severity)
+  del(.trace)
+
+  # Rename jsonPayload to message
+  .message = del(.textPayload)
+
+  .metadata.errors.note = "This log was dropped due to an error in processing. Check the included errors for more details."
+  .metadata.source = string(.metadata.source) ?? .file
+  .metadata.custom.vector_group = "system_logs"
+
+  # Set Metadata for filtering
+  %metadata.firehose_only = true
+...

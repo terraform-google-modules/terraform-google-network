@@ -1,0 +1,47 @@
+---
+  - name: Create systemd override directory for telegraf
+    ansible.builtin.file:
+      path: /etc/systemd/system/telegraf.service.d/
+      state: directory
+      selevel: s0
+      seuser: system_u
+      setype: systemd_unit_file_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0755'
+    become: true
+
+  - name: Copy the always restart configuration for telegraf
+    ansible.builtin.copy:
+      content: |
+        [Service]
+        Restart=always
+        RestartSec=5s
+      dest: /etc/systemd/system/telegraf.service.d/alwaysrestart.conf
+      selevel: s0
+      seuser: system_u
+      setype: systemd_unit_file_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0644'
+    become: true
+    notify:
+      - restart telegraf
+    register: telegraf_systemd_alwaysrestart
+
+  - name: Reload systemd to reread configurations
+    systemd:
+      daemon_reload: yes
+    become: true
+    when:
+      - telegraf_systemd_alwaysrestart.changed
+
+  - name: Enable telegraf service and start it
+    service:
+      name: telegraf
+      enabled: true
+      state: started
+    become: true
+...

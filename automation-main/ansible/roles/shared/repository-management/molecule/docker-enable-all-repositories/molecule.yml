@@ -1,0 +1,80 @@
+---
+# Description: Variables file defining what actions to perform and what Docker images to create for the
+#              given Molecule test scenario. This scenario tests the 'repository-management' Ansible role by
+#              ensuring that the correct repositories from the 'all' preset are enabled.
+
+scenario:
+  name: docker-enable-all-repositories
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - dependency
+    - lint
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: ubuntu-ansible-18.04
+    image: ubuntu:18.04
+    pre_build_image: false
+    dockerfile: ../../../../testing/molecule/docker/dockerfiles/ubuntu-ansible-18.04/Dockerfile
+  - name: rhel-8.2-ansible
+    image: rhel8:8.2
+    pre_build_image: false
+    dockerfile: ../../../../testing/molecule/docker/dockerfiles/rhel-8.2-ansible/Dockerfile
+  - name: rhel-8.4-ansible
+    image: rhel8:8.4
+    pre_build_image: false
+    dockerfile: ../../../../testing/molecule/docker/dockerfiles/rhel-8.4-ansible/Dockerfile
+  - name: rhel-7.7-ansible
+    image: rhel7:7.7
+    pre_build_image: false
+    dockerfile: ../../../../testing/molecule/docker/dockerfiles/rhel-7.7-ansible/Dockerfile
+  - name: rhel-7.9-ansible
+    image: rhel7:7.9
+    pre_build_image: false
+    dockerfile: ../../../../testing/molecule/docker/dockerfiles/rhel-7.9-ansible/Dockerfile
+provisioner:
+  name: ansible
+  lint:
+    name: ansible-lint
+    enabled: false
+  playbooks:
+    converge: ./converge.yml
+    verify: ./verify.yml
+verifier:
+  name: ansible
+  enabled: true
+...

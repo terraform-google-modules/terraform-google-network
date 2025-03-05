@@ -1,0 +1,4 @@
+strimzi-kafka-operator:
+  watchAnyNamespace: true
+  nodeSelector:
+    worker.garden.sapcloud.io/group: system

@@ -1,0 +1,73 @@
+---
+########################################################################################################################
+########################################################################################################################
+# Description: Vector config file for:
+# - /usr/sap/*/sapstartsrv.log
+# - /usr/sap/*/J*/j2ee/cluster/server*/log/system/database_*.log
+# - /usr/sap/*/J*/j2ee/cluster/server*/log/system/enterprise_services_*.log
+# - /usr/sap/*/J*/j2ee/cluster/server*/log/system/security_*.log
+# - /usr/sap/*/J*/j2ee/cluster/server*/log/system/server_*.log
+#
+# Vector Output Name: sap_java_server_config_changes__out
+#
+# Last Updated & Tested: 2022/02/03
+########################################################################################################################
+########################################################################################################################
+tests:
+  - name: sap.java.server.system.configChanges::1
+    inputs:
+      - insert_at: cluster_server_system__sap_java_metadata
+        type: log
+        log_fields:
+          message: |
+            #2.0#2020 12 03 15:00:09:047#+00#Info#/System/Configuration/ConfigurationAPI-Change_log#
+            com.sap.ASJ.krn_cfg.001005#BC-JAS-COR#kernel.sda#C0000AC9011E00280000982F002D81D4#9958450000000003##ConfigurationAPI-Change_log#Administrator#1##0D1A09F68CCB100C802FFB433DD832A0#0d1a09f68ccb100c802ffb433dd832a0##0#Thread[RMI/IIOP Worker [3],5,Dedicated_Application_Thread]#Plain##
+            Configuration [deploy_controller/offline/deploy/51/sorted_dbi/new/dc/sap.com_tc~km_tc~sapiks/dc] with CID [-9223372036854657835]: created, cache mode is [10], no link#
+    outputs:
+      - extract_from: sap_java_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(!exists(.err), "error field is present")
+              assert!(is_timestamp(.timestamp))
+              assert_eq!(parse_timestamp!("2020-12-03T15:00:09", "%Y-%m-%dT%H:%M:%S"), .timestamp, "timestamp parsing incorrect")
+
+  - name: sap.java.server.system.enterprise_services::1
+    inputs:
+      - insert_at: cluster_server_system__sap_java_metadata
+        type: log
+        log_fields:
+          message: |
+            #2.0#2020 12 03 15:06:13:481#+00#Info#/System/EnterpriseServices/Publication#
+            com.sap.SOA.cfg.000022#BC-ESI-WS-JAV-CFG#tc~esi~esp~srv#C0000AC9011E02BA00000007002D86AD#9958450000001333##com.sap.esi.esp.service.server.sr.local.SOALocalSRPublisherImpl#Administrator#0##C74D6656357811EBAA4100000097F432#c74d6656357811ebaa4100000097f432##0#Thread[DeployThread[sap.com_tc~esi~esp~destination~wsar],5,Managed_Application_Thread]#Plain#com.sap.esi.esp.lib.mass.resources.WSConfiguration#
+            [<null>] classification systems published#
+    outputs:
+      - extract_from: sap_java_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(!exists(.err), "error field is present")
+              assert!(is_timestamp(.timestamp))
+              assert_eq!(parse_timestamp!("2020-12-03T15:06:13", "%Y-%m-%dT%H:%M:%S"), .timestamp, "timestamp parsing incorrect")
+
+  - name: sap.java.server.system::0 [filter file header]
+    no_outputs_from:
+      - sap_java_logs__out
+    inputs:
+      - insert_at: cluster_server_system__sap_java_metadata
+        type: log
+        log_fields:
+          message: |
+            <!--LOGHEADER[START]/-->
+            <!--HELP[Manual modification of the header may cause parsing problem!]/-->
+            <!--LOGGINGVERSION[2.0.7.1006]/-->
+            <!--NAME[./log/system/configChanges_00.log]/-->
+            <!--PATTERN[configChanges_00.log]/-->
+            <!--FORMATTER[com.sap.tc.logging.ListFormatter]/-->
+            <!--ENCODING[UTF8]/-->
+            <!--FILESET[0, 5, 10485760]/-->
+            <!--PREVIOUSFILE[configChanges_00.4.log]/-->
+            <!--NEXTFILE[configChanges_00.1.log]/-->
+            <!--ENGINEVERSION[7.50.3301.455816.20200416085516]/-->
+            <!--LOGHEADER[END]/-->
+...

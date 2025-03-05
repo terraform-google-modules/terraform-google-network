@@ -1,0 +1,181 @@
+---
+# Synopsis: Sets up a sshkey between a pair of hosts with the same SID
+# Inputs:
+#   spr_sshkey_setup_replication_role: # The replication role of the host. Either `source` or `destination`
+#   spr_sshkey_setup_replication_pair: # Unique replication pair identifier
+#   spr_sshkey_setup_os_login_group: # Primary group of the service account with SSH priviliges
+# Outputs:
+#   The source host can use ssh keys to log into the destination host
+#   The destination host is identified as "replication_partner" in the ssh config
+# Comments:
+#  - requires: gather_facts: true
+
+- name: "Dynamic Group Assignment"
+  group_by:
+    key: "{{ item }}"
+  when: "item != 'undefined'"
+  loop:
+  - "{{ spr_sshkey_setup_replication_pair|default('undefined')|lower }}"
+
+- name: "Ensure exactly 2 hosts in a replication pair"
+  when: groups[spr_sshkey_setup_replication_pair|lower]|length != 2
+  fail:
+    msg: "There must be 2 Hosts per replication pair. I found {{ groups[spr_sshkey_setup_replication_pair|lower]|length }}"
+
+- name: "Verbosity >= 1 : Display replication pair information"
+  when: item != inventory_hostname
+  debug:
+    msg: "I am {{ inventory_hostname }} The other host is {{ item }} the other host ip is {{ hostvars[item].ansible_facts.default_ipv4.address }}"
+    verbosity: 1
+  loop: "{{ groups[spr_sshkey_setup_replication_pair|lower] }}"
+
+- name: "Get the partner's ip address"
+  when: item != inventory_hostname
+  set_fact:
+    spr_sshkey_setup_partner_ipaddress: "{{ hostvars[item].ansible_facts.default_ipv4.address }}"
+  loop: "{{ groups[spr_sshkey_setup_replication_pair|lower] }}"
+
+- name: "BLOCK: Replication Source"
+  when: spr_sshkey_setup_replication_role == 'source'
+  block:
+    - name: "Verbosity >=1 : Identify current host"
+      debug:
+        msg: "I am {{ansible_hostname}} with ansible inventory hostname : {{inventory_hostname}} and I am a {{ spr_sshkey_setup_replication_role }}"
+        verbosity: 1
+
+    - name: "Ensure group svc_replication_<replication_pair> exists"
+      become: true
+      group:
+        name: "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+        state: present
+
+    - name: "Create replication service account"
+      become: true
+      user:
+        name: "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+        state: present
+        home: "/home/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+
+    - name: "Ensure /root/.ssh folder exists"
+      become: true
+      file:
+        state: directory
+        path: '/root/.ssh'
+
+    - name: "Ensure /home/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}/.ssh folder exists"
+      become: true
+      file:
+        state: directory
+        path: "/home/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}/.ssh"
+        owner: "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+        group: "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+        mode: 0700
+
+    - name: "Create Replication Keypair"
+      become: true
+      openssh_keypair:
+        path: "/home/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}/.ssh/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}.pem"
+        state: present
+        type: rsa
+        size: 4096
+        comment: "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }} For replication use only. Can be regenerated at any time."
+
+    - name: "Ensure local /tmp/keys folder exists"
+      delegate_to: localhost
+      file:
+        state: directory
+        path: '/tmp/keys'
+
+    - name: "Fetch the public token"
+      become: true
+      fetch:
+        dest: '/tmp/keys/{{ spr_sshkey_setup_replication_pair|lower }}/authorized_keys'
+        src: "/home/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}/.ssh/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}.pem.pub"
+        flat: true
+
+    - name: "Add key to SSH Config"
+      become: true
+      blockinfile:
+        path: '/root/.ssh/config'
+        create: yes
+        state: present
+        backup: yes
+        block: |
+          Host          replication_partner
+            HostName      {{ spr_sshkey_setup_partner_ipaddress }}
+            Port          22
+            IdentityFile  /home/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}/.ssh/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}.pem
+            User          svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}
+
+    - name: "Scan ssh host key"
+      changed_when: false
+      command: "ssh-keyscan -H {{ spr_sshkey_setup_partner_ipaddress }}"
+      register: "host_key"
+
+    - name: "Create known_hosts file"
+      become: true
+      file:
+        path: '/root/.ssh/known_hosts'
+        state: touch
+
+    - name: "Add host key to known_hosts"
+      become: true
+      blockinfile:
+        dest: '/root/.ssh/known_hosts'
+        block: "{{ host_key.stdout }}"
+### End "BLOCK: Replication Source"
+
+
+- name: "BLOCK: Replication Destination"
+  when: spr_sshkey_setup_replication_role == 'destination'
+  block:
+    - name: "Verbosity >=1 : Identify current host"
+      debug:
+        msg: "I am {{ansible_hostname}} with ansible inventory hostname : {{inventory_hostname}} and I am a {{ spr_sshkey_setup_replication_role }}"
+        verbosity: 1
+
+    # Note: Assigning the primary group to the OS login is a little dirty, but resolves an issue with OS login enforcement
+    - name: "Ensure group svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}  exists"
+      become: true
+      group:
+        name: "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+        state: present
+
+    - name: "Create replication service account"
+      become: true
+      user:
+        name: "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+        group: "{{ spr_sshkey_setup_os_login_group }}"
+        groups:
+          - 'sapsys'
+          - "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+        state: present
+        home: "/home/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+
+    - name: "Ensure /home/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}/.ssh folder exists"
+      become: true
+      file:
+        state: directory
+        path: "/home/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}/.ssh"
+        owner: "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+        group: "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+        mode: 0700
+
+    - name: "Add ssh public key to service account"
+      become: true
+      copy:
+        src: "/tmp/keys/{{ spr_sshkey_setup_replication_pair|lower }}/authorized_keys"
+        dest: "/home/svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}/.ssh/authorized_keys"
+        owner: "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+        group: "svc_replication_{{ spr_sshkey_setup_replication_pair|lower }}"
+        mode: 0600
+        backup: true
+### End "BLOCK: Replication Destination"
+
+- name: "Cleanup local keys"
+  run_once: true
+  delegate_to: localhost
+  file:
+    state: absent
+    path: '/tmp/keys'
+...

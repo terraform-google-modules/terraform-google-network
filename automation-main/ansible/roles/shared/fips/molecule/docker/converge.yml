@@ -1,0 +1,15 @@
+---
+# Description: Molecule converge.yml playbook used to run an Ansible role in a testing scenario.
+
+  - name: Converge
+    hosts: all
+    become: true
+    gather_facts: true
+    vars:
+      fips_reboot_host: true
+
+    tasks:
+      - name: Include the FIPS role
+        include_role:
+          name: fips
+...

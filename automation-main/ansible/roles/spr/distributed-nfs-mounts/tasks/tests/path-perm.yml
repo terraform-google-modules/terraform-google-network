@@ -1,0 +1,8 @@
+- name: "Test - Ensure path is {{ distributed_nfs_mounts_test_permission }}"
+  ansible.builtin.stat:
+    path: "{{ path }}"
+  loop: "{{ distributed_nfs_mounts_test_paths }}"
+  register: distributed_nfs_mounts_test_path_status
+  failed_when: distributed_nfs_mounts_test_permission not in distributed_nfs_mounts_test_path_status.stat.mode
+  loop_control:
+    loop_var: path

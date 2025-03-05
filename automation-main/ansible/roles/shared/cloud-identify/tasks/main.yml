@@ -1,0 +1,65 @@
+---
+# Synopsis: Leverages metadata endpoints to parse information about current cloud provider target host is running within
+# Inputs:
+#   aws_instance_id_command - shell command to retrieve the ID of an instance in AWS
+#   azure_virtual_machine_id_command - shell command to retrieve the ID of a virtual machine in Azure
+#   azure_virtual_machine_name_command - shell command to retrieve the Name of a virtual machine in Azure
+#   gcp_instance_id_command - shell command to retrieve the ID of an instance in GCP
+# Outputs
+#   cloud_provider - set_fact containing the detected cloud provider the target host is running within
+#   machine_id - the respective cloud system ID of the target host, will take on the format of the respective cloud
+#   machine_name - the respective cloud system Name of the target host; currently supports only the Azure cloud provider
+
+  - name: Get information about cloud provider from metadata endpoints
+    shell: |
+      AWS_INSTANCE_ID=$( {{ aws_instance_id_command }} )
+      AZURE_VM_ID=$( {{ azure_virtual_machine_id_command }} )
+      AZURE_VM_NAME=$( {{ azure_virtual_machine_name_command }} )
+      GCP_INSTANCE_ID=$( {{ gcp_instance_id_command }} )
+      if [[ $AWS_INSTANCE_ID == i-* ]]; then
+        echo "aws"
+        AWS_INSTANCE_AZ=$( {{ aws_instance_az_command }} )
+        [[ $AWS_INSTANCE_AZ == us-gov-* ]] && echo "govcloud" || echo "commercial"
+        echo $AWS_INSTANCE_ID
+        echo ${AWS_INSTANCE_AZ::-1}
+      elif [[ $AZURE_VM_ID =~ ^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$ ]]; then
+        echo "azure"
+        AZURE_VM_LOCATION=$( {{ azure_virtual_machine_location_command }} )
+        AZURE_VM_LOCATION_LOWERED=$(echo $AZURE_VM_LOCATION | tr "[:upper:]" "[:lower:]")
+        [[ $AZURE_VM_LOCATION_LOWERED == usgov* ]] && echo "usgovernment" || echo "public"
+        echo $AZURE_VM_ID
+        echo $AZURE_VM_LOCATION
+        echo $AZURE_VM_NAME
+      elif [[ $GCP_INSTANCE_ID =~ ^[0-9]{16,19}$ ]]; then
+        GCP_INSTANCE_AZ=$( {{ gcp_instance_az_command }} )
+        echo "gcp"
+        echo "gcp"
+        echo $GCP_INSTANCE_ID
+        echo ${GCP_INSTANCE_AZ::-2}
+      else
+        echo "unknown"
+        echo "unknown"
+        echo $( hostname )
+        echo "unknown"
+      fi
+    args:
+      executable: /bin/bash
+    register: cloud_provider_metadata
+
+  - name: Set facts with parsed metadata
+    set_fact:
+      cloud_provider: '{{ cloud_provider_metadata.stdout_lines[0] }}'
+      cloud_partition: '{{ cloud_provider_metadata.stdout_lines[1] }}'
+      machine_id: '{{ cloud_provider_metadata.stdout_lines[2] }}'
+      cloud_region: '{{ cloud_provider_metadata.stdout_lines[3] | lower }}'
+      machine_name: '{{ cloud_provider_metadata.stdout_lines[4] | default("") }}'
+
+  - name: Display cloud information
+    debug:
+      msg:
+        - 'Cloud Provider:  {{cloud_provider}}'
+        - 'Cloud Partition: {{cloud_partition}}'
+        - 'Machine ID:      {{machine_id}}'
+        - 'Cloud Region:    {{cloud_region}}'
+        - 'Machine Name:    {% if machine_name %}{{machine_name}}{% else %}(Unavailable){% endif %}'
+...

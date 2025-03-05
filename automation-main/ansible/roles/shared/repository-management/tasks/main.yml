@@ -1,0 +1,51 @@
+---
+# Description: Calls other task files to enable/disable repositories on a system
+# Inputs:
+#   - repo_disable: (bool) Whether to disable the repositories that are selected via the 'application_preset_selection' variable.
+#   - repo_enable: (bool) Whether to enable the repositories that are selected via the 'application_preset_selection' variable.
+#   - repo_delete: (bool) Whether to remove all repositories and repository files that were setup by this Ansible role.
+#   - automatic_preset_selection: (bool) Whether to dynamically get the list of repositories to enable/disable via the 'application_preset_selection' value
+#                                        that was used to create the image that this system was created from.
+# Outputs:
+#   - Calls other task files.
+
+  - name: Set release lock to override package repositories to a target OS minor version
+    include_tasks: release-lock.yml
+    when: >
+      (
+        repo_release_lock is defined and
+        repo_release_lock is not none and
+        repo_release_lock | length > 0
+      ) or
+      repo_release_lock_from_ec2_tag | bool
+
+  - name: Configure the system based on which package manager it uses
+    include_tasks: configure-{{ ansible_os_family | lower }}.yml
+
+  - name: '[BLOCK] - Download the repository file, get a list of repositories, and enable/disable them'
+    block:
+
+      - name: Download the repository file
+        include_tasks: '{{ ansible_distribution | lower }}/repository-pull.yml'
+
+      - name: Get the list of repositories to enable/disable specified via the user-provided 'application_preset_selection' variable
+        include_tasks: get-specific-repositories.yml
+
+      - name: Get the list of repositories to enable/disable via the image's '/etc/ns2-release' or '/etc/scs-release' file
+        include_tasks: get-image-repositories.yml
+        when: automatic_preset_selection | bool
+
+      - name: Disable the specified repositories
+        include_tasks: '{{ ansible_distribution | lower }}/repository-disable.yml'
+        when: repo_disable | bool
+
+      - name: Enable the specified repositories
+        include_tasks: '{{ ansible_distribution | lower }}/repository-enable.yml'
+        when: repo_enable | bool
+
+      - name: Run repository related post-configuration tasks
+        include_tasks: configure-post-tasks.yml
+
+    when: repo_delete | bool == false  # End BLOCK
+
+...

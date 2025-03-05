@@ -1,0 +1,8 @@
+---
+- name: Create paths
+  delegate_to: localhost
+  template:
+    dest: /tmp/vault-paths.txt
+    src: provisioning/vault-paths.j2
+    backup: yes
+...

@@ -1,0 +1,25 @@
+---
+# List of sap-specific log groups
+# When 'sap' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_sapapp_abap:
+  - file_path: /usr/sap/*/*/work/available.log
+    log_group_name: /usr/sap/work/available
+  - file_path: /usr/sap/*/*/work/*log*
+    log_group_name: /usr/sap/work/log
+  - file_path: /usr/sap/*/*/work/*.trc
+    log_group_name: /usr/sap/work/trc
+  - file_path: /usr/sap/*/*/work/*err*
+    log_group_name: /usr/sap/work/err
+  - file_path: /usr/sap/*/*/work/*out*
+    log_group_name: /usr/sap/work/out
+  - file_path: /usr/sap/*/*/log/audit_*
+    log_group_name: /usr/sap/log/audit
+  - file_path: /usr/sap/*/*/log/gw_log-*
+    log_group_name: /usr/sap/log/gw_log
+    # timestamp: P Thu Dec 10 2020 19:32:02:046 log file closed
+    timestamp_format: '%a %b %d %Y %H:%M:%S:%f'
+  - file_path: /usr/sap/*/*/log/SLOG*
+    log_group_name: /usr/sap/log/SLOG
+  - file_path: /usr/sap/*/*/log/AL*
+    log_group_name: /usr/sap/log/AL
+...

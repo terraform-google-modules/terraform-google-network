@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: Dexter Le
+  description: Distributed Calculate Disks Provisioning Role
+  company: SAP SCS
+  role_name: distributed-calculate-disks  # if absent directory name hosting role is used instead
+  namespace: sap  # if absent, author is used instead
+
+  issue_tracker_url: https://gitlab.core.sapns2.us/golden-ami-dev/ansible-roles/issues
+
+  license: BSD
+
+  min_ansible_version: 2.9
+
+  galaxy_tags: []
+
+dependencies: []
+...

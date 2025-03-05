@@ -1,0 +1,111 @@
+---
+# Filename: ibp-vpc-management-vars.yml
+# Synopsis: Variables (template) file for IBP Management VPCs
+# Comments: You can use extra vars to specify the vpc_name and vpc_octet to generate completly unique VPCs
+
+###################
+## VPC Variables ##
+###################
+vpc_name: ibp-management                         # Name of the VPC
+vpc_octet: '10.60'                               # The first two octet of the VPC CIDR block
+vpc_cidr_block: '{{ vpc_octet }}.0.0/16'         # CIDR of the entire VPC
+
+######################
+## Subnet Variables ##
+######################
+vpc_subnets:
+  infrastructure-a:                              # This key name has no relevence except for clarity
+    subnet_name: infrastructure                  # Name tag  ex. vpc_name-az1a-subnet_name
+    cidr: '{{ vpc_octet }}.20.0/24'              # The subnet range
+    az: '{{ aws_region }}a'                      # Availability zone this subnet will be in (a|b|c)
+    give_publicip: no                            # Whether or not new instances get a public ip by default
+  # infrastructure-b:                             # Potential infrastructure subnet in another availabilty zone
+  #   subnet_name: infrastructure
+  #   cidr: '{{ vpc_octet }}.22.0/24'
+  #   az: "{{ aws_region }}b"
+  #   give_publicip: no
+  directory-service-a:
+    subnet_name: directory
+    cidr: '{{ vpc_octet }}.100.0/23'
+    az: '{{ aws_region }}a'
+    give_publicip: no
+  directory-service-b:
+    subnet_name: directory
+    cidr: '{{ vpc_octet }}.102.0/23'
+    az: '{{ aws_region }}b'
+    give_publicip: no
+  edge-a:
+    subnet_name: edge
+    cidr: '{{ vpc_octet }}.200.0/24'
+    az: '{{ aws_region }}a'
+    give_publicip: yes
+  # edge-b:                                       # Potential edge subnet in another availabilty zone
+  #   subnet_name: edge
+  #   cidr: '{{ vpc_octet }}.202.0/24'
+  #   az: "{{ aws_region }}b"
+  #   give_publicip: yes
+
+##############################
+## Security Group Variables ##
+##############################
+vpc_security_groups:
+  ### NS2 Access
+  - name: '{{ vpc_name }}-access-ns2'
+    description: Allows access from NS2 Guest and NS2 Corporate networks to {{ vpc_name }} VPC
+    rules:
+      - proto: tcp
+        ports: 22
+        cidr_ip: 4.35.15.246/32
+        rule_desc: NS2 Wifi in to SSH
+      - proto: tcp
+        ports: 3389
+        cidr_ip: 4.35.15.246/32
+        rule_desc: NS2 Wifi in to RDP
+    rules_egress: []
+  ### VPC Access
+  - name: '{{ vpc_name }}-vpc'
+    description: Allows all communication within the {{ vpc_name }} VPC subnet
+    rules:
+      - proto: all
+        cidr_ip: '{{ vpc_cidr_block }}'
+        rule_desc: Allows traffic from {{ vpc_name }} in to all protocols and ports
+    rules_egress:
+      - proto: all
+        cidr_ip: '{{ vpc_cidr_block }}'
+        rule_desc: Allows traffic from {{ vpc_name }} out to all protocols and ports
+  ### Edge Access
+  - name: '{{ vpc_name }}-access-edge'
+    description: Allows access to the edge from external subnets to the {{ vpc_name }} VPC subnet
+    rules: []
+    rules_egress: []
+  ### Allows public access to common web services
+  - name: '{{ vpc_name }}-public-web'                 # This is both the group name and tag name of the security group
+    description: Allow public web traffic             # The hardcoded sg description
+    rules:                                            # Inbound rules
+      - proto: tcp                                      # Protocol, valid values are: all, tcp, udp, icmp, or 58 (ICMPv6),
+        ports: 80                                       # Ports (list)
+        cidr_ip: 0.0.0.0/0                              # Source/Destination
+        rule_desc: All inbound to HTTP                  # Rule Description
+      - proto: tcp
+        ports: 443
+        cidr_ip: 0.0.0.0/0
+        rule_desc: All inbound to HTTPS
+      - proto: tcp
+        ports: 8200
+        cidr_ip: 0.0.0.0/0
+        rule_desc: All inbound to Vault
+    rules_egress: []                                  # Outbound rules
+  ### Public egress
+  - name: '{{ vpc_name }}-public-egress'
+    description: Allows outbound traffic for {{ vpc_name }} VPC subnet
+    rules: []
+    rules_egress: []
+  ##### This is in here twice to deal with a weird timeout bug in the ec2_group module
+  - name: '{{ vpc_name }}-public-egress'
+    description: Allows outbound traffic for {{ vpc_name }} VPC subnet
+    rules: []
+    rules_egress:
+      - proto: all
+        cidr_ip: 0.0.0.0/0
+        rule_desc: All Outbound
+...

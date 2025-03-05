@@ -1,0 +1,17 @@
+---
+# Synopsis: Validates Path exists
+# Inputs:
+#   - folder_path: path to validate
+# Outputs: Terminates script process on failure
+# Comments: N/A
+
+- name: Get stats on folder {{ folder_path }}
+  stat:
+    path: "{{ folder_path }}"
+  register: results_validate
+
+- name: Fail if folder {{ folder_path }} doesn't exists or is empty
+  fail:
+    msg: "Folder {{ folder_path }} doesn't exist or is empty"
+  when: (results_validate.stat.size is undefined ) or (results_validate.stat.size == 6 )
+...

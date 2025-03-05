@@ -1,0 +1,75 @@
+---
+# Synopsis: Removes the iptables-services package and service from the system, removing all iptables rules as well.
+# Inputs:
+#   - N/A
+#
+# Outputs:
+#   - Removes the iptables-services package and restores the logrotate rule for '/var/log/messages' to its default state.
+
+  - name: Remove ANSILBE_MANGED chain
+    ansible.builtin.include_tasks: common/remove-common.yml
+
+  - name: Stop and disable the iptables service
+    ansible.builtin.service:
+      name: iptables
+      enabled: false
+      state: stopped
+    when: ansible_distribution | lower != 'amazon'
+    become: true
+
+  - name: Unmask the firewalld service
+    ansible.builtin.service:
+      name: firewalld
+      masked: false
+    when: ansible_distribution | lower != 'amazon'
+    become: true
+
+  - name: Remove the iptables-services packages
+    ansible.builtin.package:
+      name: iptables-services
+      state: absent
+    when: ansible_distribution | lower != 'amazon'
+    become: true
+
+  - name: Parse out any persistent ANSILBE_MANGED iptables rules to be removed
+    ansible.builtin.shell: cat /etc/sysconfig/iptables | grep 'ANSIBLE_MANAGED'
+    become: true
+    register: iptables_remove_persistent_rules
+
+  - name: Remove persistent ANSILBE_MANGED iptables rules
+    ansible.builtin.lineinfile:
+      path: /etc/sysconfig/iptables
+      line: '{{ item }}'
+      state: absent
+    loop: '{{ iptables_remove_persistent_rules.stdout_lines }}'
+    become: true
+
+# TODO: remove once we are confident no old systems still need this present to cleanup old configurations
+  - name: Check if '/var/log/messages' is present in the default logrotate config file
+    ansible.builtin.shell: grep '^/var/log/messages$' /etc/logrotate.d/syslog
+    register: logrotate_config_results
+    changed_when: false
+    failed_when: logrotate_config_results.rc not in [0,1]
+    become: true
+
+  - name: Add '/var/log/messages' back into the default logrotate config file
+    ansible.builtin.lineinfile:
+      path: /etc/logrotate.d/syslog
+      line: /var/log/messages
+      state: present
+      insertbefore: BOF
+    when: logrotate_config_results.rc == 1
+    become: true
+
+  - name: Remove the logrotate cron job for messages
+    ansible.builtin.cron:
+      name: Run logrotate for messages
+      state: absent
+    become: true
+
+  - name: Remove the custom logrotate config file
+    ansible.builtin.file:
+      path: /etc/logrotate.d/messages
+      state: absent
+    become: true
+...

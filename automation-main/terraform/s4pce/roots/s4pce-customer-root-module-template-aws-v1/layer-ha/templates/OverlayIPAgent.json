@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "Stmt1424870324000",
+          "Effect": "Allow",
+          "Action":  "ec2:DescribeRouteTables",
+          "Resource": "*"
+      },
+      {
+          "Sid": "Stmt1424860166260",
+          "Action": [
+              "ec2:CreateRoute",
+              "ec2:ReplaceRoute"
+          ],
+          "Effect": "Allow",
+          "Resource": ${jsonencode(rt_arns)}
+      }
+  ]
+}

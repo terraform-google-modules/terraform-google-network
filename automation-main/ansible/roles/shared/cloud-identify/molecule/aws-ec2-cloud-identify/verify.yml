@@ -1,0 +1,33 @@
+---
+# Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+  - name: Verify
+    hosts: all
+    gather_facts: false
+    tasks:
+
+      # Test 1 - Validate role can successfully detect if target host is running within AWS
+      - name: Validate role can successfully detect if target host is running within AWS
+        assert:
+          that:
+            - cloud_provider == "aws"
+          fail_msg: Cloud not detect that instance was running within AWS, cloud_provider - {{ cloud_provider }}
+          success_msg: Successfully detected instance is running within AWS
+
+      # Test 2 - Validate role can successfully detect if target host is running within AWS GovCloud partition
+      - name: Validate role can successfully detect if target host is running within AWS GovCloud partition
+        assert:
+          that:
+            - cloud_provider == "aws"
+            - cloud_partition == "govcloud"
+          fail_msg: Cloud not detect that instance was running within AWS GovCloud, cloud_partition - {{ cloud_partition }}
+          success_msg: Successfully detected instance is running within AWS GovCloud partition
+
+      # Test 3 - Validate role can successfully capture the AWS instance ID
+      - name: Validate role can successfully capture the AWS instance ID
+        assert:
+          that:
+            - machine_id[:2] == "i-"
+          fail_msg: Cloud not AWS EC2 instance ID, machine_id - {{ machine_id }}
+          success_msg: Successfully captured AWS EC2 instance ID - {{ machine_id }}
+...

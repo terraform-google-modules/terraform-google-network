@@ -1,0 +1,1 @@
+SELECT VALUE FROM "SYS"."M_INIFILE_CONTENTS" where FILE_NAME = 'global.ini' and KEY = 'log_mode' and layer_name = 'SYSTEM';

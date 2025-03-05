@@ -1,0 +1,18 @@
+- name: "Test (Hana) - Wait for HANA replication status to move to active"
+  ansible.builtin.shell: 'python3 /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/SYS/exe/hdb/python_support/systemReplicationStatus.py'
+  args:
+    executable: '/bin/csh'
+  changed_when: false
+  register: distributed_hana_config_sync_process_result
+  retries: 7200
+  delay: 15
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  until: |
+    'UNKNOWN' not in distributed_hana_config_sync_process_result.stdout and
+    'INITIALIZING' not in distributed_hana_config_sync_process_result.stdout and
+    'SYNCING' not in distributed_hana_config_sync_process_result.stdout and
+    'ERROR' not in distributed_hana_config_sync_process_result.stdout and
+    'this system is not a system replication site' not in distributed_hana_config_sync_process_result.stdout
+  # systemReplicationStatus.py @class ServiceStatus labels "Active" as return code of 15
+  failed_when: distributed_hana_config_sync_process_result.rc != 15

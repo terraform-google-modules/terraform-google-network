@@ -1,0 +1,32 @@
+---
+# Playbook Name: selinux-apparmor-configure.yml
+# Synopsis: Enables or disables SELinux or AppArmor.
+# Description: Enables or disables SELinux or AppArmor on the system and reboots if permitted and necessary.
+# Prerequisites:
+#   - Ansible v2.9+
+# Dependencies: N/A
+# Variables:
+#   - apparmor_configure : Whether to modify the AppArmor configurations.
+#   - selinux_configure : Whether to modify the SELinux confingurations.
+#   - reboot_if_needed : Whether to reboot the system if required by the role.
+# Example:
+#    ansible-playbook selinux-apparmor-configure.yml -i 10.0.0.1,
+# Authors: Matt Bittner (i869415)
+# Version: 2.9-000002
+# Modified: 2020-03-19 - Created
+#           2020-09-04 - Removed relative paths in include_role
+# Comments: N/A
+
+- hosts: all
+
+  vars:
+    apparmor_configure: true
+    selinux_configure: true
+    reboot_if_needed: false
+
+  tasks:
+  - name: Configure selinux/apparmor
+    include_role:
+      name: selinux-apparmor
+
+...

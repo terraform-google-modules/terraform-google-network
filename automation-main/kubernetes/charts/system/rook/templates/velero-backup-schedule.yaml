@@ -1,0 +1,18 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: rook-ceph-backup
+  namespace: velero
+  annotations:
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+spec:
+  schedule: "0 5 * * *"
+  template: 
+    hooks: {}
+    storageLocation: "default"
+    volumeSnapshotLocations:
+      - default
+    includedNamespaces:
+      - "rook-ceph"
+    metadata: {}
+    ttl: 72h0m0s

@@ -1,0 +1,37 @@
+---
+# This file is only for example/testing purposes
+# The actual image list variable file can be found in
+# ns2-pipelines/create-pipeline/concourse-pipeline/golden-image-pipeline/businesses/build-dev/vars
+image_list:
+
+  ns2:
+
+    redhat-8.2:
+
+      - name: TEST-NS2-RHEL-8.2-Docker-1.24
+        line_of_business: ns2
+        operating_system_distribution: redhat
+        operating_system_version: '8.2'
+        sharing_groups_aws_govcloud:
+          - test_gov
+        sharing_groups_aws_commercial:
+          - test_commercial
+
+      - name: TEST-NS2-RHEL-8.2-Base
+        line_of_business: ns2
+        operating_system_distribution: redhat
+        operating_system_version: '8.2'
+        sharing_groups_aws_govcloud:
+          - test_gov
+        sharing_groups_aws_commercial:
+          - test_commercial
+
+      - name: TEST-NS2-RHEL-8.2-OpenVPN
+        line_of_business: ns2
+        operating_system_distribution: redhat
+        operating_system_version: '8.2'
+        sharing_groups_aws_govcloud:
+          - test_gov
+        sharing_groups_aws_commercial:
+          - test_commercial
+...

@@ -1,0 +1,51 @@
+---
+# tasks file for virtualenv
+
+  - name: Install pip
+    become: true
+    package:
+      state: present
+      name:
+        - python3-pip
+        - python3-venv
+    when:
+      - virtualenv_install_pip_bool is defined
+      - virtualenv_install_pip_bool is not none
+      - virtualenv_install_pip_bool | bool
+
+  - name: Create virtualenv with necessary packages
+    become: true
+    pip:
+      name: '{{ item }}'
+      state: latest
+      virtualenv: '{{ virtualenv }}'
+      virtualenv_command: '{{ virtualenv_command }}'
+    loop: '{{ virtualenv_pip_package_list }}'
+
+  - name: Set permissions for the virtualenv
+    become: true
+    file:
+      state: directory
+      path: '{{ virtualenv }}'
+      mode: 0755
+      recurse: yes
+
+  - name: Include task to optionally set the ansible_python_interpreter
+    include_tasks: set-python-interpreter.yml
+    vars:
+      wanted_ansible_python_interpreter: '{{ virtualenv }}/bin/python'
+    when: virtualenv_set_python_interpreter | bool
+
+  - name: Create a symbolic link to use the virtualenv installation of Ansible
+    become: true
+    ansible.builtin.file:
+      src: '{{ item }}'
+      dest: /usr/bin/{{ item.split('/')[-1] }}
+      state: link
+      force: true
+    with_fileglob:
+      - '{{ virtualenv }}/bin/ansible*'
+    when:
+      - virtualenv_ansible_symlink | bool
+      - "'ansible' in virtualenv_pip_package_list or 'ansible-core' in virtualenv_pip_package_list"
+...

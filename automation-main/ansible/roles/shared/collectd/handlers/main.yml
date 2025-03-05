@@ -1,0 +1,8 @@
+---
+
+  - name: Restart collectd after plugin configuration
+    service:
+      name: collectd
+      state: restarted
+    become: true
+...

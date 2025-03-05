@@ -1,0 +1,74 @@
+---
+# Synopsis: CRE-S4PCE Customer#### Inventory
+# Inputs: N/A
+# Outputs: N/A
+# Comments: Be sure to include the ./defaults/spr_defaults.yml as an additional inventory.
+all:
+  hosts:
+  vars:
+    spr_domain: MANDATORY_FIELD
+    spr_custom_hostfile_entries:
+
+# AWS Storage Variables
+    efs_staging_ip: ''
+    efs_usr_sap_trans_fsid: MANDATORY_FIELD
+    spr_storage_gateway_endpoint: Used with SFTP File Transfer Ansible. Endpoint (IP address or DNS) of the storage gateway from terraform
+    spr_storage_gateway_file_share_name: Used with SFTP File Transfer Ansible. Name of the storage gateway file share to be mounted from terraform
+    spr_storage_gateway_file_share_mount_path: /mnt/sftp_interface
+
+# End AWS Storage Variables
+
+# Azure Storage Variables. Leave blank when not in use.
+    spr_azure_resource_group: ''
+    spr_azure_staging_storage_account: ''
+    spr_azure_staging_file_share: ''
+    spr_azure_customer_storage_account: ''
+    spr_azure_customer_file_share: ''
+    spr_azure_backup_storage_account: ''
+    spr_azure_backup_container: ''
+    spr_azure_customer_sftp_file_share: ''
+# End Azure Storage Variables
+
+# GCP Storage Variables. Leave blank when not in use
+    spr_gcs_bucket: ''
+    nfs_usr_sap_trans_ip: ''
+    spr_gcp_filestore_name: ''
+    gcp_disk_snapshot_policy: ''
+# End GCP Storage Variables
+
+# Monitoring and Logging Variables
+    telegraf_elastic_primary_nodes:
+    telegraf_elastic_user: telegraf
+    telegraf_elastic_password: logging
+    telegraf_elastic_index_prefix: ''
+    vector_aggregator_sink_address: ''
+    vector_ca_root:
+    vector_splunk_index_prefix: ''
+# End Monitoring and Logging Variables
+
+
+  children:
+# groups
+
+    group_PRODUCT_GROUP_NAME_AND_prd:
+      vars:
+        spr_productgroup: PRODUCT_GROUP_DESCRIPTION_FROM_CATALOGUE
+        spr_landscape: prd
+      hosts:
+        c###dbhp4:
+          spr_hostname: ns2hp4db
+          spr_sid: hp4
+          spr_nodetype: db
+          spr_size: r5.16xlarge
+          spr_productname: s4hana
+        c###app01ps4:
+          spr_hostname: ns2ps4app
+          spr_sid: ps4
+          spr_db_hostname: ns2hp4db
+          spr_db_sid: hp4
+          spr_nodetype: app
+          spr_size: m5.4xlarge
+          spr_productname: s4hana
+          spr_efs_mount: trans-ds4
+          spr_nlb_ports: "{{ default_ports_abap }}"
+...

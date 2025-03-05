@@ -1,0 +1,144 @@
+---
+
+# This is the topic name use for creating alarms and subscriptions.
+aws_topic_name: ec2-cloudwatch-metrics
+
+# The variable for the email address being used for creating alarms.
+# If left blank, an email subscription will not be configured.
+aws_sns_subscription_email: ''
+
+# The variable for the cell phone number being used for creating alarms.
+# If left blank, an SMS text notification will not be configured.
+aws_sns_text_numbers: ''
+
+# The throttle for cloudwatch alarm creation. By default AWS Accounts are restricted to 3 TPS
+# Limits on the PutMetricAlarm TPS can seen here: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_limits.html
+# If left blank, there will be no ansible limit
+aws_cloudwatch_alarm_throttle: '0'
+
+# This is the variable passed to the 'aws-cloudwatch-agent' role which determines which log
+# files to collect when configuring cloudwatch.
+cw_preset_selection: default
+
+# The threshold on which diskspace alerts are sent.
+cw_alert_threshold_disk_space: '80'
+
+#The CPU threshold on which CPU alerts are sent.
+cw_alert_threshold_cpu: '95'
+
+#The memory threshold on which memory alerts are sent.
+cw_alert_threshold_memory: '90'
+
+# when the default variable is empty, the assert check in configure_alarms.yml fails.
+# Since we also ignore files with tmpfs filesystems, the default value here is a system
+# mountpoint that has a tmpfs filesystem.
+ignore_disks:
+  - /dev
+  - /boot
+
+ports_default:
+  - 22
+
+ports_openvpn:
+  - 1149
+
+ports_ibp_hana:
+  - 30213
+  - 30215
+
+ports_sap:
+  - 3200
+
+ports_webdispatcher:
+  - 44301
+
+ports_cpids:
+  - 61616
+  - 30015
+
+ports_bobj:
+  - 22
+  - 6400     # Central Management Server (CMS Name Server port)
+  - 6410     # Server Intelligence Agent (SIA)
+  - 6405     # Web Application Container Server (WACS)
+  - 8080     # Apache Tomcat Web Application Server (Tomcat)
+  - 8443     # Apache Tomcat Web Application Server (Tomcat)
+
+
+ports_lumira:
+  - 22
+  - 6400      # Central Management Server (CMS Name Server port)
+  - 6401      # SAP Lumira Discovery
+  - 6405      # Web Application Container Server (WACS)
+  - 6410      # Server Intelligence Agent (SIA)
+
+
+ports_sapapp_abap:
+  - 22
+  - 32nn      # Used by SAP GUI for Windows and Java
+  - 33nn      # Used for CPIC and RFC communication
+  - 36nn      # Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 48nn      # SNC secured for CPIC and RFC communication
+  - 80nn      # ICM HTTP You can configure to port 80 after installation
+  - 81nn      # Message server HTTP Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 443nn     # ICM HTTPS Must be configured after installation
+  - 444nn     # Message server HTTPS Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 5nn13     # On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50113
+  - 5nn14     # On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50114
+
+ports_sapapp_java:
+  - 22
+  - 32nn      # Used by SAP GUI for Windows and Java
+  - 33nn      # Used for CPIC and RFC communication
+  - 36nn      # Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 48nn      # SNC secured for CPIC and RFC communication
+  - 80nn      # ICM HTTP You can configure to port 80 after installation
+  - 81nn      # Message server HTTP Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 443nn     # ICM HTTPS Must be configured after installation
+  - 444nn     # Message server HTTPS Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 5nn13     # On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50113
+  - 5nn14     # On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50114
+
+ports_hana:
+  - 22
+  - 1128
+  - 1129
+  - 43nn
+  - 80nn
+  - 3nn00
+  - 3nn01
+  - 3nn02
+  - 3nn03
+  - 3nn04
+  - 3nn05
+  - 3nn06
+  - 3nn07
+  - 3nn08
+  - 3nn09
+  - 3nn10
+  - 3nx01
+  - 3nx02
+  - 3nx03
+  - 3nx04
+  - 3nx05
+  - 3nx07
+  - 3nn17
+  - 3nn19
+  - 3nn25
+  - 3nn40
+  - 3nn42
+  - 3nn41
+  - 4nn01
+  - 4nn02
+  - 4nn06
+  - 4nn14
+  - 5nn13
+  - 5nn14
+
+ports_base:
+  - 22
+
+
+# This is the variable passed to the 'aws-cloudwatch-agent' role which determines if custom metrics would be configured
+cw_install_metrics: true
+...

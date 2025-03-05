@@ -1,0 +1,34 @@
+### ANSIBLE MANAGED
+
+#                                    __   __  __
+#                                    \ \ / / / /
+#                                     \ V / / /
+#                                      \_/  \/
+#
+#                                    V E C T O R
+#                                   Configuration
+
+log_schema:
+  metadata_key: "vector.metadata"
+  source_type_key: "vector.source_type"
+
+acknowledgements:
+  enabled: true
+
+{% if vector_hyperscaler_unknown is defined %}
+# Just output data to the console
+sinks.console:
+  type: "console"
+  target: "stdout"
+  encoding:
+    codec: "json"
+  inputs:
+    - "*__enriched_out"
+{% endif %}
+
+# Vector's GraphQL API (disabled by default)
+# Uncomment to try it out with the `vector top` command or
+# in your browser at http://localhost:8686
+api:
+  enabled: true
+  address: "0.0.0.0:8686"

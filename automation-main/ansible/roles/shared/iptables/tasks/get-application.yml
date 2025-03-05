@@ -1,0 +1,61 @@
+---
+# Synopsis: Pulls the ProductName tag value from ec2_metadata_facts and saves it as firewall_preset_selection
+# Inputs:
+#   - iptables_use_instance_tags :  Whether or not to configure iptables rules based on application variant specified by the 'ProductName' tag of the instance.
+#
+# Outputs:
+#   - firewall_preset_selection : Application type to be looked up in the defaults file
+
+  - name: Detect Application Variant from filesystem
+    block:
+      - name: Check /usr/ for unique files
+        ansible.builtin.shell: find /usr/
+        become: true
+        register: find_output
+
+      - name: Set application variant based on dynamic filesystem search results
+        ansible.builtin.set_fact:
+          firewall_preset_selection: >-
+            {{
+              'cpids' if ( 'ns2cpids' in find_output.stdout ) else (
+              'webdispatcher' if ( 'wdispportcheck' in find_output.stdout ) else (
+              'ibpapp' if ( 'IBPAPP' in find_output.stdout ) else (
+              'hana' if ( 'ibpdb' in find_output.stdout ) else (
+              'hanacockpit' if ( 'ibphcp' in find_output.stdout ) else (
+              'openvpn' if ( '/usr/sbin/openvpn' in find_output.stdout ) else firewall_preset_selection
+              )))))
+            }}
+
+    when: not iptables_use_instance_tags | bool
+  # End Block - Detect Application Variant from filesystem
+
+  - name: Get Application Variant from Instance ProductName Tag
+    block:
+      - name: Gather ec2 instance facts
+        ec2_metadata_facts:
+
+      - name: Obtain EC2 tags for this instance
+        ec2_tag:
+          region: '{{ ansible_ec2_placement_region }}'
+          resource: '{{ ansible_ec2_instance_id }}'
+          state: list
+        delegate_to: '{{ task_delegation }}'
+        register: ec2_tag_list
+
+      - name: Set firewall_preset_selection value to ProductName tag value
+        ansible.builtin.set_fact:
+          firewall_preset_selection: >-
+            {{
+              ec2_tag_list.tags.ProductName if (
+                'ProductName' in ec2_tag_list.tags and
+                ec2_tag_list.tags.ProductName in application_variants
+              ) else firewall_preset_selection
+            }}
+
+    when: iptables_use_instance_tags | bool
+  # End Block - Get Application Variant from Instance ProductName Tag
+
+  - name: Display selected application variant after dynamic searches
+    ansible.builtin.debug:
+      var: firewall_preset_selection
+...

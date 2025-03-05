@@ -1,0 +1,28 @@
+# Playbook Name: test-ste-roles-path.yml
+# Description: This will call some test roles from the STE Automation Repository to validate the ansible configuration is set correctly.
+# Prerequisites:
+#   - Ansible v2.9+
+#   - STE Automation Repository
+#   - Ansible Configuration Correctly set
+# Dependencies: N/A
+# Variables: N/A
+# Example:
+#     export STE_AUTOMATION=/path/to/local/repository
+#     ansible-playbook $STE_AUTOMATION/ansible/playbooks/tools/test-ste-roles-path.yml
+# Authors: Louis Lee
+# Modified: 2024-09-18 - Created
+# Comments:
+
+- name: call test roles
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Test IBP Roles Path
+      include_role:
+        name: test-role-ibp
+    - name: Test S4PCE Roles Path
+      include_role:
+        name: test-role-s4pce
+    - name: Test IBP Roles Path
+      include_role:
+        name: test-role-spr

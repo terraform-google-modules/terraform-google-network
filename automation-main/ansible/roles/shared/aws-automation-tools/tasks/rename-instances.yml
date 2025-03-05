@@ -1,0 +1,60 @@
+---
+# Synopsis: This task will identify any instances that have been tagged 'Test' and rename them to 'test' every night at 0310 UTC / 2310 ET
+# Inputs:
+#   - aws_access_key: The aws access key used for access
+#   - aws_secret_key: The aws secret key used for access
+#   - region: The default amazon region specified in the defaults file
+# Outputs: Any instances that are named 'Test' will be retagged with 'test'
+
+  - name: Get ec2_instances
+    local_action:
+      module: ec2_instance_info
+      aws_access_key: '{{ aws_automation_access_key }}'
+      aws_secret_key: '{{ aws_automation_secret_key }}'
+      region: '{{ aws_region }}'
+    register: discovered_instances
+    tags:
+      - rename
+
+  - name: Find instances with missing name tag
+    set_fact:
+      instances_name_missing: '{{ discovered_instances | to_json | from_json | json_query(query) }}'
+    vars:
+      query: instances[?!contains(keys(tags),'Name')].instance_id
+
+  - name: Add name to instances missing name tag
+    local_action:
+      module: ec2_tag
+      resource: '{{ item }}'
+      aws_access_key: '{{ aws_automation_access_key }}'
+      aws_secret_key: '{{ aws_automation_secret_key }}'
+      tags:
+        Name: test-unnamed
+      state: present
+    loop: '{{ instances_name_missing }}'
+
+  - name: Creating a list of instances with 'Test' in their tag Name
+    set_fact:
+      instance_names_to_lower: '{{ discovered_instances | to_json | from_json | json_query(query) }}'
+    vars:
+      query: instances[?starts_with(tags.Name, `Test-`)].tags.Name
+
+  - name: Creating a list of instance id's from the instances with 'Test' in their tag Name
+    set_fact:
+      instance_id_to_lower: '{{ discovered_instances | to_json | from_json | json_query(query) }}'
+    vars:
+      query: instances[?starts_with(tags.Name, `Test-`)].instance_id
+    register: instance_id_to_lower
+
+# The zip function will combine the two lists
+  - name: Uncapitalize 'test' name tag on EC2 instances
+    local_action:
+      module: ec2_tag
+      resource: '{{ item.0 }}'
+      aws_access_key: '{{ aws_automation_access_key }}'
+      aws_secret_key: '{{ aws_automation_secret_key }}'
+      tags:
+        Name: "{{ item.1 | replace('Test', 'test') }}"
+      state: present
+    loop: '{{ instance_id_to_lower | zip(instance_names_to_lower) | list }}'
+...

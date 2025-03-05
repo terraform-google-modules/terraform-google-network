@@ -1,0 +1,9 @@
+- name: "Pull DAT and KEY files from db database to local ansible host in /tmp"
+  become: true
+  ansible.builtin.fetch:
+    src: "{{ item }}"
+    dest: /tmp/hsr-test/
+    flat: yes
+  loop:
+  - /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/SYS/global/security/rsecssfs/data/SSFS_{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}.DAT
+  - /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/SYS/global/security/rsecssfs/key/SSFS_{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}.KEY

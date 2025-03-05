@@ -1,0 +1,100 @@
+project: ""
+name: ""
+secret: ""
+type: ""
+region: ""
+zones: []
+auditlog:
+  name: ""
+  tenantID: ""
+  serviceURL: ""
+user_email: techuser@sap.com
+purpose: development
+k8s_version: 1.27
+enableStaticTokenKubeconfig: false
+auto_hibernate: false
+# enable gardener audit policy - true for productive clusters only
+enable_cluster_audit: false
+oidc:
+  clientid: ""
+  issuer: ""
+serviceAccount:
+  extendTokenExpiration: false
+  maxTokenExpiration: 720h
+# if this is true, the dns below is added regardless of its value
+add_dns: false
+dns: {}
+# custom annotations
+annotations:
+  alpha.control-plane.shoot.gardener.cloud/high-availability-vpn: "true"
+# list of featureGates
+#featureGates:
+addons: {}
+systemComponents:
+  nodeLocalDNS:
+    enabled: false
+verticalPodAutoscaler:
+  enabled: true
+autoscaler:
+  scaleDownUtilizationThreshold: 0.3
+  scaleDownUnneededTime: 10m
+  scaleDownDelayAfterAdd: 10m
+  scaleDownDelayAfterFailure: 10m
+  scaleDownDelayAfterDelete: 10s
+  scanInterval: 60s
+maintenance:
+  autoUpdate:
+    kubernetesVersion: false
+    machineImageVersion: false
+  # this part might need to be specified according to region
+  timeWindow:
+    begin: 220000+0100
+    end: 230000+0100
+# cidr: 10.250.0.0/16
+
+provider:
+  aws:
+    elasticIPAllocationID:
+    networks:
+      nodes: 10.250.0.0/16
+      pods: 100.96.0.0/11
+      services: 100.64.0.0/13
+    zonenet:
+      - workers: 10.250.0.0/19
+        public: 10.250.96.0/22
+        internal: 10.250.112.0/22
+      - workers: 10.250.128.0/19
+        public: 10.250.160.0/20
+        internal: 10.250.176.0/20
+      - workers: 10.250.192.0/19
+        internal: 10.250.224.0/20
+        public: 10.250.240.0/20
+  azure:
+    IdleConnectionTimeoutMinutes: 6
+    networks:
+      nodes: 10.250.0.0/16
+      pods: 100.96.0.0/11
+      services: 100.64.0.0/13
+  alicloud:
+    zonenet:
+      - worker: 10.250.0.0/19
+      - worker: 10.250.32.0/19
+      - worker: 10.250.64.0/19
+    networks:
+      nodes: 10.250.0.0/16
+      pods: 172.16.0.0/13
+      services: 172.24.0.0/13
+  gcp:
+    staticNatName: ""
+    networks:
+      nodes: 10.250.0.0/16
+      pods: 100.96.0.0/11
+      services: 100.64.0.0/13
+aws:
+  setEndpoints: true
+kubelet:
+  podPidsLimit: 1000
+# failSwapOn: true
+
+minAllowedVolSize: 100Gi
+enableAnonymousAuthentication: true

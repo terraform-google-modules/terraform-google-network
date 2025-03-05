@@ -1,0 +1,31 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "AllowSourceReplication",
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetReplicationConfiguration",
+            "s3:ListBucket",
+            "s3:GetObjectVersionForReplication",
+            "s3:GetObjectVersionAcl"
+          ],
+          "Resource": [
+              "${ s3_source_bucket_arn }",
+              "${ s3_source_bucket_arn }/*"
+          ]
+      },
+      {
+        "Sid": "AllowDestinationReplication",
+        "Effect": "Allow",
+        "Action": [
+            "s3:ReplicateObject",
+            "s3:ReplicateDelete",
+            "s3:ObjectOwnerOverrideToBucketOwner"
+        ],
+        "Resource": [
+            "${ s3_destination_bucket_arn }/*"
+        ]
+    }
+  ]
+}

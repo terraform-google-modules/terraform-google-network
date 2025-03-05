@@ -1,0 +1,50 @@
+---
+# Synopsis: Setup new secondary DB in replication site
+# Inputs:
+#   - sid : SAP ID of the system
+#   - dr_failback_source_instance: Ansible inventory hostname of the source system to transfer from
+#   - dr_failback_destination_instance: Ansible inventory hostname of the destination system to transfer to
+#   - dr_site_instance: (Primary|Secondary) The instance description in the replication site. Defaults to Primary
+# Outputs: New secondary DB registered in replication site
+# Comments:
+#   - Requires gather facts from playbook
+
+- name: "Register {{ dr_failback_destination_instance }} as secondary DB"
+  shell: >-
+    ./exe/hdbnsutil -sr_register
+    --name={{ sid|upper }}-{{ dr_site_instance|default('Primary') }}
+    --remoteHost={{ hostvars[dr_failback_source_instance].ansible_hostname }}
+    --remoteInstance=02
+    --replicationMode=async
+    --operationMode=logreplay
+  args:
+    executable: /bin/csh
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  register: enable_replication_output
+  when: inventory_hostname == dr_failback_destination_instance
+  failed_when: "'adding site' not in enable_replication_output.stdout or 'failed' in enable_replication_output.stdout"
+
+- name: "Display results of {{ enable_replication_output.cmd }}"
+  debug:
+    var: enable_replication_output.stdout_lines
+  when: inventory_hostname == dr_failback_destination_instance
+
+- name: "Validate {{ dr_failback_source_instance }} Hana is replication source"
+  shell: "./exe/hdbnsutil -sr_state"
+  args:
+    executable: /bin/csh
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  register: validate_replication_output
+  when: inventory_hostname == dr_failback_source_instance
+  failed_when: "'is source system: true' not in validate_replication_output.stdout"
+  changed_when: false
+
+- name: "Display {{ dr_failback_source_instance }} replication status"
+  debug:
+    var: validate_replication_output.stdout_lines
+  when: inventory_hostname == dr_failback_source_instance
+
+
+...

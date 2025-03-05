@@ -1,0 +1,42 @@
+---
+# Synopsis: Multi volume asynchronous tar extraction
+# Inputs:
+#   - spr_tar_extract_list : list of tars to extract
+#   - spr_tar_extract_overwrite : (boolean) If true, then tar extraction will overwrite. Otherwise skips
+#   - spr_tar_extract_async : (boolean) If true, then use asynchronous tar extraction. Small tar extraction may fail if this is enabled
+# Outputs: Terminates script process on failure
+# Comments: N/A
+
+
+- name: "BLOCK: Extract Tars Asynchronously"
+  when: (spr_tar_extract_async)|bool
+  become: true
+  block:
+    - name: "Start Extracting Tars Asynchronous"
+      shell: "cat {{ item }} | tar {% if not (spr_tar_extract_overwrite) %}--skip-old-files {% endif %} -zpxvf - -C /"
+      loop: "{{ spr_tar_extract_list }}"
+      failed_when: false
+      register: tarextract_status
+      async: "14400"  # set async timeout to 4 hours
+      poll: "0"
+
+
+    - name: "Wait for Tar Extraction to finish"
+      async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      delay: 60  # Check every 60 seconds. Adjust as you like.
+      retries: 240  # Retry for 4 hours
+      loop: "{{ tarextract_status.results }}"
+###End "BLOCK: Extract Tars Asynchronously"
+
+
+- name: "Start Extracting Tars Synchronous"
+  become: true
+  when: (spr_tar_extract_async)|bool == false
+  shell: "cat {{ item }} | tar {% if not (spr_tar_extract_overwrite) %}--skip-old-files {% endif %} -zpxvf - -C /"
+  loop_control:
+    label: "Extracting {{ item }}"
+  loop: "{{ spr_tar_extract_list }}"
+...

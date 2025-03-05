@@ -1,0 +1,120 @@
+---
+# Synopsis: Configures a single network file share on a linux machine
+# Inputs:
+#   item - (from parent taskfile) a single element of the `nfs_dictionary`
+#   nfs_default_owner - default owner for network file share mount path
+#   nfs_default_group - default group for network file share mount path
+#   nfs_default_mode - default mode for network file share mount path
+#   nfs_default_src_root - path to mount to within network file share
+#   nfs_change_cache - (from parent taskfile) internal variable for storing cache nfs changes
+
+  - name: Detect stale file handle prior to attempting to configure file system
+    stat:
+      path: '{{ item.value.path }}'
+    register: nfs_stale_file_handle_check
+    become: true
+    failed_when: false
+
+  - name: Fix stale file handle artifact prior to attempting to configure file system
+    shell: |
+      umount -lf {{ item.value.path }};
+      rm -rf {{ item.value.path }};
+    when:
+      - nfs_stale_file_handle_check.msg is defined
+      - nfs_stale_file_handle_check.msg == "Stale file handle"
+    become: true
+
+  - name: Ensure presence of shared file system mount path
+    file:
+      path: '{{ item.value.path }}'
+      state: directory
+      owner: '{{ nfs_default_owner if (item.value.owner is undefined or item.value.owner | length < 1) else item.value.owner }}'
+      group: '{{ nfs_default_group if (item.value.group is undefined or item.value.group | length < 1) else item.value.group }}'
+      mode: '{{ nfs_default_mode if (item.value.mode is undefined or item.value.mode | length < 1) else item.value.mode }}'
+    become: true
+
+  - name: Mount shared file system
+    mount:
+      path: '{{ item.value.path }}'
+      src: >-
+        {{ item.value.src }}:{{
+          nfs_default_src_root if (item.value.src_root is undefined or item.value.src_root | length < 1) else item.value.src_root
+        }}
+      state: mounted
+      fstype: '{{ "nfs4" if ansible_system_vendor != "Google" else "nfs" }}'
+      opts: '{{ nfs_mount_options[cloud_provider] | default(omit) }}'
+    become: true
+    register: nfs_configure_status
+    when: >
+      item.value.access_point_id is not defined or
+      item.value.access_point_id is none or
+      item.value.access_point_id | length < 1
+
+  - name: Ensure presense of /etc/hosts entry for EFS mount target when necessary
+    lineinfile:
+      path: /etc/hosts
+      line: '{{ item.value.efs_mount_target }} {{ item.value.src }}'
+      state: present
+    become: true
+    when:
+      - nfs_dns_resolve_status is defined
+      - nfs_dns_resolve_status[item.key] is defined
+      - not nfs_dns_resolve_status[item.key] | bool
+
+  - name: Mount shared file system from AWS EFS access point
+    mount:
+      path: '{{ item.value.path }}'
+      src: >-
+        {{ item.value.src }}:{{
+          nfs_default_src_root if (item.value.src_root is undefined or item.value.src_root | length < 1) else item.value.src_root
+        }}
+      state: >-
+        {{ "remounted" if (
+            nfs_force_remount | bool
+          ) else "mounted"
+        }}
+      fstype: efs
+      opts: nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev,tls,iam,accesspoint={{ item.value.access_point_id }}
+    become: true
+    register: nfs_configure_status
+    when:
+      - item.value.access_point_id is defined
+      - item.value.access_point_id | length > 0
+
+  - name: Get shared file system mount information
+    shell: if mount -l | grep {{ item.value.path }}; then ls -lah {{ item.value.path }}; fi
+    become: true
+    register: nfs_content_output
+    no_log: true
+    failed_when: false
+
+  - name: Add mounted shared file system to nfs change cache
+    set_fact:
+      nfs_change_cache: >-
+        {{
+          nfs_change_cache | default({}, true) | combine({
+            item.key : {
+              'status' : 'ADDED',
+              'path' : item.value.path,
+              'src' : item.value.src,
+              'content' : nfs_content_output.stdout_lines | default('NULL')
+            }
+          })
+        }}
+    when: nfs_configure_status.changed
+
+  - name: Add unchanged mount for shared file system to nfs cache
+    set_fact:
+      nfs_change_cache: >-
+        {{
+          nfs_change_cache | default({}, true) | combine({
+            item.key : {
+              'status' : 'UNCHANGED',
+              'path' : item.value.path,
+              'src' : item.value.src,
+              'content' : '<suppressed>'
+            }
+          })
+        }}
+    when: not nfs_configure_status.changed
+...

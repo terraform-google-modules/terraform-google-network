@@ -1,0 +1,6 @@
+- op: add
+  path: /spec/volumeClaimTemplates/0/apiVersion
+  value: v1
+- op: add
+  path: /spec/volumeClaimTemplates/0/kind
+  value: PersistentVolumeClaim

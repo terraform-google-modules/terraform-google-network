@@ -1,0 +1,12 @@
+---
+- name: "HANA-Primary: perform takeover"
+  ansible.builtin.shell: |
+    source /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+    /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/HDB{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}/exe/hdbnsutil \
+    -sr_takeover {{ distributed_hana_config_sap_hana_suspend_primary|default('') }} --comment="Ansible: takeover perform by {{ lookup('env','USER') }} on {{ distributed_hana_config_date_time.date }} {{ distributed_hana_config_date_time.time }} UTC"
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  register: distributed_hana_config_output_hana_primary_takeover
+  when: distributed_hana_config_hana_mode != "primary"

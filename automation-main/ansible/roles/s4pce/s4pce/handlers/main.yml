@@ -1,0 +1,14 @@
+---
+- name: Restart_watchman_socket
+  become: true
+  systemd:
+    state: restarted
+    name: watchman@{{ s4pce_watchman_setup_service_user }}.socket
+    enabled: true
+
+- name: Restart_watchman_service
+  become: true
+  systemd:
+    state: restarted
+    name: watchman@{{ s4pce_watchman_setup_service_user }}.service
+    enabled: true

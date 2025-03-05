@@ -1,0 +1,21 @@
+{{- $customer := trimSuffix "-sftp" .Values.sftpgo.fullnameOverride }}
+kind: Secret
+apiVersion: v1
+metadata:
+  name: sftpgo-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    avp.kubernetes.io/path: "{{ default (printf "%s/%s/sftp" .Values.vaultBasePath $customer) .Values.vaultPath }}/config"
+    avp.kubernetes.io/remove-missing: "true"
+type: Opaque
+stringData:
+  PLACEHOLDER: "This is a placeholder secret."
+  SFTPGO_DATA_PROVIDER__USERNAME: <SFTPGO_DATA_PROVIDER__USERNAME>
+  SFTPGO_DATA_PROVIDER__PASSWORD: <SFTPGO_DATA_PROVIDER__PASSWORD>
+  SFTPGO_DATA_PROVIDER__HOST: <SFTPGO_DATA_PROVIDER__HOST>
+  SFTPGO_DATA_PROVIDER__PORT: <SFTPGO_DATA_PROVIDER__PORT>
+  SFTPGO_DATA_PROVIDER__NAME: <SFTPGO_DATA_PROVIDER__NAME>
+  SFTPGO_DEFAULT_ADMIN_PASSWORD: <SFTPGO_DEFAULT_ADMIN_PASSWORD>
+  SFTPGO_DEFAULT_ADMIN_USERNAME: <SFTPGO_DEFAULT_ADMIN_USERNAME>
+  SFTPGO_HTTPD__BINDINGS__0__OIDC__CLIENT_SECRET: <SFTPGO_HTTPD__BINDINGS__0__OIDC__CLIENT_SECRET>
+  SFTPGO_HTTPD__SIGNING_PASSPHRASE: <SFTPGO_HTTPD__SIGNING_PASSPHRASE>

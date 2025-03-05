@@ -1,0 +1,109 @@
+---
+# Description: Variables file defining what actions to perform and what Docker images to create for the
+#              given Molecule test scenario. This scenario tests to ensure that the SSHD configuration
+#              setting 'LoginGraceTime' is properly set to the value '60'. This task within the
+#              'rhel8-disa-stig' Ansible role has the NS2 created STIG variable of 'NS2_STIG_RHEL_08_001030'.
+#              The tests in 'verify.yml' will ensure that the '/etc/ssh/sshd_config' file exists, that
+#              the 'LoginGraceTime' setting is present and set to the correct value, that the configuration
+#              file is valid, and that the SSHD service is running.
+
+scenario:
+  name: aws-sshd-logingracetime
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - dependency
+    - lint
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+#    - idempotence    # NOTE: A lot of our roles aren't truly idempotent as far as Molecule understands, so you might have to comment this line out.
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+dependency:
+  name: galaxy
+driver:
+  name: ec2
+platforms:
+  - name: test-molecule-disa-stig-NS2-RHEL-8.1-Base
+    image_owner: 156506675147
+    image_name: Golden-NS2-RHEL-8.1-Base-V*
+    instance_type: t3a.small
+    vpc_subnet_id: subnet-039216f2f9ef14c4e
+    instance_tags:
+      - Name: test-molecule-disa-stig-NS2-RHEL-8.1-Base
+      - GeneratedBy: molecule
+      - ManagedBy: molecule
+      - Description: Temporary instance used for Ansible Molecule testing of the rhel8-disa-stig role
+      - Owner: build@sapns2.com
+      - BuildUser: molecule
+      - Business: ns2
+  - name: test-molecule-disa-stig-NS2-RHEL-8.2-Base
+    image_owner: 156506675147
+    image_name: Golden-NS2-RHEL-8.2-Base-V*
+    instance_type: t3a.small
+    vpc_subnet_id: subnet-039216f2f9ef14c4e
+    instance_tags:
+      - Name: test-molecule-disa-stig-NS2-RHEL-8.2-Base
+      - GeneratedBy: molecule
+      - ManagedBy: molecule
+      - Description: Temporary instance used for Ansible Molecule testing of the rhel8-disa-stig role
+      - Owner: build@sapns2.com
+      - BuildUser: molecule
+      - Business: ns2
+  - name: test-molecule-disa-stig-NS2-RHEL-8.4-Base
+    image_owner: 156506675147
+    image_name: Golden-NS2-RHEL-8.4-Base-V*
+    instance_type: t3a.small
+    vpc_subnet_id: subnet-039216f2f9ef14c4e
+    instance_tags:
+      - Name: test-molecule-disa-stig-NS2-RHEL-8.4-Base
+      - GeneratedBy: molecule
+      - ManagedBy: molecule
+      - Description: Temporary instance used for Ansible Molecule testing of the rhel8-disa-stig role
+      - Owner: build@sapns2.com
+      - BuildUser: molecule
+      - Business: ns2
+provisioner:
+  name: ansible
+  ansible_args:
+    - -e NS2_STIG_RHEL_08_001030=true
+  lint:
+    name: ansible-lint
+    enabled: false
+  playbooks:
+    create: ../../../../testing/molecule/aws-ec2/create.yml
+    prepare: ./prepare.yml
+    converge: ./converge.yml
+    verify: ./verify.yml
+    cleanup: ../../../../testing/molecule/aws-ec2/cleanup.yml
+    destroy: ../../../../testing/molecule/aws-ec2/destroy.yml
+verifier:
+  name: ansible
+  enabled: true
+...

@@ -1,0 +1,151 @@
+---
+# Playbook Name: s4-all-stop-sapapp.yml
+# Synopsis: Stops the S4 SapApp
+# Description: Standalone playbook that stops the S4 SAP Application
+# Prerequisites:
+#   - Ansible v2.9+
+#   - Functional S4 SapApp Install
+# Dependencies: N/A
+# Variables in the host_file:
+#   sid : SAP ID of the SAP App Landscape
+#   ascs_instance_number : ASCS number
+# Example:
+#   Stops the Hana Dabase remotely
+#    ansible-playbook s4-stops-hana -i host_file -kK
+#    host_file format:
+#       192.168.0.1 sid=br1 ascs_instance_number=01
+# Authors: Louis Lee,
+# Version: 2.9-000003
+# Modified: 2020-02-27 - Created
+#           2023-04-06 - Updated code to follow changes suggeted by ansible-lint output
+#           2023-04-11 - Removed become: true and become_use: {{ sid | lower }}adm at global level and included at task level. Also changed become: yes to become: true
+# Comments: N/A
+
+- hosts: all
+
+  tasks:
+    - name: "Stop SAP ABAP with sapcontrol on 00 instance SAPApp"
+      ansible.builtin.command: "sapcontrol -nr 00 -function Stop"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      failed_when: "'Stop\nOK' not in sapappstop_00_output.stdout"
+      register: sapappstop_00_output
+
+    - name: "SAPApp 00 Stop output"
+      ansible.builtin.debug:
+        var: sapappstop_00_output.stdout_lines
+
+    - name: "Stop SAP ASCS with sapcontrol on {{ ascs_instance_number }} SAPApp"
+      ansible.builtin.command: "sapcontrol -nr {{ ascs_instance_number }} -function Stop"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      failed_when: "'Stop\nOK' not in sapappstop_agcs_output.stdout"
+      register: sapappstop_agcs_output
+
+    - name: "SAPApp {{ ascs_instance_number }} Stop output"
+      ansible.builtin.debug:
+        var: sapappstop_agcs_output.stdout_lines
+
+    - name: StopSystem SAP with sapcontrol on SAPApp
+      ansible.builtin.command: "sapcontrol -nr 00 -function StopSystem ALL"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      failed_when: "'StopSystem\nOK' not in sapappstopsystem_output.stdout"
+      register: sapappstopsystem_output
+
+    - name: "SAPApp StopSystem output"
+      ansible.builtin.debug:
+        var: sapappstopsystem_output.stdout_lines
+
+    - name: "Get saphostagent status"
+      ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -status"
+      become: true
+      register: saphostagent_status
+      failed_when: "'FAILED' in saphostagent_status.stderr"
+      changed_when: false
+
+    - name: "Display saphostagent status"
+      ansible.builtin.debug:
+        var: saphostagent_status.stderr_lines
+
+    - name: "BLOCK - Stop saphostagent"
+      when: saphostagent_status.stderr != 'saphostexec stopped '
+      block:
+        - name: "Stop saphostagent as root"
+          ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -stop"
+          become: true
+
+        - name: "Get saphostagent status"
+          ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -status"
+          become: true
+          register: saphostagent_statusblock
+          failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+          changed_when: false
+
+        - name: "Display saphostagent status"
+          ansible.builtin.debug:
+            var: saphostagent_statusblock.stderr_lines
+    # End "BLOCK - Stop saphostagent"
+
+    - name: "Find sidadm processes"
+      ansible.builtin.command: "ps -fu {{ sid | lower }}adm"
+      become: true
+      register: "pssidadm_output"
+      failed_when: "'FAILED' in pssidadm_output.stderr"
+      changed_when: false
+
+    - name: "List process to kill"
+      ansible.builtin.debug:
+        var: pssidadm_output.stdout_lines
+
+    - name: "Stop sidadm processes"
+      ansible.builtin.command: "pkill -9 -fu {{ sid | lower }}adm"
+      become: true
+      failed_when: "'FAILED' in pkillsidadm_output.stderr"
+      register: pkillsidadm_output
+
+    - name: "Display stop sidadm output if verbosity >= 1"
+      ansible.builtin.debug:
+        var: pkillsidadm_output
+        verbosity: 1
+
+    - name: "Clean IPC"
+      ansible.builtin.command: "/usr/sap/{{ sid | upper }}/SYS/exe/uc/linuxx86_64/cleanipc {{ item }} remove"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      register: cleanipc_output
+      loop:
+        - "00"
+        - "{{ ascs_instance_number }}"
+
+    - name: "Show cleanipc results"
+      ansible.builtin.debug:
+        var: cleanipc_output
+        verbosity: 1
+
+    - name: "Get IPC Status"
+      ansible.builtin.command: "/bin/ipcs"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      register: ipcs_output
+
+    - name: "Show IPC Status"
+      ansible.builtin.debug:
+        var: ipcs_output
+        verbosity: 1
+
+    - name: "Get sidadm processes"
+      ansible.builtin.command: "ps -fu {{ sid | lower }}adm"
+      become: true
+      failed_when: "'FAILED' in sidadmin_processes.stderr"
+      register: sidadmin_processes
+
+    - name: "Show sidadm processes"
+      ansible.builtin.debug:
+        var: sidadmin_processes.stdout_lines
+...

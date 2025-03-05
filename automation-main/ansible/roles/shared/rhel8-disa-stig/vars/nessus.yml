@@ -1,0 +1,12 @@
+---
+# Place any DISA STIG configuration variables in this file that differ from what the 'primary.yml' variables file has.
+# This file takes precedence over 'primary.yml'.
+
+# This file is automatically included by the role when the 'application_preset_selection' variable is set to 'nessus' as
+# per the mapping in the 'main.yml' variables file.
+
+DISA_STIG_RHEL_08_020260: true # RHEL 8 account identifiers (individuals, groups, roles, and devices) must disabled after 35 days of inactivity.
+DISA_STIG_RHEL_08_020200: true # RHEL 8 user account passwords must have a 60_day maximum password lifetime restriction.
+var_accounts_maximum_age_login_defs: '180'
+
+...

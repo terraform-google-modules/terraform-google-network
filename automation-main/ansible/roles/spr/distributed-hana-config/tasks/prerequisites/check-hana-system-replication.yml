@@ -1,0 +1,14 @@
+- name: "Check if hana system replication on db is registered"
+  ansible.builtin.shell: |
+    source /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+    /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/HDB{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}/exe/hdbnsutil \
+    -sr_state
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  register: distributed_hana_config_output_checksr
+
+- name: "Print system replication status"
+  ansible.builtin.debug:
+    var: distributed_hana_config_output_checksr.stdout_lines

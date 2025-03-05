@@ -1,0 +1,17 @@
+---
+# This file contains a list of the DISA STIG configuration variables that are NOT commonly applied between all image variants, since they
+# pose a risk of rendering the system inoperable.
+
+# "Riskier" STIGs or less commonly applied STIGs that are considered optional to apply.
+DISA_STIG_RHEL_08_020070: true # RHEL 8 must automatically log out command line user sessions after 15 minutes of inactivity.
+
+# FIPS mode and related requirements.
+DISA_STIG_RHEL_08_010020: true # FIPS - RHEL 8 must implement NIST FIPS-validated cryptography for the following: to provision digital signatures, to generate cryptographic hashes, and to protect data requiring data-at-rest protections in accordance with applicable federal laws, Executive Orders, directives, policies, regulations, and standards.
+DISA_STIG_RHEL_08_010110: true # RHEL 8 must encrypt all stored passwords with a FIPS 140-2 approved cryptographic hashing algorithm.
+DISA_STIG_RHEL_08_010120: true # RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms for all stored passwords.
+DISA_STIG_RHEL_08_010130: true # The RHEL 8 password-auth file must be configured to use a sufficient number of hashing rounds.
+DISA_STIG_RHEL_08_010160: true # The RHEL 8 pam_unix.so module must be configured in the password-auth file to use a FIPS 140-2 approved cryptographic hashing algorithm for system authentication.
+DISA_STIG_RHEL_08_010290: true # The RHEL 8 SSH server must be configured to use only Message Authentication Codes (MACs) employing FIPS 140-2 validated cryptographic hash algorithms.
+DISA_STIG_RHEL_08_010293: true # The RHEL 8 operating system must implement DoD-approved encryption in the OpenSSL package.
+
+...

@@ -1,0 +1,30 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowReservedInstanceActivities",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:AcceptReservedInstancesExchangeQuote",
+                "ec2:CancelCapacityReservation",
+                "ec2:DescribeAvailabilityZones",
+                "ec2:DescribeReservedInstances",
+                "ec2:DescribeReservedInstancesOfferings",
+                "ec2:ModifyInstanceCapacityReservationAttributes",
+                "ec2:ModifyReservedInstances",
+                "ec2:PurchaseHostReservation",
+                "ec2:PurchaseReservedInstancesOffering",
+                "ec2:PurchaseScheduledInstances"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowInstanceEnumerationForValidation",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeInstances"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

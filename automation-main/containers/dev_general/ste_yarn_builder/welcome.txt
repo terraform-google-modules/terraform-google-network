@@ -1,0 +1,18 @@
+Welcome to the STE Yarn Builder!
+
+Running this Docker Container:
+
+    MY_DOCUSAURUS_REPO=~/Repos/scs/documentation/production/
+    docker run -it \
+      -v $MY_DOCUSAURUS_REPO:/mnt/docusaurus \
+      -p 3000:3000 \
+      --rm dev_general/ste_yarn_builder:$version
+
+Some useful commands:
+
+- Replay this message:            cat /etc/motd
+- Go to Docusaurus Repo:          cd /mnt/docusaurus
+- Yarn Install:                   cd /mnt/docusaurus; yarn install
+- Yarn Build:                     cd /mnt/docusaurus; yarn build
+- Yarn Serve:                     cd /mnt/docusaurus; yarn serve
+- Run all yarn commands:          ~/yarn_run.sh

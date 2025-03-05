@@ -1,0 +1,81 @@
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  - level: None
+    users:
+      - "gardener"
+      - "kubelet"
+      - "etcd-client"
+      - "vpn-seed"
+      - "aws-lb-readvertiser"
+      - "cloud-config-downloader"
+      - "system:kube-apiserver:kubelet"
+      - "system:kube-controller-manager"
+      - "system:kube-aggregator"
+      - "system:kube-scheduler"
+      - "system:kube-addon-manager"
+      - "system:kube-aggregator"
+      - "system:kube-proxy"
+      - "system:cluster-autoscaler"
+      - "system:machine-controller-manager"
+      - "system:cloud-controller-manager"
+      - "system:apiserver"
+      - "garden.sapcloud.io:system:cert-broker"
+      - "gardener.cloud:system:gardener-resource-manager"
+  - level: None
+    userGroups:
+      - "system:nodes"
+      - "system:serviceaccounts:kube-system"
+      - "garden.sapcloud.io:monitoring"
+  - level: Request
+    verbs: ["create"]
+    resources:
+      - group: ""
+        resources: ["events"]
+        namespaces: ["argocd"]
+  - level: None
+    verbs: ["watch", "get", "list"]
+    resources:
+      - group: ""
+        resources: ["secrets", "events", "configmaps", "tokenreviews"]
+    userGroups:
+      - "system:authenticated"
+      - "system:masters"
+  - level: None
+    verbs: ["watch", "get", "list"]
+    resources:
+      - group: ""
+        resources: ["pods"]
+  - level: None
+    verbs: ["watch", "get", "list"]
+    userGroups:
+      - "system:authenticated"
+      - "system:masters"
+  - level: None
+    nonResourceURLs:
+      - /*
+    userGroups:
+      - "system:authenticated"
+      - "system:masters"
+  - level: Metadata
+    resources:
+      - group: "" # core
+      - group: "admissionregistration.k8s.io"
+      - group: "apiextensions.k8s.io"
+      - group: "apiregistration.k8s.io"
+      - group: "apps"
+      - group: "authentication.k8s.io"
+      - group: "authorization.k8s.io"
+      - group: "autoscaling"
+      - group: "batch"
+      - group: "certificates.k8s.io"
+      - group: "coordination.k8s.io"
+      - group: "extensions"
+      - group: "metrics.k8s.io"
+      - group: "networking.k8s.io"
+      - group: "policy"
+      - group: "rbac.authorization.k8s.io"
+      - group: "scheduling.k8s.io"
+      - group: "settings.k8s.io"
+      - group: "storage.k8s.io"
+  - level: Metadata

@@ -1,0 +1,99 @@
+---
+# Configure vector for an agent deployment
+
+  - name: Install NS2 Vector aggregator processing configuration files
+    delegate_to: localhost
+    copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/'
+      src: config/aggregator_processing
+    become: false
+    notify:
+      - restart vector
+
+  - name: Install NS2 Vector Firehose sinks configuration files
+    delegate_to: localhost
+    copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/aggregator_sinks/sinks/'
+      src: config/aggregator_kinesis_sinks/sinks/kinesis.yaml
+    become: false
+    when:
+      - vector_sink_firehose
+    notify:
+      - restart vector
+
+  - name: Install NS2 Vector Azure Blob Storage Sink
+    delegate_to: localhost
+    copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/aggregator_sinks/sinks/'
+      src: config/aggregator_azure_sinks/sinks/azure_blob_storage.yaml
+    become: false
+    when:
+      - vector_hyperscaler_azure is defined
+      - vector_sink_azure_storage
+    notify:
+      - restart vector
+
+  - name: Install NS2 Vector Azure Blob Storage Sink (dropped)
+    delegate_to: localhost
+    copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/aggregator_sinks/sinks/'
+      src: config/aggregator_azure_sinks/sinks/azure_blob_storage_dropped.yaml
+    become: false
+    when:
+      - vector_hyperscaler_azure is defined
+      - vector_sink_azure_storage
+    notify:
+      - restart vector
+
+  - name: Install NS2 Vector Azure Activity Logging
+    delegate_to: localhost
+    copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/'
+      src: config/azure_activity_logs
+    become: false
+    when:
+      - ns2_azure_activity_event_hub_endpoint  | length > 0
+      - vector_hyperscaler_azure is defined
+    notify:
+      - restart vector
+
+  - name: Install NS2 GCP Project Logging Source
+    delegate_to: localhost
+    copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/'
+      src: config/gcp_project_logs
+    become: false
+    when:
+      - vector_gcp_project_logs_pubsub_subscription  | length > 0
+      - vector_hyperscaler_gcp is defined
+    notify:
+      - restart vector
+
+  - name: Install NS2 GCP Logging Sink
+    delegate_to: localhost
+    copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/'
+      src: config/aggregator_gcp_sinks
+    become: false
+    when:
+      - vector_sink_gcp_logging
+      - vector_hyperscaler_gcp is defined
+    notify:
+      - restart vector
+
+  - name: Add the private key to be used by Vector
+    copy:
+      dest: /etc/vector/certs/me.key
+      content: '{{ vector_private_key }}'
+      mode: '0600'
+    become: true
+    notify: restart vector
+
+  - name: Add the certificate to be used by Vector
+    copy:
+      dest: /etc/vector/certs/me.pem
+      content: '{{ vector_certificate }}'
+      mode: '0600'
+    become: true
+    notify: restart vector
+...

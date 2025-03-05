@@ -1,0 +1,11 @@
+---
+# This file contains a list of additional DISA STIG configurationsn to apply to an Oracle Linux 8 system.
+# Place any DISA STIG configuration variables in this file that differ from what the 'primary.yml' and/or 'base.yml' variable files have.
+# Variables in this file take precedence over those in 'primary.yml' or 'base.yml'.
+
+# This file is automatically included by the role when the 'application_preset_selection' variable is set to 'ol8' as
+# per the mapping in the 'main.yml' variables file.
+
+DISA_STIG_RHEL_08_010544: false # RHEL 8 must use a separate file system for /var/tmp.
+
+...

@@ -1,0 +1,18 @@
+---
+tests:
+  - name: sap.sftp::1
+    inputs:
+      - insert_at: sftp_metadata
+        type: log
+        log_fields:
+          file: /var/log/sftp.log
+          message: |
+            Oct 30 03:44:01 cre-s4-pce-customer0006-sftp-ds4-scaleset000000 internal-sftp[1337117]: stat name "/data"
+    outputs:
+      - extract_from: sftp__sap_logs_parsed
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!("internal-sftp", .message.appname)
+              assert_eq!("cre-s4-pce-customer0006-sftp-ds4-scaleset000000", .message.hostname)
+...

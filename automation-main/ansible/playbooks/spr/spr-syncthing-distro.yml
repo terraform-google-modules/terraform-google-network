@@ -1,0 +1,48 @@
+---
+# Playbook Name: spr-syncthing-distro.yml
+# Description: Use the SPR role to add Products to the syncthing distribution.
+#   Can be also be used to cleanup older versions in the syncthing directory.
+#   This playbook is intended to be run from the SPR source account.
+# Dependencies:
+# - Ansible v2.11.1+
+# - SPR Role
+# - ansible.builtin
+# - ansible.posix
+# - SPR Account Access
+# Variables:
+#   - playbook_spr_syncthing_productname: Name of the product to sync
+#   - playbook_spr_syncthing_cleanup: whether or not to cleanup the old versions from the syncthing location.
+#   - Role Defaults: These values have all been set by the role
+#     - spr_syncthing_prefix: The prefix of the syncthing location.
+#     - spr_versions_to_keep: Number of older versions to preserve
+#     - spr_cleanup_older: Whether or not to delete the older versions, overridden by playbook_spr_syncthing_cleanup
+# Example:
+#   Execution on the SPR Bastion
+#   ansible-playbook spr-syncthing-distro.yml -i bastion, -u i##### -k
+# Authors: Louis Lee
+# Version: 2.11-000001
+# Modified:
+#   2023-09-05 - Created
+
+
+- hosts: all
+  vars_prompt:
+    - name: playbook_spr_syncthing_productname
+      private: false
+      prompt: Product Name to be copied to syncthing Distro.  Must have match in SPR spr_products
+
+    - name: playbook_spr_syncthing_cleanup
+      private: false
+      default: true
+      prompt: (true|false) Cleanup older versions
+
+  tasks:
+  - name: SPR Syncthing Distribution
+    ansible.builtin.include_role:
+      name: spr
+      tasks_from: general/syncthing-distro.yml
+    vars:
+      spr_syncthing_productname: "{{ playbook_spr_syncthing_productname }}"
+      spr_cleanup_older: "{{ playbook_spr_syncthing_cleanup | lower | bool }}"
+
+...

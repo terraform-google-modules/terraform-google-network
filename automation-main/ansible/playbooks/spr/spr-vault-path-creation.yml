@@ -1,0 +1,59 @@
+---
+# Playbook Name: spr-vault-path-creation.yml
+# Description: Generates a list of vault paths that need to be created for each customer.
+#
+# For the purposes of this playbook, all variables should be set in the inventory file.
+# Dependencies:
+# - Ansible v2.9+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# - SPR Role
+# Variables:
+#   - Groupvars and Hostvars from inventory
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook spr-vault-path-creation.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Katja Cresanti
+# Version: 2.9-000001
+# Modified: 2021-10-08 - Created playbook
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_productname|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Create filepath list"
+  gather_facts: false
+  hosts: all
+  tags:
+  - play1
+  - filepaths
+
+  tasks:
+  - name: "Print out filepath list"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/vault-path-creation.yml
+...

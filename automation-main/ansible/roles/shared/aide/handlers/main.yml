@@ -1,0 +1,13 @@
+---
+  - name: Initialize aide database
+    ansible.builtin.command: '{{ aide_path.stdout }} -i -c {{ aide_conf_path }}'
+    when:
+      - aide_db_check.stdout|int == 0
+    become: true
+
+  - name: Move new aide database into place
+    ansible.builtin.command: mv {{ aide_database_out_filename }} {{ aide_database_filename }}
+    args:
+      chdir: '{{ aide_dbdir }}'
+    become: true
+...

@@ -1,0 +1,153 @@
+---
+# Synopsis: Downloads and installs watchman. Sets up connection between Source and Destination Hosts.
+# Inputs:
+#   spr_watchman_setup_replication_pair : Unique replication pair identifier
+#   spr_watchman_setup_replication_role : The replication role of the host. Either `source` or `destination`
+#   spr_watchman_setup_version : Version of Watchman to download
+#   spr_watchman_setup_service_user : (Default root) User to run the systemd service as
+#   spr_watchman_setup_settle: (Default 5000) Milliseconds to wait for file operations to cease before trigger
+# Outputs:
+#   Source host is configured to replicate the specified folder to the destination host.
+#   The destination host is identified as "replication_partner" in the ssh config
+# Comments:
+
+- name: "BLOCK: Permissions Setup"
+  when: spr_watchman_setup_replication_role == 'destination'
+  block:
+
+  - name: "Get location of destination rsync"
+    become: true
+    command: 'which rsync'
+    register: rsync_location_output
+    changed_when: false
+
+  - name: "Setup replication users sudo permission"
+    become: true
+    copy:
+      dest: "/etc/sudoers.d/svc_replication_{{ spr_watchman_setup_replication_pair|lower }}"
+      owner: root
+      group: root
+      content: "svc_replication_{{ spr_watchman_setup_replication_pair|lower }} ALL=NOPASSWD:{{ rsync_location_output.stdout }}\n"
+      mode: 0440
+      validate: "visudo -csf %s"
+### End "BLOCK: Permissions Setup"
+
+- name: "BLOCK: Download and install watchman"
+  when: spr_watchman_setup_replication_role == 'source'
+  block:
+    - name: "Install bzip compression"
+      become: true
+      package:
+        state: present
+        name: bzip2-devel
+
+    - name: "Find bzip library"
+      find:
+        paths: /usr/lib64
+        file_type: file
+        patterns: "libbz2.so.1*"
+      register: find_bzip_library
+
+    - name: "Symlink bzip library"
+      become: true
+      file:
+        src: "{{ find_bzip_library.files[-1].path }}"
+        dest: '/usr/lib64/libbz2.so.1.0'
+        state: link
+
+    - name: "Ensure local /tmp/watchman folder exists"
+      file:
+        state: directory
+        path: '/tmp/watchman'
+
+    - name: "Download watchman"
+      unarchive:
+        src: "https://github.com/facebook/watchman/releases/download/v{{ spr_watchman_setup_version }}/watchman-v{{ spr_watchman_setup_version }}-linux.zip"
+        dest: '/tmp/watchman'
+        remote_src: yes
+
+    - name: "Ensure local folders exists"
+      become: true
+      file:
+        state: directory
+        path: "{{ item }}"
+      loop:
+        - '/usr/local/bin'
+        - '/usr/local/lib'
+        - '/usr/local/var/run/watchman'
+
+    - name: "Copy watchman files to destination"
+      become: true
+      copy:
+        remote_src: yes
+        force: yes
+        dest: "/usr/local/{{ item }}"
+        src: "/tmp/watchman/watchman-v{{ spr_watchman_setup_version }}-linux/{{ item }}/"
+      loop:
+        - 'bin'
+        - 'lib'
+
+    - name: "Set file and folder permissions"
+      become: true
+      file:
+        path: "{{ item.path }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - path: '/usr/local/bin/watchman'
+          mode: '0755'
+        - path: '/usr/local/var/run/watchman'
+          mode: '2777'
+
+    - name: "Setup  default watchman configuration"
+      become: true
+      template:
+        src: general/watchman-config.j2
+        dest: "/etc/watchman.json"
+      #Note: Template Vars
+      # spr_watchman_setup_settle
+
+    - name: Install the Watchman systemd socket
+      become: true
+      template:
+        src: general/watchman-socket.j2
+        dest: '/usr/lib/systemd/system/watchman@.socket'
+        mode: '0600'
+      notify: Restart_watchman_socket
+
+    - name: Install the Watchman systemd service
+      become: true
+      template:
+        src: general/watchman-service.j2
+        dest: '/usr/lib/systemd/system/watchman@.service'
+        mode: '0600'
+      notify: Restart_watchman_service
+### End "BLOCK: Download and install watchman"
+- name: "Flush the Handlers"
+  meta: flush_handlers
+
+- name: "Setup watchman logrotate on source"
+  when: spr_watchman_setup_replication_role == 'source'
+  become: true
+  template:
+    src: general/watchman-logrotate.j2
+    dest: '/etc/logrotate.d/watchman'
+    mode: '0644'
+  vars:
+    spr_logrotate_file_path: "/usr/local/var/run/watchman/{{ spr_watchman_setup_service_user }}-state/log"
+
+# rsync log rotate
+- name: "Setup rsync logrotate on source"
+  when: spr_watchman_setup_replication_role == 'source'
+  become: true
+  template:
+    src: general/rsync-logrotate.j2
+    dest: '/etc/logrotate.d/rsync'
+    mode: '0644'
+  vars:
+    spr_logrotate_file_path: "/var/log/app_replication.txt"
+
+- name: "Remove temporary folder"
+  file:
+    state: absent
+    path: '/tmp/watchman'
+...

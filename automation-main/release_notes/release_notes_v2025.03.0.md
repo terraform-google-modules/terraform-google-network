@@ -1,0 +1,26 @@
+### Changes since release v2025.02.0
+- !153 Fix pipeline trigger to run on tags
+- !146 Azure PCE Customer Root change regional defaults
+- !18 Add distributed hana config runbook and role
+- !12 Create distributed create disks role and playbook
+- !137 S4PCE Customer Dynamic Terraform
+- !119 update solman default main folder
+- !127 SAP Access Control Upgrade to SPS27
+- !145 Adds fips and selinux playbooks
+- !143 fix `hana-start` task false positive pre-check
+- !142 Fix autochangelog syntax error with datetime
+- !135 New release of FRUN for SPR
+- !129 Implement AutoChangelogs
+- !121 Containers 2025-02-15
+- !138 ibp-provision-live-migration-deprecation
+- !139 Contributing Guide Update 2025-02 Ansible.
+- !136 BUG: STOI-207 Hotfix Azure Legacy Names for SFTP
+- !130 Upgrade bwnetweaver to sps31
+- !113 update spr role defaults to use new `Data Provisioning Agent` release
+- !116 update spr role defaults to use new `CPIDS Agent` release
+- !92 update spr role defaults to use new `EHP8` release
+- !114 fix - use compatible libstdc++ from SAP libraries
+- !111 ETD Automation Requirements
+- !96 Draft: QTM Quick fix
+- !109 Revert AWS Region Prompt Changes for PCE OS Updating Ansible
+- !107 ~enhancement: Cloud Connector Upgrade and Fix the cloud connector server disk mount point

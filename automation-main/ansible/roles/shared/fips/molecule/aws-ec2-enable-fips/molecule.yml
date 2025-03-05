@@ -1,0 +1,102 @@
+---
+# Description: Variables file defining what actions to perform and what Docker images or AWS EC2 instances
+#              to create for the given Molecule test scenario.
+
+scenario:
+  name: aws-ec2-enable-fips
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - dependency
+    - lint
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+#    - idempotence    # NOTE: A lot of our roles aren't truly idempotent as far as Molecule understands, so you might have to comment this line out.
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+dependency:
+  name: galaxy
+driver:
+  name: ec2
+platforms:
+  - name: test-molecule-NS2-Ubuntu-18.04-OpenVPN
+    image_owner: 156506675147
+    image_name: Golden-NS2-Ubuntu-18.04-OpenVPN-V*
+    instance_type: t3a.small
+    vpc_subnet_id: subnet-04b450007f77afac1    # NOTE: SHC Build Dev 'image-creation' subnet.
+    instance_tags:
+      - Name: test-molecule-NS2-Ubuntu-18.04-OpenVPN
+      - GeneratedBy: molecule
+      - ManagedBy: molecule
+      - Description: Temporary instance used for Ansible Molecule testing of the fips role
+      - Owner: build@sapns2.com
+      - BuildUser: molecule
+      - Business: ns2
+  - name: test-molecule-NS2-RHEL-7.9-OpenVPN
+    image_owner: 156506675147
+    image_name: Golden-NS2-RHEL-7.9-OpenVPN-V*
+    instance_type: t3a.small
+    vpc_subnet_id: subnet-04b450007f77afac1
+    instance_tags:
+      - Name: test-molecule-NS2-RHEL-7.9-OpenVPN
+      - GeneratedBy: molecule
+      - ManagedBy: molecule
+      - Description: Temporary instance used for Ansible Molecule testing of the fips role
+      - Owner: build@sapns2.com
+      - BuildUser: molecule
+      - Business: ns2
+  - name: test-molecule-NS2-RHEL-8.2-OpenVPN
+    image_owner: 156506675147
+    image_name: Golden-NS2-RHEL-8.2-OpenVPN-V*
+    instance_type: t3a.small
+    vpc_subnet_id: subnet-04b450007f77afac1
+    instance_tags:
+      - Name: test-molecule-NS2-RHEL-8.2-OpenVPN
+      - GeneratedBy: molecule
+      - ManagedBy: molecule
+      - Description: Temporary instance used for Ansible Molecule testing of the fips role
+      - Owner: build@sapns2.com
+      - BuildUser: molecule
+      - Business: ns2
+provisioner:
+  name: ansible
+  lint:
+    name: ansible-lint
+    enabled: false
+  playbooks:
+    create: ../../../../testing/molecule/aws-ec2/create.yml
+    prepare: ../../../../testing/molecule/aws-ec2/prepare.yml
+    converge: ./converge.yml
+    verify: ./verify.yml
+    cleanup: ../../../../testing/molecule/aws-ec2/cleanup.yml
+    destroy: ../../../../testing/molecule/aws-ec2/destroy.yml
+verifier:
+  name: ansible
+  enabled: true
+...

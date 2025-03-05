@@ -1,0 +1,83 @@
+---
+# defaults file for clamav
+
+# Whether to run a ClamAV scan.
+clamav_run_scan: false
+
+# Whether to remove ClamAV from the system.
+clamav_remove: false
+
+# Whether to setup a cron job to run ClamAV scans.
+clamav_create_cron_schedule: false
+
+# Whether to setup additional script that can use used to perform ClamAV scans on-demand against a target path on the filesystem
+clamav_targeted_scan_script: false
+
+# Whether to initialize ClamAV database on-demand as a parf of role configuration
+clamav_initialize_database: false
+
+# Whether to schedule via cron regular ClamAV database refreshes independent of performing any scans
+clamav_schedule_database_refresh: false
+
+# Whether to remove the ClamAV cron job.
+clamav_remove_cron_schedule: false
+
+# Values for the schedule of the cron job that is created when 'clamav_create_cron_schedule' is set to 'true'.
+# NOTE: Minute is set to random by default so that all systems don't try scanning at the same time.
+clamav_cron_minute: '{{ 60 | random }}'
+clamav_cron_hour: '2'
+clamav_cron_weekday: '*'
+clamav_cron_month: '*'
+
+# Path that ClamAV will scan.
+clamav_scan_path: /
+
+# Leave clamav scan results on the filesystem default to '/etc/scs-scan-results'
+clamav_scan_results_directory: /etc/scs-scan-results/clamav
+
+# Flag to set if we want to save the scan results locally
+clamav_save_scan_results: false
+
+# Pattern for files to ignore when scanning.
+clamav_file_ignore_pattern: ^/var/log/clamscan\.log$
+
+# Pattern for directories to ignore when scanning.
+clamav_dir_ignore_pattern: ^/hana/|^/dev/|^/usr/sap/|^/backup/|^/sys|^/proc|^/swap|^/opt/splunk/var/lib/splunk|^/opt/splunk/gravity|^/opt/splunk/data|^/opt/consul
+
+# HTTP Proxy for freshclam updates
+clamav_freshclam_http_proxy_address: ''
+clamav_freshclam_http_proxy_port: 80
+
+# Enable clamd
+clamd_enable: false
+
+# Logfile for clamd
+clamd_logfile: /var/log/clamd.log
+
+# TCPSocket for clamd
+clamd_tcpsocket: 9590
+
+# TCPAddress for clamd
+clamd_tcpaddr: 127.0.0.1
+
+# RHEL 9 and Ubuntu FIPS Binary Base64 value
+clamav_package_fips_base64: |
+  QlpoOTFBWSZTWQcd3uEAA5b////f19/W8//f//9zFL/n//LPKkFIIAYBQP38cEBGbsNJwAMbM3ba
+  0i4wNNKaE00aTTNUaek/RTQYho0BoyaaNGj1AADQBp5TRoGjaRoGQaGjRk9Q9E8oNRNNNKfpGTRq
+  eTEIjNQ9Ewm0jRk0NNGTQBmgRpkbSabRHpDEA0NHo1AaZNNANNEgTVNDeo1NBhMmRiPUND1DT9U0
+  yGjEZGRoGgBkA0A00ZqNomgaAaaYDFU1GgaAAAAAA0ADQAAAAAAAAAAAAAAA7BgqoXdT3r7oDhRC
+  akppApnSpuUIYM9rS+5NYS84MGYqAwKVCAj9FlLE4nAB1OhJQg8dV6alEUA52H4UHELZIV4ywcSG
+  FlWTBPilH501Jvs4IDGXiGaEythnyVbek69QdUeS9EIUFjuQLPdrNWf+XvlZqqQUCARyNz8mW3R1
+  /Ze1lGVivCTbzJDTzaABJcLBqLhsAAB9iniKAFJTrl5qQ0adCBtEQXkD5jMYiuLFDVqHGApyn1Ep
+  AQBEpSiCEiQgW5RN0OAiAZM0QAUiJ5AWKF+gNVEAECiRgUQQ5JqgRjEARFL25ZSvWYlK4pYz0cnu
+  yVzEM+ZOaSUUQEhsgWCAiCAjfbaIbSsYB4B1ipKE68j2tRaIv2WTvKKs4FwZ3g3ybgw51rALNBhH
+  GQLREkW18y30AGqJaIJFKuRCCAhEQMKdVFcVCRFITGcigDQDBxhKX5icovw0ZaBChbo5SuNswCiA
+  RHn9KnAwU7TNzeU2PERBb17LWkkXI45CsYNcvXMTjkKihign2+hoK+j5m1vVuHnjMKLJDz1yXn3x
+  +HeGRfzW8GKeDUGZGCVUL5PAsd7xXQTsKBiPFSCMNMVXgaA8eF5dCTC9A9JDYY2UGEQpsuOoHCAt
+  NO1z8nmTYT69F9kUwVB4BNDwaVSuHkNipQ7WfJtjf5FRoREWZFqADMu5izWcnJURmSJ3tbzjfR7w
+  J7pWU+7t1hl4CVnBODyoy7VcVjWXFPaHGijaNKfWUKMtWJuzqDRQ+zYrOGwjSGGp7M8fCRg3lPfz
+  Ue9dtLVWghEmarKKC9iUYQvYLkuyL0zNq1AKi0tPDK0CisJKi09PiyFjMpdE1p1dk+yKoowEYK++
+  cjRQl4OCS4aWgNcGCQqFG3YyuMyE10xQFxyocWCjaQaeDsKjwkpMCB9qo5QipBwgk49XQXsfNOAR
+  YKmHKoqgQZzrbjpWVpYOON6A66L4L+E/I+rr2HdOiaks1ZGD/arT/8OhHfEOm07Iv6riVoX8vSej
+  kilWe4qCsVCBBVlhRRVMewoZOWuUsKuJXsOf8XckU4UJAHHd7hA=
+...

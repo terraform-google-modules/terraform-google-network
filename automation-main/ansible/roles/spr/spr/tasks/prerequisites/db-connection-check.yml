@@ -1,0 +1,34 @@
+---
+# Synopsis: Validates s4app Prerequisites - check DB connection
+# Inputs:
+#   spr_app_db_hostname : corresponding hana db hostname
+# Outputs:
+# Comments:
+
+- name: DB connection check
+  block:
+    - name: host port status check
+    #all the following port will be tested, if any is open for connection, it will be a success.
+      shell:
+        cmd:  nc -zv {{ spr_app_db_hostname }} {{ item }}   #nc -z -w 1 -G 1 {{ spr_app_db_hostname }} {{ item }}
+    #   warn: no
+        executable: /bin/bash
+      register: portstatus
+      failed_when: false
+      loop: #these are the ports I get from existing VMs
+        - 30013
+    #   - 30015
+        - 30000
+        - 30001
+      ignore_errors: true
+    - set_fact:
+        db_reachable: false
+    - set_fact:
+        db_reachable: true
+      when: item.rc == 0
+      with_items:
+        - "{{ portstatus.results }}"
+    - fail:
+        msg: "DB  {{ spr_app_db_hostname }} connection test failed."
+      when: db_reachable == false
+  when: spr_app_db_hostname is defined

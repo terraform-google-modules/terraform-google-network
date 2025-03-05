@@ -1,0 +1,7 @@
+---
+# List of trend deep security manager log groups
+# When 'deepsecmng' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_deepsecmng:
+  - file_path: /var/log/dsm.log
+    log_group_name: /var/log/dsm
+...

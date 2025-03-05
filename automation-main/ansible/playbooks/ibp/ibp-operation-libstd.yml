@@ -1,0 +1,53 @@
+---
+# Playbook Name: ibp-operation-libstd.yml
+# Synopsis: restore libstdc++ after yum update.
+# Description: This playbook will restore libstdc++ library with SAP implementations.
+# Prerequisites:
+# - Ansible v2.9+
+# - sudo capability or root privileges on target machine
+# Dependencies:
+# - none
+# Variables:
+#   - source_lib_version: SAP lib version (either 10 or 9)
+#
+# Example:
+#   Execution on remote systems using the any inventory host file
+#     ansible-playbook ibp-operation-libstd.yml -k -i /<PATH-TO>/<IBP-HOST-INVENTORY-FILE>
+#     ansible-playbook ibp-operation-libstd.yml -k -i <comma delimited instances IPs or CNAMES, ended with comma>
+# Authors: Jian Ouyang
+# Version: 2.9-000001
+# Modified: 2022-08-31 - Created playbook
+# Comments: |
+#   1. Stop SAP application before applying this playbook.
+#
+
+- hosts: all
+  become: true
+  gather_facts: false
+  vars_prompt:
+  - name: source_lib_version
+    prompt: "Which SAP version to be used (either 10 or 9)?"
+    private: no
+    default: '10'
+
+  tasks:
+  - name: set default sap compat file location
+    ansible.builtin.set_fact:
+      sap_compat_file_location: /opt/rh/SAP/lib64/compat-sap-c++-10.2.1.so
+
+  - name: overwrite sap compat file location if using version 9
+    ansible.builtin.set_fact:
+      sap_compat_file_location: /opt/rh/SAP/lib64/compat-sap-c++-9.1.1.so
+    when: source_lib_version | int == 9
+
+  - name: Remove libstd
+    ansible.builtin.file:
+      path: /lib64/libstdc++.so.6
+      state: absent
+
+  - name: Create symbolic link
+    ansible.builtin.file:
+      src: "{{sap_compat_file_location}}"
+      dest: "/lib64/libstdc++.so.6"
+      state: link
+...

@@ -1,0 +1,12 @@
+---
+  - name: Converge
+    hosts: all
+    tasks:
+
+      - name: Run the 'azure-cli' role
+        include_role:
+          name: azure-cli
+        vars:
+          install_cli: true
+          remove_cli: false
+...

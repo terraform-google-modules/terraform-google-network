@@ -1,0 +1,152 @@
+---
+# Playbook Name: s4-stop-sapapp.yml
+# Synopsis: Stops the S4 SapApp
+# Description: Standalone playbook that stops the S4 SAP Application
+# Prerequisites:
+#   - Ansible v2.9+
+#   - Functional S4 SapApp Install
+# Dependencies: N/A
+# Variables:
+#   - sid : SAP ID of the SAP App Landscape
+#   - ascs_instance_number : ASCS number
+# Example:
+#   Stops the Hana Dabase remotely
+#    ansible-playbook s4-stops-hana -i 192.168.0.1, -e sid=br1 -e ascs_instance_number=96
+# Authors: Louis Lee,
+# Version: 2.9-000001
+# Modified: 2020-02-27 - Created
+#
+# Comments: N/A
+
+- hosts: all
+  vars:
+    sid: 'br1'
+    ascs_instance_number: '96'
+
+
+  tasks:
+  - name: "Stop SAP with sapcontrol on 00 instance SAPApp"
+    shell: "sapcontrol -nr 00 -function Stop"
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    failed_when: "'Stop\nOK' not in sapappstop_00_output.stdout"
+    register: sapappstop_00_output
+
+  - name: "SAPApp 00 Stop output"
+    debug:
+      var: sapappstop_00_output.stdout_lines
+
+  - name: "Stop SAP with sapcontrol on {{ ascs_instance_number }} SAPApp"
+    shell: "sapcontrol -nr {{ ascs_instance_number }} -function Stop"
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    failed_when: "'Stop\nOK' not in sapappstop_agcs_output.stdout"
+    register: sapappstop_agcs_output
+
+  - name: "SAPApp {{ ascs_instance_number }} Stop output"
+    debug:
+      var: sapappstop_agcs_output.stdout_lines
+
+  - name: StopSystem SAP with sapcontrol on SAPApp
+    shell: "sapcontrol -nr 00 -function StopSystem ALL"
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    failed_when: "'StopSystem\nOK' not in sapappstopsystem_output.stdout"
+    register: sapappstopsystem_output
+
+  - name: "SAPApp StopSystem output"
+    debug:
+      var: sapappstopsystem_output.stdout_lines
+
+  - name: "Get saphostagent status"
+    command: "/usr/sap/hostctrl/exe/saphostexec -status"
+    become: true
+    register: saphostagent_status
+    failed_when: "'FAILED' in saphostagent_status.stderr"
+    changed_when: false
+
+  - name: "Display saphostagent status"
+    debug:
+      var: saphostagent_status.stderr_lines
+
+  - name: "BLOCK - Stop saphostagent"
+    block:
+    - name: "Stop saphostagent as root"
+      command: "/usr/sap/hostctrl/exe/saphostexec -stop"
+      become: true
+
+    - name: "Get saphostagent status"
+      command: "/usr/sap/hostctrl/exe/saphostexec -status"
+      become: true
+      register: saphostagent_statusblock
+      failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+      changed_when: false
+
+    - name: "Display saphostagent status"
+      debug:
+        var: saphostagent_statusblock.stderr_lines
+    when: saphostagent_status.stderr != 'saphostexec stopped '
+    #End "BLOCK - Stop saphostagent"
+
+  - name: "Find sidadm processes"
+    shell: "ps -fu {{ sid|lower }}adm"
+    become: true
+    register: "pssidadm_output"
+    failed_when: "'FAILED' in pssidadm_output.stderr"
+    changed_when: false
+
+  - name: "List process to kill"
+    debug:
+      var: pssidadm_output.stdout_lines
+
+  - name: "Stop sidadm processes"
+    command: "pkill -9 -fu {{ sid|lower }}adm"
+    become: true
+    failed_when: "'FAILED' in pkillsidadm_output.stderr"
+    register: pkillsidadm_output
+
+  - name: "Display stop sidadm output if verbosity >= 1"
+    debug:
+      var: pkillsidadm_output
+      verbosity: 1
+
+  - name: "Clean IPC"
+    shell: "/usr/sap/{{ sid|upper }}/SYS/exe/uc/linuxx86_64/cleanipc {{ item }} remove"
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    register: cleanipc_output
+    loop:
+    - "00"
+    - "{{ ascs_instance_number }}"
+
+  - name: "Show cleanipc results"
+    debug:
+      var: cleanipc_output
+      verbosity: 1
+
+  - name: "Get IPC Status"
+    shell: /bin/ipcs
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    register: ipcs_output
+
+  - name: "Show IPC Status"
+    debug:
+      var: ipcs_output
+      verbosity: 1
+
+  - name: "Get {{ sid|lower }}adm processes"
+    command: "ps -fu {{ sid|lower }}adm"
+    become: yes
+    failed_when: "'FAILED' in sidadmin_processes.stderr"
+    register: sidadmin_processes
+
+  - name: "Show {{ sid|lower }}adm processes"
+    debug:
+      var: sidadmin_processes.stdout_lines
+...

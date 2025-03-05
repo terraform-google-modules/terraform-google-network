@@ -1,0 +1,295 @@
+---
+# Playbook Name: ibp-provision-tar-rebuild.yml
+# Description: Migrates between IBP instances using tars
+#     This playbook consists of several plays which will rebuild IBP App
+#     and DB using tars from the old instances. This is done by copying
+#     specified tars from the ibp-create-tar-ibp playbook as well as the
+#     environment profiles.
+#     It will also setup post provisioning tasks for monitoring and tagging.
+#     It is designed to work with the ibp-ansible-inventory-template file.
+# Dependencies:
+#   - Ansible v2.9+
+#   - AWS CLI v1.16+
+#   - sudo capability or root privileges on target machine
+#   - ibp ansible role
+#   - repository-management ansible role
+#   - aws-cloudwatch-alarms ansible role (post-provisioning)
+#   - aws-cloudwatch-agent ansible role (post-provisioning)
+#   - iptables ansible role (post-provisioning)
+#   - clamav ansible role (post-provisioning)
+#   - aide ansible role (post-provisioning)
+#   - tag-management ansible role (post-provisioning)
+# Variables:
+#   - hostfile_fqdn: FQDN that should be used in the host file.
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-provision-tar-rebuild.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>
+#
+# Example
+#   Only run provisioning  on a single instance with ip address of 192.168.1.1
+#     ansible-playbook ibp-provision-tar-rebuild.yml -k -i /tmp/hosts -l 192.168.1.1
+#
+# Example
+#   Execution of a specific plays 'pre-provision' and 'post-provision'
+#     ansible-playbook ibp-provision-tar-rebuild.yml -k -i /tmp/hosts --tags 'pre-provision,post-provision'
+#
+# Example
+#   Update the hostfiles on all servers
+#     ansible-playbook ibp-provision-tar-rebuild.yml -k -i /tmp/hosts --tags 'pre-provision'
+#
+# Authors: Louis Lee
+# Version: 2.9-000002
+# Modified: 2020-09-15 - Created playbook
+#           2021-02-13 - Update to support new Repo-Management role
+#           2024-12-02 - Use variable for 'aws_region' in tag-management role.
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Play Tags:
+#     play1 pre-provision : Sets Hostfile, Hostname, Region, and Repositories
+#     play2 provision-hana : Provisions IBP Hana systems
+#     play3 provision-ibpapp : Provisions IBP SAP Application systems
+#     play4 post-provision : Setup CloudWatch, Iptables, ClamAV, Aide, and Tagging
+#     playEND : End of the playbook
+
+#################
+##### Play1 #####
+#################
+- name: "Play1:  Set Hostfile, Region, and Repositories"
+  hosts: all
+  tags:
+  - play1
+  - pre-provision
+  any_errors_fatal: yes
+  vars:
+    hostfile_fqdn: 'ibp.sapns2.us'
+
+  vars_prompt:
+    - name: input_aws_region
+      prompt: What is the aws region?
+      private: false
+
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  - name: Save Input Variables for later playbook use.
+    set_fact:
+      playbook_aws_region: '{{ input_aws_region }}'
+
+  tasks:
+  - name: "Set the host file"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hostfile-install.yml
+
+  - name: Set the Hostname
+    hostname:
+      name: "{{ ibp_hostname }}"
+    become: true
+
+  - name: "Set AWS Region to {{ aws_region }}"
+    shell: "/usr/local/bin/aws configure set region {{ aws_region }}"
+    become: yes
+
+  - name: "Set repositories to enable"
+    set_fact:
+      application_preset_selection: "['epel'] + ['{{ ibp_application_preset_selection }}']"
+
+  - name: "Configure Red Hat Repositories from S3"
+    include_role:
+      name: repository-management
+    vars:
+      automatic_preset_selection: 'false'
+      repo_enable: 'true'
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Provision Hana"
+  hosts: ibpdb
+  gather_facts: false
+  become: false
+  tags:
+  - play2
+  - provision-hana
+  any_errors_fatal: yes
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  tasks:
+  - name: "Provisioning Hana with these settings"
+    debug:
+      msg: |
+        Host {{ inventory_hostname }}
+        System Usage is {{ system_usage }}
+        Application Preset is {{ application_preset_selection }}
+        Hana Tar Source is {{ hana_tar_source }}
+        Sid is {{ sid }}
+        Hostname will be {{ ibp_hostname }}
+
+  - name: "Provision HANA with IBP role"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hana-tar-rebuild.yml
+    vars:
+      hana_tar_rebuild_sid: "{{ sid }}"
+      hana_tar_rebuild_hostname: "{{ ibp_hostname }}"
+      hana_tar_rebuild_source: "{{ hana_tar_source }}"
+      hana_tar_rebuild_saphostagent_source: "{{ saphostagent_source }}"
+      hana_tar_rebuild_default_password: "{{ default_password }}"
+
+  - name: "Start HANA DB"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-hardstart.yml
+
+  - name: "Restart the incron service"
+    service:
+      name: incrond
+      state: restarted
+    become: true
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Provision SAP Application"
+  hosts: ibpapp
+  gather_facts: true
+  become: false
+  tags:
+  - play3
+  - provision-ibpapp
+  any_errors_fatal: yes
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  tasks:
+  - name: "Provisioning SapApp with these settings"
+    debug:
+      msg: |
+        Host {{ inventory_hostname }}
+        Application Preset is {{ application_preset_selection }}
+        SAP App Tar Source is {{ sapapp_tar_source }}
+        SAP Host Agent Source is {{ saphostagent_source }}
+        Sid is {{ sid }}
+        Hostname will be {{ ibp_hostname }}
+
+  - name: "Provision SapApp with IBP role"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/sapapp-tar-rebuild.yml
+    vars:
+      sapapp_tar_rebuild_sid: "{{ sid }}"
+      sapapp_tar_rebuild_hostname: "{{ ibp_hostname }}"
+      sapapp_tar_rebuild_source: "{{ sapapp_tar_source }}"
+      sapapp_tar_rebuild_saphostagent_source: "{{ saphostagent_source }}"
+      sapapp_tar_rebuild_default_password: "{{ default_password }}"
+
+  - name: "Start SapApp"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-hardstart.yml
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Post Provision setup"
+  hosts: all
+  gather_facts: true
+  become: false
+  tags:
+  - play4
+  - post-provision
+  any_errors_fatal: yes
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  tasks:
+  - name: "Running Post Provisioning with these settings"
+    debug:
+      msg: |
+        Host {{ inventory_hostname }}
+        Application Preset is {{ application_preset_selection }}
+        CloudWatch Preset is {{ cw_preset_selection }}
+        Firewall Preset is {{ firewall_preset_selection }}
+        AWS Tag Product Name is {{ aws_tag_product_name }}
+
+  - name: "Update tags"
+    include_role:
+      name: tag-management
+    vars:
+      aws_tag_business: 'ibp'
+      aws_region: '{{ playbook_aws_region }}'
+
+  - name: "Create AWS CloudWatch Alarms"
+    include_role:
+      name: aws-cloudwatch-alarms
+    vars:
+      aws_topic_name: 'ibp-monitoring'
+      aws_sns_subscription_email: "DLSAPNS2IBPOPS@sapns2.com"
+      ignore_disks:
+        - /dev
+        - /sap/staging
+        - /hana/staging
+        - /boot
+        - /staging
+        - /usr/sap/trans
+
+  - name: "Update iptables configuration"
+    include_role:
+      name: iptables
+
+  - name: "Update clamav configuration"
+    include_role:
+      name: clamav
+    vars:
+      clamav_create_cron_schedule: true
+      clamav_dir_ignore_pattern: '^/hana/|^/dev/|^/usr/sap/|^/backup/|^/sys|^/proc|^/swap|^/staging'
+
+  - name: "Update aide configuration"
+    include_role:
+      name: aide
+      apply:
+        become: true
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    debug:
+      msg: "Of the world as we know it"
+...

@@ -1,0 +1,38 @@
+---
+
+# Playbook Name: ibp-efs-release-sync.yml
+# Synopsis: Sync production EFS staging drives with the current releases available in S3
+# Description: `sap-ibp-artifacts` and `sap-cpi-ds-artifacts` contain the currently available releases of IBP apps
+#     The production EFS drive must be synced with these buckets to ensure the latest releases are available for deployment.
+#     This playbook should be run against a production ibp host, which should have the corresponding staging EFS mounted.
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS CLI v1.16+
+#   - boto
+#   - boto3 >= 1.4.4
+#   - botocore
+#   - python >= 2.6
+#   - python-dateutil
+#   - Sudo capability or root privileges on target machine
+#   - Target host must have the staging EFS drive mounted to `/staging`
+# Dependencies:
+# Variables:
+# Example:
+#   Execution on remote system
+#     ansible-playbook ibp-efs-release-sync.yml -i <Host_IP>,
+#
+# Authors: Vighnesh Sivakumar
+# Version: 2.9-000001
+# Modified: 2020-07-22 - Initial creation
+# Comments:
+
+- name: Call sync task
+  hosts: all
+
+  tasks:
+  - name: Call efs-release-sync task
+    include_role:
+      name: ibp
+      tasks_from: operations/efs-release-sync.yml
+
+...

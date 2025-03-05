@@ -1,0 +1,110 @@
+---
+# Synopsis: Installs and starts SAP cloud connector
+# Inputs:
+#  spr_app_install_source: Source folder of the cloud connector zip file
+# Outputs: Installs and starts SAP cloud connector.
+# Comments:
+#    TODO: Create a check to validate the URL https://{{ cloud_connector_hostname }}.{{ cloud_connector_domain }}:8443.
+
+# Get list of rpms
+- name: "Create /tmp/cloudconnector"
+  file:
+    path: '/tmp/cloudconnector'
+    state: directory
+
+# Check if they are installed
+- name: "Get package facts"
+  package_facts:
+    manager: auto
+
+# Get sapjvm-8 files in Media
+- name: Install sapjvm-8
+  block:
+  - name: "Get sapjvm-8 package location in Media"
+    find:
+      paths: "{{ spr_app_install_source }}"
+      patterns:
+        - sapjvm-.*-linux-x64.rpm
+      use_regex: yes
+    register: sapjvm_output
+
+  - name: "Save RPM files to /tmp/cloudconnector"
+    copy:
+      dest: '/tmp/cloudconnector/'
+      src: '{{ item.path }}'
+      force: yes
+      remote_src: yes
+    when:
+      - item.path | basename | regex_search('sapjvm-8') not in ansible_facts.packages or ansible_facts.packages[ item.path | basename | regex_search('sapjvm-8') ][0].version not in ( item.path | basename )
+    with_items:
+      "{{ sapjvm_output.files }}"
+
+  - name: Install package sapjvm-8
+    become: true
+    yum:
+      name: /tmp/cloudconnector/{{ item.path | basename }}
+      state: present
+      disable_gpg_check: yes
+    when:
+      - item.path | basename | regex_search('sapjvm-8') not in ansible_facts.packages or ansible_facts.packages[ item.path | basename | regex_search('sapjvm-8') ][0].version not in ( item.path | basename )
+    with_items:
+      "{{ sapjvm_output.files }}"
+
+# Get com.sap.scc files in Media
+- name: Install com.sap.scc-ui
+  block:
+  - name: "Get CloudConnector package location in Media"
+    find:
+      paths: "{{ spr_app_install_source }}"
+      patterns:
+        - com.sap.scc-ui-.*.x86_64.rpm
+      use_regex: yes
+    register: scc_output
+
+  - name: "Save RPM files to /tmp/cloudconnector"
+    copy:
+      dest: '/tmp/cloudconnector/'
+      src: '{{ item.path }}'
+      force: yes
+      remote_src: yes
+    when:
+      - item.path | basename | regex_search('com.sap.scc-ui') not in ansible_facts.packages or ansible_facts.packages[ item.path | basename | regex_search('com.sap.scc-ui') ][0].version not in ( item.path | basename )
+    with_items:
+      "{{ scc_output.files }}"
+
+  - name: Install package com.sap.scc-ui
+    become: true
+    yum:
+      name: /tmp/cloudconnector/{{ item.path | basename }}
+      state: present
+      disable_gpg_check: yes
+    when:
+      - item.path | basename | regex_search('com.sap.scc-ui') not in ansible_facts.packages or ansible_facts.packages[ item.path | basename | regex_search('com.sap.scc-ui') ][0].version not in ( item.path | basename )
+    with_items:
+      "{{ scc_output.files }}"
+
+- name: "Stop the cloud connector service"
+  become: true
+  shell: >-
+    systemctl stop scc_daemon.service
+
+- name: "Edit the props.ini file"
+  become: true
+  lineinfile:
+    path: '/opt/sap/scc/props.ini'
+    line: '-Djdk.tls.server.protocols=TLSv1.2'
+    insertafter: '#jvm'
+    create: yes
+
+- name: "Start the cloud connector service"
+  become: true
+  shell: >-
+    systemctl start scc_daemon.service
+
+# # # TODO: Create a check to validate the URL https://{{ cloud_connector_hostname }}.{{ cloud_connector_domain }}:8443.
+
+- name: "Remove /tmp/cloudconnector"
+  file:
+    path: '/tmp/cloudconnector'
+    state: absent
+...

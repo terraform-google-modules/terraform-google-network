@@ -1,0 +1,41 @@
+---
+# Playbook Name: ibp-ansible-inventory-file-create.yml
+# Synopsis: Creates an ansible inventory file from terraform layer-02 outputs created by the terraform-apply playbook
+# Description: Creates an ansible inventory file for ibp provisioning with values pulled from
+#              terraform layer02 outputs file created by the terraform-apply playbook
+#              and dynamically selects the newest cpids, webdispatcher, and sap release
+# Prerequisites:
+#   - Anisble 2.9+
+#   - Boto
+#   - Boto3
+#   - Remote host must have staging efs mounted
+# Dependencies:
+#   - ansible role: ibp
+# Variables:
+#   - terraform_apply_output_path: Path to the terraform layer02 output file generate by the terraform-apply playbook
+#   - terraform_inventory_destination_path: Path to store the created inventory file on the local file system
+#
+# Example:
+#   This will create an inventory file from the output from ibp-development/ibp-testing/layer-02 apply and save the inventory file at /tmp/ibp-testing-inventory.yml
+#     ansible-playbook ibp-ansible-inventory-file-create.yml -i bastion.ibp.sapns2.us, -e "terraform_apply_output_path=/tmp/ibp-testing-output terraform_inventory_destination_path=/tmp/ibp-testing-inventory.yml"
+#
+# Authors: Lance Wray
+# Version: 2.9-000001
+# Modified: 2021-02-11 - Created
+# Comments: Maker sure to run against remote instance with staging efs mounted. Bastion instances are a good option
+
+- hosts: all
+  vars:
+    terraform_apply_output_path: ''
+    terraform_inventory_destination_path: ''
+  tasks:
+  - name: Create inventory file at {{ terraform_inventory_destination_path }}
+    include_role:
+      name: ibp
+      tasks_from: provisioning/inventory-create.yml
+      allow_duplicates: yes
+    vars:
+      ibp_inventory_create_terraform_output_path: "{{ terraform_apply_output_path }}"
+      ibp_inventory_create_destination_path: "{{ terraform_inventory_destination_path }}"
+
+...

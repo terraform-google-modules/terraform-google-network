@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "AllowKMSKeyUse",
+          "Effect": "Allow",
+          "Action": [
+              "kms:Encrypt",
+              "kms:Decrypt",
+              "kms:DescribeKey"
+          ],
+          "Resource": "${ kms_arn }"
+      }
+  ]
+}

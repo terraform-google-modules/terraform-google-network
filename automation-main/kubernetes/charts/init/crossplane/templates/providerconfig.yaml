@@ -1,0 +1,10 @@
+apiVersion: aws.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: aws-provider-config
+  annotations:
+    # helm.sh/hook: post-install
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  credentials:
+    source: IRSA

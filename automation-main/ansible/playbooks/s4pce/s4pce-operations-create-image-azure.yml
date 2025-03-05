@@ -1,0 +1,184 @@
+---
+# Playbook Name: s4pce-operations-create-image-azure.yml
+# Synopsis: Creates tagged images with options for both online and offline image creation.
+# Description: Prompts users for a set of information before performing a full backup with tags for retention and cost monitoring purposes before updates or upgrade of any S4PCE instance.
+# Prerequisites:
+#   - Ansible v2.9+
+# Dependencies: Azure CLI and Tag permissions
+# Variables:
+#   - user_id: Username of the user performing the work e.g., c12345, i456789
+#   - desired_product_version: Specific SAP release e.g., 2002-HFC08
+#   - desired_backup_type: Backup method e.g., INITIAL, PRE-UPGRADE, POST-UPGRADE
+#   - online_image: Whether or not to take an online image
+#   - target_resource_group_name: Name of Azure Resource Group
+#   - target_vm_name: Name of VM Instance
+#   - target_vault_name: Name of Recovery Services Vault
+#   - target_application_down: Whether the application or database is down
+# Example:
+#   Image a system with sap services manually stopped and no user input for a staging S4PCE application server, n26, for the 2002HFC4 post-upgrade image on 10.0.0.1 as bob
+#   ansible-playbook s4pce-operations-create-image-azure.yml -c local -i localhost
+# Authors: Abdulla Rubaid
+# Version: 2.9-000001
+# Modified: 2022-02-15 - Created playbook to utilize Azure Backup Service
+# Comments: None
+
+  - hosts: localhost
+    tasks:
+      - name: Check azure cli status
+        become: true
+        shell: az version
+        register: azurecli_version_check_output
+        failed_when: false
+        changed_when: false
+
+      - name: Ensure Azure Repository is enabled
+        when: "'command not found' in azurecli_version_check_output.stderr"
+        include_role:
+          name: repository-management
+        vars:
+          repo_enable: true
+          application_preset_selection: [azure]
+
+      - name: Install Azure CLI
+        when: "'command not found' in azurecli_version_check_output.stderr"
+        include_role:
+          name: azure-cli
+        vars:
+          install_cli: true
+          remove_cli: false
+      - name: Sign in to azure cli using managed identity
+        shell: >
+          az login --identity
+
+  - hosts: all
+    gather_facts: false
+    vars_prompt:
+      - name: user_id
+        prompt: What is your user id e.g., c12345, i456789
+        private: no
+      - name: desired_product_version
+        prompt: What is the product version? ([MAJOR RELEASE]-HFC[NN], [MAJOR RELEASE]-PL[NN])
+        private: no
+      - name: desired_backup_type
+        prompt: Why is the backup being performed? (INITIAL, PRE-UPGRADE, POST-UPGRADE)
+        private: no
+      - name: online_image
+        prompt: Is this an online image? (yes, no)
+        private: no
+      - name: target_resource_group_name
+        prompt: What is the target target resource group name?
+        private: no
+      - name: target_vm_name
+        prompt: What is the target vm name?
+        private: no
+      - name: target_vault_name
+        prompt: What is the target vault name?
+        private: no
+      - name: target_application_down
+        prompt: Are application/database services down? (yes, no)
+        private: no
+
+# TODO: reduce questions only once we have confidence that everything is tagged properly
+
+    tasks:
+      - name: Fail if offline backup selected and application is up
+        fail:
+          msg: Offline backup selected but application is still up!
+        when: ( not online_image|bool ) and ( not target_application_down|bool )
+
+
+      - name: Gather vm instance metadata
+        register: vm_instance_output
+        delegate_to: localhost
+        shell: >
+          az vm show -n {{target_vm_name}} -g {{target_resource_group_name}}
+      - name: Set fact for vm metadata
+        set_fact:
+          vm_instance_metadata: '{{ vm_instance_output.stdout | from_json }}'
+      - debug:
+          msg: '{{vm_instance_output.stdout | from_json}}'
+      - name: Confirm values with 'Y'
+        pause:
+          prompt: |
+            Image to create : '{{ vm_instance_metadata.tags.Customer | upper }}-{{ vm_instance_metadata.tags.Environment | upper }}-{{ vm_instance_metadata.tags.Sid | upper }}-{{ vm_instance_metadata.tags.ProductName | upper }}-{{ desired_product_version | upper }}-{{ desired_backup_type | upper }}'
+            Tagged as:
+              BuildUser: {{ user_id | lower }}
+              Customer: {{ vm_instance_metadata.tags.Customer | lower }}
+              Sid: {{ vm_instance_metadata.tags.Sid | lower }}
+              Environment: {{  vm_instance_metadata.tags.Environment | lower }}
+              Image: {{ vm_instance_metadata.tags.Image }}
+              ImageType: {{'full-online-backup' if (online_image | bool) else 'full-offline-backup'}}
+              Hostname:  {{ vm_instance_metadata.tags.Hostname | lower }}
+              ProductName:  {{ vm_instance_metadata.tags.ProductName | lower }}
+        register: confirm_input
+
+      - name: Fail if not confirmed
+        fail:
+          msg: Input not confirmed.  Quitting now.
+        when:
+          - confirm_input.user_input != 'Y'
+          - confirm_input.user_input != 'y'
+
+      - name: Stopping instance
+        register: stop_output
+        delegate_to: localhost
+        shell: >
+          az vm stop -n {{target_vm_name}} -g {{target_resource_group_name}}
+
+# By default Azure instances are not enabled for backup, playbook needs to check and enable for Azure backup service to work
+      - name: Check if  instance is protected
+        register: check_output
+        delegate_to: localhost
+        shell: >
+          az backup protection check-vm --vm {{vm_instance_metadata.id}}
+
+# Attaching Azure instance to a recovery service vault
+      - name: Protecting instance if it isnt protected
+        register: protect_output
+        delegate_to: localhost
+        when: check_output.stdout == ""
+        shell: >
+          az backup protection enable-for-vm \
+          --vm {{vm_instance_metadata.name}} \
+          --resource-group {{vm_instance_metadata.resourceGroup}} \
+          --vault-name {{target_vault_name}} \
+          --policy-name DefaultPolicy
+      - name: Get recovery service vault metadata for protected vm
+        register: backup_vault_output
+        delegate_to: localhost
+        shell: >
+          az backup container list -g {{target_resource_group_name}} -v {{target_vault_name}} --backup-management-type AzureIaasVM --query "[?contains(@.properties.virtualMachineId,
+          '{{target_vm_name}}')==\`true\`]"
+      - name: Set fact for backup vault metadata
+        set_fact:
+          backup_vault_metadata: '{{ backup_vault_output.stdout | from_json }}'
+
+      - name: Backing up instance
+        register: backup_output
+        delegate_to: localhost
+        shell: >
+          az backup protection backup-now \
+          --backup-management-type AzureWorkload \
+          --backup-type Full \
+          --container-name "{{backup_vault_metadata[0].name}}" \
+          --item-name {{vm_instance_metadata.name}} \
+          --resource-group {{target_resource_group_name}} \
+          --vault-name {{target_vault_name}} \
+          --workload-type VM
+
+      - name: Set fact for backup metadata
+        set_fact:
+          backup_metadata: '{{ backup_output.stdout | from_json }}'
+
+# # NOTE: The following task has been added given the vm_ami wait and timeout settings seem to wait until the timeline is reached and not execute any sooner; this requires more patient validation
+      - name: Waiting for the job to finish up instance
+        register: wait_output
+        delegate_to: localhost
+        shell: >
+          az backup job wait --ids "{{ backup_metadata.id }}" --timeout 120
+
+      - name: Starting instance
+        delegate_to: localhost
+        shell: >
+          az vm start -n {{target_vm_name}} -g {{target_resource_group_name}}
+...

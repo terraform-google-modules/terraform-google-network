@@ -1,0 +1,86 @@
+---
+
+# Playbook Name: spr-sync.yml
+# Description: Sync all staging directories in the targeted SPR bucket in parallel
+# Prerequisites:
+#   - Ansible v2.9
+#   - SPR bucket read access
+#   - AWS CLI
+# Variables:
+# Example:
+#   The following will sync spr content from S3 to the local machine
+#     ansible-playbook spr-sync.yml -i localhost, -e source_bucket_name='us-east-2.spr.repositories.sapns2.us'
+# Authors: Lance Wray
+# Version: 2.9-000003
+# Modified: 2021-07-29 - Created
+#           2021-08-17 - variablize source bucket name and aysnc timeout
+#           2021-09-03 - Fix sed expression bug leaving /\n when removing product-line
+# Comments: None
+
+- hosts: all
+  vars:
+    source_bucket_name: '' # Without trailing /
+    async_timeout: 86400 # 24h
+
+  tasks:
+
+  - name: Get list of all staging directories
+    shell: aws s3 ls s3://{{ source_bucket_name }}/staging/ | grep PRE | sed 's| ||g;s|PRE||g;s|product-line/||g' | grep -Ev "^$"
+    register: staging_directories
+
+  - name: Get list of all product-line directories
+    shell: aws s3 ls s3://{{ source_bucket_name }}/staging/product-line/ | grep PRE | sed 's/ //g;s/PRE//g;'
+    register: product_line_directories
+
+  - name: Create staging directories locally
+    file:
+      path: /staging/{{ item }}
+      state: directory
+    loop: '{{ staging_directories.stdout_lines }}'
+    become: true
+
+  - name: Create product-line directories locally
+    file:
+      path: /staging/product-line/{{ item }}
+      state: directory
+    loop: '{{ product_line_directories.stdout_lines }}'
+    become: true
+
+  - name: Sync each staging directory
+    shell: aws s3 sync s3://{{ source_bucket_name }}/staging/{{ item }} /staging/{{ item }}
+    async: '{{ async_timeout }}'
+    poll: 0
+    loop: '{{ staging_directories.stdout_lines }}'
+    register: staging_directory_sync
+    become: true
+
+  - name: Wait for all staging directories to sync
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+    register: staging_directory_sync_status
+    until: staging_directory_sync_status.finished
+    retries: 1000
+    delay: 300
+    loop: "{{ staging_directory_sync.results }}"
+    become: true
+    failed_when: staging_directory_sync_status.failed and "[Errno 21] Is a directory" not in staging_directory_sync_status.stderr and "[Errno 20] Not a directory" not in staging_directory_sync_status.stderr
+
+  - name: Sync each product-line directory
+    shell: aws s3 sync s3://{{ source_bucket_name }}/staging/product-line/{{ item }} /staging/product-line/{{ item }}
+    async: '{{ async_timeout }}'
+    poll: 0
+    loop: '{{ product_line_directories.stdout_lines }}'
+    register: product_line_directory_sync
+    become: true
+
+  - name: Wait for all product-line directories to sync
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+    register: product_line_directory_sync_status
+    until: product_line_directory_sync_status.finished
+    retries: 1000
+    delay: 300
+    loop: "{{ product_line_directory_sync.results }}"
+    become: true
+    failed_when: product_line_directory_sync_status.failed and "[Errno 21] Is a directory" not in product_line_directory_sync_status.stderr and "[Errno 20] Not a directory" not in product_line_directory_sync_status.stderr
+...

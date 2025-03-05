@@ -1,0 +1,150 @@
+---
+# Playbook Name: s4pce-operations-create-image-gcp.yml
+# Synopsis: Creates tagged images with options for both online and offline image creation.
+# Description: Prompts users for a set of information before performing a full backup with tags for retention and cost monitoring purposes before updates or upgrade of any S4-PCE instance.
+# Prerequisites:
+#   - Ansible v2.9+
+# Dependencies:
+# Variables:
+#   - user_id: Username of the user performing the work e.g., c12345, i456789
+#   - desired_product_version: Specific SAP release e.g., 2002-HFC08
+#   - desired_backup_type: Backup method e.g., INITIAL, PRE-UPGRADE, POST-UPGRADE
+#   - online_image: Whether or not to take an online AMI
+#   - target_instance_name: name of compute engine instance
+#   - target_application_down: Whether the application or database is down
+# Example:
+#   Image a system with sap services manually stopped and no user input for a staging S4-PCE application server, n26, for the 2002HFC4 post-upgrade image on 10.0.0.1 as bob
+# ansible-playbook -c local -i localhost, s4pce-operations-create-image-gcp.yml -e gcp_service_account_file=<key file> -e gcp_region=<region> -e gcp_zone=<zone> \
+#  -e gcp_project=<project> -e gcp_service_account_email=<service_account_email>
+# Authors: Abdulla Rubaid
+# Version: 2.9-000001
+# Modified: 2022-01-20 - Adapted for use in S4 PCE from the script used in IBP.
+# Comments: None
+
+  - hosts: localhost
+    gather_facts: true
+    vars:
+      gcp_auth_kind: serviceaccount
+      gcp_service_account_file: ''
+      gcp_region: ''
+      gcp_project: ''
+      gcp_zone: ''
+      gcp_service_account_email: ''
+    vars_prompt:
+      - name: user_id
+        prompt: What is your user id e.g., c12345, i456789
+        private: no
+      - name: desired_product_version
+        prompt: What is the product version? ([MAJOR RELEASE]-HFC[NN], [MAJOR RELEASE]-PL[NN])
+        private: no
+      - name: desired_backup_type
+        prompt: Why is the backup being performed? (INITIAL, PRE-UPGRADE, POST-UPGRADE)
+        private: no
+      - name: online_image
+        prompt: Is this an online AMI? (yes, no)
+        private: no
+      # gcp_compute_instance_info module doesn't support filter based on internal_ip, using name instead
+      - name: target_instance_name
+        prompt: What is the target machine name?
+        private: no
+      - name: target_application_down
+        prompt: Are application/database services down? (yes, no)
+        private: no
+
+    tasks:
+  ## Install gcloud cli
+      - name: Install gcloud cli
+        include_role:
+          name: gcp-cli-install
+
+      - name: Configure gcloud
+        shell: gcloud auth activate-service-account {{ gcp_service_account_email }} --key-file={{ gcp_service_account_file }} --project={{ gcp_project }}
+
+      - name: Fail if offline backup selected and application is up
+        fail:
+          msg: Offline backup selected but application is still up!
+        when: ( not online_image|bool ) and ( not target_application_down|bool )
+
+      - name: get info on an instance
+        gcp_compute_instance_info:
+          auth_kind: '{{ gcp_auth_kind }}'
+          service_account_file: '{{ gcp_service_account_file }}'
+          project: '{{ gcp_project }}'
+          zone: '{{ gcp_zone }}'
+          filters:
+            - name="{{ target_instance_name }}"
+        register: compute_instance_output
+        delegate_to: localhost
+
+      - name: Confirm values with 'Y'
+        pause:
+          prompt: |
+            AMI to create : '{{ compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`Customer`].value | [0]') | upper }}-{{ compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`Environment`].value | [0]') | upper }}-{{ compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`sid`].value | [0]') | upper }}-{{ compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`product_name`].value | [0]') | upper }}-{{ desired_product_version | upper }}-{{ desired_backup_type | upper }}'
+            Tagged as:
+              BuildUser: {{ user_id | lower }}
+              Customer: {{ compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`Customer`].value | [0]' ) | lower }}
+              Sid: {{ compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`sid`].value | [0]') | lower }}
+              Environment: {{ compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`Environment`].value | [0]') | lower }}
+              ImageType: {{'full-online-backup' if (online_image | bool) else 'full-offline-backup'}}
+              Hostname:  {{ compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`hostname`].value | [0]') | lower }}
+              ProductName:  {{ compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`product_name`].value | [0]') | lower }}
+        register: confirm_input
+
+
+      - name: Fail if not confirmed
+        fail:
+          msg: Input not confirmed.  Quitting now.
+        when:
+          - confirm_input.user_input != 'Y'
+          - confirm_input.user_input != 'y'
+        delegate_to: localhost
+
+
+      - name: Confirm whether to shutdown the target instance
+        pause:
+          prompt: |
+            "Do you really want to shutdown the instance: "{{ compute_instance_output.resources[0].name }}"
+        register: confirm_shutdown
+
+      - name: Fail if answer is NO
+        fail:
+          msg: User denied to shutdown the target instance
+        when:
+          - confirm_shutdown.user_input != "Y"
+          - confirm_shutdown.user_input != "y"
+        delegate_to: localhost
+
+      - name: Stopping instance
+        gcp_compute_instance:
+          name: '{{ compute_instance_output.resources[0].name }}'
+          status: TERMINATED
+          state: present
+          zone: '{{ gcp_zone }}'
+          auth_kind: '{{ gcp_auth_kind }}'
+          service_account_file: '{{ gcp_service_account_file }}'
+          project: '{{ gcp_project }}'
+          deletion_protection: no
+        delegate_to: localhost
+
+
+      - name: create a image
+        shell: gcloud beta compute machine-images create "{{ compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`Customer`].value
+          | [0]') | lower }}-{{ compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`Environment`].value | [0]') | lower }}-{{
+          compute_instance_output['resources'][0]['metadata']  | json_query('items[?key==`sid`].value | [0]') | lower }}-{{ compute_instance_output['resources'][0]['metadata']  |
+          json_query('items[?key==`product_name`].value | [0]') | lower }}-{{ desired_product_version | lower }}-{{ desired_backup_type | lower }}" \ --source-instance={{
+          target_instance_name }} --source-instance-zone={{ gcp_zone }}
+        delegate_to: localhost
+
+
+      - name: Start instance
+        gcp_compute_instance:
+          name: '{{ compute_instance_output.resources[0].name }}'
+          status: RUNNING
+          state: present
+          zone: '{{ gcp_zone }}'
+          auth_kind: '{{ gcp_auth_kind }}'
+          service_account_file: '{{ gcp_service_account_file }}'
+          project: '{{ gcp_project }}'
+          deletion_protection: no
+        delegate_to: localhost
+...

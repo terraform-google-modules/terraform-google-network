@@ -1,0 +1,20 @@
+{{ $ecs_etd := ( index .Values "ecs-etds") }}
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: env-cm
+  annotations:
+    argocd.argoproj.io/hook: skip
+data:
+  sid: {{ $ecs_etd.sid }}
+  # sid: "{{ default (printf "<path:%s/%s/ecs-etd" .Values.vaultBasePath .Values.customer) .Values.vaultPath }}/config#ETD_SID>" #{{ $ecs_etd.sid }}
+  avpConfig: "{{ default (printf "%s/%s/ecs-etd" .Values.vaultBasePath .Values.customer) .Values.vaultPath }}/config"
+  volumeName: {{ .Values.customer }}-ecs-etd-cw-bl-pv
+  bucketName: {{ include ".helpers_override.fullname" . }}-cw-bl-bucket
+  stsStorageClassNameCs: {{ .Values.customer }}-cephfs-sc
+  region: {{ $ecs_etd.coldStorage.storage.storageAccountRegion }}
+  initContainer: {{ $ecs_etd.image.repository }}/alpine:{{ $ecs_etd.initContainerVersions.alpine }}
+  mountOptions:
+    - allow-delete
+    - region {{ $ecs_etd.coldStorage.storage.storageAccountRegion }}
+ 

@@ -1,0 +1,108 @@
+---
+# Description: Provision IBP App
+# Inputs:
+#   - sapapp_rebuild_sid : SAP ID assigned to the server instance
+#   - sapapp_rebuild_hostname: Hostname to be set
+#   - sapapp_rebuild_extraction_list : List of tars to extract
+#   - sapapp_rebuild_saphostagent_source : path to the SAPHOSTAGENT install files (version unique)
+#   - sapapp_rebuild_default_password : Default password used for system accounts
+# Outputs: Configured and running base IBP App system
+# Comments: N/A
+
+- name: Get EC2 Metadata
+  ec2_metadata_facts:
+  register: ec2_metadata
+
+- name: Validate environment
+  include_tasks: general/directories-validate.yml
+  vars:
+    folder_path: "{{ item }}"
+  loop:
+  - "{{ sapapp_rebuild_saphostagent_source }}"
+
+- name: Disable Firewall
+  service:
+    name: firewalld
+    enabled: false
+    state: stopped
+  become: true
+
+- name: Set the Hostname
+  hostname:
+    name: "{{ sapapp_rebuild_hostname }}"
+  become: true
+
+- name: Ensure Sapsys group has GID of 79
+  group:
+    name: sapsys
+    state: present
+    gid: 79
+    local: yes
+  become: true
+
+- name: "Create {{sapapp_rebuild_sid|lower}}adm SAP System Administrator"
+  user:
+    name: "{{sapapp_rebuild_sid|lower}}adm"
+    comment: "SAP System Administrator"
+    create_home: yes
+    home: "/home/{{sapapp_rebuild_sid|lower}}adm"
+    uid: "1001"
+    group: "79"
+    shell: /bin/csh
+    state: present
+  become: true
+
+- name: "Create sapadm user account"
+  user:
+    name: "sapadm"
+    comment: "SAP Local Administrator"
+    create_home: yes
+    home: "/home/sapadm"
+    group: "79"
+    shell: /bin/false
+    state: present
+  become: true
+
+- name: "Backup /etc/services"
+  copy:
+    dest: "/etc/services.{{ ansible_date_time.epoch }}"
+    src: "/etc/services"
+    remote_src: yes
+  become: true
+
+- name: "Start Extracting SapApp Tars"
+  shell: "cat {{ item }} | tar -zpxvf - -C /"
+  become: true
+  loop: "{{ sapapp_rebuild_extraction_list }}"
+
+- name: Run the SAP Host Agent Setup script
+  command: "./saphostexec -install"
+  args:
+    chdir: "{{ sapapp_rebuild_saphostagent_source }}"
+  become: true
+
+- name: Get hdbuserstore list
+  shell: "hdbuserstore list"
+  become: yes
+  become_user: "{{ sapapp_rebuild_sid|lower }}adm"
+  become_flags: '-i'
+  register: hdbuserstore_list
+
+- name: Display hdbuserstore Results
+  debug:
+    var: hdbuserstore_list.stdout_lines
+
+- name: Reset sapadm password
+  user:
+    name: sapadm
+    update_password: always
+    password: "{{ sapapp_rebuild_default_password }}"
+  become: true
+
+- name: Reset {{ sapapp_rebuild_sid|lower }}adm password
+  user:
+    name: "{{ sapapp_rebuild_sid|lower }}adm"
+    update_password: always
+    password: "{{ sapapp_rebuild_default_password }}"
+  become: true
+...

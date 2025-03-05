@@ -1,0 +1,29 @@
+# customerConfig:
+  # - customerName: support0001
+  #   sftpgo:
+  #     enabled: false
+  #   rookStorage:
+  #     enabled: true
+  #   etdApp:
+  #     enabled: true
+  #     sid: st2
+  #     baseDomain: example.sapns2.us
+  #     hanaInstanceNum: "00"
+  #     logcollectorOutbound:
+  #       enabled: true
+  #       odataS4: []
+  #       odataC4C: []
+  #       btp: []
+  #       db:
+  #         - hostname: etd-he2.example.sapns2.us
+  #           port: 30041
+  #           username: ETD_AUDITOR_VIEW
+  #           sid: HE2
+  #           selectstatement: SELECT LOG_DATA, LOG_DATE FROM SAP_SEC_MON.\"sap.secmon.db.streaming::AuditLogView\"
+  #           createdns: false
+  #         - hostname: etd-hp4.example.sapns2.us
+  #           port: 30015
+  #           username: SAPHANADB
+  #           sid: HP4
+  #           selectstatement: SELECT LOG_DATA, LOG_DATE FROM SAPHANADB.AUDIT_LOG_VIEW_ETD
+  #           createdns: true

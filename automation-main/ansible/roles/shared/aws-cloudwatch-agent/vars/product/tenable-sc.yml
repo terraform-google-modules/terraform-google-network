@@ -1,0 +1,9 @@
+---
+# List of tenable log groups
+# When 'tenable-sc' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_tenable-sc:
+  - file_path: /opt/sc/admin/logs/20*.log
+    log_group_name: /opt/sc/admin/logs/log
+  - file_path: /opt/sc/admin/logs/sc-error.log
+    log_group_name: /opt/sc/admin/logs/error
+...

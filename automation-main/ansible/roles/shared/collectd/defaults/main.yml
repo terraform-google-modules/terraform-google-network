@@ -1,0 +1,253 @@
+---
+
+# Define whether to integrate Cloudwatch plugin with Collectd. Defaults to true.
+cwa_collectd_plugin_configuration: true
+
+# App customization variable
+# Accepted values: cpids, default, hana, openvpn, sap, webdispatcher
+# Default value: "default"
+cw_preset_selection: default
+
+# Define location for the Collectd-Cloudwatch plugins directory
+# Defaults to /opt/collectd-plugins/
+collectd_cloudwatch_plugins_directory: /opt/collectd-plugins
+
+# The pass through option allows unsafe regexes such as '.*' or '.+'.
+# WARNING: ENABLING THIS OPTION MAY LEAD TO PUBLISHING A LARGE NUMBER OF METRICS
+#   SEE https://aws.amazon.com/cloudwatch/pricing/ TO UNDERSTAND HOW TO ESTIMATE YOUR BILL.
+collectd_cloudwatch_whitelist_pass_through: false
+
+# The debug parameter enables verbose logging of published metrics
+collectd_cloudwatch_debug: false
+
+# The AWS region to send config data to, only necessary when not running on AWS
+aws_region: ''
+
+# Ports for Base system (no additional ports)
+ports_base: []
+
+# Ports for chost system (no additional ports)
+ports_chost: []
+
+# Ports for BTP system (no additional ports)
+ports_btp: []
+
+# Ports for Docker system (no additional ports)
+ports_docker: []
+
+# Ports for a Kubernetes system
+ports_kubernetes: []
+
+# Ports for a bastion system
+ports_bastion: []
+ports_bastion_redhat: []
+
+# Ports for GitLab systems
+ports_gitlab:
+  - 80
+  - 443
+  - 22
+
+ports_gitlab_docker:
+  - 80
+  - 443
+  - 22
+
+# Ports for File-Transfer systems
+ports_file_transfer:
+  - 22
+
+# Ports for FreeRADIUS systems
+ports_freeradius:
+  - 1812
+
+# Ports for CPIDS systems used in IBP
+ports_cpids:
+  - 61616
+  - 30015
+
+# Ports for a HANA system
+ports_ibp_hana:
+  - 30213
+  - 30215
+
+# Accessible port for OpenVPN system
+ports_openvpn:
+  - 1149
+
+# Ports for a SAP Application system
+ports_sap:
+  - 3200
+
+# Ports for a WebDispatcher system
+ports_webdispatcher:
+  - 44301
+
+# Ports for a Nessus system
+ports_nessus:
+  - 8834
+
+# Ports for tenable_sc
+ports_tenable-sc:
+  - 443
+
+# Ports for deepsecmng(trend)
+ports_deepsecmng:
+  - 4119
+  - 4120
+  - 4122
+
+# Ports for a Postfix system
+ports_postfix:
+  - 25
+
+ports_bobj:
+  - 22
+  - 6400     # Central Management Server (CMS Name Server port)
+  - 6410     # Server Intelligence Agent (SIA)
+  - 6405     # Web Application Container Server (WACS)
+  - 8080     # Apache Tomcat Web Application Server (Tomcat)
+  - 8443     # Apache Tomcat Web Application Server (Tomcat)
+
+ports_lumira:
+  - 22
+  - 6400      # Central Management Server (CMS Name Server port)
+  - 6401      # SAP Lumira Discovery
+  - 6405      # Web Application Container Server (WACS)
+  - 6410      # Server Intelligence Agent (SIA)
+
+ports_sapapp_abap:
+  - 22
+  - 32nn      # Used by SAP GUI for Windows and Java
+  - 33nn      # Used for CPIC and RFC communication
+  - 36nn      # Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 48nn      # SNC secured for CPIC and RFC communication
+  - 80nn      # ICM HTTP You can configure to port 80 after installation
+  - 81nn      # Message server HTTP Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 443nn     # ICM HTTPS Must be configured after installation
+  - 444nn     # Message server HTTPS Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 5nn13     # On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50113
+  - 5nn14     # On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50114
+
+ports_sapapp_java:
+  - 22
+  - 32nn      # Used by SAP GUI for Windows and Java
+  - 33nn      # Used for CPIC and RFC communication
+  - 36nn      # Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 48nn      # SNC secured for CPIC and RFC communication
+  - 80nn      # ICM HTTP You can configure to port 80 after installation
+  - 81nn      # Message server HTTP Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 443nn     # ICM HTTPS Must be configured after installation
+  - 444nn     # Message server HTTPS Relevant only for systems that have been installed prior to SAP NetWeaver 7.0 with a central instance (CI).
+  - 5nn13     # On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50113
+  - 5nn14     # On the SAP Central Services (SCS and ASCS) instance the default instance is 01 making the default port 50114
+
+ports_hana:
+  - 22
+  - 1128
+  - 1129
+  - 43nn
+  - 80nn
+  - 3nn00
+  - 3nn01
+  - 3nn02
+  - 3nn03
+  - 3nn04
+  - 3nn05
+  - 3nn06
+  - 3nn07
+  - 3nn08
+  - 3nn09
+  - 3nn10
+  - 3nx01
+  - 3nx02
+  - 3nx03
+  - 3nx04
+  - 3nx05
+  - 3nx07
+  - 3nn17
+  - 3nn19
+  - 3nn25
+  - 3nn40
+  - 3nn42
+  - 3nn41
+  - 4nn01
+  - 4nn02
+  - 4nn06
+  - 4nn14
+  - 5nn13
+  - 5nn14
+
+ports_haproxy: []
+
+ports_gardener-shoot:
+  - 22
+  - 80
+  - 443
+  - 4300
+  - 8000
+  - 8300
+  - 8080
+  - 8301
+  - 8302
+  - 8834
+  - 9998
+  - 30015
+  - 123
+
+# Ports for Bizx system (no additional ports)
+ports_bizx: []
+
+# Ports for Bizx_web system (no additional ports)
+ports_bizx_web: []
+
+# Ports for Lms system (no additional ports)
+ports_lms: []
+
+# Ports for Lms_web system (no additional ports)
+ports_lms_web: []
+
+# Ports for icontent system (no additional ports)
+ports_icontent: []
+
+# Ports for pi system (no additional ports)
+ports_pi: []
+
+# Ports for SAP cloud connector
+ports_cloudconnector:
+  - 8443
+
+# Ports for SAP Router
+ports_router:
+  - 3299
+
+ports_scp:
+  - 22
+  - 80
+  - 443
+  - 4300
+  - 8000
+  - 8300
+  - 8080
+  - 8301
+  - 8302
+  - 8834
+  - 9998
+  - 30015
+  - 123
+
+ports_btp_cloudfoundry:
+  - 22
+  - 80
+  - 443
+  - 4300
+  - 8000
+  - 8300
+  - 8080
+  - 8301
+  - 8302
+  - 8834
+  - 9998
+  - 30015
+  - 123
+...

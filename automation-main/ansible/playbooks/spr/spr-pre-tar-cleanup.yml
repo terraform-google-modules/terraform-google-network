@@ -1,0 +1,274 @@
+---
+# Playbook Name: spr-pre-tar-cleanup.yml
+# Description: Performs pre-tar cleanup to prepare SPR SAP APP and HANA DB instances for tar creation.
+#     On SPR SAP APP instances: perform a hard stop on the SAP APP, then perform cleanup by removing SAP APP PAT and SUM files.
+#     On SPR HANA DB instances: perform a hard stop on the HANA DB, then perform cleanup by removing HANA DB trace files.
+# Dependencies:
+# - Ansible v2.9+
+# - Sudo access to SPR App and DB instances
+# Variables:
+#   TBD
+# Examples:
+#   Execution on remote systems with specified username and private key
+#     ansible-playbook spr-pre-tar-cleanup.yml -i /<PATH-TO>/<INVENTORY-FILE> -u "example_user" --private-key=/<PATH-TO>/<PRIVATE-KEY>
+#
+# Authors: Nick Martinez
+# Version: 2.9-000001
+# Modified: 2022-12-07 - Created playbook
+# Comments: N/A
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+    - play0
+    - always
+
+  vars:
+    spr_app_sid_default: "G00"
+    spr_hdb_sid_default: "G01"
+    spr_instance_types:
+      - "sapapp"
+      - "hdb"
+
+  vars_prompt:
+    - name: playbook_spr_app_sid
+      prompt: "Provide target SID of the SAP APP (default: {{ spr_app_sid_default | upper }}):"
+      private: false
+      default: "{{ spr_app_sid_default }}"
+
+    - name: playbook_spr_hdb_sid
+      prompt: "Provide target SID of the HANA DB (default: {{ spr_hdb_sid_default | upper }}):"
+      private: false
+      default: "{{ spr_hdb_sid_default }}"
+
+  tasks:
+    # Notes: outputs: spr_instance_type, spr_app_sid, spr_hdb_sid
+    - name: "Retrieve status of HANA data path (only exists on HANA DB instances)"
+      ansible.builtin.stat:
+        path: /hana/data
+      become: true
+      register: hana_data
+
+    - name: "Dynamically set SPR instance type"
+      ansible.builtin.set_fact:
+        spr_instance_type: "{{ 'hdb' if hana_data.stat.exists else 'sapapp' }}"
+
+    - name: "Validate that SPR instance type was set"
+      ansible.builtin.fail:
+        msg: >-
+          SPR instance type could not be determined.
+      when: not spr_instance_type in spr_instance_types
+
+    - name: "Display determined SPR instance type"
+      ansible.builtin.debug:
+        msg:
+          - "SPR instance type determined to be: {{ spr_instance_type }}"
+
+    - name: "Set SIDs for SAP APP and HANA DB"
+      ansible.builtin.set_fact:
+        spr_app_sid: "{{ playbook_spr_app_sid }}"
+        spr_hdb_sid: "{{ playbook_spr_hdb_sid }}"
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Perform SPR pre-tar cleanup"
+  gather_facts: true
+  hosts: all
+  tags:
+    - play1
+    - always
+
+  tasks:
+    # Notes: A hard stop will be performed before cleaning on either a SAP APP or HANA DB, depending on the instance type
+    - name: "BLOCK - Stop SAP APP"
+      when: spr_instance_type == "sapapp"
+      block:
+        - name: "Stop SAP APP - Get saphostagent status"
+          ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -status"
+          become: true
+          register: saphostagent_status
+          failed_when: "'FAILED' in saphostagent_status.stderr"
+          changed_when: false
+
+        - name: "Stop SAP APP - Display saphostagent status"
+          ansible.builtin.debug:
+            var: saphostagent_status.stderr_lines
+
+        - name: "BLOCK - Stop saphostagent"
+          when: saphostagent_status.stderr != 'saphostexec stopped '
+          block:
+            - name: "Stop SAP APP - Stop saphostagent as root"
+              ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -stop"
+              changed_when: false
+              become: true
+
+            - name: "Stop SAP APP - Get saphostagent status"
+              ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -status"
+              become: true
+              register: saphostagent_statusblock
+              failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+              changed_when: false
+
+            - name: "Stop SAP APP - Display saphostagent status"
+              ansible.builtin.debug:
+                var: saphostagent_statusblock.stderr_lines
+          # End "BLOCK - Stop saphostagent"
+
+        - name: "Stop SAP APP - Find SAP APP sidadm processes"
+          ansible.builtin.command: "ps -fu {{ spr_app_sid | lower }}adm"
+          become: true
+          register: "ps_sapapp_sidadm_output"
+          failed_when: "'FAILED' in ps_sapapp_sidadm_output.stderr"
+          changed_when: false
+
+        - name: "Stop SAP APP - List process to kill"
+          ansible.builtin.debug:
+            var: ps_sapapp_sidadm_output.stdout_lines
+
+        - name: "Stop SAP APP - Stop SAP APP sidadm processes"
+          ansible.builtin.command: "pkill -9 -fu {{ spr_app_sid | lower }}adm"
+          become: true
+          failed_when: "'FAILED' in pkill_sapapp_sidadm_output.stderr"
+          changed_when: false
+          register: pkill_sapapp_sidadm_output
+
+        - name: "Stop SAP APP - Display stop SAP APP sidadm output"
+          ansible.builtin.debug:
+            var: pkill_sapapp_sidadm_output
+      # End "BLOCK - Stop SAP APP"
+
+    - name: "BLOCK - Stop HANA DB"
+      when: spr_instance_type == "hdb"
+      block:
+        - name: "Stop HANA DB - Get Process list"
+          ansible.builtin.command: "sapcontrol -nr 00 -function GetProcessList"
+          args:
+            executable: "/bin/csh"
+          become: true
+          become_method: sudo
+          become_user: "{{ spr_hdb_sid | lower }}adm"
+          failed_when: "not 'set: standard error: Inappropriate ioctl for device'"
+          changed_when: false
+          register: hdb_process_output
+
+        - name: "Stop HANA DB - Stopping HANA DB"
+          ansible.builtin.command: "/usr/sap/{{ spr_hdb_sid | upper }}/HDB00/HDB stop"
+          become: true
+          become_user: "{{ spr_hdb_sid | lower }}adm"
+          failed_when: "'hdbdaemon is stopped.' not in hdbstop_output.stdout"
+          register: hdbstop_output
+          when: "'GREEN' in hdb_process_output.stdout"
+
+        - name: "Stop HANA DB - HDB Stop output"
+          ansible.builtin.debug:
+            var: hdbstop_output.stdout_lines
+          when: "'GREEN' in hdb_process_output.stdout"
+
+        - name: "Stop HANA DB - Get saphostagent status"
+          ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -status"
+          become: true
+          register: saphostagent_status
+          failed_when: "'FAILED' in saphostagent_status.stderr"
+          changed_when: false
+
+        - name: "Stop HANA DB - Display saphostagent status"
+          ansible.builtin.debug:
+            var: saphostagent_status.stderr_lines
+
+        - name: "BLOCK - Stop saphostagent"
+          when: saphostagent_status.stderr != 'saphostexec stopped '
+          block:
+            - name: "Stop HANA DB - Stop saphostagent as root"
+              ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -stop"
+              become: true
+              changed_when: false
+
+            - name: "Stop HANA DB - Get saphostagent status"
+              ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -status"
+              become: true
+              register: saphostagent_statusblock
+              failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+              changed_when: false
+
+            - name: "Stop HANA DB - Display saphostagent status"
+              ansible.builtin.debug:
+                var: saphostagent_statusblock.stderr_lines
+          # End "BLOCK - Stop saphostagent"
+
+        - name: "Stop HANA DB - Find HANA DB sidadm processes"
+          ansible.builtin.command: "ps -fu {{ spr_hdb_sid | lower }}adm"
+          become: true
+          register: "ps_hdb_sidadm_output"
+          failed_when: "'FAILED' in ps_hdb_sidadm_output.stderr"
+          changed_when: false
+
+        - name: "Stop HANA DB - List process to kill"
+          ansible.builtin.debug:
+            var: ps_hdb_sidadm_output.stdout_lines
+
+        - name: "Stop HANA DB - Stop HANA DB sidadm processes"
+          ansible.builtin.command: "pkill -9 -fu {{ spr_hdb_sid | lower }}adm"
+          become: true
+          failed_when: "'FAILED' in pkill_hdb_sidadm_output.stderr"
+          changed_when: false
+          register: pkill_hdb_sidadm_output
+
+        - name: "Stop HANA DB - Display stop HANA DB sidadm output"
+          ansible.builtin.debug:
+            var: pkill_hdb_sidadm_output
+      # End "BLOCK - Stop SAP APP"
+
+      # Notes: Ansibles 'command' module is used for file deletion, as the 'file' module takes 1-2 seconds on average to delete files
+    - name: "BLOCK - Perform SAP APP pre-tar cleanup"
+      when: spr_instance_type == "sapapp" and "'FAILED' not in pkill_sapapp_sidadm_output.stderr"
+      block:
+        - name: "Set path to SAP APP support packages"
+          ansible.builtin.set_fact:
+            sapapp_pat_files_path: "/usr/sap/trans/EPS/in"
+
+        - name: "Find and delete SAP APP support packages"
+          ansible.builtin.command: "find {{ sapapp_pat_files_path }} -xdev -type f -name '*.PAT' -delete -print0"
+          args:
+            removes: "{{ sapapp_pat_files_path }}/*.PAT"
+          become: true
+
+        - name: "Set path to SAP APP Software Update Manager (SUM) directory"
+          ansible.builtin.set_fact:
+            sapapp_sum_dir_path: "/usr/sap/{{ spr_app_sid | upper }}/SUM"
+
+        - name: "Delete SAP APP Software Update Manager (SUM) directory and its contents"
+          ansible.builtin.file:
+            path: "{{ sapapp_sum_dir_path }}"
+            state: absent
+          become: true
+
+        - name: "Display cleaning completion message"
+          ansible.builtin.debug:
+            msg:
+              - "SAP APP pre-tar cleaning has been performed for SID {{ spr_app_sid | upper }}."
+      # End "BLOCK - Perform SAP APP pre-tar cleanup"
+
+    - name: "BLOCK - Perform HANA DB pre-tar cleanup"
+      when: spr_instance_type == "hdb" and "'FAILED' not in pkill_hdb_sidadm_output.stderr"
+      block:
+        - name: "Set path to HANA DB trace files"
+          ansible.builtin.set_fact:
+            hdb_trace_files_path: "/usr/sap/{{ spr_hdb_sid | upper }}/HDB00/hdb-{{ spr_hdb_sid | lower }}/trace"
+
+        # TODO: Ask about "HDB00", will this always be the same?
+        - name: "Find and delete HANA DB trace files"
+          ansible.builtin.command: "find {{ hdb_trace_files_path }} -xdev -type f -name '*.trc' -delete -print0"
+          args:
+            removes: "{{ hdb_trace_files_path }}/*.trc"
+          become: true
+
+        - name: "Display cleaning completion message"
+          ansible.builtin.debug:
+            msg:
+              - "HANA DB pre-tar cleaning has been performed for SID {{ spr_hdb_sid | upper }}."
+      # End "BLOCK - Perform HANA DB pre-tar cleanup"

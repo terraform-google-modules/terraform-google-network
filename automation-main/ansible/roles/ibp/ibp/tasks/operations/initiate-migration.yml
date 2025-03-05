@@ -1,0 +1,29 @@
+---
+# Synopsis: Migrate instances to new target host
+# Inputs:
+#   - ibp_instances: List of instance name and number associated to node
+#
+# Outputs: N/A
+#
+# Comments: This task should be ran on target host expected to run instances. Additionally, there is no way to dynamically determine instances as initially none are running.
+#
+
+- name: Apply migrate operation
+  become: true
+  ansible.builtin.shell: |
+    /usr/sap/{{ sid | upper }}/{{ instance.name }}{{ instance.number }}/exe/sapstartsrv \
+    pf=/usr/sap/{{ sid | upper }}/SYS/profile/{{ sid | upper }}_{{ instance.name }}{{ instance.number }}_{{ ibp_hostname }} -reg
+  environment:
+    LD_LIBRARY_PATH: /usr/sap/{{ sid | upper }}/{{ instance.name }}{{ instance.number }}/exe
+  loop_control:
+    loop_var: instance
+  loop: "{{ ibp_instances }}"
+
+- name: Start service
+  become: true
+  ansible.builtin.systemd_service:
+    state: started
+    name: SAP{{ sid | upper }}_{{ instance.number }}
+  loop_control:
+    loop_var: instance
+  loop: "{{ ibp_instances }}"

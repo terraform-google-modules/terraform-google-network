@@ -1,0 +1,36 @@
+---
+# Synopsis: Conducts an adhoc scan using bash script
+# Inputs:
+#   - clamav_run_scan : Whether to run a ClamAV scan
+#   - clamav_save_scan_results: Wether to save results locally onto the filesystem
+# Outputs:
+#   - Runs a clamav scan
+#   - Saves scan results to scan results directory
+
+  - name: Create local clamav scan results directory
+    become: true
+    ansible.builtin.file:
+      path: '{{ clamav_scan_results_directory }}'
+      owner: root
+      group: root
+      state: directory
+      mode: '0755'
+    when: clamav_save_scan_results | bool == true
+
+  - name: Conduct Adhoc ClamAV Scan
+    ansible.builtin.command: /usr/share/clamav/clamrun.sh >> /var/log/clamscan.log
+    environment:
+      LD_PRELOAD: "{{ '/lib/fips_enable.so' if (ansible_distribution_major_version is version ('9') and ansible_os_family == 'RedHat') else ''}} "
+    become: true
+
+  - name: Copy clamscan results log into local file directory
+    become: true
+    ansible.builtin.copy:
+      src: /var/log/clamscan.log
+      dest: '{{ clamav_scan_results_directory }}'
+      owner: root
+      group: root
+      mode: '0755'
+      remote_src: true
+    when: clamav_save_scan_results | bool == true
+...

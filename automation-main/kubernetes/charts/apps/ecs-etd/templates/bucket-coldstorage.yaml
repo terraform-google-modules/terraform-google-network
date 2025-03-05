@@ -1,0 +1,150 @@
+{{ $ecs_etd := ( index .Values "ecs-etds") }}
+{{- if and $ecs_etd.coldStorage.enable (eq $ecs_etd.etdStage "prd") }}
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: {{ include ".helpers_override.fullname" . }}-cw-bl-bucket
+  annotations:
+    meta.upbound.io/{{ .Values.customer }}: s3/v1beta1/bucketversioning
+  labels:
+    resource.upbound.io/{{ .Values.customer }}: {{ .Values.customer }}-s3bucket
+spec:
+  forProvider:
+    region: {{ $ecs_etd.coldStorage.storage.storageAccountRegion }}
+  providerConfigRef:
+    name: {{ .Values.providerConfigRef.name }}
+  deletionPolicy: Orphan
+---
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: BucketVersioning
+metadata:
+  annotations:
+    meta.upbound.io/{{ .Values.customer }}: s3/v1beta1/bucketversioning
+  labels:
+    resource.upbound.io/{{ .Values.customer }}: {{ .Values.customer }}-bucketversioning
+  name: {{ .Values.customer }}-bucketversioning
+spec:
+  forProvider:
+    bucketSelector:
+      matchLabels:
+        resource.upbound.io/{{ .Values.customer }}: {{ .Values.customer }}-s3bucket
+    region: {{ $ecs_etd.coldStorage.storage.storageAccountRegion }}
+    versioningConfiguration:
+      - status: Enabled
+  providerConfigRef:
+    name: {{ .Values.providerConfigRef.name }}
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: RolePolicy
+metadata:
+  annotations:
+    meta.upbound.io/s3-csi-driver-sa: iam/v1beta1/rolepolicy
+  labels:
+    rolepolicy.upbound.io/{{ .Values.gardener.project }}-{{ .Values.gardener.shootName }}-mountpoint-admin : {{ include ".helpers_override.fullname" . }}-cw-bl-bucket-access
+  name: {{ include ".helpers_override.fullname" . }}-cw-bl-bucket-access
+spec:
+  forProvider:
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "s3:GetObject",
+              "s3:DeleteObject",
+              "s3:PutObject",
+              "s3:PutObjectTagging",
+              "s3:AbortMultipartUpload",
+              "s3:ListMultipartUploadParts",
+              "s3:ListBucket",
+              "s3:ListTagsForResource"
+            ],
+            "Resource": [
+              "arn:{{ .Values.awsPartition }}:s3:::{{ include ".helpers_override.fullname" . }}-cw-bl-bucket/*"
+            ]
+          },
+          {
+            "Effect": "Allow",
+            "Action": [
+              "s3:ListBucket"
+            ],
+            "Resource": [
+              "arn:{{ .Values.awsPartition }}:s3:::{{ include ".helpers_override.fullname" . }}-cw-bl-bucket"
+            ]
+          }
+        ]
+      }
+    role: {{ .Values.gardener.project }}-{{ .Values.gardener.shootName }}-mountpoint-admin 
+  providerConfigRef:
+    name: {{ .Values.providerConfigRef.name }}
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: Role
+metadata:
+    name: {{ include ".helpers_override.fullname" . }}-cw-bl-bucket-role
+spec:
+    forProvider:
+        assumeRolePolicy: |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:oidc-provider/api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.internal.{{ .Values.gardener.baseDomain }}"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                  "StringLike": {
+                    "api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.internal.{{ .Values.gardener.baseDomain }}:sub": "system:serviceaccount:ecs-etd-{{ .Values.customer }}:*"
+                  }
+                }
+              }
+            ]
+          }
+        inlinePolicy:
+          - name: {{ include ".helpers_override.fullname" . }}-cw-bl-bucket-policy
+            policy: |
+              {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:GetObject",
+                      "s3:DeleteObject",
+                      "s3:PutObject",
+                      "s3:PutObjectTagging",
+                      "s3:AbortMultipartUpload",
+                      "s3:ListMultipartUploadParts",
+                      "s3:ListBucket",
+                      "s3:ListTagsForResource"
+                    ],
+                    "Resource": [
+                      "arn:{{ .Values.awsPartition }}:s3:::{{ include ".helpers_override.fullname" . }}-cw-bl-bucket/*"
+                    ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:ListBucket"
+                    ],
+                    "Resource": [
+                      "arn:{{ .Values.awsPartition }}:s3:::{{ include ".helpers_override.fullname" . }}-cw-bl-bucket"
+                    ]
+                  }
+                ]
+              }
+    providerConfigRef:
+      name: {{ .Values.providerConfigRef.name }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: s3-csi-cw-bl-sa
+  labels:
+    app.kubernetes.io/name: aws-mountpoint-s3-csi-driver
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:role/{{ include ".helpers_override.fullname" . }}-cw-bl-bucket-role"
+{{- end }}

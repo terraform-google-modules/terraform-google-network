@@ -1,0 +1,7 @@
+- name: "Create nfs mount directories"
+  become: true
+  ansible.builtin.file:
+    path: "/mnt/temp/{{ item }}"
+    state: directory
+    mode: 0755
+  loop: "{{ distributed_nfs_mounts_subdir }}"

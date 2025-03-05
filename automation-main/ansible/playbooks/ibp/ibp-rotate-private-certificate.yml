@@ -1,0 +1,104 @@
+---
+# Playbook Name: ibp-rotate-private-certificate.yml
+# Synopsis: Retrieves an issued private certificate from AWS Private Certificate Authority
+# Description: Using a CPI-DS-generated CSR, requests and retrieves the issued certificate after being supplied the path to the CSR file and a directory for the issued certificate
+# Prerequisites:
+#   - Anisble 2.9+
+#   - Completed AWS Private Certificate Authority
+#   - AWS IAM EC2 Machine Role with Private Certificate Authority policy for List, Get, and Issue rights
+#   - AWS CLI
+#
+# Dependencies:
+#   - CPI-DS-generated CSR file
+#   - Directory for the signed certificate to be placed
+#
+# Variables:
+#   - csr_file: Path and filename of the CPI-DS-generated CSR
+#   - signing_algorithm: Name of the algorithm that will be used. Possible values: SHA256WITHECDSA, SHA384WITHECDSA, SHA512WITHECDSA, SHA256WITHRSA, SHA384WITHRSA, SHA512WITHRSA
+#   - validity: Type of validity period in shorthand format. Value is a long, and the type has possible values of "END_DATE", "ABSOLUTE", "DAYS", "MONTHS", and "YEARS". Defaults to Value=1095,Type="DAYS"
+#   - idempotency_token: Custom string that is used to distinguish between calls to IssueCertificate action. Default value is 1234.
+#   - common_name_search: Common Name of the CA to search use.  Works with partial match. Default value is Production for legacy customers and CRE or FEDCIV for new ones.
+#
+# Example:
+#   The following will execute the playbook on the localhost and prompt the user for the CSR file
+#   ansible-playbook ibp-rotate-private-certificate.yml -i localhost, -c local
+# Example:
+#   The following will execute the playbook against the Ansible inventory and supply the csr_file variable automatically
+#   ansible-playbook ibp-rotate-private-certificate.yml -e "csr_file=/home/ec2-user/n21_pse.csr"
+# Example:
+#   The following will execute the pllaybook against the localhost and supply the csr_file variable automatically
+#   ansible-playbook ibp-rotate-private-certificate-yml -i localhost, -c local -e "csr_file=/home/ec2-user/n21_pse.csr"
+# Example:
+#   The following will execute the playbook on the localhost against a specific CA
+#   ansible-playbook ibp-rotate-private-certificate.yml -i localhost, -c local -e "common_name_search=my_ca_name"
+#
+#
+# Authors: Richard Breiten, Louis Lee
+# Version: 2.9-000006
+# Modified: 2019-11-15 - created
+#           2019-11-21 - Updated following working session with Rakesh for testing IBP workflow
+#           2020-02-06 - Expanded jmespath query to pick a specific CA.
+#           2020-06-30 - Reordered the jmespath query so it doesn't error when the path is missing.
+#           2020-09-28 - Changed CSR submission to blob file upload
+#           2021-01-14 - Changed default common name to unique value
+# Comments:
+
+- hosts: all
+  gather_facts: no
+  vars_prompt:
+    - name: csr_file
+      prompt: "What is the full path to the CSR request (including CSR filename)?"
+      private: no
+
+    - name: common_name_search
+      prompt: "Common Name of the CA to search use.  Works with partial match."
+      private: no
+      default: "Production"
+
+  vars:
+    signing_algorithm: SHA256WITHRSA
+    validity: Value=1095,Type="DAYS"
+    idempotency_token: 1234
+
+  tasks:
+  - name: Find Private Certificate Authority
+    shell: >
+      aws acm-pca list-certificate-authorities
+      --query 'CertificateAuthorities[?Status==`ACTIVE`
+      && Type==`SUBORDINATE`
+      && contains(CertificateAuthorityConfiguration.Subject.CommonName,`{{ common_name_search }}`)].Arn'
+      --output text
+    register: acm_pca_ca
+    failed_when: acm_pca_ca.stdout == ""
+
+  - name: Set Private Certificate Authority ARN fact
+    set_fact:
+      acm_pca_ca_arn: "{{ (acm_pca_ca.stdout) }}"
+
+  - name: Submit CSR to Amazon Private Certificate Authority
+    shell: >
+      aws acm-pca issue-certificate --certificate-authority-arn "{{ acm_pca_ca_arn }}" --csr "fileb://{{ csr_file }}"
+      --signing-algorithm "{{ signing_algorithm }}" --validity "{{ validity }}" --idempotency-token "{{ idempotency_token }}"
+      --query 'CertificateArn'  --output text | sort
+    register: certificate_arn
+
+  - name: Set Issued Certificate ARN
+    set_fact:
+      issued_certificate_arn: "{{ certificate_arn.stdout }}"
+
+  - name: Retrieve signed private certificate
+    shell: >
+      aws acm-pca get-certificate --certificate-authority-arn "{{ acm_pca_ca_arn }}" --certificate-arn "{{ issued_certificate_arn }}"
+      --output text
+    register: signed_certificate_arn
+    retries: 5
+    until: signed_certificate_arn is succeeded
+
+  - name: Set signed certificate ARN
+    set_fact:
+      issued_certificate: "{{ (signed_certificate_arn.stdout) }}"
+
+  - name: Write signed certificate to "{{ csr_file | dirname }}"
+    copy:
+      dest: "{{ csr_file | dirname }}/{{ csr_file | basename | regex_replace('.csr$','.crt') }}"
+      content: "{{ issued_certificate }}"

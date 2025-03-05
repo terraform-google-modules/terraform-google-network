@@ -1,0 +1,127 @@
+---
+# Playbook Name: s4pce-incron-setup-azure.yml
+# Description: Sets up incrontab services on database servers in the S4 PCE environment.
+# Dependencies:
+# - Ansible v2.9+
+# variables:
+# - Groupvars and Hostvars from inventory file
+#   - spr_nodetype : Defines the node type of each vm. Used for dynamic group assignment
+#   - spr_landscape : Defines the SAP Landscape the vm resides in. Used for dynamic group assignment
+#   - spr_productname: Defines the specific application of the vm. Used for dynamic group assignment
+#   - spr_sid : Defines the SAP ID of the vm.  Used in various provisioning activities.
+#   - spr_azure_backup_storage_account : Name of the storage account used for DB Backups. Used for SAP incron backups.
+#   - spr_azure_backup_container : Name of the container to be used for DB Backups. Used for SAP incron backups.
+# Example
+# execution on remote systsm using the ibp inventory host template
+# ansible-playbook s4pce-incron-setup-azure.yml -k -i defaults -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Abdulla Rubaid, Katja Cresanti, Jian Ouyang
+# Version: 2.9-000006
+# Modified: 2021-12-23 - Created playbook
+#           2021-12-29 - Added task to validate that dependencies azcopy and azurecli are installed
+#           2022-01-28 - Replaced usage of Base role for installing azurecli to azure-cli role
+#           2022-04-20 - Exclude SAP IQ
+#           2022-07-01 - Exclude non_spr products
+#           2022-08-03 - case sensitivity handling
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+    - play 0
+    - always
+
+  tasks:
+    - name: Dynamic Group Assignment
+      group_by:
+        key: "{{ item }}"
+      when: "item != 'undefined'"
+      loop:
+        - "{{ spr_nodetype|default('undefined')|lower }}"
+        - "{{ spr_landscape|default('undefined')|lower }}"
+        - "{{ spr_productname|default('undefined')|lower }}"
+
+    # Notes: outputs: cloud_provider, machine_id
+    - name: Detect Cloud Provider
+      include_role:
+        name: cloud-identify
+
+
+- name: "Play1: Validate that azcopy and azure cli are installed"
+  gather_facts: false
+  hosts: db:!iq:!non_spr
+  tags:
+    - play1
+    - azcopy
+    - azurecli
+    - validate
+
+  vars:
+    azcopysource: 'https://aka.ms/downloadazcopy-v10-linux'
+
+  tasks:
+    - name: "Check azure cli status"
+      become: true
+      shell: 'az version'
+      register: azurecli_version_check_output
+      failed_when: false
+      changed_when: false
+
+    - name: "Check azcopy status"
+      become: true
+      shell: azcopy --version
+      register: azcopy_version_check_output
+      failed_when: false
+      changed_when: false
+
+    - name: "Ensure Azure Repository is enabled"
+      when: "'command not found' in azurecli_version_check_output.stderr"
+      include_role:
+        name: repository-management
+      vars:
+        repo_enable: true
+        application_preset_selection: ['azure']
+
+    - name: "Install Azure CLI"
+      when: "'command not found' in azurecli_version_check_output.stderr"
+      include_role:
+        name: azure-cli
+      vars:
+        install_cli: true
+        remove_cli: false
+
+    - name: "Install Az Copy"
+      when: "'command not found' in azcopy_version_check_output.stderr"
+      become: true
+      unarchive:
+        src: "{{ azcopysource }}"
+        dest: /usr/bin
+        mode: u+x
+        owner: root
+        group: root
+        remote_src: true
+        extra_opts:
+          - --strip=1
+
+
+- name: "Play2: Set up incron service on database hosts"
+  gather_facts: false
+  hosts: db
+  tags:
+    - play2
+    - db
+    - incron
+
+  tasks:
+    - name: "Setup Incron"
+      include_role:
+        name: spr
+        allow_duplicates: yes
+        tasks_from: provisioning/incron-setup-azure.yml
+      vars:
+        spr_hana_install_sid: "{{ spr_sid|upper }}"
+        spr_hana_landscape: "{{ spr_landscape }}"
+        spr_hana_incron_storage_account_name: "{{ spr_azure_backup_storage_account }}"
+        spr_hana_backup_container: "{{ spr_azure_backup_container }}"
+...

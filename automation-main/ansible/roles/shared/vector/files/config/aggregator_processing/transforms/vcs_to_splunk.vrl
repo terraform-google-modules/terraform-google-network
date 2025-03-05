@@ -1,0 +1,369 @@
+# Program to convert a Vector NS2 Schema event into a Splunk HEC JSON event.
+
+# TODO: Change index fields to be fields.custom.splunk.index...
+
+# Mapping copied from the VNS Documentation (Split nested keys into arrays of keys)
+vcs_mapping = [
+    # NOTE: DO NOT MOVE THIS LINE
+    # It is important to move this field first before appending other metadata
+    ### START: DO NOT MOVE
+    {
+        "vector_field": ["metadata", "fields"],
+        "splunk_field": ["fields"]
+    },
+    #### SPLUNK
+    ## SPLUNK INDEX
+    {
+        "vector_field": ["metadata", "custom", "index", "default"],
+        "splunk_field": ["fields", "custom", "index", "default"]
+    },
+    {
+        "vector_field": ["metadata", "custom", "index", "prefix"],
+        "splunk_field": ["fields", "custom", "index", "prefix"]
+    },
+    {
+        "vector_field": ["metadata", "custom", "index", "suffix"],
+        "splunk_field": ["fields", "custom", "index", "suffix"]
+    },
+    {
+        "vector_field": ["metadata", "index"],
+        "splunk_field": ["index"]
+    },
+    ## SPLUNK SOURCE
+    {
+        "vector_field": ["metadata", "source"],
+        "splunk_field": ["source"]
+    },
+    ## SPLUNK SOURCETYPE
+    {
+        "vector_field": ["metadata", "sourcetype"],
+        "splunk_field": ["sourcetype"]
+    },
+    ### END: DO NOT MOVE
+    {
+        "vector_field": ["file"],
+        "splunk_field": ["fields", "file", "path"]
+    },
+    # REMOVED TO NOT DELETE HOST FROM EVENT
+    #    {
+    #        "vector_field":["host"],
+    #        "splunk_field":["host"]
+    #    },
+    {
+        "vector_field": ["message"],
+        "splunk_field": ["event"]
+    },
+    #### CLOUD METADATA
+    {
+        "vector_field": ["metadata", "cloud", "availability_zone"],
+        "splunk_field": ["fields", "cloud", "availability_zone"]
+    },
+    ## CLOUD ACCOUNT
+    {
+        "vector_field": ["metadata", "cloud", "account", "id"],
+        "splunk_field": ["fields", "cloud", "account", "id"]
+    },
+    {
+        "vector_field": ["metadata", "cloud", "account", "name"],
+        "splunk_field": ["fields", "cloud", "account", "name"]
+    },
+    {
+        "vector_field": ["metadata", "cloud", "environment"],
+        "splunk_field": ["fields", "cloud", "environment"]
+    },
+    ## HOST
+    {
+        "vector_field": ["metadata", "host", "id"],
+        "splunk_field": ["fields", "host", "id"]
+    },
+    {
+        "vector_field": ["metadata", "host", "ip"],
+        "splunk_field": ["fields", "host", "ip"]
+    },
+    {
+        "vector_field": ["metadata", "host", "image", "name"],
+        "splunk_field": ["fields", "host", "image", "name"]
+    },
+    {
+        "vector_field": ["metadata", "host", "type"],
+        "splunk_field": ["fields", "host", "type"]
+    },
+    ## CLOUD INSTANCE
+    {
+        "vector_field": ["metadata", "cloud", "instance", "id"],
+        "splunk_field": ["fields", "cloud", "instance", "id"]
+    },
+    {
+        "vector_field": ["metadata", "cloud", "instance", "name"],
+        "splunk_field": ["fields", "cloud", "instance", "name"]
+    },
+    {
+        "vector_field": ["metadata", "cloud", "machine", "type"],
+        "splunk_field": ["fields", "cloud", "machine", "type"]
+    },
+    {
+        "vector_field": ["metadata", "cloud", "instance", "image", "name"],
+        "splunk_field": ["fields", "cloud", "instance", "image", "name"]
+    },
+    ## CLOUD PROJECT
+    {
+        "vector_field": ["metadata", "cloud", "project", "id"],
+        "splunk_field": ["fields", "cloud", "project", "id"]
+    },
+    {
+        "vector_field": ["metadata", "cloud", "project", "name"],
+        "splunk_field": ["fields", "cloud", "project", "name"]
+    },
+    {
+        "vector_field": ["metadata", "cloud", "provider"],
+        "splunk_field": ["fields", "cloud", "provider"]
+    },
+    ## CLOUD REGION
+    {
+        "vector_field": ["metadata", "cloud", "region"],
+        "splunk_field": ["fields", "cloud", "region"]
+    },
+    {
+        "vector_field": ["metadata", "cloud", "service", "name"],
+        "splunk_field": ["fields", "cloud", "service", "name"]
+    },
+    #### CONTAINERS
+    {
+        "vector_field": ["metadata", "container", "id"],
+        "splunk_field": ["fields", "container", "id"]
+    },
+    {
+        "vector_field": ["metadata", "container", "name"],
+        "splunk_field": ["fields", "container", "name"]
+    },
+    {
+        "vector_field": ["metadata", "container", "image", "name"],
+        "splunk_field": ["fields", "container", "image", "name"]
+    },
+    {
+        "vector_field": ["metadata", "container", "image", "hash", "all"],
+        "splunk_field": ["fields", "container", "image", "hash", "all"]
+    },
+    #### CUSTOM
+    {
+        "vector_field": ["metadata", "custom", "cross_project"],
+        "splunk_field": ["fields", "custom", "cross_project"]
+    },
+    {
+        "vector_field": ["metadata", "custom", "gcp"],
+        "splunk_field": ["fields", "custom", "gcp"]
+    },
+    {
+        "vector_field": ["metadata", "custom", "event_hub"],
+        "splunk_field": ["fields", "custom", "event_hub"]
+    },
+    {
+        "vector_field": ["metadata", "custom", "event_hub_topic"],
+        "splunk_field": ["fields", "custom", "event_hub_topic"]
+    },
+    {
+        "vector_field": ["metadata", "custom", "log_group"],
+        "splunk_field": ["fields", "custom", "log_group"]
+    },
+    {
+        "vector_field": ["metadata", "custom", "severity"],
+        "splunk_field": ["fields", "custom", "severity"]
+    },
+    {
+        "vector_field": ["metadata", "custom", "vector_group"],
+        "splunk_field": ["fields", "custom", "vector_group"]
+    },
+    {
+        "vector_field": ["message"],
+        "splunk_field": ["event"]
+    },
+    #### VECTOR
+    {
+        "vector_field": ["vector", "source_type"],
+        "splunk_field": ["fields", "vector", "source_type"]
+    },
+    {
+        "vector_field": ["metadata", "errors"],
+        "splunk_field": ["fields", "vector", "errors"]
+    },
+    {
+        "vector_field": ["metadata", "errors", "note"],
+        "splunk_field": ["fields", "vector", "errors", "note"]
+    },
+
+    {
+        "vector_field": ["metadata", "dropped"],
+        "splunk_field": ["fields", "vector", "errors", "dropped"]
+    },
+    {
+        "vector_field": ["_raw"],
+        "splunk_field": ["fields", "vector", "_raw"]
+    }
+]
+
+log("Event:", "debug", 0)
+log(., "debug", 0)
+
+# For each value in the the VNS Mapping:
+#  - Copy the value from the source location in the event to the destination location
+#  - Remove the source key and value
+#  - Remove any keys with null values
+
+errors = []
+
+for_each(vcs_mapping) -> |key, val| {
+    # Get the data value
+    data_value, err = get(., val.vector_field)
+    if err != null {
+        log(err, "error", 0)
+        errors = push(errors, err)
+    }
+    # Check if the value is null, if it is, it wasnt in the event, continue
+    if !is_nullish(data_value) && !is_null(data_value) {
+        # Move the value to the new key, remove the old key
+        ., err = set(., val.splunk_field, data_value)
+        if err != null {
+            log(err, "error", 0)
+            errors = push(errors, err)
+        }
+        if val.vector_field != val.splunk_field {
+            ., err = remove(., val.vector_field, true)
+        }
+        if err != null {
+            log(err, "error", 0)
+            errors = push(errors, err)
+        }
+    } else {
+        remove!(., val.vector_field)
+    }
+}
+
+# Check if the message/event is an object already? if not, is the content is JSON string?, or could be parsed as JSON.
+enable_event_typing = to_bool(get_env_var("VECTOR_ENABLE_EVENT_TYPING") ?? "false") ?? false
+if enable_event_typing {
+    event = .event
+    event_encoding = "unknown"
+
+    if (is_object(event); is_array(event)) {
+        event_encoding = "json"
+    } else if (is_float(event); is_integer(event)) {
+        event_encoding = "number"
+    } else if is_boolean(event) {
+        event_encoding = "bool"
+    } else if is_string(event) {
+        event_encoding = "string"
+        if is_json(event, "object") ?? false {
+            event, err = parse_json(event)
+            if err != null {
+                log(err, "error", 0)
+                errors = push(errors, err)
+            } else {
+                .event = event
+                event_encoding = "json"
+            }
+        }
+    } else if is_nullish(event) {
+        event_encoding = "null"
+        errors = push(errors, "event content was null or null-ish.")
+        .event = "null"
+    }
+
+    .fields.metadata.event_encoding = event_encoding
+}
+
+
+# If .timestamp is not type timestamp, try to convert it to a timestamp value.
+if !is_timestamp(.timestamp) {
+    .timestamp, err = parse_timestamp(.timestamp, "%+")
+    if err != null {
+        .timestamp, err = parse_timestamp(.timestamp, "%c")
+        if err != null {
+            .timestamp, err = parse_timestamp(.timestamp, "%s")
+            if err != null {
+                errors = push(errors, "vcs2splunk: error converting timestamp {{err}}")
+                log("vcs2splunk: error converting timestamp {{err}}", "error", 0)
+            }
+        }
+    }
+}
+
+# If .timestamp is type timestamp, set .time to the value and remove .timestamp
+if is_timestamp(.timestamp) {
+    .time = del(.timestamp)
+} else {
+    .time = now()
+    errors = push(errors, "Invalid timestamp value. Using current time.")
+}
+
+# Convert the timestamp into unix timestamp in milliseconds
+.time = to_unix_timestamp(.time, unit: "milliseconds") ?? to_unix_timestamp(now())
+time = .time
+
+### Setting the index
+if (is_nullish(.index)){
+    if ( !is_nullish(.fields.custom.index.prefix) && !is_nullish(.fields.custom.index.suffix)) {
+        .index = (.fields.custom.index.prefix + "_" + .fields.custom.index.suffix) ?? null
+    } else if is_nullish(.fields.custom.index.prefix) && !is_nullish(.fields.custom.index.suffix) && is_nullish(.fields.custom.cross_project) {
+        .index = (to_string(get_env_var("VECTOR_SPLUNK_INDEX_PREFIX") ?? "" ) + "_" + .fields.custom.index.suffix) ?? null
+    } else if (!is_nullish(get_env_var("VECTOR_SPLUNK_INDEX_PREFIX_OVERRIDE") ?? null) && !is_nullish(.fields.custom.index.suffix) && is_nullish(.fields.custom.cross_project)) {
+        .index = (to_string(get_env_var("VECTOR_SPLUNK_INDEX_PREFIX_OVERRIDE") ?? "") + "_" + .fields.custom.index.suffix) ?? null
+    }
+}
+
+# If the index is not set, then set to default index
+if (is_nullish(.index) || ( is_string(.index) && starts_with(string!(.index), "_")) || ( is_string(.index) && ends_with(string!(.index), "_")) && is_nullish(.fields.custom.cross_project)) {
+    .index = get_env_var("VECTOR_DEFAULT_SPLUNK_INDEX") ?? "splunk_dsp_hec"
+}
+
+if ( is_nullish(.fields.custom.index.prefix) || is_nullish(.fields.custom.index.suffix)) && !is_nullish(.fields.custom.cross_project) {
+    .index = .fields.custom.index.default
+}
+
+# Override the Splunk index if set
+override_index, _ = get_env_var("VECTOR_SPLUNK_INDEX_OVERRIDE")
+if !is_nullish(override_index) && is_nullish(.fields.custom.cross_project) {
+    .index = override_index
+}
+
+# Remove index fields
+del(.fields.custom.cross_project)
+del(.fields.custom.index.default)
+del(.fields.custom.index.prefix)
+del(.fields.custom.index.suffix)
+
+# Copy new errors to the errors field.
+if !is_nullish(errors){
+    .fields.vector.to_splunk_format.errors = errors
+}
+
+# Set sourcetype if unknown
+if is_nullish(.sourcetype){
+    .sourcetype = "vector:unknown"
+}
+
+# Set source if unknown
+if is_nullish(.source){
+    .source = "vector:unknown"
+}
+
+# Set the partition key to the current timestamp
+.partition_key = md5(to_string(from_unix_timestamp!(to_unix_timestamp(now(), "milliseconds"), "milliseconds")))
+
+# Set vector host
+.fields.vector.aggregator = {}
+.fields.vector.aggregator.name = get_env_var("NS2_VM_NAME") ?? null
+.fields.vector.aggregator.id = get_env_var("NS2_GCP_VM_ID") ?? null
+
+# Flatten the fields for Splunk fields key
+.fields = flatten(compact(.fields))
+
+# Compact all fields
+. = compact(.)
+.time = time
+
+# Log the event after the flattening of Splunk fields key
+log("Event after flattening splunk fields key:", "debug", 0)
+log(., "debug", 0)
+
+# Return the event to be sent to Firehose/Splunk
+.

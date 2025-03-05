@@ -1,0 +1,30 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowAWSVPCFlowLogService",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "vpc-flow-logs.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    },
+    {
+      "Sid": "AllowCloudWatchtoFlowLogs",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "logs.${ region }.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    },
+    {
+      "Sid": "AllowExternalEntitytoIngestLogs",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "${ destination_aws_account_arn }"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {}
+    }
+  ]
+}

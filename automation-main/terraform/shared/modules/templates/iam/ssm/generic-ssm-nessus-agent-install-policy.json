@@ -1,0 +1,49 @@
+{
+    "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "ListAllBuckets",
+          "Effect": "Allow",
+          "Action": [
+              "s3:GetBucketLocation",
+              "s3:ListAllMyBuckets"
+          ],
+          "Resource": "*"
+      },
+      {
+          "Sid": "ListBucketContents",
+          "Effect": "Allow",
+          "Action": [
+              "s3:ListBucket"
+          ],
+          "Resource": [
+              "${ s3_bucket_arn }"
+          ],
+          "Condition": {
+            "StringLike": {
+              "s3:prefix":["${ access_below_path }/*"]
+            }
+          }
+      },
+      {
+          "Sid": "GetBucketContents",
+          "Effect": "Allow",
+          "Action": [
+              "s3:GetObject"
+          ],
+          "Resource": [
+              "${ s3_bucket_arn }/${ access_below_path }/*"
+          ]
+      },
+      {
+          "Sid": "AllowSSMDescribeInstance",
+          "Effect": "Allow",
+          "Action": [
+              "ssm:DescribeInstanceInformation"
+          ],
+          "Resource": [
+              "*"
+          ]
+      }
+    ]
+  }

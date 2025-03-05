@@ -1,0 +1,24 @@
+---
+# Inputs: spr_file_checksum
+# Outputs: Assert Checksum matches defaults `spr_defaults_checksum`
+
+- name: "Block: Validate spr_defaults checksum"
+  block:
+    - name: Get file path of first inventory
+      ansible.builtin.set_fact:
+        source1: "{{ ansible_inventory_sources.0 }}"
+
+    - name: Get the SHA1 checksum
+      ansible.builtin.stat:
+        path: "{{ source1 }}"
+        checksum_algorithm: sha1
+      register: stat_out
+
+    - name: Assert checksum of spr_defaults file
+      ansible.builtin.assert:
+        that: stat_out.stat.checksum == spr_defaults_checksum
+        success_msg: SPR Defaults File Checksum matches.
+        fail_msg: |
+          Checksum for first inventory file does not match recorded checksum for SPR Defaults File.
+          Please ensure that the first inventory passed in at the CLI points to the SPR Defaults File.
+...

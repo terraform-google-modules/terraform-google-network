@@ -1,0 +1,8 @@
+# Outputs:
+distributed_calculate_disks_output_custom_volume_map: {}
+
+# Test Disk Creation
+distributed_calculate_disks_test_app_swap: false
+distributed_calculate_disks_test_app_sapmnt: false
+distributed_calculate_disks_test_db_hana: false
+distributed_calculate_disks_test_usr_sap: false

@@ -1,0 +1,20 @@
+- name: "Push system pki ssfs store dat and key files"
+  become: true
+  ansible.builtin.copy:
+    src: "/tmp/hsr-test/{{ item.file }}"
+    dest: "{{ item.path }}{{ item.file }}"
+    owner: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+    group: sapsys
+    mode: "{{ item.mode }}"
+    backup: yes
+  loop:
+  - {
+      path: "/usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/SYS/global/security/rsecssfs/data/",
+      file: "SSFS_{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}.DAT",
+      mode: "0600",
+    }
+  - {
+      path: "/usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/SYS/global/security/rsecssfs/key/",
+      file: "SSFS_{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}.KEY",
+      mode: "0640",
+    }

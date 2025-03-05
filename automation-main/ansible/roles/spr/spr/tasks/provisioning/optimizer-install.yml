@@ -1,0 +1,185 @@
+---
+# Synopsis: SAP SCM Optimizer installation used for deployment process
+# Inputs:
+#   spr_app_install_source: Source folder for the application install binaries
+#   spr_app_install_file_ini_params: Location of the input parameters file
+#   spr_app_install_file_instkey: Location of the instkey.pkey file
+#   spr_app_install_file_swpm_sapinst: Location of the SWPM Sapinst
+#   spr_app_install_hostname: Hostname of the application
+#   spr_app_install_sid: Target SID of the instance
+#   spr_app_install_product: Product to install
+# Outputs:
+# Comments:
+
+  - name: Remove /tmp/sapinst_instdir
+    become: true
+    file:
+      path: /tmp/sapinst_instdir
+      state: absent
+
+# BEGIN BLOCK: Install SAP GW for Optimizer
+  - name: 'BLOCK: Install SAP GW for Optimizer'
+    block:
+      - name: Create [sid]adm user
+        become: true
+        ansible.builtin.user:
+          name: '{{ spr_app_install_sid|lower }}adm'
+          group: sapsys
+          shell: /bin/csh
+          comment: SAP System Administrator
+
+      - name: Save Configuration Files to /tmp/{{ spr_app_install_product }}
+        become: true
+        copy:
+          dest: /tmp/{{ spr_app_install_product }}/
+          src: '{{ item }}'
+          force: yes
+          remote_src: yes
+        loop_control:
+          label: Saving /tmp/{{ spr_app_install_product }}/{{ item | basename }}
+        loop:
+          - '{{ spr_app_install_file_ini_params }}'
+          - '{{ spr_app_install_file_instkey }}'
+
+      - name: Update SAP GW Install ini file
+        ini_file:
+          path: /tmp/{{ spr_app_install_product }}/{{ spr_app_install_file_ini_params.split('/')[-1] }}
+          create: no
+          section:
+          option: '{{ item.name }}'
+          value: '{{ item.value }}'
+          no_extra_spaces: true
+        loop_control:
+          label: Modifying value of {{ item.name }} to {{ item.value }} in {{ spr_app_install_file_ini_params }}
+        loop:
+          - {name: NW_GW_Instance.gwVirtualHostname, value: '{{ spr_app_install_hostname }}'}
+          - {name: NW_GetSidNoProfiles.sid, value: '{{ spr_app_install_sid|upper }}'}
+        become: true
+        no_log: true
+
+      - name: Ensure sapinst is executable
+        become: true
+        file:
+          path: '{{ spr_app_install_file_swpm_sapinst }}'
+          state: file
+          mode: a+x
+
+      - name: Execute SAPInst
+        become: true
+        shell: >-
+          {{ spr_app_install_file_swpm_sapinst }}
+          SAPINST_INPUT_PARAMETERS_URL=/tmp/{{ spr_app_install_product }}/{{ spr_app_install_file_ini_params.split('/')[-1] }}
+          SAPINST_EXECUTE_PRODUCT_ID='NW_Gateway:NW750.IND.PD'
+          SAPINST_SKIP_DIALOGS=true
+          SAPINST_START_GUISERVER=false
+        args:
+          chdir: /
+        ignore_errors: true
+
+# END BLOCK: Install SAP GW for Optimizer
+
+# BEGIN BLOCK: Install SAP Optimizer
+  - name: 'BLOCK: Install SAP Optimizer'
+    block:
+      - name: Copy Optimizer executables from media
+        become: true
+        ansible.builtin.copy:
+          src: '{{ spr_app_install_source }}/scmopt'
+          dest: /usr/sap/{{ spr_app_install_sid|upper }}/
+          owner: '{{ spr_app_install_sid|lower }}adm'
+          group: sapsys
+          remote_src: yes
+
+      - name: 'Create lib link: libgurobi100.so'
+        become: yes
+        become_user: '{{ spr_app_install_sid|lower }}adm'
+        file:
+          src: /usr/sap/{{ spr_app_install_sid|upper }}/scmopt/libgurobi100.so
+          dest: /usr/sap/{{ spr_app_install_sid|upper }}/SYS/exe/uc/linuxx86_64/libgurobi100.so
+          force: yes
+          state: link
+
+      - name: Create the link /usr/lib64/libstdc++.so.6
+        become: yes
+        file:
+          src: /opt/rh/SAP/lib64/compat-sap-c++-10.so
+          dest: /usr/lib64/libstdc++.so.6
+          state: link
+
+      - name: 'Create the lib link: libgurobi110.so'
+        become: yes
+        become_user: '{{ spr_app_install_sid|lower }}adm'
+        file:
+          src: /usr/sap/{{ spr_app_install_sid|upper }}/scmopt/libgurobi110.so
+          dest: /usr/sap/{{ spr_app_install_sid|upper }}/SYS/exe/uc/linuxx86_64/libgurobi110.so
+          force: yes
+          state: link
+
+      - name: chown and group for scmoptimizer
+        ansible.builtin.file:
+          path: /usr/sap/{{ spr_app_install_sid|upper }}/scmopt
+          owner: '{{ spr_app_install_sid|lower }}adm'
+          group: sapsys
+
+      - name: Append entry for gw acl parameter
+        become: true
+        become_user: '{{ spr_app_install_sid|lower }}adm'
+        ansible.builtin.lineinfile:
+          path: /sapmnt/{{ spr_app_install_sid|upper }}/profile/{{ spr_app_install_sid|upper }}_G00_{{ spr_app_install_hostname|lower }}
+          line: gw/acl_mode = 0
+          state: present
+          insertafter: EOF
+
+# END BLOCK: Install SAP Optimizer
+
+# Restart SAP GW
+
+  - name: Restarting SAPGW
+    shell: /usr/sap/{{ spr_app_install_sid|upper }}/SYS/exe/uc/linuxx86_64/stopsap
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: /usr/sap/{{ spr_app_install_sid|upper }}/SYS/exe/uc/linuxx86_64
+
+  - name: Pause for SAP service to stop
+    pause:
+      seconds: 30
+
+  - name: Get Process list
+    shell: /usr/sap/{{ spr_app_install_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function GetProcessList
+    become: true
+    environment:
+      LD_LIBRARY_PATH: /usr/sap/{{ spr_app_install_sid|upper }}/SYS/exe/uc/linuxx86_64
+    failed_when: false
+    changed_when: false
+    register: sapapp_process_output
+
+  - name: Check if SAP GW is already stopped
+    assert:
+      that: |
+        'GREEN' not in sapapp_process_output.stdout
+      success_msg: Application process not detected. Starting in next block
+      fail_msg: Application is already started. Skipping next block
+    changed_when: false
+    failed_when: false
+
+  - name: 'BLOCK: Start SAP GW'
+    when: "'GREEN' not in sapapp_process_output.stdout"
+    become: true
+    become_user: '{{ spr_app_install_sid|lower }}adm'
+    block:
+      - name: Starting SAPGW 00
+        shell: /usr/sap/{{ spr_app_install_sid|upper }}/SYS/exe/uc/linuxx86_64/startsap
+        failed_when: false
+        environment:
+          LD_LIBRARY_PATH: /usr/sap/{{ spr_app_install_sid|upper }}/SYS/exe/uc/linuxx86_64
+
+      - name: Pause for SAP service to start
+        pause:
+          seconds: 20
+
+      - name: Output post-start processes
+        debug:
+          var: sapapp_poststart_process_output.stdout_lines
+
+# SAP GW Restart completed
+...

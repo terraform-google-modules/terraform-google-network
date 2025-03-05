@@ -1,0 +1,22 @@
+#jinja2: trim_blocks:False
+{% for port in net_ports %}
+{% set port_number = port.port | string | lower |
+    replace('nn', system_instance_number | default ('00', true)) |
+    replace('nx', '%02d' | format(system_instance_number | default ('01', true) | int + 1 ) | int)
+-%}
+
+[[inputs.net_response]]
+    name_override = "{{ port.name }}"
+    protocol = "{{ port.protocol if port.protocol is defined else 'tcp' }}"
+    address = "{{ port.host if port.host is defined else 'localhost' }}:{{ port_number }}"
+    timeout = "3s"
+    fielddrop = ["result_type", "string_found"]
+
+    [inputs.net_response.tags]
+        port_id = "{{ port.port }}"
+        port = "{{ port_number }}"
+        es_pipeline = "ns2_metrics_net_response"
+        {% if port.application is defined %}application = "{{ port.application }}"{% endif %}
+        {% if port.service is defined %}service = "{{ port.service }}"{% endif %}
+
+{% endfor %}

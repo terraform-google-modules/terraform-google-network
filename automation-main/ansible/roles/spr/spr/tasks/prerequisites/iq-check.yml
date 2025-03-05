@@ -1,0 +1,29 @@
+---
+# Synopsis: Validates s4app Prerequisites
+# Inputs:
+#   spr_app_check_source : Source folder for the Application install binaries
+#   spr_app_check_file_ini_params : Location of the input parameters file
+#   spr_app_check_file_instkey : Location of the instkey.pkey file
+#   spr_app_check_file_swpm_sapinst : Location of the SWPM Sapinst
+#   spr_app_check_saphostagent_source : Location of the SAPHOSTAgent source
+# Outputs:
+# Comments:
+
+- name: Validate paths
+  include_tasks: general/mount-check.yml
+  vars:
+    spr_mount_check_path: "{{ item.path }}"
+    spr_mount_check_size: "{{ item.size|default('0',true) }}"
+  loop:
+  - path: "/usr/sap"
+  - path: "/sapmnt/"
+  - path: "/sybase/{{ spr_iq_install_sid }}/"
+  - path: "/sybase/{{ spr_iq_install_sid }}/data/"
+  - path: "/sybase/{{ spr_iq_install_sid }}/saplog_1/"
+  - path: "/sybase/{{ spr_iq_install_sid }}/saptemp_1"
+  - path: "/sybase/{{ spr_iq_install_sid }}/sapdata_1"
+  - path: "/sybase/{{ spr_iq_install_sid }}/sapdata_2"
+  - path: "/sybase/{{ spr_iq_install_sid }}/saparchive_1"
+  - path: "/sybase/{{ spr_iq_install_sid }}/shmdump/"
+  - path: "{{ spr_iq_check_source }}"
+...

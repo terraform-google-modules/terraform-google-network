@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowExternalEntitytoIngestLogs",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "${ destination_aws_account_arn }"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {}
+    }
+  ]
+}

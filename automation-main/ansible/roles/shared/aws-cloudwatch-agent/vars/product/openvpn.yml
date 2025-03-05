@@ -1,0 +1,9 @@
+---
+# List of openvpn-specific log groups
+# When 'openvpn' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_openvpn:
+  - file_path: /var/log/openvpn*
+    log_group_name: /var/log/openvpn
+    # timestamp: Sat Nov 14 02:47:26 2020
+    timestamp_format: '%a %b %d %H:%M:%S %Y'
+...

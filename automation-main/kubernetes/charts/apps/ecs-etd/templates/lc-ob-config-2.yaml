@@ -1,0 +1,348 @@
+{{- $etd_lc_ob := ( index .Values "etd-logcollector") -}}
+{{- $etd_lc_ob_trustore_pass := $etd_lc_ob.outBound.truststore.password_dec -}}
+{{- $ecs_etd := ( index .Values "ecs-etds") -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    {{- include ".helpers_override.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-3"
+    helm.sh/hook-delete-policy: "hook-succeeded,before-hook-creation"
+  name: "{{ .Values.customer }}-ecs-etd-lc-ob-config-2"
+  namespace: {{ .Release.Namespace }}
+spec:
+  template:
+    spec:
+      serviceAccountName: etd-job-sa
+      containers:
+        - name: kubectl
+          image: "{{ $etd_lc_ob.image.repository }}/bitnami-kubectl:{{ $ecs_etd.initContainerVersions.bitnamiKubectl }}"
+          command:
+            - bash
+            - "-c"
+            - |
+              cat <<'EOF' | kubectl apply -f -
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: {{ .Values.customer -}}-ecs-etd-lc-ob-config
+                namespace: {{ .Release.Namespace }}
+                annotations:
+                  argocd.argoproj.io/tracking-id: {{ .Values.customer -}}-ecs-etd:/Secret:{{- .Values.customer -}}-ecs-etd/{{- .Values.customer -}}-ecs-etd-lc-ob-config
+                labels:
+                  helm-delete: "true"
+                  app.kubernetes.io/name: {{ .Values.customer -}}-ecs-etd-lc-ob-config
+                  {{ include ".helpers_override.labels" . | nindent 18 }}
+              type: Opaque
+              stringData:
+                {{- if $etd_lc_ob.outBound.db }}
+                {{- range $index, $db := $etd_lc_ob.outBound.db }}
+                jdbc-{{ $db.hostname }}.properties: |
+                  {{- if $db.username }}
+                  user={{ $db.username }}
+                  password={{ $db.password }}
+                  {{- end }}
+                  trustStore=/etd/truststore/truststore.p12
+                  {{- if $etd_lc_ob_trustore_pass }}
+                  trustStorePassword={{ $etd_lc_ob_trustore_pass }}
+                  {{- end }}
+                  trustStoreType=PKCS12
+                  encrypt=true
+                  validateCertificate=true
+                {{- end }}
+                {{- end }}
+                log4j2.xml: |
+                  <?xml version="1.0" encoding="UTF-8"?>
+                  <Configuration status="info" name="LogCollector" packages="io.prometheus.client.log4j2, com.sap.etd.logcollector" shutdownHook="disable">
+                      <!-- Properties on need basis -->
+                      <Properties>
+                          <Property name="logPattern">%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ}{GMT+0} %-5p %c [%t]: %msg %throwable{short.message} %rThrowable{short}%n</Property>
+                      </Properties>
+                      <Appenders>
+                          <Prometheus name="METRICS"/>
+                          <!-- This is the right position for Prometheus tag -->
+                          <!-- Console Appender -->
+                          <Console name="LogToConsole">
+                              <PatternLayout>
+                                  <Pattern>${logPattern}</Pattern>
+                                  <alwaysWriteExceptions>false</alwaysWriteExceptions>
+                              </PatternLayout>
+                          </Console>
+                      </Appenders>
+                      <!-- Initializing the loggers -->
+                      <Loggers>
+                          <Root level="info">
+                              <AppenderRef ref="LogToConsole"/>
+                              <!-- Appender for LogToConsole you need otherwise you won't see any logs -->
+                              <AppenderRef ref="METRICS"/>
+                              <!-- This is required to export the new log4j prometheus metrics which offers an easy way to count the number
+                              of logs being written per log level, e.g. 10 errors have been logged since application start -->
+                          </Root>
+                      </Loggers>
+                  </Configuration>
+                etd-logcollector_config.xml: |
+                  <?xml version="1.0" encoding="utf-8"?>
+                  <LogCollectorConfiguration>
+                      <Monitoring>
+                          <Name>SAP Enterprise Threat Detection LogCollector</Name>
+                          <Prometheus>
+                              <ExporterPort>{{ $etd_lc_ob.outBound.monitoring.metricsPort }}</ExporterPort>
+                          </Prometheus>
+                      </Monitoring>
+                      <RateLimiter>
+                          <SizeLimit>
+                              <Enabled>false</Enabled>
+                              <LimitForPeriod>10000000</LimitForPeriod>
+                              <RefreshPeriod>1000</RefreshPeriod>
+                              <TimeoutDuration>5000</TimeoutDuration>
+                          </SizeLimit>
+                      </RateLimiter>
+                      {{- if or $etd_lc_ob.outBound.odataS4 $etd_lc_ob.outBound.odataC4C }}
+                      <ODataSubscribers>
+                        <WorkingDirectory>/etd/oDataSubscribers/</WorkingDirectory>
+                        {{- if $etd_lc_ob.outBound.odataS4 }}
+                        {{- range $index, $odata := $etd_lc_ob.outBound.odataS4 }}
+                        <ODataSubscriber>
+                          <Id>{{ $odata.fqdn }}_S4HANA_{{ $odata.sid }}</Id>
+                          <ODataVersion>V4</ODataVersion>
+                          <Enabled>true</Enabled>
+                          <Authenticator>{{ if $odata.uaaUrl }}OAuth{{ else }}basic{{ end }}</Authenticator>
+                          <ServiceUrl>https://{{ $odata.fqdn }}/sap/opu/odata4/sap/rsau_log_api/srvd_a2x/sap/rsau_log_api/0001/</ServiceUrl>
+                          <EntitySet>SecurityAuditLog</EntitySet>
+                          <LogCollectorName>LC_S4_{{ $odata.sid }}</LogCollectorName>
+                          <DatetimeProperty>log_tstmp</DatetimeProperty>
+                          <DatetimeFormat>Edm.DateTimeOffset</DatetimeFormat>
+                          {{- if $etd_lc_ob.outBound.truststore.cert -}}
+                          <Truststore>/etd/truststore/truststore.p12</Truststore>
+                          {{- end }}
+                          {{- if $etd_lc_ob_trustore_pass }}
+                          <TruststorePass>{{ $etd_lc_ob_trustore_pass }}</TruststorePass>
+                          {{- end }}                       
+                          {{- if $odata.uaaUrl }}
+                          {{- if or $odata.username $odata.password  }}
+                          {{- fail "password and username are mutually exclusive with UaaURL and truststore!" }}
+                          {{- end }}
+                          <UaaUrl>{{ $odata.uaaUrl }}</UaaUrl>
+                          {{- end }}
+                          {{- if $odata.username -}}
+                          {{- if $odata.uaaUrl }}
+                          {{- fail "password and username are mutually exclusive with UaaURL and truststore!" }}
+                          {{- end }}
+                          <Username>{{ $odata.username | required "username is required" }}</Username>
+                          <Password>{{ $odata.password | required "password is required"}}</Password>
+                          {{- end }}
+                        </ODataSubscriber>
+                        {{- end }}
+                        {{- end }}
+                        {{- if $etd_lc_ob.outBound.odataC4C }}
+                        {{- range $index, $odata := $etd_lc_ob.outBound.odataC4C }}
+                        <ODataSubscriber>
+                          <Id>C4C_{{ $odata.fqdn }}_QueryResults</Id>
+                          <Enabled>true</Enabled>
+                          <Authenticator>{{ if $odata.uaaUrl }}OAuth{{ else }}basic{{ end }}</Authenticator>
+                          <ServiceUrl>https://{{ $odata.fqdn }}/sap/c4c/odata/ana_businessanalytics_analytics.svc</ServiceUrl>
+                          <EntitySet>RPCCAB02_Q001QueryResults</EntitySet>
+                          <LogCollectorName>LC_C4C_{{ $odata.fqdn }}</LogCollectorName>
+                          <DatetimeProperty>CCHANGEDON</DatetimeProperty>
+                          <TimeProperty>CCHANGEDTIM</TimeProperty>
+                          <DatetimeFormat>Edm.DateTime</DatetimeFormat>
+                          {{- if $etd_lc_ob.outBound.truststore.cert -}}
+                          <Truststore>/etd/truststore/truststore.p12</Truststore>
+                          {{- end }}
+                          {{- if $etd_lc_ob_trustore_pass }}
+                          <TruststorePass>{{ $etd_lc_ob_trustore_pass }}</TruststorePass>
+                          {{- end }}                       
+                          {{- if $odata.uaaUrl }}
+                          {{- if or $odata.username $odata.password  }}
+                          {{- fail "password and username are mutually exclusive with UaaURL and truststore!" }}
+                          {{- end }}
+                          <UaaUrl>{{ $odata.uaaUrl }}</UaaUrl>
+                          {{- end }}
+                          {{- if $odata.username -}}
+                          {{- if $odata.uaaUrl }}
+                          {{- fail "password and username are mutually exclusive with UaaURL and truststore!" }}
+                          {{- end }}
+                          <Username>{{ $odata.username | required "username is required" }}</Username>
+                          <Password>{{ $odata.password | required "password is required"}}</Password>
+                          {{- end }}
+                        </ODataSubscriber>
+                        {{- end }}
+                        {{- end }}
+                      </ODataSubscribers>
+                      {{- end }}
+                      {{- if $etd_lc_ob.outBound.btp }}
+                      <SCPAuditLogs>		
+                        <WorkingDirectory>/etd/SCPSubscribers/</WorkingDirectory>
+                        {{- range $index, $btp := $etd_lc_ob.outBound.btp }}
+                        {{- if not $btp.accountId }}
+                        <!-- CF -->
+                        <SCPSubAccount>		
+                          <Enabled>true</Enabled>		
+                          <Type>CF</Type>		
+                          <UaaUrl>{{ $btp.uaaUrl | required "is required" }}</UaaUrl>		
+                          <ClientId>{{ $btp.clientId | required "is required" }}</ClientId>		
+                          <ClientSecret>{{ $btp.clientSecret | required "is required" }}</ClientSecret>		
+                          <AuditLogUrl>{{ $btp.auditLogUrl | required "is required" }}</AuditLogUrl>	
+                          <PollingIntervalInSeconds>30</PollingIntervalInSeconds>
+                          <LogCollectorName>LC_CF_{{ $btp.clientId | required "is required" }}</LogCollectorName>
+                        </SCPSubAccount>
+                        {{- end }}
+                        {{- if $btp.accountId }}
+                        <!-- NEO -->
+                        <SCPSubAccount>
+                          <Enabled>true</Enabled>
+                          <Type>NEO</Type>
+                          <AccountId>{{ $btp.accountId }}</AccountId>
+                          <UaaUrl>{{ $btp.auditLogUrl | required "is required" }}</UaaUrl>
+                          <ClientId>{{ $btp.clientId | required "is required" }}</ClientId>
+                          <ClientSecret>{{ $btp.clientSecret | required "is required" }}</ClientSecret>
+                          <AuditLogUrl>{{ $btp.auditLogUrl | required "is required" }}</AuditLogUrl>
+                          <PollingIntervalInSeconds>60</PollingIntervalInSeconds>
+                          <LogCollectorName>LC_NEO_{{ $btp.accountId | required "is required" }}</LogCollectorName>
+                        </SCPSubAccount>
+                        {{- end }}
+                        {{- end }}
+                      </SCPAuditLogs>
+                      {{- end }}
+                      {{- if $etd_lc_ob.outBound.db }}
+                      <DatabaseSubscribers>
+                        <WorkingDirectory>/etd/dbWorkingDirectory/</WorkingDirectory>
+                        {{- range $index, $db := $etd_lc_ob.outBound.db }}
+                        <DatabaseSubscriber> 
+                          <Id>{{ $index }}</Id> 
+                          <Enabled>true</Enabled> 
+                          <JDBCDriverClassName>com.sap.db.jdbc.Driver</JDBCDriverClassName> 
+                          <JDBCConnectionString>jdbc:sap://{{ $db.hostname }}:{{ $db.port }}/?reconnect=true</JDBCConnectionString> 
+                          <LogCollectorName>LC_HANA_{{ $db.hostname }}</LogCollectorName>
+                          <DatabasePropertiesFile>/etd/config/jdbc-{{ $db.hostname }}.properties</DatabasePropertiesFile>
+                            <SELECTStatement>{{ regexReplaceAll "," $db.selectstatement "\\," }}</SELECTStatement> 
+                          <TimestampColumn>LOG_DATE</TimestampColumn> 
+                          <PollingIntervalInSeconds>60</PollingIntervalInSeconds> 
+                        </DatabaseSubscriber>
+                        {{- end }}
+                      </DatabaseSubscribers>
+                      {{- end }}
+                      <Processing>
+                          <LogCollectorName>_default_</LogCollectorName>
+                          <MaxLogLength>32267</MaxLogLength>
+                          {{- if $etd_lc_ob.inBound.enabled }}
+                          <HTTPSender>
+                              <Enabled>true</Enabled>
+                              <DestinationType>Cloud</DestinationType>
+                              <ServiceKey>config/sk-x509.key</ServiceKey>
+                              <Compressed>true</Compressed>
+                          </HTTPSender>
+                          {{- end }}
+                          {{- if ne $etd_lc_ob.inBound.enabled true }}
+                          <Kafka>
+                              <LogCollector>
+                                  <Enabled>true</Enabled>
+                                  <PropertiesFile>config/lc.properties</PropertiesFile>
+                                  <Topics>
+                                      <Topic>
+                                        <Id>RTLogEventIn</Id>
+                                        <TargetTopicName>PRD-RTLogEventIn</TargetTopicName>
+                                        <ThreadCount>9</ThreadCount>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>PingFromSystemIn</Id>
+                                        <TargetTopicName>PRD-PingFromSystemIn</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>PingDetailFromSystemIn</Id>
+                                        <TargetTopicName>PRD-PingDetailFromSystemIn</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>UnrecognizedLogsOutForReplication</Id>
+                                        <TargetTopicName>PRD-UnrecognizedLogsOutForReplication</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>HRData</Id>
+                                        <TargetTopicName>PRD-HRData</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>UserHRDataIn</Id>
+                                        <TargetTopicName>PRD-UserHRDataIn</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>SystemData</Id>
+                                        <TargetTopicName>PRD-SystemData</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>UserSystemDataIn</Id>
+                                        <TargetTopicName>PRD-UserSystemDataIn</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>SystemApplicationServer</Id>
+                                        <TargetTopicName>PRD-SystemApplicationServer</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>ApplicationServerIP</Id>
+                                        <TargetTopicName>PRD-ApplicationServerIP</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>ApplicationServer</Id>
+                                        <TargetTopicName>PRD-ApplicationServer</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>NoteImplementationIn</Id>
+                                        <TargetTopicName>PRD-NoteImplementationIn</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>NoteImplementationSacfIn</Id>
+                                        <TargetTopicName>PRD-NoteImplementationSacfIn</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>SystemHeader</Id>
+                                        <TargetTopicName>PRD-SystemHeader</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>SystemDetail</Id>
+                                        <TargetTopicName>PRD-SystemDetail</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>TmdPingFromSystemIn</Id>
+                                        <TargetTopicName>PRD-PingFromSystemIn</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>TmdPingDetailFromSystemIn</Id>
+                                        <TargetTopicName>PRD-PingDetailFromSystemIn</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>ObjectDirectoryIn</Id>
+                                        <TargetTopicName>PRD-ObjectDirectoryIn</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>ObjectAuthorizationIn</Id>
+                                        <TargetTopicName>PRD-ObjectAuthorizationIn</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>MasterDataIn</Id>
+                                        <TargetTopicName>PRD-MasterDataIn</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>JSONLogEvents</Id>
+                                        <TargetTopicName>PRD-JSONLogEvents</TargetTopicName>
+                                      </Topic>
+                                      <Topic>
+                                        <Id>JSONMasterData</Id>
+                                        <TargetTopicName>PRD-JSONMasterData</TargetTopicName>
+                                      </Topic>
+                                  </Topics>
+                              </LogCollector>
+                          </Kafka>
+                          {{- end }}
+                          <BacklogQueue>
+                              <Enabled>true</Enabled>
+                              <Directory>backlog</Directory>
+                              <InMemoryElements>10000</InMemoryElements>
+                              <MaxFileSizeMB>10</MaxFileSizeMB>
+                              <MaxFiles>10</MaxFiles>
+                          </BacklogQueue>
+                      </Processing>
+                  </LogCollectorConfiguration>
+              EOF
+      restartPolicy: Never
+  backoffLimit: 4

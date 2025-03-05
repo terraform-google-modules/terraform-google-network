@@ -1,0 +1,629 @@
+---
+# defaults file for spr
+
+###### Main task defaults
+
+##### prerequisites/default_check.yml
+spr_defaults_validate: false                                    # Boolean - Validate the first inventory file.
+spr_defaults_checksum: 4083d4483014acde52d90db6af355342474e2909 # SHA1 value of the defaults file.
+
+##### general/tar-extract defaults
+spr_tar_extract_overwrite: false
+spr_tar_extract_async: false
+
+##### sshkey-setup task
+# Required
+#spr_sshkey_setup_os_login_group:   required input  # Primary group of the service account with SSH priviliges
+#spr_sshkey_setup_replication_role: required input  # The replication role of the host. Either `source` or `destination`
+#spr_sshkey_setup_replication_pair: required input  # Unique pair name. Should be max of 15 characters due to linux group name limitations.
+
+###### watchman-setup task
+# Required
+#spr_watchman_setup_replication_role: required input  # The replication role of the host. Either `source` or `destination`
+#spr_watchman_setup_replication_pair: required input  # Unique pair name. Should be max of 15 characters due to linux group name limitations.
+# Optional
+spr_watchman_setup_version: '2022.04.04.00'  # Numerical version of Watchman to download. Figure out how to get latest at later point in time.
+spr_watchman_setup_service_user: 'root'      # User to run the systemd service as
+spr_watchman_setup_settle: 5000              # Milliseconds to wait for file operations to cease before trigger
+
+###### watchman-preconfigure task
+# Required
+#spr_watchman_preconfigure_replication_pair : required input  # Unique pair name. Should be max of 15 characters due to linux group name limitations.
+#spr_watchman_preconfigure_lookup :           required input  # Identifies which target folder set to configure Watchman for
+# Optional
+spr_watchman_preconfigure_force: false
+# These are predefined replication target sets
+spr_watchman_preconfigure_dict:
+  pas:
+    - target_folder: '/usr/sap'
+      trigger_name: 'usrsap_replication'
+      exclusion_list: ["trans/*", "interface/*", "work/*", "interfaces/*"]
+    - target_folder: '/sapmnt'
+      trigger_name: 'sapmnt_replication'
+      exclusion_list: ["trans/*", "interface/*", "work/*", "interfaces/*"]
+  aas:
+    - target_folder: '/usr/sap'
+      trigger_name: 'usrsap_replication'
+      exclusion_list: ["trans/*", "interface/*", "work/*", "interfaces/*"]
+  nfsonly:
+    - target_folder: '/usr/sap'
+      trigger_name: 'usrsap_replication'
+      exclusion_list: []
+
+###### watchman_configure task
+# Required
+#spr_watchman_configure_replication_pair: required input  # Unique pair name. Should be max of 15 characters due to linux group name limitations.
+#spr_watchman_configure_target_folder:    required input  # The target folder to replicate.
+#spr_watchman_configure_trigger_name:     required input  # Name of the Watchman trigger to use
+#spr_watchman_configure_exclusion_list:   required input  # List of file/folders (regex) to exclude
+# Optional
+spr_watchman_configure_force: false
+spr_watchman_configure_rsync_bandwidth: 10000
+
+###### watchman-logrotate.j2 defaults
+# See `man logrotate` for full descriptions
+spr_logrotate_maxsize: '200M'             # Maximum Size
+spr_logrotate_rotate: 15                  # How many files to keep
+#spr_logrotate_file_path: required input  # Location of file to rotate
+
+##### This is the standard deployment password. It should be changed immediately upon handover of the system.
+standard_deployment_password: QwerRewq123
+
+##### Syncthing
+spr_syncthing_prefix: /staging/syncthing
+spr_versions_to_keep: 1
+spr_cleanup_older: false
+
+
+##### Application Deployment
+# NOTE: Path/Version inconsistencies found:
+## bw4hana_addons
+## iq
+## optimizer
+## bobj_bip
+## data_services
+## data_warehouse
+## lumira
+
+# NOTE: The following are subfolders of BWNetweaver
+## po
+## portal
+## router
+
+spr_products:
+  access_control:
+    version: SAP_Access_Control_12.0_SPS27
+    path: /staging/product-line/SAP_Access_Control/SAP_ACCESS_CONTROL/SAP_ACCESS_CONTROL_12.0
+  access_control_s4hana:
+    version: SAP_AC_12_0_FOR_SAP_S4HANA_SPS22
+    path: /staging/product-line/SAP_Access_Control/SAP_ACCESS_CONTROL_FOR_S4HANA
+  ads:
+    version: ADOBE_DOCUMENT_SERVICES_7.50_SPS30
+    path: /staging/product-line/ADOBE_DOCUMENT_SERVICES/ADOBE_DOCUMENT_SERVICES_7.50
+  attp:
+    version: SAP_Advanced_Track_Trace_Pharmaceuticals_3.0_SPS04_With_Addons
+    path: /staging/product-line/SAP_Advanced_Track_Trace_Pharmaceuticals
+  bobj_bip:
+    version: SBOP_BI_PLATFORM_4.3_SP04_P500
+    path: /staging/product-line/BusinessObjects_Business_Intelligence/SBOP_BI_PLATFORM_ENTERPRISE
+  bw4hana:
+    version: SAP_BW4HANA_2023_SPS02
+    path: /staging/product-line/SAP_BW4HANA/SAP_BW4HANA
+  bw4hana_addons:
+    version: SAP_BW4HANA_2021_SPS08_WITH_ADD_ONS
+    path: /staging/product-line/SAP_BW4HANA/SAP_BW4HANA
+  bw4hana_bpc:
+    version: SAP_BW4HANA_2023_SPS01_SAP_BPC_2021_SPS08
+    path: /staging/product-line/SAP_BW4HANA/SAP_BW4HANA
+  bwnetweaver:
+    version: SAP_BW_NetWeaver_7.5_SPS31
+    path: /staging/product-line/SAP_NetWeaver/SAP_BW_NETWEAVER
+  car:
+    version: SAP_CARAB_5.0_SPS07
+    path: /staging/product-line/SAP_Customer_Activity_Repository/CAR_RETAIL_APPLICATIONS_BUNDLE
+  cloudconnector:
+    version: SAP_CLOUD_CONNECTOR_2.0_2.17.2
+    path: /staging/product-line/SAP_Cloud_Platform/SAP_CLOUD_CONNECTOR
+  contentserver:
+    version: SAP_CONTENT_SERVER_7.54_PL317
+    path: /staging/product-line/SAP_NetWeaver/CONTENT_SERVER
+  cors:
+    version: SAP_CORP_SERIALIZATION_1_FPS02_2024
+    path: /staging/product-line/SAP_Corporate_Serialization/SAP_CORP_SERIALIZATION
+  cpids_agent:
+    version: DATA_SERVICES_AGENT_2411_1.0.11.6104
+    path: /staging/product-line/SAP_Cloud_Platform/SAP_CLOUD_PLAT_INT_DATA_SERV_LINUX
+  crm:
+    version: EHP4_FOR_SAP_CRM_7.0_SPS22
+    path: /staging/product-line/SAP_Customer_Relationship_Management/SAP_CRM_ENHANCE_PACKAGE
+  data_services:
+    version: SAP_DATA_SERVICES_4.3_SPS03
+    path: /staging/product-line/SAP_Data_Services/SAP_DATA_SERVICES
+  data_warehouse:
+    version: SAP_HANA_DW_FOUNDATION_2.0_SPS05_PL02
+    path: /staging/product-line/SAP_HANA/SAP_HANA_DW_FOUNDATION
+  dpagent:
+    version: SDI_DATA_PROVISIONING_AGENT_2.7.6
+    path: /staging/product-line/SAP_HANA/SDI_DATA_PROVISIONING_AGENT
+  ehp8_erp:
+    version: EHP8_FOR_SAP_ERP_6.0_SPS22_NOV2024
+    path: /staging/product-line/SAP_ERP/SAP_ERP_ENHANCE_PACKAGE
+  etd:
+    version: ENTERPRISE_THREAT_DETECT_2.0_SP6_PL41V2
+    path: /staging/product-line/SAP_Enterprise_Threat_Detection/ENTERPRISE_THREAT_DETECT_2.0
+  fiori_carab:
+    version: SAP_FIORI_FOR_SAP_CARAB_5.0_SPS07
+    path: /staging/product-line/SAP_FIORI/SAP_FIORI_FOR_SAP_CARAB
+  fiori_fes:
+    version: SAP_FIORI_FRONT-END_SERVER_6.0_SPS10
+    path: /staging/product-line/SAP_FIORI/SAP_FIORI_FRONT-END_SERVER
+  frun:
+    version: SAP_FOCUSED_RUN_5.0_FP00
+    path: /staging/product-line/SAP_SOLUTION_MANAGER/SAP_FOCUSED_RUN
+  gbtr:
+    version: SAP_GLOBAL_BATCH_TRACE_3.0_SPS08_NWSP30
+    path: /staging/product-line/SAP_Global_Batch_Traceability/SAP_GLOBAL_BATCH_TRACEABILITY
+  gts:
+    version: SAP_GTS_11.0_SPS24
+    path: /staging/product-line/SAP_Global_Trade_Services/SAP_GLOBAL_TRADE_SERVICES
+  gts_ed4hana:
+    version: SAP_GTS_ED_FOR_SAP_HANA_2023_SPS03
+    path: /staging/product-line/SAP_Global_Trade_Services/SAP_GTS_EDITION_FOR_SAP_HANA
+  hanacockpit:
+    version: SAP_HANA_COCKPIT_2.0_SPS_16_PATCH_09
+    path: /staging/product-line/SAP_HANA/SAP_HANA_COCKPIT
+  hana_ee:
+    version: SAP_HANA_ENTERPRISE_EDITION_2.0_SPS07_REV73
+    path: /staging/product-line/SAP_HANA/SAP_HANA_PLATFORM_EDITION/SAP_HANA_ENTERPRISE_EDITION
+  iq:
+    version: SYBASE_IQ_16.1_SP05-PL9/Media/ebf30768-server-16-sp05
+    path: /staging/product-line/SAP_IQ/SYBASE_IQ
+  lama_ent_java:
+    version: SAP_LANDSCAPE_MGT_ENT_JAVA_SP31
+    path: /staging/product-line/SAP_Landscape_Management/SAP_LANDSCAPE_MANAGEMENT_ENT/SAP_LANDSCAPE_MGT_ENT_3.0
+  lumira:
+    version: SAP_LUMIRA_SERVER_2.4_SP00_P7
+    path: /staging/product-line/SAP_Lumira/SAP_LUMIRA_SERVER
+  mii:
+    version: SAP_MII_15.5_SPS01_NW7.5_SPS27
+    path: /staging/product-line/Digital_Manufacturing/SAP_MII
+  nwjava:
+    version: AS_JAVA_NW_75_SP27
+    path: /staging/product-line/SAP_NetWeaver/AS_JAVA
+  optimizer:
+    version: SAP_SCM_OPTIMIZER_14.0_PL248
+    path: /staging/product-line/SAP_SCM_Optimizer/SAP_SCM_OPTIMIZER_14.0
+  payroll:
+    version: EHP8_FOR_SAP_ERP_6.0_SPS18
+    path: /staging/product-line/SAP_ERP/SAP_ERP_ENHANCE_PACKAGE_NS2_PAYROLL
+  platform_edition:
+    version: SAP_HANA_PLATFORM_EDITION_2.0_SPS07/SAP_HANA_PLATFORM_EDITION_2.0_SPS07_REV79
+    path: /staging/product-line/SAP_HANA/SAP_HANA_PLATFORM_EDITION
+  plc:
+    version: SAP_PRODUCT_LIFE_COST_4.0/SAP_PRODUCT_LIFECYCLE_COSTING_4.5
+    path: /staging/product-line/SAP_Product_Lifecycle_Costing/SAP_PRODUCT_LIFE_COST
+  po:
+    version: SAP_NETWEAVER_7.5/SAP_NETWEAVER_7.5_SPS29
+    path: /staging/product-line/SAP_NetWeaver
+  portal:
+    version: NetWeaver_Java_7.5_SPS28
+    path: /staging/product-line/SAP_NetWeaver/SAP_NW_ENTERPRISE_WORKSPACES
+  router:
+    version: SAPROUTER_7.54
+    path: /staging/product-line/SAPROUTER
+  s4hana:
+    version: SAP_S4HANA_2023_FPS01_022024
+    path: /staging/product-line/SAP_S4HANA/SAP_S4HANA
+  s4hana_addons:
+    version: SAP_S4HANA_2023_FPS02_ADDONS
+    path: /staging/product-line/SAP_S4HANA/SAP_S4HANA_ADDONS
+  s4hana_foundation:
+    version: SAP_S4HANA_FOUNDATION_2023_FPS02
+    path: /staging/product-line/SAP_S4HANA/SAP_S4HANA_FOUNDATION
+  s4hana_livecache:
+    version: SAP_S4HANA_2023_FPS00_LIVECACHE
+    path: /staging/product-line/SAP_S4HANA/SAP_S4HANA_LIVECACHE
+  sac_agent:
+    version: SAP_ANALYTICS_CLOUD_AGENT_1.0/SAP_ANALYTICS_CLOUD_AGENT_1.0_PL409
+    path: /staging/product-line/SAP_Analytics_Cloud
+  scm:
+    version: EHP4_FOR_SAP_SCM_7.0_SPS21
+    path: /staging/product-line/SAP_Supply_Chain_Management/SAP_SCM_ENHANCE_PACKAGE
+  slt:
+    version: SAP_LT_REPLICATION_SERVER_3.0_SPS12
+    path: /staging/product-line/SAP_Landscape_Transformation/SAP_LT_REPLICATION_SERVER
+  solman_abap:
+    version: SAP_SOLUTION_MANAGER_7.2_FPS20
+    path: /staging/product-line/SAP_SOLUTION_MANAGER/SAP_SOLUTION_MANAGER
+  solman_hdb:
+    version: SAP_SOLUTION_MANAGER_7.2_FPS20
+    path: /staging/product-line/SAP_SOLUTION_MANAGER/SAP_SOLUTION_MANAGER
+  solman_java:
+    version: SAP_SOLUTION_MANAGER_7.2_FPS20
+    path: /staging/product-line/SAP_SOLUTION_MANAGER/SAP_SOLUTION_MANAGER
+  srm:
+    version: EHP4_FOR_SAP_SRM_7.0_SPS19
+    path: /staging/product-line/SAP_Supplier_Relationship_Management/SAP_SRM_ENHANCE_PACKAGE
+  sso:
+    version: SAP_SINGLE_SIGN-ON_3.0_SPS02/2024_DEC
+    path: /staging/product-line/SAP_Single_Sign_On/SAP_SINGLE_SIGN_ON
+  tm:
+    version: SAP_TM_9.6_SPS09_SEP11
+    path: /staging/product-line/SAP_Transportation_Management/SAP_TRANSPORTATION_MANAGEMENT
+  webdispatcher:
+    version: SAP_WEB_DISPATCHER_7.93_PL100
+    path: /staging/product-line/SAP_Web_Dispatcher/SAP_WEB_DISPATCHER
+  java_rpm:
+    version: SAP_JVM_8.1/SAP_JVM_8.1_PL90/sapjvm-8.1.090-linux-x64.rpm
+    path: /staging/product-line/SAP_JVM
+  swpm2_0:
+    version: SWPM20SP18
+    path: /staging/product-line/software_logistics_toolset/SL_TOOLSET/SL_TOOLSET_1.0/SOFTWARE_PROVISIONING_MGR_2.0/Media
+  swpm1_0:
+    version: SWPM10SP41
+    path: /staging/product-line/software_logistics_toolset/SL_TOOLSET/SL_TOOLSET_1.0/SOFTWARE_PROVISIONING_MGR_1.0/Media
+
+
+instance_list:
+   access_control: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   access_control_s4hana: "ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }};D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }}"
+   ads: "J00,00,/sapmnt/G00/profile/G00_J00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};SCS01,01,/sapmnt/G00/profile/G00_SCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   attp: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   bw4hana: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   bw4hana_addons: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   bw4hana_bpc: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   bwnetweaver: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   car: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   cors: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   crm: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   etd: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   ehp7_erp: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   ehp8_erp: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   fiori_carab: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   fiori_fes: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   frun: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   gbtr: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   gts: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   gts_ed4hana: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   lama_ent_java: "J00,00,/sapmnt/G00/profile/G00_J00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};SCS01,01,/sapmnt/G00/profile/G00_SCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   mii: "J00,00,/sapmnt/G00/profile/G00_J00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};SCS01,01,/sapmnt/G00/profile/G00_SCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   nwjava: "J00,00,/sapmnt/G00/profile/G00_J00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};SCS01,01,/sapmnt/G00/profile/G00_SCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   optimizer: "G00,00,/sapmnt/G02/profile/G02_G00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }}"
+   payroll: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   po: "J00,00,/sapmnt/G00/profile/G00_J00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};SCS01,01,/sapmnt/G00/profile/G00_SCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   portal: "J00,00,/sapmnt/G00/profile/G00_J00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};SCS01,01,/sapmnt/G00/profile/G00_SCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   s4hana: "ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }};D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }}"
+   s4hana_addons: "ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }};D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }}"
+   s4hana_foundation: "ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }};D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }}"
+   s4hana_livecache: "ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }};D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }}"
+   solman_abap: "DVEBMGS00,00,/sapmnt/G00/profile/G00_DVEBMGS00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   solman_java: "J00,00,/sapmnt/G02/profile/G02_J00_app-g02,app-g02,00,{{ spr_app_install_hostname|lower }};SCS01,01,/sapmnt/G02/profile/G02_SCS01_app-g02,app-g02,01,{{ spr_app_install_hostname|lower }}"
+   scm: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   slt: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   srm: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   sso: "J00,00,/sapmnt/G00/profile/G00_J00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};SCS01,01,/sapmnt/G00/profile/G00_SCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   tm: "D00,00,/sapmnt/G00/profile/G00_D00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }};ASCS01,01,/sapmnt/G00/profile/G00_ASCS01_app-g00,app-g00,01,{{ spr_app_install_hostname|lower }}"
+   webdispatcher: "W00,00,/usr/sap/G00/profile/G00_W00_app-g00,app-g00,00,{{ spr_app_install_hostname|lower }}"
+
+spr_swpm_sapinst_abap: "{{ spr_products.swpm2_0.path }}/{{ spr_products.swpm2_0.version }}/sapinst"
+spr_swpm_sapinst_java: "{{ spr_products.swpm1_0.path }}/{{ spr_products.swpm1_0.version }}/sapinst"
+spr_saphostagent_source: "/staging/product-line/SAP_HOST_AGENT/SAP_HOST_AGENT_7.22_SP65"
+spr_cpids_agent_executable_source: "{{ spr_products.cpids_agent.path }}/{{ spr_products.cpids_agent.version }}/Media/dsod_agent"
+spr_cpids_executable_source: "{{ spr_products.cpids_agent.path }}/{{ spr_products.cpids_agent.version }}/Media/dsod_agent"
+spr_cpids_agent_installation_file_source: "{{ spr_products.cpids_agent.path }}/{{ spr_products.cpids_agent.version }}//Media/installation_files"
+spr_cpids_installation_file_source:  "{{ spr_products.cpids_agent.path }}/{{ spr_products.cpids_agent.version }}/Media/installation_files"
+spr_sapcar_source: "/staging/product-line/SAPCAR/Upgrade_Content/SAPCAR-1320-Linux/SAPCAR_1320-80000935.EXE"
+spr_hana_client_source: "/staging/product-line/SAP_HANA/SAP_HANA_PLATFORM_EDITION/SAP_HANA_PLATFORM_EDITION_2.0_SPS07/HDB_CLIENT_REV2.21/SAP_HANA_CLIENT"
+# Below Variables are for SAP Data Services/Information Steward Install
+spr_file_ini_params_ips: "{{ spr_products.data_services.path }}/{{ spr_products.data_services.version }}/Configuration_Content/install/ds-ips-response.ini"
+spr_file_ini_params_data_services: "{{ spr_products.data_services.path }}/{{ spr_products.data_services.version }}/Configuration_Content/install/ds-response.ini"
+spr_file_ini_params_information_steward: "{{ spr_products.data_services.path }}/{{ spr_products.data_services.version }}/Configuration_Content/install/is-response.ini"
+spr_file_ips_setup_sh: "{{ spr_products.data_services.path }}/{{ spr_products.data_services.version }}/Media/IPS/setup.sh"
+spr_file_data_services_setup_sh: "{{ spr_products.data_services.path }}/{{ spr_products.data_services.version }}/Media/DS/setup.sh"
+spr_file_information_steward_setup_sh: "{{ spr_products.data_services.path }}/{{ spr_products.data_services.version }}/Media/IS/setup.sh"
+spr_hdbclient_source_data_services: "{{ spr_products.platform_edition.path }}/SAP_HANA_PLATFORM_EDITION_2.0_SPS07/HDB_CLIENT_REV2.21/SAP_HANA_CLIENT/hdbinst"
+spr_productkey_ips: "DY407-JSRZ30G-D8KWP0U-UARE5Z2-FP"
+spr_productkey_data_services: "DD60J-RSWC548-WPAZ7JP-NAAFV3N-DC"
+spr_productkey_information_steward: "DJ606-DUWC540-21VZ7JS-CA8HWUK-WP"
+spr_data_services_db_version: SAP_HANA_PLATFORM_EDITION_2.0_SPS07/SAP_HANA_PLATFORM_EDITION_2.0_SPS07_REV78
+# End of Variables for SAP Data Services/Information Steward  Install
+# Below Variables are for SAP BI Platform and Lumira Server Install
+spr_file_ini_params_bip: "{{ spr_products.bobj_bip.path }}/{{ spr_products.bobj_bip.version }}/Configuration_Content/install/SID_response.ini"
+spr_file_bip_setup_sh: "{{ spr_products.bobj_bip.path }}/{{ spr_products.bobj_bip.version }}/Media/BIP/setup.sh" # For BIP, setup_sh should be from media ending with 'ONE'
+spr_hdbclient_source_bip: "{{ spr_products.platform_edition.path }}/SAP_HANA_PLATFORM_EDITION_2.0_SPS07/HDB_CLIENT_REV2.21/SAP_HANA_CLIENT/hdbinst"
+spr_productkey_bip: "DJ40J-DRDG040-ACHWP0A-2A200W1-TA"
+spr_bip_db_version: SAP_HANA_PLATFORM_EDITION_2.0_SPS07/SAP_HANA_PLATFORM_EDITION_2.0_SPS07_REV78
+spr_file_ini_params_bip4lumira:  "{{ spr_products.lumira.path }}/{{ spr_products.lumira.version }}/Configuration_Content/install/SID-Lumira-BIP-response.ini" # Lumira Server
+spr_file_ini_params_lumira: "{{ spr_products.lumira.path }}/{{ spr_products.lumira.version }}/Configuration_Content/install/SID-Lumira-Server-response.ini" # Lumira Server
+spr_file_lumira_setup_sh: "{{ spr_products.lumira.path }}/{{ spr_products.lumira.version }}/Media/LS4BIP_FULL00P_7/LS4BIP_FULL00P/setup.sh" # Lumira Server
+# End of Variables for SAP BI Platform and Lumira Server Install
+# Below Variables are for SAP Content Server Install. These need to be updated during every upgrade
+spr_maxdb_file_ini_params: "{{ spr_products.contentserver.path }}/{{ spr_products.contentserver.version }}/Configuration_Content/DB/install/inifile.params"
+spr_maxdb_file_instkey: "{{ spr_products.contentserver.path }}/{{ spr_products.contentserver.version }}/Configuration_Content/DB/install/instkey.pkey"
+spr_maxdb_install_library: "{{ spr_products.contentserver.path }}/MAXDB_7904_DVD/MaxDB_7.9___SP10_Build_05_"
+spr_maxdb_upgrade_library: "{{ spr_products.contentserver.path }}/{{ spr_products.contentserver.version }}/Media/MAXDB_UPGRADE/maxdb-server-linux-64bit-x86_64-7_9_10_12" # if there is no upgrade available pass NULL
+# End of Variables for Content Server Install
+
+spr_application_source_list:
+   access_control: "{{ spr_products.access_control.path }}/{{ spr_products.access_control.version }}/Tar_Image/APP"
+   access_control_s4hana: "{{ spr_products.access_control_s4hana.path }}/{{ spr_products.access_control_s4hana.version }}/Tar_Image/APP"
+   ads: "{{ spr_products.ads.path }}/{{ spr_products.ads.version }}/Tar_Image/APP"
+   attp: "{{ spr_products.attp.path }}/{{ spr_products.attp.version }}/Tar_Image/APP"
+   bw4hana: "{{ spr_products.bw4hana.path }}/{{ spr_products.bw4hana.version }}/Tar_Image/APP"
+   bw4hana_addons: "{{ spr_products.bw4hana_addons.path }}/{{ spr_products.bw4hana_addons.version }}/Tar_Image/APP"
+   bw4hana_bpc: "{{ spr_products.bw4hana_bpc.path }}/{{ spr_products.bw4hana_bpc.version }}/Tar_Image/APP"
+   bwnetweaver: "{{ spr_products.bwnetweaver.path }}/{{ spr_products.bwnetweaver.version }}/Tar_Image/APP"
+   car: "{{ spr_products.car.path }}/{{ spr_products.car.version }}/Tar_Image/APP"
+   cloudconnector: "{{ spr_products.cloudconnector.path }}/{{ spr_products.cloudconnector.version }}/Media/"
+   cors: "{{ spr_products.cors.path }}/{{ spr_products.cors.version }}/Tar_Image/APP"
+   cpids_agent: "{{ spr_products.cpids_agent.path }}/{{ spr_products.cpids_agent.version }}/Tar_Image"
+   crm: "{{ spr_products.crm.path }}/{{ spr_products.crm.version }}/Tar_Image/APP"
+   dpagent: "{{ spr_products.dpagent.path }}/{{ spr_products.dpagent.version }}/Media/HANA_DP_AGENT_20_LIN_X86_64"
+   ehp8_erp: "{{ spr_products.ehp8_erp.path }}/{{ spr_products.ehp8_erp.version }}/Tar_Image/APP"
+   fiori_carab: "{{ spr_products.fiori_carab.path }}/{{ spr_products.fiori_carab.version }}/Tar_Image/APP"
+   fiori_fes: "{{ spr_products.fiori_fes.path }}/{{ spr_products.fiori_fes.version }}/Tar_Image/APP"
+   frun: "{{ spr_products.frun.path }}/{{ spr_products.frun.version }}/Tar_Image/APP"
+   gbtr: "{{ spr_products.gbtr.path }}/{{ spr_products.gbtr.version }}/Tar_Image/APP"
+   gts: "{{ spr_products.gts.path }}/{{ spr_products.gts.version }}/Tar_Image/APP"
+   gts_ed4hana: "{{ spr_products.gts_ed4hana.path }}/{{ spr_products.gts_ed4hana.version }}/Tar_Image/APP"
+   lama_ent_java: "{{ spr_products.lama_ent_java.path }}/{{ spr_products.lama_ent_java.version }}/Tar_Image/APP"
+   mii: "{{ spr_products.mii.path }}/{{ spr_products.mii.version }}/Tar_Image/APP"
+   nwjava: "{{ spr_products.nwjava.path }}/{{ spr_products.nwjava.version }}/Tar_Image/APP"
+   optimizer: "{{ spr_products.optimizer.path }}/{{ spr_products.optimizer.version }}/Media"
+   payroll: "{{ spr_products.payroll.path }}/{{ spr_products.payroll.version }}/Tar_Image/APP"
+   po: "{{ spr_products.po.path }}/{{ spr_products.po.version }}/Advanced_Adapter_Engine_Extnd/Tar_Image/APP"
+   portal: "{{ spr_products.portal.path }}/{{ spr_products.portal.version }}/Tar_Image/APP"
+   router: "{{ spr_products.router.path }}/{{ spr_products.router.version }}/Media"
+   s4hana: "{{ spr_products.s4hana.path }}/{{ spr_products.s4hana.version }}/Tar_Image/APP"
+   s4hana_addons: "{{ spr_products.s4hana_addons.path }}/{{ spr_products.s4hana_addons.version }}/Tar_Image/APP"
+   s4hana_foundation: "{{ spr_products.s4hana_foundation.path }}/{{ spr_products.s4hana_foundation.version }}/Tar_Image/APP"
+   s4hana_livecache: "{{ spr_products.s4hana_livecache.path }}/{{ spr_products.s4hana_livecache.version }}/Tar_Image/APP"
+   sac_agent: "{{ spr_products.sac_agent.path }}/{{ spr_products.sac_agent.version }}/Media"
+   scm: "{{ spr_products.scm.path }}/{{ spr_products.scm.version }}/Tar_Image/APP"
+   slt: "{{ spr_products.slt.path }}/{{ spr_products.slt.version }}/Tar_Image/APP"
+   solman_abap: "{{ spr_products.solman_abap.path }}/{{ spr_products.solman_abap.version }}/Tar_Image/APP/ABAP"
+   solman_java: "{{ spr_products.solman_java.path }}/{{ spr_products.solman_java.version }}/Tar_Image/APP/JAVA"
+   srm: "{{ spr_products.srm.path }}/{{ spr_products.srm.version }}/Tar_Image/APP"
+   sso: "{{ spr_products.sso.path }}/{{ spr_products.sso.version }}/Tar_Image/APP"
+   tm: "{{ spr_products.tm.path }}/{{ spr_products.tm.version }}/Tar_Image/APP"
+   webdispatcher: "{{ spr_products.webdispatcher.path }}/{{ spr_products.webdispatcher.version }}/Tar_Image/APP"
+   java_rpm: "{{ spr_products.java_rpm.path }}/{{ spr_products.java_rpm.version }}"
+
+spr_db_source_list:
+   access_control: "{{ spr_products.access_control.path }}/{{ spr_products.access_control.version }}/Tar_Image/DB"
+   access_control_s4hana: "{{ spr_products.access_control_s4hana.path }}/{{ spr_products.access_control_s4hana.version }}/Tar_Image/DB"
+   ads: "{{ spr_products.ads.path }}/{{ spr_products.ads.version }}/Tar_Image/DB"
+   attp: "{{ spr_products.attp.path }}/{{ spr_products.attp.version }}/Tar_Image/DB"
+   # Provision Standard HANA Platform Edition for BI Platform Install
+   bobj_bip: "{{ spr_products.platform_edition.path }}/{{ spr_bip_db_version }}/Tar_Image/DB" # Pay attention to the inconsistency
+   bw4hana: "{{ spr_products.bw4hana.path }}/{{ spr_products.bw4hana.version }}/Tar_Image/DB"
+   bw4hana_addons: "{{ spr_products.bw4hana_addons.path }}/{{ spr_products.bw4hana_addons.version }}/Tar_Image/DB"
+   bw4hana_bpc: "{{ spr_products.bw4hana_bpc.path }}/{{ spr_products.bw4hana_bpc.version }}/Tar_Image/DB"
+   bwnetweaver: "{{ spr_products.bwnetweaver.path }}/{{ spr_products.bwnetweaver.version }}/Tar_Image/DB"
+   car: "{{ spr_products.car.path }}/{{ spr_products.car.version }}/Tar_Image/DB"
+   cors: "{{ spr_products.cors.path }}/{{ spr_products.cors.version }}/Tar_Image/DB"
+   crm: "{{ spr_products.crm.path }}/{{ spr_products.crm.version }}/Tar_Image/DB"
+   # Provision Standard HANA Platform Edition for Data Services Install
+   data_services: "{{ spr_products.platform_edition.path }}/{{ spr_data_services_db_version }}/Tar_Image/DB" # Pay attention to the inconsistency
+   data_warehouse: "{{ spr_products.data_warehouse.path }}/{{ spr_products.data_warehouse.version }}/Tar_Image/DB"
+   etd: "{{ spr_products.etd.path }}/{{ spr_products.etd.version }}/Tar_Image/DB"
+   ehp8_erp: "{{ spr_products.ehp8_erp.path }}/{{ spr_products.ehp8_erp.version }}/Tar_Image/DB"
+   fiori_carab: "{{ spr_products.fiori_carab.path }}/{{ spr_products.fiori_carab.version }}/Tar_Image/DB"
+   fiori_fes: "{{ spr_products.fiori_fes.path }}/{{ spr_products.fiori_fes.version }}/Tar_Image/DB"
+   frun: "{{ spr_products.frun.path }}/{{ spr_products.frun.version }}/Tar_Image/DB"
+   gbtr: "{{ spr_products.gbtr.path }}/{{ spr_products.gbtr.version }}/Tar_Image/DB"
+   gts: "{{ spr_products.gts.path }}/{{ spr_products.gts.version }}/Tar_Image/DB"
+   gts_ed4hana: "{{ spr_products.gts_ed4hana.path }}/{{ spr_products.gts_ed4hana.version }}/Tar_Image/DB"
+   hanacockpit: "{{ spr_products.hanacockpit.path }}/{{ spr_products.hanacockpit.version }}/Tar_Image/DB"
+   hana_ee: "{{ spr_products.hana_ee.path }}/{{ spr_products.hana_ee.version }}/Tar_Image/DB"
+   iq: "{{ spr_products.iq.path }}/{{ spr_products.iq.version }}"
+   lama_ent_java: "{{ spr_products.lama_ent_java.path }}/{{ spr_products.lama_ent_java.version }}/Tar_Image/DB"
+   # Provision Standard HANA Platform Edition for Lumira. Lumira uses BIP DB
+   lumira: "{{ spr_products.platform_edition.path }}/{{ spr_bip_db_version }}/Tar_Image/DB" # Pay attention to the inconsistency
+   mii: "{{ spr_products.mii.path }}/{{ spr_products.mii.version }}/Tar_Image/DB"
+   nwjava: "{{ spr_products.nwjava.path }}/{{ spr_products.nwjava.version }}/Tar_Image/DB"
+   optimizer: "{{ spr_products.optimizer.path }}/{{ spr_products.optimizer.version }}/Media"
+   payroll: "{{ spr_products.payroll.path }}/{{ spr_products.payroll.version }}/Tar_Image/DB"
+   platform_edition: "{{ spr_products.platform_edition.path }}/{{ spr_products.platform_edition.version }}/Tar_Image/DB"
+   plc: "{{ spr_products.plc.path }}/{{ spr_products.plc.version }}/Tar_Image/DB"
+   po: "{{ spr_products.po.path }}/{{ spr_products.po.version }}/Advanced_Adapter_Engine_Extnd/Tar_Image/DB"
+   portal: "{{ spr_products.portal.path }}/{{ spr_products.portal.version }}/Tar_Image/DB"
+   s4hana: "{{ spr_products.s4hana.path }}/{{ spr_products.s4hana.version }}/Tar_Image/DB"
+   s4hana_addons: "{{ spr_products.s4hana_addons.path }}/{{ spr_products.s4hana_addons.version }}/Tar_Image/DB"
+   s4hana_foundation: "{{ spr_products.s4hana_foundation.path }}/{{ spr_products.s4hana_foundation.version }}/Tar_Image/DB"
+   s4hana_livecache: "{{ spr_products.s4hana_livecache.path }}/{{ spr_products.s4hana_livecache.version }}/Tar_Image/DB"
+   scm: "{{ spr_products.scm.path }}/{{ spr_products.scm.version }}/Tar_Image/DB"
+   slt: "{{ spr_products.slt.path }}/{{ spr_products.slt.version }}/Tar_Image/DB"
+   solman_hdb: "{{ spr_products.solman_hdb.path }}/{{ spr_products.solman_hdb.version }}/Tar_Image/DB"
+   srm: "{{ spr_products.srm.path }}/{{ spr_products.srm.version }}/Tar_Image/DB"
+   sso: "{{ spr_products.sso.path }}/{{ spr_products.sso.version }}/Tar_Image/DB"
+   tm: "{{ spr_products.tm.path }}/{{ spr_products.tm.version }}/Tar_Image/DB"
+
+spr_file_instkey_list:
+   access_control: "{{ spr_products.access_control.path }}/{{ spr_products.access_control.version }}/Configuration_Content/rename/instkey.pkey"
+   access_control_s4hana: "{{ spr_products.access_control_s4hana.path }}/{{ spr_products.access_control_s4hana.version }}/Configuration_Content/rename/instkey.pkey"
+   ads: "{{ spr_products.ads.path }}/{{ spr_products.ads.version }}/Configuration_Content/rename/instkey.pkey"
+   attp: "{{ spr_products.attp.path }}/{{ spr_products.attp.version }}/Configuration_Content/rename/instkey.pkey"
+   bw4hana: "{{ spr_products.bw4hana.path }}/{{ spr_products.bw4hana.version }}/Configuration_Content/rename/instkey.pkey"
+   bw4hana_addons: "{{ spr_products.bw4hana_addons.path }}/{{ spr_products.bw4hana_addons.version }}/Configuration_Content/rename/instkey.pkey"
+   bw4hana_bpc: "{{ spr_products.bw4hana_bpc.path }}/{{ spr_products.bw4hana_bpc.version }}/Configuration_Content/rename/instkey.pkey"
+   bwnetweaver: "{{ spr_products.bwnetweaver.path }}/{{ spr_products.bwnetweaver.version }}/Configuration_Content/rename/instkey.pkey"
+   car: "{{ spr_products.car.path }}/{{ spr_products.car.version }}/Configuration_Content/rename/instkey.pkey"
+   contentserver: "{{ spr_products.contentserver.path }}/{{ spr_products.contentserver.version }}/Configuration_Content/CONTENT_SERVER/install/instkey.pkey"
+   cors: "{{ spr_products.cors.path }}/{{ spr_products.cors.version }}/Configuration_Content/rename/instkey.pkey"
+   crm: "{{ spr_products.crm.path }}/{{ spr_products.crm.version }}/Configuration_Content/rename/instkey.pkey"
+   ehp8_erp: "{{ spr_products.ehp8_erp.path }}/{{ spr_products.ehp8_erp.version }}/Configuration_Content/rename/instkey.pkey"
+   etd: "{{ spr_products.etd.path }}/{{ spr_products.etd.version }}/Configuration_Content/rename/instkey.pkey"
+   fiori_carab: "{{ spr_products.fiori_carab.path }}/{{ spr_products.fiori_carab.version }}/Configuration_Content/rename/instkey.pkey"
+   fiori_fes: "{{ spr_products.fiori_fes.path }}/{{ spr_products.fiori_fes.version }}/Configuration_Content/rename/instkey.pkey"
+   frun: "{{ spr_products.frun.path }}/{{ spr_products.frun.version }}/Configuration_Content/rename/instkey.pkey"
+   gbtr: "{{ spr_products.gbtr.path }}/{{ spr_products.gbtr.version }}/Configuration_Content/rename/instkey.pkey"
+   gts: "{{ spr_products.gts.path }}/{{ spr_products.gts.version }}/Configuration_Content/rename/instkey.pkey"
+   gts_ed4hana: "{{ spr_products.gts_ed4hana.path }}/{{ spr_products.gts_ed4hana.version }}/Configuration_Content/rename/instkey.pkey"
+   lama_ent_java: "{{ spr_products.lama_ent_java.path }}/{{ spr_products.lama_ent_java.version }}/Configuration_Content/rename/instkey.pkey"
+   mii: "{{ spr_products.mii.path }}/{{ spr_products.mii.version }}/Configuration_Content/rename/instkey.pkey"
+   nwjava: "{{ spr_products.nwjava.path }}/{{ spr_products.nwjava.version }}/Configuration_Content/rename/instkey.pkey"
+   optimizer: "{{ spr_products.optimizer.path }}/{{ spr_products.optimizer.version }}/Configuration_Content/install/GW/instkey.pkey"
+   payroll: "{{ spr_products.payroll.path }}/{{ spr_products.payroll.version }}/Configuration_Content/rename/instkey.pkey"
+   po: "{{ spr_products.po.path }}/{{ spr_products.po.version }}/Advanced_Adapter_Engine_Extnd/Configuration_Content/rename/instkey.pkey"
+   portal: "{{ spr_products.portal.path }}/{{ spr_products.portal.version }}/Configuration_Content/rename/instkey.pkey"
+   s4hana: "{{ spr_products.s4hana.path }}/{{ spr_products.s4hana.version }}/Configuration_Content/rename/instkey.pkey"
+   s4hana_addons: "{{ spr_products.s4hana_addons.path }}/{{ spr_products.s4hana_addons.version }}/Configuration_Content/rename/instkey.pkey"
+   s4hana_foundation: "{{ spr_products.s4hana_foundation.path }}/{{ spr_products.s4hana_foundation.version }}/Configuration_Content/rename/instkey.pkey"
+   s4hana_livecache: "{{ spr_products.s4hana_livecache.path }}/{{ spr_products.s4hana_livecache.version }}/Configuration_Content/rename/instkey.pkey"
+   scm: "{{ spr_products.scm.path }}/{{ spr_products.scm.version }}/Configuration_Content/rename/instkey.pkey"
+   slt: "{{ spr_products.slt.path }}/{{ spr_products.slt.version }}/Configuration_Content/rename/instkey.pkey"
+   solman_abap: "{{ spr_products.solman_abap.path }}/{{ spr_products.solman_abap.version }}/Configuration_Content/rename/ABAP/instkey.pkey"
+   solman_java: "{{ spr_products.solman_java.path }}/{{ spr_products.solman_java.version }}/Configuration_Content/rename/JAVA/instkey.pkey"
+   srm: "{{ spr_products.srm.path }}/{{ spr_products.srm.version }}/Configuration_Content/rename/instkey.pkey"
+   sso: "{{ spr_products.sso.path }}/{{ spr_products.sso.version }}/Configuration_Content/rename/instkey.pkey"
+   tm: "{{ spr_products.tm.path }}/{{ spr_products.tm.version }}/Configuration_Content/rename/instkey.pkey"
+   webdispatcher: "{{ spr_products.webdispatcher.path }}/{{ spr_products.webdispatcher.version }}/Configuration_Content/rename/instkey.pkey"
+
+spr_file_ini_params_list:
+   access_control: "{{ spr_products.access_control.path }}/{{ spr_products.access_control.version }}/Configuration_Content/rename/rename-inifile.params"
+   access_control_s4hana: "{{ spr_products.access_control_s4hana.path }}/{{ spr_products.access_control_s4hana.version }}/Configuration_Content/rename/rename-inifile.params"
+   ads: "{{ spr_products.ads.path }}/{{ spr_products.ads.version }}/Configuration_Content/rename/rename-inifile.params"
+   attp: "{{ spr_products.attp.path }}/{{ spr_products.attp.version }}/Configuration_Content/rename/rename-inifile.params"
+   bw4hana: "{{ spr_products.bw4hana.path }}/{{ spr_products.bw4hana.version }}/Configuration_Content/rename/rename-inifile.params"
+   bw4hana_addons: "{{ spr_products.bw4hana_addons.path }}/{{ spr_products.bw4hana_addons.version }}/Configuration_Content/rename/rename-inifile.params"
+   bw4hana_bpc: "{{ spr_products.bw4hana_bpc.path }}/{{ spr_products.bw4hana_bpc.version }}/Configuration_Content/rename/rename-inifile.params"
+   bwnetweaver: "{{ spr_products.bwnetweaver.path }}/{{ spr_products.bwnetweaver.version }}/Configuration_Content/rename/rename-inifile.params"
+   car: "{{ spr_products.car.path }}/{{ spr_products.car.version }}/Configuration_Content/rename/rename-inifile.params"
+   contentserver: "{{ spr_products.contentserver.path }}/{{ spr_products.contentserver.version }}/Configuration_Content/CONTENT_SERVER/install/inifile.params"
+   cors: "{{ spr_products.cors.path }}/{{ spr_products.cors.version }}/Configuration_Content/rename/rename-inifile.params"
+   crm: "{{ spr_products.crm.path }}/{{ spr_products.crm.version }}/Configuration_Content/rename/rename-inifile.params"
+   ehp8_erp: "{{ spr_products.ehp8_erp.path }}/{{ spr_products.ehp8_erp.version }}/Configuration_Content/rename/rename-inifile.params"
+   fiori_carab: "{{ spr_products.fiori_carab.path }}/{{ spr_products.fiori_carab.version }}/Configuration_Content/rename/rename-inifile.params"
+   fiori_fes: "{{ spr_products.fiori_fes.path }}/{{ spr_products.fiori_fes.version }}/Configuration_Content/rename/rename-inifile.params"
+   frun: "{{ spr_products.frun.path }}/{{ spr_products.frun.version }}/Configuration_Content/rename/rename-inifile.params"
+   gbtr: "{{ spr_products.gbtr.path }}/{{ spr_products.gbtr.version }}/Configuration_Content/rename/rename-inifile.params"
+   gts: "{{ spr_products.gts.path }}/{{ spr_products.gts.version }}/Configuration_Content/rename/rename-inifile.params"
+   gts_ed4hana: "{{ spr_products.gts_ed4hana.path }}/{{ spr_products.gts_ed4hana.version }}/Configuration_Content/rename/rename-inifile.params"
+   lama_ent_java: "{{ spr_products.lama_ent_java.path }}/{{ spr_products.lama_ent_java.version }}/Configuration_Content/rename/rename-inifile.params"
+   mii: "{{ spr_products.mii.path }}/{{ spr_products.mii.version }}/Configuration_Content/rename/rename-inifile.params"
+   nwjava: "{{ spr_products.nwjava.path }}/{{ spr_products.nwjava.version }}/Configuration_Content/rename/rename-inifile.params"
+   optimizer: "{{ spr_products.optimizer.path }}/{{ spr_products.optimizer.version }}/Configuration_Content/install/GW/inifile.params"
+   payroll: "{{ spr_products.payroll.path }}/{{ spr_products.payroll.version }}/Configuration_Content/rename/rename-inifile.params"
+   po: "{{ spr_products.po.path }}/{{ spr_products.po.version }}/Advanced_Adapter_Engine_Extnd/Configuration_Content/rename/rename-inifile.params"
+   portal: "{{ spr_products.portal.path }}/{{ spr_products.portal.version }}/Configuration_Content/rename/rename-inifile.params"
+   s4hana: "{{ spr_products.s4hana.path }}/{{ spr_products.s4hana.version }}/Configuration_Content/rename/rename-inifile.params"
+   s4hana_addons: "{{ spr_products.s4hana_addons.path }}/{{ spr_products.s4hana_addons.version }}/Configuration_Content/rename/rename-inifile.params"
+   s4hana_foundation: "{{ spr_products.s4hana_foundation.path }}/{{ spr_products.s4hana_foundation.version }}/Configuration_Content/rename/rename-inifile.params"
+   s4hana_livecache: "{{ spr_products.s4hana_livecache.path }}/{{ spr_products.s4hana_livecache.version }}/Configuration_Content/rename/rename-inifile.params"
+   scm: "{{ spr_products.scm.path }}/{{ spr_products.scm.version }}/Configuration_Content/rename/rename-inifile.params"
+   slt: "{{ spr_products.slt.path }}/{{ spr_products.slt.version }}/Configuration_Content/rename/rename-inifile.params"
+   solman_abap: "{{ spr_products.solman_abap.path }}/{{ spr_products.solman_abap.version }}/Configuration_Content/rename/ABAP/rename-inifile.params"
+   solman_java: "{{ spr_products.solman_java.path }}/{{ spr_products.solman_java.version }}/Configuration_Content/rename/JAVA/rename-inifile.params"
+   srm: "{{ spr_products.srm.path }}/{{ spr_products.srm.version }}/Configuration_Content/rename/rename-inifile.params"
+   sso: "{{ spr_products.sso.path }}/{{ spr_products.sso.version }}/Configuration_Content/rename/rename-inifile.params"
+   tm: "{{ spr_products.tm.path }}/{{ spr_products.tm.version }}/Configuration_Content/rename/rename-inifile.params"
+   webdispatcher: "{{ spr_products.webdispatcher.path }}/{{ spr_products.webdispatcher.version }}/Configuration_Content/rename/rename-inifile.params"
+
+spr_file_install_rsp_xml_list:
+   access_control: "{{ spr_products.access_control.path }}/{{ spr_products.access_control.version }}/Configuration_Content/rename/install.rsp.xml"
+   access_control_s4hana: "{{ spr_products.access_control_s4hana.path }}/{{ spr_products.access_control_s4hana.version }}/Configuration_Content/rename/install.rsp.xml"
+   ads: "{{ spr_products.ads.path }}/{{ spr_products.ads.version }}/Configuration_Content/rename/install.rsp.xml"
+   attp: "{{ spr_products.attp.path }}/{{ spr_products.attp.version }}/Configuration_Content/rename/install.rsp.xml"
+   # Provision Standard HANA Platform Edition for BI Platform Install
+   bobj_bip: "{{ spr_products.platform_edition.path }}/{{ spr_bip_db_version }}/Configuration_Content/rename/install.rsp.xml" # Pay attention to the inconsistency
+   bw4hana: "{{ spr_products.bw4hana.path }}/{{ spr_products.bw4hana.version }}/Configuration_Content/rename/install.rsp.xml"
+   bw4hana_addons: "{{ spr_products.bw4hana_addons.path }}/{{ spr_products.bw4hana_addons.version }}/Configuration_Content/rename/install.rsp.xml"
+   bw4hana_bpc: "{{ spr_products.bw4hana_bpc.path }}/{{ spr_products.bw4hana_bpc.version }}/Configuration_Content/rename/install.rsp.xml"
+   bwnetweaver: "{{ spr_products.bwnetweaver.path }}/{{ spr_products.bwnetweaver.version }}/Configuration_Content/rename/install.rsp.xml"
+   car: "{{ spr_products.car.path }}/{{ spr_products.car.version }}/Configuration_Content/rename/install.rsp.xml"
+   cors: "{{ spr_products.cors.path }}/{{ spr_products.cors.version }}/Configuration_Content/rename/install.rsp.xml"
+   crm: "{{ spr_products.crm.path }}/{{ spr_products.crm.version }}/Configuration_Content/rename/install.rsp.xml"
+   # Provision Standard HANA Platform Edition for Data Services Install
+   data_services: "{{ spr_products.platform_edition.path }}/{{ spr_data_services_db_version }}/Configuration_Content/rename/install.rsp.xml" # Pay attention to the inconsistency
+   data_warehouse: "{{ spr_products.data_warehouse.path }}/SAP_HANA_DW_FOUNDATION_2.0_SPS05/Configuration_Content/rename/install.rsp.xml"
+   etd: "{{ spr_products.etd.path }}/{{ spr_products.etd.version }}/Configuration_Content/rename/install.rsp.xml"
+   ehp8_erp: "{{ spr_products.ehp8_erp.path }}/{{ spr_products.ehp8_erp.version }}/Configuration_Content/rename/install.rsp.xml"
+   fiori_carab: "{{ spr_products.fiori_carab.path }}/{{ spr_products.fiori_carab.version }}/Configuration_Content/rename/install.rsp.xml"
+   fiori_fes: "{{ spr_products.fiori_fes.path }}/{{ spr_products.fiori_fes.version }}/Configuration_Content/rename/install.rsp.xml"
+   frun: "{{ spr_products.frun.path }}/{{ spr_products.frun.version }}/Configuration_Content/rename/install.rsp.xml"
+   gbtr: "{{ spr_products.gbtr.path }}/{{ spr_products.gbtr.version }}/Configuration_Content/rename/install.rsp.xml"
+   gts: "{{ spr_products.gts.path }}/{{ spr_products.gts.version }}/Configuration_Content/rename/install.rsp.xml"
+   gts_ed4hana: "{{ spr_products.gts_ed4hana.path }}/{{ spr_products.gts_ed4hana.version }}/Configuration_Content/rename/install.rsp.xml"
+   hanacockpit: "{{ spr_products.hanacockpit.path }}/{{ spr_products.hanacockpit.version }}/Configuration_Content/rename/install.rsp.xml"
+   hana_ee: "{{ spr_products.hana_ee.path }}/{{ spr_products.hana_ee.version }}/Configuration_Content/rename/install.rsp.xml"
+   iq: "{{ spr_products.iq.path }}/{{ spr_products.iq.version.split('/')[0] }}/Configuration_Content/install/{{ spr_hostname|lower }}.lic"
+   lama_ent_java: "{{ spr_products.lama_ent_java.path }}/{{ spr_products.lama_ent_java.version }}/Configuration_Content/rename/install.rsp.xml"
+   # Provision Standard HANA Platform Edition for Lumira. Lumira uses BIP DB
+   lumira: "{{ spr_products.platform_edition.path }}/{{ spr_bip_db_version }}/Configuration_Content/rename/install.rsp.xml" # Pay attention to the inconsistency
+   mii: "{{ spr_products.mii.path }}/{{ spr_products.mii.version }}/Configuration_Content/rename/install.rsp.xml"
+   nwjava: "{{ spr_products.nwjava.path }}/{{ spr_products.nwjava.version }}/Configuration_Content/rename/install.rsp.xml"
+   optimizer: "{{ spr_products.optimizer.path }}/{{ spr_products.optimizer.version }}/Media"
+   payroll: "{{ spr_products.payroll.path }}/{{ spr_products.payroll.version }}/Configuration_Content/rename/install.rsp.xml"
+   platform_edition: "{{ spr_products.platform_edition.path }}/{{ spr_products.platform_edition.version }}/Configuration_Content/rename/install.rsp.xml"
+   plc: "{{ spr_products.plc.path }}/{{ spr_products.plc.version }}/Configuration_Content/rename/install.rsp.xml"
+   po: "{{ spr_products.po.path }}/{{ spr_products.po.version }}/Advanced_Adapter_Engine_Extnd/Configuration_Content/rename/install.rsp.xml"
+   portal: "{{ spr_products.portal.path }}/{{ spr_products.portal.version }}/Configuration_Content/rename/install.rsp.xml"
+   s4hana: "{{ spr_products.s4hana.path }}/{{ spr_products.s4hana.version }}/Configuration_Content/rename/install.rsp.xml"
+   s4hana_addons: "{{ spr_products.s4hana_addons.path }}/{{ spr_products.s4hana_addons.version }}/Configuration_Content/rename/install.rsp.xml"
+   s4hana_foundation: "{{ spr_products.s4hana_foundation.path }}/{{ spr_products.s4hana_foundation.version }}/Configuration_Content/rename/install.rsp.xml"
+   s4hana_livecache: "{{ spr_products.s4hana_livecache.path }}/{{ spr_products.s4hana_livecache.version }}/Configuration_Content/rename/install.rsp.xml"
+   scm: "{{ spr_products.scm.path }}/{{ spr_products.scm.version }}/Configuration_Content/rename/install.rsp.xml"
+   slt: "{{ spr_products.slt.path }}/{{ spr_products.slt.version }}/Configuration_Content/rename/install.rsp.xml"
+   solman_hdb: "{{ spr_products.solman_hdb.path }}/{{ spr_products.solman_hdb.version }}/Configuration_Content/rename/DB/install.rsp.xml"
+   srm: "{{ spr_products.srm.path }}/{{ spr_products.srm.version }}/Configuration_Content/rename/install.rsp.xml"
+   sso: "{{ spr_products.sso.path }}/{{ spr_products.sso.version }}/Configuration_Content/rename/install.rsp.xml"
+   tm: "{{ spr_products.tm.path }}/{{ spr_products.tm.version }}/Configuration_Content/rename/install.rsp.xml"
+
+spr_file_install_rsp_list:
+   access_control: "{{ spr_products.access_control.path }}/{{ spr_products.access_control.version }}/Configuration_Content/rename/install.rsp"
+   access_control_s4hana: "{{ spr_products.access_control_s4hana.path }}/{{ spr_products.access_control_s4hana.version }}/Configuration_Content/rename/install.rsp"
+   ads: "{{ spr_products.ads.path }}/{{ spr_products.ads.version }}/Configuration_Content/rename/install.rsp"
+   attp: "{{ spr_products.attp.path }}/{{ spr_products.attp.version }}/Configuration_Content/rename/install.rsp"
+   # Provision Standard HANA Platform Edition for BI Platform Install
+   bobj_bip: "{{ spr_products.platform_edition.path }}/{{ spr_bip_db_version }}/Configuration_Content/rename/install.rsp" # Pay attention to the inconsistency
+   bw4hana: "{{ spr_products.bw4hana.path }}/{{ spr_products.bw4hana.version }}/Configuration_Content/rename/install.rsp"
+   bw4hana_addons: "{{ spr_products.bw4hana_addons.path }}/{{ spr_products.bw4hana_addons.version }}/Configuration_Content/rename/install.rsp"
+   bw4hana_bpc: "{{ spr_products.bw4hana_bpc.path }}/{{ spr_products.bw4hana_bpc.version }}/Configuration_Content/rename/install.rsp"
+   bwnetweaver: "{{ spr_products.bwnetweaver.path }}/{{ spr_products.bwnetweaver.version }}/Configuration_Content/rename/install.rsp"
+   car: "{{ spr_products.car.path }}/{{ spr_products.car.version }}/Configuration_Content/rename/install.rsp"
+   cors: "{{ spr_products.cors.path }}/{{ spr_products.cors.version }}/Configuration_Content/rename/install.rsp"
+   crm: "{{ spr_products.crm.path }}/{{ spr_products.crm.version }}/Configuration_Content/rename/install.rsp"
+   # Provision Standard HANA Platform Edition for Data Services Install
+   data_services: "{{ spr_products.platform_edition.path }}/{{ spr_data_services_db_version }}/Configuration_Content/rename/install.rsp" # Pay attention to the inconsistency
+   data_warehouse: "{{ spr_products.data_warehouse.path }}/SAP_HANA_DW_FOUNDATION_2.0_SPS05/Configuration_Content/rename/install.rsp"
+   ehp8_erp: "{{ spr_products.ehp8_erp.path }}/{{ spr_products.ehp8_erp.version }}/Configuration_Content/rename/install.rsp"
+   etd: "{{ spr_products.etd.path }}/{{ spr_products.etd.version }}/Configuration_Content/rename/install.rsp"
+   fiori_carab: "{{ spr_products.fiori_carab.path }}/{{ spr_products.fiori_carab.version }}/Configuration_Content/rename/install.rsp"
+   fiori_fes: "{{ spr_products.fiori_fes.path }}/{{ spr_products.fiori_fes.version }}/Configuration_Content/rename/install.rsp"
+   frun: "{{ spr_products.frun.path }}/{{ spr_products.frun.version }}/Configuration_Content/rename/install.rsp"
+   gbtr: "{{ spr_products.gbtr.path }}/{{ spr_products.gbtr.version }}/Configuration_Content/rename/install.rsp"
+   gts: "{{ spr_products.gts.path }}/{{ spr_products.gts.version }}/Configuration_Content/rename/install.rsp"
+   gts_ed4hana: "{{ spr_products.gts_ed4hana.path }}/{{ spr_products.gts_ed4hana.version }}/Configuration_Content/rename/install.rsp"
+   iq: "{{ spr_products.iq.path }}/{{ spr_products.iq.version.split('/')[0] }}/Configuration_Content/install/install-response.ini"
+   hanacockpit: "{{ spr_products.hanacockpit.path }}/{{ spr_products.hanacockpit.version }}/Configuration_Content/rename/install.rsp"
+   hana_ee: "{{ spr_products.hana_ee.path }}/{{ spr_products.hana_ee.version }}/Configuration_Content/rename/install.rsp"
+   lama_ent_java: "{{ spr_products.lama_ent_java.path }}/{{ spr_products.lama_ent_java.version }}/Configuration_Content/rename/install.rsp"
+   # Provision Standard HANA Platform Edition for Lumira. Lumira uses BIP DB
+   lumira: "{{ spr_products.platform_edition.path }}/{{ spr_bip_db_version }}/Configuration_Content/rename/install.rsp" # Pay attention to the inconsistency
+   mii: "{{ spr_products.mii.path }}/{{ spr_products.mii.version }}/Configuration_Content/rename/install.rsp"
+   nwjava: "{{ spr_products.nwjava.path }}/{{ spr_products.nwjava.version }}/Configuration_Content/rename/install.rsp"
+   optimizer: "{{ spr_products.optimizer.path }}/{{ spr_products.optimizer.version }}/Media"
+   payroll: "{{ spr_products.payroll.path }}/{{ spr_products.payroll.version }}/Configuration_Content/rename/install.rsp"
+   platform_edition: "{{ spr_products.platform_edition.path }}/{{ spr_products.platform_edition.version }}/Configuration_Content/rename/install.rsp"
+   plc: "{{ spr_products.plc.path }}/{{ spr_products.plc.version }}/Configuration_Content/rename/install.rsp"
+   po: '{{ spr_products.po.path }}/{{ spr_products.po.version }}/Advanced_Adapter_Engine_Extnd/Configuration_Content/rename/install.rsp'
+   portal: "{{ spr_products.portal.path }}/{{ spr_products.portal.version }}/Configuration_Content/rename/install.rsp"
+   s4hana: "{{ spr_products.s4hana.path }}/{{ spr_products.s4hana.version }}/Configuration_Content/rename/install.rsp"
+   s4hana_addons: "{{ spr_products.s4hana_addons.path }}/{{ spr_products.s4hana_addons.version }}/Configuration_Content/rename/install.rsp"
+   s4hana_foundation: "{{ spr_products.s4hana_foundation.path }}/{{ spr_products.s4hana_foundation.version }}/Configuration_Content/rename/install.rsp"
+   s4hana_livecache: "{{ spr_products.s4hana_livecache.path }}/{{ spr_products.s4hana_livecache.version }}/Configuration_Content/rename/install.rsp"
+   scm: "{{ spr_products.scm.path }}/{{ spr_products.scm.version }}/Configuration_Content/rename/install.rsp"
+   slt: "{{ spr_products.slt.path }}/{{ spr_products.slt.version }}/Configuration_Content/rename/install.rsp"
+   solman_hdb: "{{ spr_products.solman_hdb.path }}/{{ spr_products.solman_hdb.version }}/Configuration_Content/rename/DB/install.rsp"
+   srm: "{{ spr_products.srm.path }}/{{ spr_products.srm.version }}/Configuration_Content/rename/install.rsp"
+   sso: "{{ spr_products.sso.path }}/{{ spr_products.sso.version }}/Configuration_Content/rename/install.rsp"
+   tm: "{{ spr_products.tm.path }}/{{ spr_products.tm.version }}/Configuration_Content/rename/install.rsp"
+
+spr_aas_source_list:
+   ads: "{{ spr_products.ads.path }}/{{ spr_products.ads.version }}/Configuration_Content/aasserver"
+   attp: "{{ spr_products.attp.path }}/{{ spr_products.attp.version }}/Configuration_Content/aasserver"
+   mii: "{{ spr_products.mii.path }}/{{ spr_products.mii.version }}/Configuration_Content/aasserver"
+   po: '{{ spr_products.po.path }}/{{ spr_products.po.version }}/Advanced_Adapter_Engine_Extnd/Configuration_Content/aasserver'
+   portal: "{{ spr_products.portal.path }}/{{ spr_products.portal.version }}/Configuration_Content/aasserver"
+   sso: "{{ spr_products.sso.path }}/{{ spr_products.sso.version }}/Configuration_Content/aasserver"

@@ -1,0 +1,15 @@
+apiVersion: dns.gardener.cloud/v1alpha1
+kind: DNSEntry
+metadata:
+  annotations:
+    # Let Gardener manage this DNS entry.
+    avp.kubernetes.io/path: "{{ printf "%s/%s/ecs-etd" .Values.vaultBasePath .Values.customer }}/config"
+    dns.gardener.cloud/class: garden
+  name: hana-dns-entry
+  labels:
+    {{- include ".helpers_override.labels" $ | nindent 4 }}
+spec:
+  dnsName: <HANA_HOSTNAME>
+  ttl: 600
+  targets:
+  - <HANA_IP>

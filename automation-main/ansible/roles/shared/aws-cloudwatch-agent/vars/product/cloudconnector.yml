@@ -1,0 +1,11 @@
+---
+# List of cloudconnector-specific log groups
+# When 'cloudconnector' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_cloudconnector:
+  - file_path: /opt/sap/scc/log/localhost_http_access_*.log
+    log_group_name: /opt/sap/scc/log/localhost_http_access
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /opt/sap/scc/log/ljs_trace.log
+    log_group_name: /opt/sap/scc/log/ljs_trace
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+...

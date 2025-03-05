@@ -1,0 +1,38 @@
+---
+tests:
+  - name: opt.nessus.messages::1
+    inputs:
+      - insert_at: nessus_metadata
+        type: log
+        log_fields:
+          file: /opt/nessus_agent/var/nessus/logs/nessusd.messages
+          message: |
+            [Thu Apr 15 08:02:03 2021][161306.0][scan=3c9ead42-4b3d-c87e-6754-8b6e2fa17d770e08ad2559c8c5c2][target=localhost] : Target localhost resolves to address 127.0.0.1
+    outputs:
+      - extract_from: system_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!(to_string(parse_timestamp!("Thu Apr 15 08:02:03 2021", "%c")), to_string!(.timestamp), "timestamp parsing incorrect")
+              assert_eq!("nessus_messages", .metadata.sourcetype, "wrong sourcetype")
+              assert_eq!("security", .metadata.custom.index.suffix, "wrong index")
+
+  - name: opt.nessus.backend::1
+    inputs:
+      - insert_at: nessus_metadata
+        type: log
+        log_fields:
+          file: /opt/nessus_agent/var/nessus/logs/backend.log
+          message: |
+            [22/May/2021:08:01:42 +0000] [info, mstask] [job_uuid=eed4db87-01c6-a7c0-0b95-e631c06be3a20b9f0c7a085d81da] updating scan on controller - status=[running] completion_total=[null] completion_current=[null]
+    outputs:
+      - extract_from: system_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2021-05-22T08:01:42Z", to_string!(.timestamp), "timestamp parsing incorrect")
+              assert_eq!("nessus_agent", .metadata.sourcetype, "wrong sourcetype")
+              assert_eq!("security", .metadata.custom.index.suffix, "wrong index")
+...

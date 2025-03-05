@@ -1,0 +1,10 @@
+---
+type: remap
+inputs:
+  - '*_project_logs'
+drop_on_error: true
+reroute_dropped: true
+source: |
+  . = parse_json!(.message)
+  del(.message)
+...

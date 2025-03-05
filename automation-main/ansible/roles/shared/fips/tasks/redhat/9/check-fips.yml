@@ -1,0 +1,15 @@
+---
+# Synopsis: Checks for FIPS status on RHEL 9
+# Outputs:
+#   - fips_state
+
+  - name: Check FIPS status for Red Hat 9
+    command: /usr/bin/fips-mode-setup --check
+    become: true
+    register: fips_state_output
+    ignore_errors: true
+
+  - name: Set fact fips_state
+    set_fact:
+      fips_state: "{{ ('FIPS mode is enabled' in fips_state_output.stdout) | bool }}"
+...

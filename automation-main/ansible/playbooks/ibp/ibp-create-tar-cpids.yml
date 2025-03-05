@@ -1,0 +1,187 @@
+---
+# Playbook Name: ibp-create-tar-cpids.yml
+# Synopsis: Creates a new release by tarring the current version of IBP CPIDS. Saves to EFS and S3. Restarts CPIDS service afterwards
+# Description: Gracefully stops SAP CPIDS.  Then creates tar files of desired folders.  Tars are saved to EFS and uploaded to S3 buckets. Restarts CPIDS service afterwards
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS permissions to upload to S3 Bucket for tar files upload
+#   - Sudo access to IBP CPIDS instance
+# Dependencies: N/A
+# Variables:
+#   - ipaddress_cpids : IP Address of the CPIDS instance
+#   - release_name : Name of the release
+#   - aws_access_key : AWS access key to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - aws_secret_key : AWS secret key to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - aws_security_token : AWS security token to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - sid : SAP ID of the system. Used to shutdown the CPIDS Servers; IBP defaults to 'n01'
+#   - cpids_staging_location : efs volume location for CPIDS staging
+#   - upload_bucket : s3 bucket to upload to
+#   - upload_location : path to prepend to s3 upload location
+# Example:
+#   How to start with remote execution using ssh key
+#    ansible-playbook -u ec2-user --private-key myprivatekey.pem -c ssh ibp-create-tar-cpids.yml
+#
+#   How to start with remote execution using username/password
+#   - Requires sshpass installed
+#   - Requires ssh fingerprints of remote systems installed
+#      ansible-playbook -u i123456 -k ibp-create-tar-cpids.yml
+#
+# Authors: Louis Lee, Vighnesh Sivakumar
+# Version: 2.9-000004
+# Modified: 2020-01-23 - Created
+#           2020-01-28 - Fixed typo.
+#           2020-01-29 - Aligned with other tar playbooks
+#           2020-06-07 - Updated to use start/stop tasks
+# Comments: N/A
+
+##### Play1
+- name: Play1 Obtain server information and metadata
+  hosts: localhost
+  gather_facts: false
+
+  vars_prompt:
+  - name: ipaddress_cpids
+    prompt: "What is the CPIDS servers's ip address?"
+    private: no
+
+  - name: release_name
+    prompt: "What is the release_name of the tar?"
+    private: no
+
+  - name: aws_access_key
+    prompt: "Enter your AWS Access Key for S3 Bucket Upload"
+    private: no
+
+  - name: aws_secret_key
+    prompt: "Enter your AWS Secret Key for S3 Bucket Upload"
+    private: yes
+
+  - name: aws_security_token
+    prompt: "Enter your AWS Security Token for S3 Bucket Upload"
+    private: yes
+
+  vars:
+    sid: 'n01'
+    cpids_staging_location: '/staging/cpids/Build'
+    upload_bucket: 'sap-cpi-ds-artifacts'
+    upload_location: 'staging/cpids/Build'
+
+  tasks:
+  - name: "Confirm values with 'Y'"
+    pause:
+      prompt: |
+
+        CPIDS ip address      : {{ ipaddress_cpids }}
+        Release Destination Location  : {{ cpids_staging_location }}/{{ release_name }}
+        S3 Upload Location            : s3://{{ upload_bucket }}/{{ upload_location }}/{{ release_name }}
+    register: confirm_input
+
+  - name: "Fail if not confirmed"
+    fail:
+      msg: 'Input not confirmed.  Quitting now.'
+    when:
+    - confirm_input.user_input != 'Y'
+    - confirm_input.user_input != 'y'
+
+  - name: "Add CPIDS to ansible hosts"
+    add_host:
+      name: "{{ ipaddress_cpids }}"
+      groups:
+      - cpids
+      sid: "{{ sid }}"
+      release_name: "{{ release_name }}"
+      staging_location: "{{ cpids_staging_location }}"
+      upload_bucket: "{{ upload_bucket }}"
+      upload_location: "{{ upload_location }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      aws_security_token: "{{ aws_security_token }}"
+
+##### Play2
+- name: Play2 Stop CPIDS Service
+  hosts: cpids
+  gather_facts: false
+  environment:
+   JAVA_HOME: '/usr/sap/dsod_package/sapjvm_7'
+   PATH: '/usr/sap/dsod_package/sapjvm_7/bin:.:/usr/local/sbin:/usr/local/bin:{{ ansible_env.PATH }}:/root/bin'
+
+  tasks:
+  - name: "Check if {{ staging_location }}/{{ release_name }} exists"
+    stat:
+      path: "{{ staging_location }}/{{ release_name }}"
+    register: destination_cpids
+  - name: "Fail if destiantion folder already exists"
+    fail:
+      msg: "Destination folder already exists! Please remove the destination folder and rerun script."
+    when: destination_cpids.stat.exists == true
+
+  - name: Stop CPIDS
+    include_role:
+      name: ibp
+      tasks_from: operations/cpids-softstop.yml
+      allow_duplicates: yes
+
+##### Play3
+- name: Play3 Create tar files
+  hosts: cpids
+  gather_facts: false
+
+  tasks:
+  - name: "Create {{ staging_location }}/{{ release_name }}"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}"
+      state: directory
+    become: true
+
+  - name: "Create CPIDS Tars"
+    shell: "/bin/tar -cvzf - {{ item.path }}/* | split -b 2000M - {{ item.name }}"
+    become: true
+    args:
+      chdir: "{{ staging_location }}/{{ release_name }}"
+      warn: false
+    loop:
+    - path: "/hana/data"
+      name: "hana-data.tgz-"
+    - path: "/hana/log"
+      name: "hana-log.tgz-"
+    - path: "/hana/shared"
+      name: "hana-shared.tgz-"
+    - path: "/usr/sap"
+      name: "usr-sap.tgz-"
+
+##### Play4
+- name: Play4 Upload to S3
+  hosts: cpids
+  gather_facts: false
+
+  tasks:
+  - name: "Upload CPIDS files to S3"
+    s3_sync:
+      file_root: "{{ staging_location }}/{{ release_name }}"
+      bucket: "{{ upload_bucket }}"
+      mode: push # required. choices: push. sync direction.
+      file_change_strategy: date_size
+      permission: bucket-owner-full-control
+      key_prefix: "{{ upload_location }}/{{ release_name }}"
+      delete: false
+      security_token: "{{ aws_security_token }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+    become: true
+
+##### Play5
+- name: Play5 Restart CPIDS services
+  hosts: cpids
+  gather_facts: false
+  environment:
+   JAVA_HOME: '/usr/sap/dsod_package/sapjvm_7'
+   PATH: '/usr/sap/dsod_package/sapjvm_7/bin:.:/usr/local/sbin:/usr/local/bin:{{ ansible_env.PATH }}:/root/bin'
+
+  tasks:
+  - name: Start CPIDS
+    include_role:
+      name: ibp
+      tasks_from: operations/cpids-softstart.yml
+      allow_duplicates: yes
+
+...

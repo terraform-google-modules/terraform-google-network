@@ -1,0 +1,28 @@
+---
+  - name: Converge
+    hosts: all
+    become: true
+
+    pre_tasks:
+      - name: Update apt cache.
+        apt:
+          update_cache: true
+          cache_valid_time: 600
+        when: ansible_os_family == 'Debian'
+        changed_when: false
+
+      - name: Install libselinux-python on redhat/centos 6
+        yum:
+          name: libselinux-python
+          state: present
+        when: >
+          ansible_os_family == 'RedHat' and (
+            ansible_distribution == 'CentOS' or
+            ansible_distribution == 'RedHat'
+          )
+          and ansible_distribution_major_version == '6'
+        changed_when: false
+
+    roles:
+      - role: christiangda.amazon_cloudwatch_agent
+...

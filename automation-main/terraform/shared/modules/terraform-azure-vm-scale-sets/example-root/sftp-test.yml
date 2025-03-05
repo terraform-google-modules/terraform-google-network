@@ -1,0 +1,62 @@
+---
+# sample inventory file for SFTP provisioning and verification.
+# this inventory file is used only for Ansible playbook, not for terraform instance list generation.
+
+all:
+  hosts:
+  vars:
+    efs_usr_sap_trans_fsid: ''
+
+    spr_azure_resource_group: dev-s4-support0002
+    spr_azure_staging_storage_account: uscs4support0002nfs
+    spr_azure_staging_file_share: usr-sap-trans
+    spr_azure_customer_storage_account: uscs4support0002nfs
+    spr_azure_customer_file_share: usr-sap-trans
+    azure_nfs_storage_account: uscs4support0002nfs
+    spr_azure_backup_storage_account: uscs4support0002nfs
+    spr_azure_backup_container: testcontainer
+
+    spr_domain: anything.com
+  children:
+### groups
+    group_sftp:
+      vars:
+        spr_productgroup: sftp
+      hosts:
+        # Note: the following public IP is used for testing (ansible provisiong as there is no VPN connection).
+        # In production, we need to use the private IPs from module output.
+        # For Ansible playbook, we only use "spr_interfaces_efs_mount".
+        # Neither ansible nor terraform uses the other fields.
+        # for terraform module inputs, vnet/subnet is used instead of spr_landscape, "availability_zones" -> spr_az and
+        # "virtual_machine_size" ->  spr_size
+        52.146.2.162:
+          spr_hostname: s005app01ftp
+          spr_landscape: prd
+          spr_sid: PEW
+          spr_nodetype: app
+          spr_size: "t3.micro" #not used, the terraform module has an input variable for instance_size
+          spr_productname: sftp_interface
+          spr_interfaces_efs_mount: interface-pew
+          spr_ami: "Golden-NS2-RHEL-8.5-Base-V*"
+          spr_az: 1a
+        20.121.116.32:
+          spr_hostname: s005app02ftp
+          spr_landscape: prd
+          spr_sid: PEW
+          spr_nodetype: app
+          spr_size: "t3.micro"
+          spr_productname: sftp_interface
+          spr_interfaces_efs_mount: interface-pew
+          spr_ami: "Golden-NS2-RHEL-8.5-Base-V*"
+          spr_az: 1b
+        20.121.56.8:
+          spr_hostname: s005app03ftp
+          spr_landscape: prd
+          spr_sid: PEW
+          spr_nodetype: app
+          spr_size: "t3.micro"
+          spr_productname: sftp_interface
+          spr_interfaces_efs_mount: interface-pew
+          spr_ami: "Golden-NS2-RHEL-8.5-Base-V*"
+          spr_az: 1c
+...

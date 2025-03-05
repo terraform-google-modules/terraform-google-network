@@ -1,0 +1,39 @@
+{{- $repoUrl := index .Values "argo-cd" "configs" "repositories" "ste-k8s-deploy-repo" "url" }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-of-appsets
+  namespace: {{ .Values.namespaceOverride }}
+  labels:
+    appsetType: app-of-appsets
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    helm.sh/hook: post-install,post-upgrade
+    argocd.argoproj.io/manifest-generate-paths: .
+spec:
+  project: default
+  source:
+    repoURL: {{ $repoUrl }}
+    targetRevision: main
+    path: charts/cluster/applicationsets
+    helm:
+      valueFiles:
+        - 'values.yaml'
+        - '../../../config/env-config.yaml'
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: {{ .Values.namespaceOverride }}
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=false
+      - ApplyOutOfSyncOnly=true

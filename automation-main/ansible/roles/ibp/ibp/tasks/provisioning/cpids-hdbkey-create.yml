@@ -1,0 +1,41 @@
+---
+# Synopsis: Creates hdbuserstore keys to allow sql command runs
+# Inputs:
+#   - cpids_hdbkey_create_sid : SAP ID of the system
+#   - cpids_hdbkey_create_hostname : hostname of the instance that the key is for.
+#   - cpids_hdbkey_create_password : password for the key
+#   - cpids_hdbkey_create_port : port that hdb is listening on
+#   - cpids_hdbkey_create_keyname : Name of the key
+# Outputs: HDB keys created in CPIDS DB
+# Comments:
+#  - Specifically for CPIDS
+
+- name: "BLOCK Create DB keys"
+  block:
+  - name: "Check for pre-existing keys for {{ cpids_hdbkey_create_hostname }}"
+    shell: "hdbuserstore list"
+    args:
+      executable: /bin/csh
+    register: hdbuserstore_list
+    changed_when: false
+    failed_when: "'Command not found' in hdbuserstore_list.stdout"
+
+  - name: "Create {{ cpids_hdbkey_create_keyname }} key for {{ cpids_hdbkey_create_hostname }}"
+    shell: "hdbuserstore SET {{ cpids_hdbkey_create_keyname }} {{ cpids_hdbkey_create_hostname }}:{{ cpids_hdbkey_create_port }} SYSTEM {{ cpids_hdbkey_create_password }}"
+    args:
+      executable: /bin/csh
+    when: "cpids_hdbkey_create_keyname not in hdbuserstore_list.stdout"
+
+  - name: "Validate keys were created for {{ cpids_hdbkey_create_hostname }}"
+    shell: "hdbuserstore list"
+    args:
+      executable: /bin/csh
+    register: validate_hdbuserstore
+    changed_when: false
+    failed_when:
+    - "cpids_hdbkey_create_keyname not in validate_hdbuserstore.stdout"
+
+  #End "BLOCK: Primary DB keys"
+  become: true
+  become_user: "{{ cpids_hdbkey_create_sid|lower }}adm"
+...

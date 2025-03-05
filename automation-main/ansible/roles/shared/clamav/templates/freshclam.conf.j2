@@ -1,0 +1,10 @@
+# {{ ansible_managed }}
+
+DatabaseMirror database.clamav.net
+
+{% if clamav_freshclam_http_proxy_address != '' %}
+
+HTTPProxyServer {{ clamav_freshclam_http_proxy_address }}
+HTTPProxyPort {{ clamav_freshclam_http_proxy_port }}
+
+{% endif %}

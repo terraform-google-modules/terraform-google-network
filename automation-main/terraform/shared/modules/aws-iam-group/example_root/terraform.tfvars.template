@@ -1,0 +1,14 @@
+/*
+  Description: Terraform input variables; Create IAM Group based on these values
+  Comments:
+*/
+
+// aws_region = "us-gov-west-1"
+
+// iam_group_object = {
+//   name = "test-group1"
+//   policy_list = [
+//     "arn:aws-us-gov:iam::aws:policy/AmazonEC2ReadOnlyAccess",
+//     "arn:aws-us-gov:iam::aws:policy/AmazonS3ReadOnlyAccess"
+//   ]
+// }

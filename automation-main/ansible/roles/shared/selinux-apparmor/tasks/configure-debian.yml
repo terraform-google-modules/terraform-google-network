@@ -1,0 +1,111 @@
+---
+# Synopsis: Enables or disables AppArmor for debian-based operating systems e.g., Ubuntu
+# Inputs:
+#   - apparmor_state : Whether to enable or disable AppArmor. Valid options are 'enable' or 'disable'.
+#   - apparmor_complain_policies : List of AppArmor policy files to use in complain mode.
+#   - apparmor_enforce_policies : List of AppArmor policy files to use in enforce mode.
+#   - apparmor_disable_policies : List of AppArmor policy files to disable.
+#
+# Outputs:
+#   - Enables or disables AppArmor.
+
+# TODO: Add support for Grub 2 to the role, similar to how it was done for Red Hat.
+
+  - name: Check whether the system is running Grub 2
+    stat:
+      path: /etc/default/grub
+    register: grub_defaults_file
+
+  - name: Ensure the system is not using Grub 2
+    fail:
+      msg: This role does not support setting up AppArmor on systems running Grub 2.
+    when: grub_defaults_file.stat.exists != true
+
+  - name: Override default vars
+    set_fact:
+      apparmor_complain_policies:
+        - /etc/apparmor.d/*.*
+
+  - name: Install the AppArmor package and dependencies
+    package:
+      name:
+        - apparmor
+        - apparmor-utils
+        - apparmor-profiles
+      state: present
+    become: true
+
+  - name: Enable and start the AppArmor service
+    service:
+      name: apparmor
+      enabled: true
+      state: started
+    become: true
+
+  - name: Set AppArmor into complain mode for the specified policies
+    shell: aa-complain {{ item }}
+    become: true
+    loop: '{{ apparmor_complain_policies }}'
+    when: apparmor_complain_policies[0] is not none and apparmor_complain_policies is not none
+
+  - name: Set AppArmor into enforce mode for the specified policies
+    shell: aa-enforce {{ item }}
+    become: true
+    loop: '{{ apparmor_enforce_policies }}'
+    register: apparmor_enable_results
+    notify: reboot_system_if_required
+    when: apparmor_enforce_policies[0] is not none and apparmor_enforce_policies is not none
+
+  - name: Disable the specified AppArmor policies
+    shell: aa-disable {{ item }}
+    become: true
+    loop: '{{ apparmor_disable_policies }}'
+    register: apparmor_disable_results
+    notify: reboot_system_if_required
+    when: apparmor_disable_policies[0] is not none and apparmor_disable_policies is not none
+
+  - name: Register contents of grub to a variable
+    shell: cat /etc/default/grub
+    become: true
+    register: apparmor_cat_grub_results
+    changed_when: false
+    check_mode: false
+
+  - name: Set fact for the contents of grub
+    set_fact:
+      apparmor_grub_contents: '{{ apparmor_cat_grub_results.stdout }}'
+
+  - name: Add the AppArmor kernel parameter to grub if it is not present
+    replace:
+      path: /etc/default/grub
+      regexp: ^GRUB_CMDLINE_LINUX="(.*)"
+      replace: GRUB_CMDLINE_LINUX="\1 apparmor=0"
+    become: true
+    when: '"apparmor=" not in apparmor_grub_contents and (apparmor_state == "enable" or apparmor_state == "disable")'
+    register: apparmor_add_kernel_param
+
+  - name: Enable AppArmor in grub
+    replace:
+      path: /etc/default/grub
+      regexp: apparmor=0
+      replace: apparmor=1 security=apparmor
+    become: true
+    when: apparmor_state == 'enable'
+    register: apparmor_enable_kernel_param
+
+  - name: Disable AppArmor in grub
+    replace:
+      path: /etc/default/grub
+      regexp: apparmor=1 security=apparmor
+      replace: apparmor=0
+    become: true
+    when: apparmor_state == 'disable'
+    register: apparmor_disable_kernel_param
+
+  - name: Update the grub config
+    shell: update-grub
+    become: true
+    register: apparmor_mkconfig_results
+    notify: reboot_system_if_required
+    when: apparmor_add_kernel_param.changed | bool or apparmor_enable_kernel_param.changed | bool or apparmor_disable_kernel_param.changed | bool
+...

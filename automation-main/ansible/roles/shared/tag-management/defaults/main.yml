@@ -1,0 +1,100 @@
+---
+
+# flag to determine whether to query tag information from each remote host, or only query tag information from the ansible controller
+aws_tag_delegate_local: true
+
+#Can be either `public` or `private` as strings to assist Ansible during fact gathering.
+#We default to using 'private' as everything will have a private IP, but not all instances
+#will have a public IP.
+aws_ip_address: private
+
+#AWS region where the ansible is being executed against
+aws_region: us-gov-west-1
+
+#Force SAP tags regardless of AMI name
+aws_tag_force_sap: false
+
+#This boolean variable can be used to force an overwrite of user defined tags below.
+aws_tag_force_overwrite: false
+
+#User who is responsible for creating the resource
+aws_tag_build_user: ''
+
+#Is null-context enforcing tags?
+aws_tag_null_context_control: false
+
+#-----------------------------------------------------
+#Begin Section of Tags that can be defined at Run Time
+#-----------------------------------------------------
+
+#Line of business which the resource is related to e.g., labs,build,ibp,scp,sac,hcm
+aws_tag_business: build
+
+#AWS instance id of the target system which need updated tags.
+#This is automatically defined during runtime.
+aws_instance_id: ''
+
+#Friendly description of the purpose of the system
+aws_tag_description: ''
+
+#Active Directory domain the system has been joined to
+aws_tag_domain: ''
+
+#Related management plane e.g. production, staging, management
+aws_tag_environment: ''
+
+#The technology that was used to create the resource once e.g. ansible, terraform
+aws_tag_generated_by: ansible
+
+# application, management
+aws_tag_landscape: ''
+
+#The technology that is used to continuously maintain the resource e.g ansible, terraform
+aws_tag_managed_by: ansible
+
+# application, database
+aws_tag_node: ''
+
+#Operating system major/minor release e.g., Red Hat Enterprise Linux Server release 7.6 (Maipo)
+aws_tag_operating_system: ''
+
+#Group of systems that are related to linux-staging, linux-production, windows-staging, windows-production
+aws_tag_patch_group: ''
+
+#Date that the system was provisioned
+aws_tag_provision_date: ''
+
+#Application name e.g., Hana Cockpit SPS04, openvpn ce 6.4 or sap hana sps4 r40
+aws_tag_product_name: ''
+
+#(shc and ibp only) Name of the customer
+aws_tag_customer: ''
+
+# (shc and ibp only) Database type e.g., oracle, sybase
+aws_tag_db_type: ''
+
+# (shc and ibp only) Database Hostname
+aws_tag_db_hostname: ''
+
+# (shc and ibp only) Database SID
+aws_tag_db_sid: ''
+
+# (shc and ibp only) Tenant SID
+aws_tag_tenant_sid: ''
+
+#-----------------------------------------------------
+#End Section of Tags that can be defined at Run Time
+#-----------------------------------------------------
+
+#Empty placeholder variables for the current values of these user defined tags.
+aws_tag_business_current: ''
+aws_tag_description_current: ''
+aws_tag_product_name_current: ''
+aws_tag_environment_current: ''
+aws_tag_patch_group_current: ''
+aws_tag_build_user_current: ''
+aws_tag_db_type_current: ''
+aws_tag_landscape_current: ''
+aws_tag_node_current: ''
+aws_tag_customer_current: ''
+...

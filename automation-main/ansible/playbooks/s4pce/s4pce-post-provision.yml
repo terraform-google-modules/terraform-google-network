@@ -1,0 +1,384 @@
+---
+# Playbook Name: s4pce-post-provision.yml
+# Description: Performs Post Provisioning tasks on S4PCE instances
+#  This playbook contains post-provisioning tasks that should be
+#  performed on all S4PCE Instances.
+#
+#  See the play tags below for available subsets.
+#
+# Dependencies:
+#   - Ansible v2.9+
+#   - AWS CLI v1.18+
+#   - sudo capability or root privileges on target machine
+#   - cloud-identify ansible role
+#   - s4pce ansible role
+#   - tag-management ansible role
+#   - repository-management ansible role
+#   - aws-cloudwatch-alarms ansible role
+#   - aws-cloudwatch-agent ansible
+#   - iptables ansible role
+#   - clamav ansible role
+#   - aide ansible role
+#   - postfix-relay ansible role
+#   - nessus-agent ansible role
+# Variables:
+#   Variables dynamically created and used by other roles:
+#     application_preset_selection
+#     cw_preset_selection
+#     aws_tag_product_name
+# Example:
+#   Execution on remote systems using the s4pce inventory host template
+#     ansible-playbook s4pce-post-provision.yml -k -i </PATH-TO/S4PCE-HOST-INVENTORY-FILE>
+#
+# Example
+#   Only run provisioning  on a single instance with ip address of 192.168.1.1
+#     ansible-playbook s4pce-post-provision.yml -k -i /tmp/hosts -l 192.168.1.1
+#
+# Example
+#   Execution of a specific plays 'aide' and 'iptables'
+#     ansible-playbook s4pce-post-provision.yml -k -i /tmp/hosts --tags 'aide,iptables'
+#
+#
+# Authors: Louis Lee, Katja Cresanti, Sean-Thomas Saloom, Abdulla Rubaid, Dexter Le
+# Version: 2.16-000001
+# Modified: 2021-02-26 - Created playbook
+#           2021-03-05 - Enable Cloudwatch Logging
+#           2021-03-17 - Enable ClamAV and AIDE
+#           2021-03-19 - Throttle Cloudwatch Alarm Creation
+#           2021-04-01 - Enable Tagging
+#           2022-01-24 - Add multi-cloud detection. Add Postfix-relay
+#           2022-01-27 - Add tenable nessus agent
+#           2022-02-25 - Added default GCP postfix_relay_smtp_address
+#           2022-03-03 - Adding flag to aide role to run update task asynchronously
+#           2022-04-20 - Move Nessus registration key prompt to the beginning of the playbook.
+#           2022-04-28 - Save Nessus registration key
+#           2022-05-16 - Add Azure Cloud in Country support
+#           2022-06-09 - Variable Name bugfix
+#           2023-02-10 - Add plays for vector/telegraf to post provisioning playbook
+#                      - Add vault-auth to pull secrets as required for post provisioning
+#           2023-04-25 - Added vector_version to vector agent install
+#           2023-06-16 - Templatized aws_topic_name in cloudwatch-alarms to accept variable aws_sns_topic_name
+#           2023-08-24 - Enable epel repository to ensure clamav dependencies are installed
+#           2024-12-02 - Use variable for 'aws_region' in tag-management role.
+#           2025-01-23 - Use variable for dynamically determine OS release and support Ubuntu
+
+#   This playbook is designed to be used with the s4pce-ansible-inventory-template.yml
+#   Play Tags:
+#     play0 always            : Generate Metadata
+#     play1 tag-management    : (AWS) Sets tags on Instances, Volumes and other AWS Resources
+#     play2 cloudwatch-alarms : (AWS) Create Cloudwatch Alarms and Monitoring
+#     play3 iptables          : Setup IPTables for Kinesis/Splunk Monitoring
+#     play4 clamav            : Setup ClamAV
+#     play5 aide              : Setup and Provision AIDE
+#     play6 postfix           : Setup postfix relay configuration
+#     play7 nessus            : Install and configure the tenable nessus agent
+#     play8 Vector            : Install and configure logging for Azure/GCP
+#     play9 Telegraf          : Install and configure monitoring for Azure/GCP
+#     playEND                 : End of the playbook
+
+  #################
+  ##### Play0 #####
+  #################
+  - name: 'Play0: Generate Metadata'
+    hosts: all
+    gather_facts: true
+    become: false
+    tags:
+      - play0
+      - always
+
+    # Given the scope of S4PCE, and the fact that this is post provisioning. Continue playbook on false-errored hosts.
+    any_errors_fatal: false
+
+    vars_prompt:
+      - name: playbook_validation_email
+        prompt: Address to send validation email to? (leave blank to skip validation)
+        private: false
+        default: ''
+
+      - name: nessus_key
+        prompt: What is the Tenable Manager registration key?
+        unsafe: true
+        private: true
+
+      - name: input_aws_region
+        prompt: What is the aws region?
+        private: false
+
+    pre_tasks:
+      - name: Save Input Variables for later playbook use.
+        set_fact:
+          validation_email: '{{ playbook_validation_email }}'
+          nessus_registration_key: '{{ nessus_key }}'
+          playbook_aws_region: '{{ input_aws_region }}'
+
+    tasks:
+      - name: Run the 'vault-auth' role to pull secrets from Vault
+        ansible.builtin.include_role:
+          name: vault-auth
+          apply:
+            become: false
+        when: vault_secrets is defined and vault_secrets is not none
+
+      # This will output the following variables: s4pce_firewall_preset_selection
+      - name: Generate role dynamic variables
+        ansible.builtin.include_role:
+          name: s4pce
+          tasks_from: general/variables-create.yml
+        vars:
+          s4pce_variables_create_nodetype: '{{ spr_nodetype }}'
+          s4pce_variables_create_productname: '{{ spr_productname }}'
+
+      # Notes: outputs:
+      # cloud_provider/cloud_partition (aws[govcloud,commercial],gcp[gcp],azure[usgovernment,public])
+      # machine_id
+      - name: Detect Cloud Provider
+        ansible.builtin.include_role:
+          name: cloud-identify
+
+      - name: Group by Cloud Provider
+        group_by:
+          key: cloud_{{ cloud_provider }}
+
+  #################
+  ##### Play1 #####
+  #################
+  - name: 'Play1: Sets tags on Instances, Volumes and other AWS Resources'
+    hosts: cloud_aws
+    gather_facts: false
+    become: false
+    tags:
+      - play1
+      - tag-management
+    any_errors_fatal: true
+
+    tasks:
+      - name: Update tags
+        ansible.builtin.include_role:
+          name: tag-management
+        vars:
+          aws_tag_null_context_control: true
+          aws_region: '{{ playbook_aws_region }}'
+
+  #################
+  ##### Play2 #####
+  #################
+  - name: 'Play2: Create Cloudwatch Alarms and Monitoring'
+    hosts: cloud_aws
+    gather_facts: false
+    become: false
+    tags:
+      - play2
+      - cloudwatch-alarms
+    any_errors_fatal: false
+
+    tasks:
+      - name: Create AWS CloudWatch Alarms
+        ansible.builtin.include_role:
+          name: aws-cloudwatch-alarms
+        vars:
+          aws_topic_name: '{{ aws_sns_topic_name | default("s4pce-cre-monitoring") }}'
+          aws_cloudwatch_alarm_throttle: 3
+          # aws_sns_subscription_email: "DLSAPNS2S4PCEOPS@sapns2.com"
+          # aws_sns_text_numbers: "17033008235,12028191715,18152174853"
+          cw_preset_selection: '{{ s4pce_cw_preset_selection }}'
+          cw_install_metrics: '{{ s4pce_cw_install_metrics | default("true") | bool }}'
+          ignore_disks:
+            - /dev
+            - /dev/shm
+            - /sap/staging
+            - /hana/staging
+            - /boot
+            - /staging
+            - /usr/sap/trans
+
+  #################
+  ##### Play3 #####
+  #################
+  - name: 'Play3: Setup IPTables for Kinesis/Splunk Monitoring'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play3
+      - iptables
+    any_errors_fatal: false
+
+    tasks:
+      - name: Update iptables configuration
+        ansible.builtin.include_role:
+          name: iptables
+        vars:
+          firewall_preset_selection: '{{ s4pce_firewall_preset_selection }}'
+          dynamic_preset_selection: false
+
+  #################
+  ##### Play4 #####
+  #################
+  - name: 'Play4: Setup ClamAV'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play4
+      - clamav
+    any_errors_fatal: true
+
+    tasks:
+      - name: Set fact for repositories to enable depending on OS distribution
+        ansible.builtin.set_fact:
+          s4pce_post_provision_application_profile:
+            RedHat:
+              - epel
+            Ubuntu:
+              - base
+
+      - name: Ensure repository dependencies are enabled
+        ansible.builtin.include_role:
+          name: repository-management
+        vars:
+          repo_enable: true
+          application_preset_selection: "{{ s4pce_post_provision_application_profile[ansible_distribution] }}"
+
+      - name: Update clamav configuration
+        ansible.builtin.include_role:
+          name: clamav
+        vars:
+          clamav_create_cron_schedule: true
+          clamav_dir_ignore_pattern: ^/hana/|^/dev/|^/usr/sap/|^/backup/|^/sys|^/proc|^/swap|^/staging
+
+  #################
+  ##### Play5 #####
+  #################
+  - name: 'Play5: Setup AIDE'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play5
+      - aide
+    any_errors_fatal: true
+
+    tasks:
+      - name: Update aide configuration
+        ansible.builtin.include_role:
+          name: aide
+          apply:
+            become: true
+        vars:
+          aide_async_update: true
+
+  #################
+  ##### Play6 #####
+  #################
+  - name: 'Play6: Setup postfix'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play6
+      - postfix
+    any_errors_fatal: true
+
+    tasks:
+      - name: Configure postfix
+        ansible.builtin.include_role:
+          name: postfix-relay
+        vars:
+          postfix_relay_smtp_address: >-
+            {%- if cloud_provider == "aws" -%} mail.pce.s4.cre.sapns2.internal
+            {%- elif cloud_provider == "azure" and cloud_partition == "usgovernment" -%} mail-azure-usgovernment.pce.s4.cre.sapns2.internal
+            {%- elif cloud_provider == "azure" and cloud_partition == "public" -%} mail-azure-{{ cloud_region }}.pce.s4.cre.sapns2.internal
+            {%- elif cloud_provider == "gcp" -%} mail-gcp.pce.s4.cre.sapns2.internal
+            {%- endif -%}
+
+      - name: Send Validation Email
+        run_once: true
+        when: validation_email != ''
+        mail:
+          body: Validation Email from {{ inventory_hostname }}
+          to: '{{ validation_email }}'
+          subject: SMTP Test
+          from: smtp <notifications@pce.s4.cre.sapns2.us>
+
+  #################
+  ##### Play7 #####
+  #################
+  - name: 'Play7: Install Nessus Agent'
+    hosts: cloud_aws
+    gather_facts: false
+    become: false
+    tags:
+      - play7
+      - nessus
+    any_errors_fatal: true
+    vars:
+      nessus_s3_bucket_aws_region: us-gov-west-1
+      nessus_package_version: 8.1.0
+      nessus_s3_bucket_name: ns2-cre-sms-binaries
+      nessus_s3_bucket_path: media/tenable
+      nessus_manager_address: nessus-manager.sms.cre.sapns2.internal
+      nessus_agent_group: CRE-S4-PCE
+
+    tasks:
+      - name: Install Tenable Nessus Agent
+        ansible.builtin.include_role:
+          name: nessus-agent
+
+  #################
+  ##### Play8 #####
+  #################
+  - name: 'Play8: Installs vector for logging in Azure/GCP'
+    hosts: cloud_azure:cloud_gcp
+    gather_facts: false
+    become: false
+    any_errors_fatal: true
+    tags:
+      - play8
+      - vector
+
+    tasks:
+      - name: Install/configure Vector
+        ansible.builtin.include_role:
+          name: vector
+        vars:
+          vector_version: 0.29.1-1
+
+  #################
+  ##### Play9 #####
+  #################
+  - name: 'Play9: Installs telegraf for monitoring in Azure/GCP'
+    hosts: cloud_azure:cloud_gcp
+    gather_facts: false
+    become: false
+    any_errors_fatal: true
+    tags:
+      - play9
+      - telegraf
+
+    tasks:
+      - name: Install/configure telegraf
+        ansible.builtin.include_role:
+          name: telegraf
+        vars:
+          telegraf_monitor_profiles: "{{ ['ssh', s4pce_productcomponent] }}"
+
+  ###################
+  ##### PlayEND #####
+  ###################
+  - name: 'PlayEND: End of playbook'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play-end
+      - always
+      - the-end
+
+    tasks:
+      - name: This is the end
+        delegate_to: localhost
+        run_once: true
+        debug:
+          msg: Of the world as we know it
+...

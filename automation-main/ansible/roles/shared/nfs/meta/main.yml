@@ -1,0 +1,34 @@
+---
+galaxy_info:
+  role_name: nfs
+  namespace: ns2
+  author: Devon Thyne
+  description: Manages network file share (NFS) volumes on linux machines
+  company: SAP NS2
+
+  issue_tracker_url: https://gitlab.core.sapns2.us/golden-ami-dev/ansible-roles/-/issues
+
+  license: BSD
+
+  min_ansible_version: 2.9
+
+  platforms:
+    - name: EL # RedHat
+      versions:
+        - 8
+        - 7
+        - 6
+    - name: Ubuntu
+      versions:
+        - bionic # 18.04
+        - xenial # 16.04
+        - trusty # 14.04
+
+  galaxy_tags:
+    - network-file-share
+    - nfs
+    - elastic-file-system
+    - efs
+
+  dependencies: []
+...

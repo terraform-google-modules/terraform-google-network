@@ -1,0 +1,45 @@
+---
+# Compress, Copy, Decompress Vector Config Files
+
+  - name: Create temporary zip file to archive the log collectors to
+    delegate_to: localhost
+    ansible.builtin.tempfile:
+      state: file
+      suffix: zip
+    register: vector_local_zip_file
+
+  - name: Create archive of vector config files
+    delegate_to: localhost
+    archive:
+      path: '{{ vector_local_temp_directory.path }}/*'
+      dest: '{{ vector_local_zip_file.path }}'
+      format: zip
+    register: archive_path
+
+  - name: Unarchive the vector config
+    ansible.builtin.unarchive:
+      src: '{{ vector_local_zip_file.path }}'
+      dest: /etc/vector/
+      selevel: s0
+      seuser: system_u
+      setype: etc_t
+      serole: object_r
+      group: root
+      owner: root
+      mode: '0644'
+    become: true
+
+  - name: Remove temp directory used for log collectors
+    delegate_to: localhost
+    file:
+      state: absent
+      path: '{{ vector_local_temp_directory.path }}'
+    become: false
+
+  - name: Remove temp archive used for log collectors
+    delegate_to: localhost
+    file:
+      state: absent
+      path: '{{ vector_local_zip_file.path }}'
+    become: false
+...

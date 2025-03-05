@@ -1,0 +1,481 @@
+---
+# Synopsis: Creates EBS disks and configures LVM
+# Inputs:
+#   - disk_preset_list: Either a custom defined dictionary or prexisting variables defined in defaults.yml  which includes relevant information to resize disk and volumes
+# Outputs: EBS disks tagged with the instance id as well as the mount point along with volume group names with epoch time appended
+
+# Determine if any actions need to be performed for the current mount
+
+  - name: Construct block device names
+    block:
+      - name: Get pvs Block Device Names
+        shell: lsblk | grep -o -E -e '^xvd[a-z]' -e '^nvme[0-9][0-9]?n1' -e '^sd[a-z]' #listing current mounted devices
+        register: current_block_device_names
+
+      - name: Get current mount points
+        shell: lsblk | grep -Ev "nvme0|sda|xvda|vg_root" | awk '{print $7}' | sed 's/MOUNTPOINT//;/^#/d;/^[[:space:]]*$/d'
+        register: current_mount_points
+
+      - name: Prep alphabet to support generating device names
+        set_fact:
+          alphabet: bcdefghijklmnopqrstuvwxyz
+
+      - name: Set GCP EBS block device name
+        set_fact:
+          device_name_gcp_list: "{{ device_name_gcp_list + ['sd' ~ alphabet[current_block_device_names.stdout_lines | length - 1 + item | int ]] }}"
+        with_sequence: start=0 end={{ disk_preset_list | length - 1 }}
+
+# End block "Construct block device names"
+#######################################################
+
+  - name: Install requests python library
+    package:
+      name: python3-requests
+    become: true
+    when: task_delegation != 'localhost'
+
+  - name: Install google-auth python library
+    package:
+      name: python3-google-auth
+    become: true
+    when: task_delegation != 'localhost'
+
+  - name: Get the GCP VM metadata
+    uri:
+      url: http://metadata.google.internal/computeMetadata/v1/{{item}}
+      return_content: true
+      headers:
+        Metadata-Flavor: Google
+    loop:
+      - instance/zone
+      - instance/name
+      - project/project-id
+      - project/numeric-project-id
+    register: vm_metadata
+  - name: Set fact gcp_zone
+    set_fact:
+      gcp_zone: "{{ vm_metadata.results[0].content | regex_replace('.*/', '') }}"
+      gcp_vm_name: '{{ vm_metadata.results[1].content | regex_replace("\..*", "") }}'
+      gcp_project_id: '{{ vm_metadata.results[2].content }}'
+      gcp_numeric_project_id: '{{ vm_metadata.results[3].content }}'
+
+  - name: Get the GCP VM metadata -- location
+    set_fact:
+      gcp_location: "{{ gcp_zone | regex_replace('..$', '') }}"
+
+  - name: Get the GCP VM metadata -- instance id
+    block:
+      - name: Get instance id from /etc
+        slurp:
+          src: /etc/google_instance_id
+        register: slurped_gcp_instance_id
+
+      - name: Set fact gcp_instance_id
+        set_fact:
+          gcp_instance_id: "{{ slurped_gcp_instance_id['content'] | b64decode | trim }}"
+
+  - name: create mount point label list
+    set_fact:
+      mountpoint_label_list: "{{ mountpoint_label_list + [item.value.mount_point.replace('/', '_')] }}"
+    loop: '{{ disk_preset_list }}'
+
+  - name: Collect current GCP volume information
+    delegate_to: '{{ task_delegation | default(omit, true) }}'
+    block:
+      - name: Determine whether specified mount exists
+        set_fact:
+          mount_exists: '{{ mount_exists + [(item.value.mount_point if (item.value.mount_point != "/swap") else "[SWAP]") in current_mount_points.stdout_lines]
+            }}'
+        loop: '{{ disk_preset_list }}'
+
+      - name: Get GCP volume info if it exists
+        block:
+          - name: Get GCP disk volume details
+            google.cloud.gcp_compute_disk_info:
+              auth_kind: '{{ gcp_auth_kind }}'
+              service_account_file: '{{ gcp_service_account_file | default(omit, true) }}'
+              project: '{{ gcp_project_id }}'
+              zone: '{{ gcp_zone }}'
+              filters:
+                - labels.instance = "{{ gcp_instance_id }}"
+            register: volume_info_list
+            when: current_mount_points.stdout != ""
+
+          - name: Get GCP volume size
+            set_fact:
+              volume_size: '{{ volume_size + [volume_info_list.resources | to_json | from_json | json_query(query_one) | json_query(query_two)] }}'
+            loop: '{{ disk_preset_list }}'
+            loop_control:
+              index_var: index
+            vars:
+              query_one: "[?name!='{{ gcp_vm_name }}']" #checks to make sure it isn't a boot disk (since boot disk name is same as instance)
+              query_two: "[?contains(labels.mountpoint,'{{ mountpoint_label_list[index] }}')].sizeGb"
+            when: current_mount_points.stdout != ""
+
+          - name: Determine if a resize is needed
+            set_fact:
+              resize_needed: '{{ resize_needed + [item[0] | default(disk_preset_list[index].value.size) | int != disk_preset_list[index].value.size | int]
+                }}'
+            loop: '{{ volume_size }}'
+            loop_control:
+              index_var: index
+            when: current_mount_points.stdout != ""
+
+# End block "Get volume info if it exists"
+
+# End block "Collect current volume information"
+
+  - name: Disk information
+    debug:
+      msg:
+        - 'Mount Key:             {{item.key}}'
+        - 'Mount Point:           {{item.value.mount_point}}'
+        - 'Size:                  {{item.value.size}}'
+        - 'Type:                  {{item.value.disk_type | default(gcp_disk_type) }}'
+        - 'Key:                   {{item.value.disk_encryption_key | default(disk_encryption_key_default) }}'
+        - 'Create requested:      {{disk_create}}'
+        - 'Volume exists already: {{mount_exists[index]}}'
+        - 'Resize requested:      {{disk_resize}}'
+        - "Resize Needed:         {{resize_needed[index] | default('False')}}"
+    loop: '{{ disk_preset_list }}'
+    loop_control:
+      index_var: index
+
+# NOTE: The majority of the rest of this task file falls under this block.
+# tested up to here
+
+  - name: Create/Resize volumes and mounts only if needed
+    block:
+    ### Create/Resize GCP volumes as necessary
+      - name: GCP volumes
+        when: >
+          disk_create | bool
+        delegate_to: '{{ task_delegation | default(omit, true) }}'
+        block:
+          - name: Check if KMS key is valid
+            shell: gcloud kms keys list --keyring={{ item.value.disk_encryption_keyring | default(disk_encryption_keyring_default) }} --location={{ gcp_location
+              }} | grep "{{ item.value.disk_encryption_key | default(disk_encryption_key_default) }}"
+            register: kms_validation
+            failed_when: kms_validation.rc | int != 0
+            when: (disk_preset_list.value.disk_encryption_key is defined and disk_preset_list.value.disk_encryption_key | length > 0) or disk_encryption_key_default
+              | length > 0
+            loop: '{{ disk_preset_list }}'
+            loop_control:
+              index_var: index
+
+          - name: Ensure GCE Service Account has kms permissions
+            shell: |
+              gcloud projects add-iam-policy-binding {{ gcp_project_id }} \
+              --member="serviceAccount:service-{{ gcp_numeric_project_id }}@compute-system.iam.gserviceaccount.com" \
+              --role="roles/cloudkms.cryptoKeyEncrypterDecrypter"
+            when: (disk_preset_list.value.disk_encryption_key is defined and disk_preset_list.value.disk_encryption_key | length > 0) or disk_encryption_key_default
+              | length > 0
+
+          - name: set fact kms_key_id
+            set_fact:
+              kms_key_id: "{{ 'projects/' + gcp_project_id + '/locations/' + gcp_location + '/keyRings/' + disk_preset_list.value.disk_encryption_keyring\
+                \ | default(disk_encryption_keyring_default) + '/cryptoKeys/' + disk_preset_list.value.disk_encryption_key | default(disk_encryption_key_default)\
+                \ }}"
+            when: (disk_preset_list.value.disk_encryption_key is defined and disk_preset_list.value.disk_encryption_key | length > 0) or disk_encryption_key_default
+              | length > 0
+
+          - name: Create and label additonal volumes on GCP
+            google.cloud.gcp_compute_disk:
+              auth_kind: '{{ gcp_auth_kind }}'
+              service_account_file: '{{ gcp_service_account_file | default(omit, true) }}'
+              project: '{{ gcp_project_id }}'
+              name: '{{ gcp_vm_name }}-{{ item }}'
+              zone: '{{ gcp_zone }}'
+              size_gb: '{{ disk_preset_list[index].value.size }}'
+              type: '{{ disk_preset_list[index].value.disk_type | default(gcp_disk_type) }}'
+              disk_encryption_key:
+                kms_key_name: '{{ kms_key_id | default(omit, true) }}'
+              labels:
+                name: '{{ gcp_vm_name }}_{{ disk_preset_list[index].key }}'
+                mountpoint: '{{ mountpoint_label_list[index] }}'
+                instance: '{{ gcp_instance_id }}'
+            register: gcp_volume_info_list
+            async: 1000
+            poll: 00
+            when: disk_create | bool and not mount_exists[index] | bool
+            loop: '{{ device_name_gcp_list }}'
+            loop_control:
+              index_var: index
+
+          - name: Wait for volumes to be created
+            async_status:
+              jid: '{{ item.ansible_job_id }}'
+            register: volume_create_status
+            until: volume_create_status.finished
+            retries: 100
+            delay: 3
+            when: disk_create | bool and not mount_exists[index] | bool
+            loop: '{{ gcp_volume_info_list.results }}'
+            loop_control:
+              index_var: index
+
+          - name: Attach disks to instance
+            when: disk_create | bool and not mount_exists[index] | bool
+            shell: |
+              gcloud compute instances attach-disk {{ gcp_vm_name }} \
+              --disk {{ gcp_vm_name }}-{{ item }} --zone={{ gcp_zone }}
+            register: gcp_attach_disks_list
+            loop: '{{ device_name_gcp_list }}'
+            loop_control:
+              index_var: index
+
+          - name: Attach snapshot policy to disk
+            when: gcp_disk_snapshot_policy != "" and disk_create | bool and not mount_exists[index] | bool
+            shell: gcloud compute disks add-resource-policies {{ gcp_vm_name }}-{{ item }} --resource-policies {{ gcp_disk_snapshot_policy }} --zone {{
+              gcp_zone }}
+            loop: '{{ device_name_gcp_list }}'
+            loop_control:
+              index_var: index
+
+    # End Block "GCP volumes"
+
+    ### Volume resizing
+
+    ## *** GCP ONLY SUPPORTS INCREASING DISK SIZE ***
+
+      - name: Resize new GCP volume if needed
+        when:
+          - current_mount_points.stdout != ""
+        delegate_to: '{{ task_delegation | default(omit, true) }}'
+        block:
+          - name: Get GCP volume ids
+            set_fact:
+              volume_id_list: '{{ volume_id_list + [volume_info_list.resources | to_json | from_json | json_query(query_one) | json_query(query_two)] }}'
+            vars:
+              query_one: "[?name!='sda']" #checks to make sure it isn't a boot disk
+              query_two: "[?contains(labels.mountpoint,'{{ mountpoint_label_list[index] }}')].id"
+            loop: '{{ disk_preset_list }}'
+            loop_control:
+              index_var: index
+
+          - name: Expand GCP EBS volume size via GCP CLI
+            shell: gcloud compute disks resize {{ item[0] }} --size={{ disk_preset_list[index].value.size }} --zone={{ gcp_zone }} --quiet
+            register: gcp_volume_resize_list
+            async: 1000
+            poll: 00
+            loop: '{{ volume_id_list }}'
+            loop_control:
+              index_var: index
+            when: resize_needed[index] | bool
+
+      - name: Get resized device names
+        shell: lsblk | grep -Ev "nvme0|sda|xvda|vg_root" | grep -B2 "{{ (item.value.mount_point if (item.value.mount_point != "/swap") else "\[SWAP\]")
+          }}" | head -1 | cut -d" " -f 1
+        register: resized_device_names
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        when: resize_needed[index] is defined and resize_needed[index] | bool
+        become: true
+
+      - name: Wait for volume resize
+        shell: lsblk | grep -w "{{ resized_device_names.results[index].stdout }}" | awk '{print $4}' | sed 's/[^0-9]*//g'
+        register: resize_volume_status
+        until: resize_volume_status.stdout | int == item.value.size | int
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        when: resize_needed[index] is defined and resize_needed[index] | bool
+
+    # NOTE: This assumes that all partitions use 100% of the volume and there are no other issues with the GPT table
+    #       printf "fix\nfix\n" is used to pass inputs to the parted prompts to remove old GPT tables
+      - name: Remove old GPT table for resize
+        shell: printf "fix\nfix\n" | $(which parted) ---pretend-input-tty "{{ '/dev/' ~ resized_device_names.results[index].stdout }}" print
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        when:
+          - resized_device_names is defined
+          - resize_needed[index] is defined and resize_needed[index] | bool
+        become: true
+
+      - name: Resize partition to full size of disk
+        shell: $(which parted) "{{ '/dev/' ~ resized_device_names.results[index].stdout }}" resizepart 1 100%
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        when:
+          - resized_device_names is defined
+          - resize_needed[index] is defined and resize_needed[index] | bool
+        become: true
+
+      - name: Add resized volume to partition_names list
+        set_fact:
+          partition_names: "{{ partition_names + [ resized_device_names.results[index].stdout ~ ('p1' if ('nvme' in resized_device_names.results[index].stdout)\
+            \ else '1')] }}"
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        when:
+          - resized_device_names is defined
+          - resize_needed[index] is defined and resize_needed[index] | bool
+
+    ### Configure new volumes
+
+      - name: Get existing device names
+        shell: lsblk | grep -Ev "nvme0|sda|xvda|vg_root" | grep -B2 "{{ (item.value.mount_point if (item.value.mount_point != "/swap") else "\[SWAP\]")
+          }}" | head -1 | cut -d" " -f 1
+        register: existing_device_names
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+
+      - name: Get new device names
+        shell: lsblk -ndo +SERIAL | sed 's/vol/vol-/g' | grep "{{ device_name_gcp_list[index] | default('')}}" | cut -d" " -f 1
+        register: new_device_names
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+
+      - name: Create list of all device names
+        set_fact:
+          device_names: "{{ device_names + [ (existing_device_names.results[index].stdout if (existing_device_names.results[index].stdout != '') else new_device_names.results[index].stdout)]\
+            \ }}"
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+
+      - name: Set partition names
+        set_fact:
+          partition_names: "{{ partition_names + [ item ~ ('p1' if ('nvme' in item) else '1')] }}"
+        loop: '{{ device_names }}'
+
+    # Required to allow the kernel to recognize that a drive exists
+      - name: Wait for drive to become available
+        wait_for:
+          path: /dev/{{ item }}
+          delay: 1
+        loop: '{{ device_names }}'
+
+      - name: Partition new disk
+        parted:
+          device: /dev/{{ item }}
+          number: 1
+          label: gpt
+          part_type: primary
+          state: present
+        register: partition_disk
+        become: true
+        failed_when: false
+        loop: '{{ device_names }}'
+
+    # Required to allow the kernel to re-read the partition table before attempting to resize a partition
+      - name: Wait for partition to become available
+        wait_for:
+          path: /dev/{{ item }}
+          delay: 1
+        loop: '{{ partition_names }}'
+
+      - name: Get existing physical volumes
+        shell: /sbin/pvs | $(which awk) 'FNR == 1 {next}{print $1}'
+        register: physical_volumes_fact
+        become: true
+
+    ### Configure LVM for volumes
+
+      - name: Set Volume Group name
+        set_fact:
+          volume_group: "{{ volume_group + ['vg_' ~ (item.key)] }}"
+          volume_group_name: "{{ volume_group_name + ['vg_' ~ (item.key) ~ '_' ~ (volume_name_randomization_string)] }}"
+        loop: '{{ disk_preset_list }}'
+
+      - name: Get existing volume groups
+        shell: /sbin/vgs | $(which awk) 'FNR == 1 {next}{print $1}'
+        register: volume_groups_fact
+        become: true
+
+      - name: Search for existing volume group matching targeted mount
+        set_fact:
+          existing_volume_groups: "{{ existing_volume_groups + [volume_groups_fact.stdout | regex_search( '(' + item + '_.*)', multiline=True)] }}"
+        loop: '{{ volume_group }}'
+
+      - name: Create volume groups through LVM
+        lvg:
+          vg: '{{ volume_group_name[index] }}'
+          pvs: /dev/{{ item }}
+        when:
+          - ('/dev/' + item) not in physical_volumes_fact.stdout_lines
+          - existing_volume_groups[index] is not defined or existing_volume_groups[index] == "" or existing_volume_groups | length > 0
+        loop: '{{ partition_names }}'
+        loop_control:
+          index_var: index
+        become: true
+
+      - name: Resize physical volumes through pvresize
+        command: pvresize "/dev/{{ item }}"
+        loop: '{{ partition_names }}'
+        become: true
+
+      - name: Create/resize a logical volume the size of all remaining space in the pv through LVM
+        lvol:
+          vg: '{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}'
+          lv: lv_{{ item.key }}
+          size: 100%PVS
+          resizefs: true
+          force: true
+          state: present
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        become: true
+
+      - name: Create filesystem on each logical volume (except swap)
+        filesystem:
+          fstype: '{{ item.value.filesystem | default( disk_filesystem ) }}'
+          dev: /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }}
+        when: item.value.mount_point != '/swap'
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        become: true
+
+      - name: Mount volumes and update fstab
+        mount:
+          path: '{{ item.value.mount_point }}'
+          src: /dev/mapper/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}-lv_{{ item.key }}
+          fstype: '{{ item.value.filesystem | default( disk_filesystem ) }}'
+          state: mounted
+        when: item.value.mount_point != '/swap'
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        become: true
+
+    ### SWAP ONLY
+      - name: Configure Swap
+        become: true
+        block:
+          - name: Create swap filesystem and enable swap for swap volume
+            shell: |
+              mkswap /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }}
+              swapon -v /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }}
+            register: create_swap
+            become: true
+            ignore_errors: true
+            when:
+              - item.value.mount_point == '/swap'
+              - existing_volume_groups[index] is not defined or existing_volume_groups[index] == "" or existing_volume_groups | length > 0
+            loop: '{{ disk_preset_list }}'
+            loop_control:
+              index_var: index
+
+        # NOTE: the create swap filesystem will fail if the play has failed since the resource is busy, adding ignore errors for now
+          - name: Update fstab with swap volume
+            lineinfile:
+              path: /etc/fstab
+              line: /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }} swap swap defaults 0 0
+              state: present
+            when:
+              - item.value.mount_point == '/swap'
+              - existing_volume_groups[index] is not defined or existing_volume_groups[index] == "" or existing_volume_groups | length > 0
+            loop: '{{ disk_preset_list }}'
+            loop_control:
+              index_var: index
+      # End block "Swap"
+  # End block "Create/Resize volumes and mounts only if needed"
+...

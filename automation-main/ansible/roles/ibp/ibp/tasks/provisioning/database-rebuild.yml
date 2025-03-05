@@ -1,0 +1,407 @@
+---
+# Synopsis: Provision Hana Database
+# Inputs:
+#   - backend_sid: SAP ID assigned to the server instance
+#   - hana_tar_source - path to the source tar folder (version unique)
+#   - system_usage - (production|test|development) SAP Environment
+#   - ibp_hostname - hostname (generated from variables-create)
+#   - ibp_defaults - defaults generated from defaults-decrypt
+#   - ibp_staging_hana - from defaults
+#   - localsecurestore_uninstall_source - from defaults
+#   - localsecurestore_install_source - from defaults
+# Outputs: Configured and Running Hana Database
+# Comments: This is a line by line rewrite of files/general/dbrebuild_2.sh with additional hotfixes.
+
+- name: "Fail if HANA is already installed (line 20220128.24)"
+  become: true
+  ansible.builtin.shell: "/usr/sap/hostctrl/exe/sapcontrol -nr 02 -function GetInstanceProperties | grep INSTANCE_NAME | cut -d ',' -f '3' | cut -d ' ' -f '2'"
+  failed_when: '"HDB02" in hana_check.stdout'
+  changed_when: false
+  register: hana_check
+
+- name: "Retrieve default passwords (line 20220128.35)"
+  ansible.builtin.include_tasks: general/defaults-decrypt.yml
+
+# - name: "Stop Host Agent (line 20220128.87)"
+#   become: true
+#   ansible.builtin.shell: /etc/init.d/sapinit stop
+#   changed_when: false
+
+- name: "Pre-install cleanup (line 20220128.91)"
+  become: true
+  ansible.builtin.shell: >-
+      rm -rf /tmp/UNIFIEDINSTALL
+      rm -rf /tmp/UNIFIED
+      rm -rf /tmp/LMTP*
+      rm -rf /tmp/sapinst*
+      rm -rf /tmp/.sap*
+      rm -rf /tmp/.sapstr*
+      rm -rf /tmp/STDIN*
+      rm -rf /tmp/{{ backend_sid|upper }}*
+      rm -rf /tmp/posrdb*
+      rm -rf /var/tmp/saposcol.pid
+      rm -rf /var/tmp/hdb*
+      rm -rf /var/lib/hdb/*
+      rm -rf /var/tmp/hdb*
+      rm -rf /var/lib/hdb
+
+- name: "Create Symbolic Links (line 20220128.128)"
+  become: true
+  ansible.builtin.file:
+    state: link
+    src: "{{ item.src }}"
+    path: "{{ item.path }}"
+    follow: false
+    force: true
+  loop:
+    - src: /hana/shared/{{ backend_sid|upper }}
+      path: /hana/shared/N00
+    - src: /hana/data/{{ backend_sid|upper }}
+      path: /hana/data/N00
+    - src: /hana/log/{{ backend_sid|upper }}
+      path: /hana/log/N00
+
+# for RHEL 9.2 umask for root is set to 0077. Hence permissions need to be set manually
+- name: "Create directories (line 20220128.132)"
+  become: true
+  ansible.builtin.file:
+    state: directory
+    path: "{{ item }}"
+    mode: 0755
+  loop:
+    - /hana/data/{{ backend_sid|upper }}
+    - /hana/log/{{ backend_sid|upper }}
+    - /hana/shared/{{ backend_sid|upper }}
+    - /hana/backups/{{ backend_sid|upper }}/HDB02/backup/data
+    - /hana/backups/{{ backend_sid|upper }}/HDB02/backup/log
+    - /usr/sap/N00/home
+    - /usr/sap/{{ backend_sid|upper }}/lss/home
+
+- name: "Create users (line 20220128.140)"
+  become: true
+  ansible.builtin.user:
+    comment: "{{ item.comment }}"
+    home: "{{ item.home }}"
+    uid: "{{ item.uid }}"
+    group: "{{ item.group }}"
+    name: "{{ item.name }}"
+    shell: "{{ item.shell }}"
+  loop:
+    - name: n00adm
+      comment: 'SAP HANA Database System Administrator'
+      home: '/usr/sap/N00/home'
+      uid: '12393'
+      group: 'sapsys'
+      shell: '/bin/csh'
+    - name: "{{ backend_sid|lower }}crypt"
+      comment: 'SAP HANA Crypt User'
+      home: /usr/sap/{{ backend_sid|upper }}/lss/home
+      uid: '1002'
+      group: "{{ backend_sid|lower }}crypt"
+      shell: '/bin/sh'
+
+- name: Check execute mode on saphostexec
+  file:
+    path: "{{ saphostagent_source }}/saphostexec"
+    mode: 'u+x'
+  become: true
+
+- name: Run the SAP Host Agent Setup script
+  command: "./saphostexec -install"
+  args:
+    chdir: "{{ saphostagent_source }}"
+  become: true
+
+- name: "Start Extracting Tars Synchronous, don't overwrite (line 20220128.156)"
+  become: true
+  failed_when: false
+  ansible.builtin.shell:
+    cmd: "cat {{ item }} | tar -zpkxvf - -C /"
+    chdir: "{{ hana_tar_source }}"
+  loop_control:
+    label: "Extracting {{ item }}"
+  loop:
+    - hana-data.tgz-*
+    - hana-log.tgz-*
+    - hana-shared.tgz-*
+
+- name: "Disable localsecurestore"
+  become: true
+  community.general.ini_file:
+    option: instances
+    state: present
+    section: localsecurestore
+    value: 0
+    path: "/hana/shared/{{ backend_sid|upper }}/HDB02/ibpdb-n00/daemon.ini"
+
+- name: "Update HDB Install Config (line 20220128.163)"
+  become: true
+  ansible.builtin.template:
+    src: provisioning/hana-cfg.j2
+    dest: "/hana/shared/{{ backend_sid|upper }}/global/hdb/install/support/cfg"
+    owner: n00adm
+    group: sapsys
+    mode: 0640
+
+- name: "Create hdblcm password file (line 20220128.173)"
+  become: true
+  no_log: true
+  ansible.builtin.copy:
+    dest: /tmp/hdb_passwords.xml
+    content: >-
+      <?xml version="1.0" encoding= "UTF-8"?>
+        <Passwords>
+          <lss_backup_password>{{ ibp_defaults.credentials.master_password }}</lss_backup_password>
+          <password>{{ ibp_defaults.credentials.master_password }}</password>
+          <system_user_password>{{ ibp_defaults.credentials.master_password }}</system_user_password>
+          <root_password>{{ ibp_defaults.credentials.master_password }}</root_password>
+          <sapadm_password>{{ ibp_defaults.credentials.master_password }}</sapadm_password>
+        </Passwords>
+
+- name: "Rename HANA DB (line 20220128.177)"
+  become: true
+  no_log: true
+  ansible.builtin.shell: >-
+    cat /tmp/hdb_passwords.xml | /hana/shared/{{ backend_sid|upper }}/hdblcm/hdblcm \
+      --action register_rename_system \
+      --datapath=/hana/data/{{ backend_sid|upper }}/  \
+      --databackuppath=/hana/backups/{{ backend_sid|upper }}/HDB02/backup/data \
+      --logpath=/hana/log/{{ backend_sid|upper }}/ \
+      --logbackuppath=/hana/backups/{{ backend_sid|upper }}/HDB02/backup/log \
+      --root_user=root \
+      --listen_interface=global \
+      --number=02 \
+      --system_usage={{ system_usage }} \
+      --target_sid={{ backend_sid|upper }} \
+      --hostmap=ibpdb-n00={{ ibp_hostname }} \
+      --target_password={{ ibp_defaults.credentials.master_password }} \
+      --read_password_from_stdin=xml \
+      --batch \
+      -nostart
+
+- name: "Adjust hdbenv.csh (line 20220128.186)"
+  become: true
+  ansible.builtin.replace:
+    path: "/usr/sap/{{ backend_sid|upper }}/HDB02/hdbenv.csh"
+    regexp: 'hana/shared'
+    replace: '/usr/sap'
+
+- name: "Update HANA PSE (line 20220128.190)"
+  become: true
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ item.src }}"
+    dest: "{{ ibp_staging_hana }}/Scripts/NS2-IBPDB.pse"
+    owner: "{{ backend_sid|lower }}adm"
+    group: "sapsys"
+  loop:
+    - dest: "/usr/sap/{{ backend_sid|upper }}/HDB02/{{ ibp_hostname }}/sec/SAPSSLS.pse"
+      src: "{{ ibp_staging_hana }}/Scripts/NS2-IBPDB.pse"
+    - dest: "/usr/sap/{{ backend_sid|upper }}/HDB02/{{ ibp_hostname }}/sec/sapsrv.pse"
+      src: "{{ ibp_staging_hana }}/Scripts/NS2-IBPDB.pse"
+
+- name: "Remove file installation.ini (line 20220128.196)"
+  become: true
+  ansible.builtin.file:
+    state: absent
+    path: /hana/shared/{{ backend_sid|upper }}/hdbclient/install/installation.ini
+
+- name: "Change Ownership on the backup directory (line 20220128.203)"
+  become: true
+  ansible.builtin.file:
+    state: directory
+    path: /hana/backups
+    owner: "{{ backend_sid|lower }}adm"
+    group: "sapsys"
+
+- name: "Start Hana DB (line 20220128.205)"
+  ansible.builtin.include_tasks: operations/hana-hardstart.yml
+
+- name: "Stop tenant DB (line 20220128.232)"
+  become: true
+  no_log: true
+  become_method: sudo
+  become_user: "{{ backend_sid|lower }}adm"
+  ansible.builtin.shell: "hdbsql -xj -i 02 -n {{ ibp_hostname }}:30213 -u SYSTEM -p {{ ibp_defaults.credentials.master_password }} alter system stop database N00"
+  args:
+    executable: '/bin/csh'
+
+- name: "Pause for 60 seconds"
+  ansible.builtin.pause:
+    seconds: 60
+
+- name: "Rename tenant DB (line 20220128.243)"
+  become: true
+  no_log: true
+  become_method: sudo
+  become_user: "{{ backend_sid|lower }}adm"
+  ansible.builtin.shell: "hdbsql -xj -i 02 -n {{ ibp_hostname }}:30213 -u SYSTEM -p {{ ibp_defaults.credentials.master_password }} rename database N00 to {{ backend_sid|upper }}"
+  args:
+    executable: '/bin/csh'
+
+- name: "Pause for 60 seconds"
+  ansible.builtin.pause:
+    seconds: 60
+
+- name: "Start tenant DB (line 20220128.248)"
+  become: true
+  no_log: true
+  become_method: sudo
+  become_user: "{{ backend_sid|lower }}adm"
+  ansible.builtin.shell: "hdbsql -xj -i 02 -n {{ ibp_hostname }}:30213 -u SYSTEM -p {{ ibp_defaults.credentials.master_password }} alter system start database {{ backend_sid|upper }}"
+  args:
+    executable: '/bin/csh'
+
+- name: "Pause for 60 seconds"
+  ansible.builtin.pause:
+    seconds: 60
+
+- name: "Change application schema password (line 20220128.257)"
+  become: true
+  no_log: true
+  ansible.builtin.shell: |
+    su - {{ backend_sid|lower }}adm -c "hdbsql -xj -i 02 -n {{ ibp_hostname }} -u SYSTEM -p {{ ibp_defaults.credentials.master_password }} ALTER USER SAPHANADB PASSWORD {{ ibp_defaults.credentials.saphanadb_password }}"
+    su - {{ backend_sid|lower }}adm -c "hdbsql -xj -i 02 -n {{ ibp_hostname }} -u SYSTEM -p {{ ibp_defaults.credentials.master_password }} ALTER USER SAPHANADB DISABLE PASSWORD LIFETIME"
+
+- name: "Store credentials in HDB Store (line 20220128.262)"
+  become: true
+  no_log: true
+  ansible.builtin.shell: |
+    su - {{ backend_sid|lower }}adm -c "hdbuserstore SET DEFAULT {{ ibp_hostname }}:30215 SAPHANADB {{ ibp_defaults.credentials.saphanadb_password }}"
+    su - {{ backend_sid|lower }}adm -c "hdbuserstore SET W {{ ibp_hostname }}:30215 SYSTEM {{ ibp_defaults.credentials.master_password }}"
+
+- name: "Update sec directory (line 20220128.268)"
+  become: true
+  ansible.builtin.file:
+    state: directory
+    path: /usr/sap/hostctrl/exe/sec
+    owner: "sapadm"
+    group: "sapsys"
+    mode: 0755
+
+- name: "Update HANA PSE (line 20220128.288)"
+  become: true
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ item.src }}"
+    dest: "{{ ibp_staging_hana }}/Scripts/NS2-IBPDB.pse"
+    owner: "sapadm"
+    group: "sapsys"
+    mode: 0755
+  loop:
+    - dest: "/usr/sap/hostctrl/exe/sec/SAPSSLS.pse"
+      src: "{{ ibp_staging_hana }}/Scripts/NS2-IBPDB.pse"
+    - dest: "/usr/sap/hostctrl/exe/sec/sapsrv.pse"
+      src: "{{ ibp_staging_hana }}/Scripts/NS2-IBPDB.pse"
+
+- name: "Restart hostctrl (line 20220128.295)"
+  become: true
+  shell: /usr/sap/hostctrl/exe/hostexecstart -restart
+
+- name: "Create localsecurestore destination"
+  become: true
+  ansible.builtin.file:
+    state: directory
+    path: "/lss/shared/{{ backend_sid|upper }}"
+    owner: "{{ backend_sid|lower }}crypt"
+    group: "{{ backend_sid|lower }}crypt"
+
+- name: "Copy localsecurestore uninstall source locally"
+  become: true
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ localsecurestore_uninstall_source }}/"
+    dest: "/lss/shared/{{ backend_sid|upper }}"
+    owner: "{{ backend_sid|lower }}crypt"
+    group: "{{ backend_sid|lower }}crypt"
+
+- name: "Relink localsecurestore location"
+  become: true
+  ansible.builtin.file:
+    state: link
+    src: "/lss/shared/{{ backend_sid|upper }}"
+    path: "/hana/shared/{{ backend_sid|upper }}/lss"
+    follow: false
+    force: true
+
+- name: Make sure hdbuninst is executable
+  file:
+    path: "/lss/shared/{{ backend_sid|upper }}/install/hdbuninst"
+    mode: +x
+  become: true
+
+- name: Make sure sdbrun is executable
+  file:
+    path: "/lss/shared/{{ backend_sid|upper }}/install/instruntime/sdbrun"
+    mode: +x
+  become: true
+
+- name: "Clean uninstall of localsecurestore"
+  become: true
+  ansible.builtin.shell: >-
+    /lss/shared/{{ backend_sid|upper }}/install/hdbuninst \
+      --keep_user \
+      --keep_user_group \
+      --batch
+  register: uninstall_output
+
+# # Convert the uninstall process to use hdblcm instead of hdbuninst
+# This is NOT working as previous install of LSS is not complete
+#
+# - name: "Clean Uninstall of localsecurestore"
+#   become: true
+#   ansible.builtin.shell: >-
+#     cat /tmp/hdb_passwords.xml | /hana/shared/{{ backend_sid|upper }}/hdblcm/hdblcm \
+#       --action uninstall \
+#       --components=lss \
+#       --keep_lss_user=y \
+#       --batch \
+#       --read_password_from_stdin=xml
+#   register: uninstall_output
+
+- name: "Display Uninstall Results"
+  debug:
+    var: uninstall_output.stdout_lines
+
+- name: "Enable localsecurestore"
+  become: true
+  community.general.ini_file:
+    option: instances
+    state: present
+    section: localsecurestore
+    value: 1
+    path: "/hana/shared/{{ backend_sid|upper }}/HDB02/ibpdb-{{ backend_sid|lower }}/daemon.ini"
+
+- name: Make sure hdbinst is executable
+  file:
+    path: "/staging/ibp/Build/LOCALSECURESTORE/install/SAP_HANA_LSS/hdbinst"
+    mode: 0755
+  become: true
+
+- name: "Install localsecurestore"
+  become: true
+  ansible.builtin.shell: >-
+    cat /tmp/hdb_passwords.xml | /hana/shared/{{ backend_sid|upper }}/hdblcm/hdblcm \
+      --component_root={{ localsecurestore_install_source }} \
+      --action update_components \
+      --components=lss \
+      --lss_inst_path=/lss/shared \
+      --batch \
+      --read_password_from_stdin=xml
+  register: install_output
+
+- name: "Display Install Results"
+  debug:
+    var: install_output.stdout_lines
+
+- name: "Cleanup N00 References (line 20220128.299)"
+  become: true
+  ansible.builtin.file:
+    state: absent
+    path: "{{ item }}"
+  loop:
+    - /hana/data/N00
+    - /hana/log/N00
+    - /hana/shared/N00
+    - /tmp/hdb_passwords.xml
+...

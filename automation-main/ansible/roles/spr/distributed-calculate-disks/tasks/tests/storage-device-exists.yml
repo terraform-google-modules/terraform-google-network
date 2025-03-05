@@ -1,0 +1,14 @@
+- name: "Test - Ensure storage device exists"
+  become: true
+  ansible.builtin.command:
+    cmd: fdisk -l
+  register: fdisk_status
+  changed_when: false
+
+- name: "Test - Fail if storage device not found"
+  ansible.builtin.fail:
+    msg: "{{ device }} not found"
+  when: device not in fdisk_status.stdout
+  loop: "{{ distributed_calculate_disks_test_devices }}"
+  loop_control:
+    loop_var: device

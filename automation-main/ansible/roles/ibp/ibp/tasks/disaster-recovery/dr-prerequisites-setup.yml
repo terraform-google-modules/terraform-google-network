@@ -1,0 +1,188 @@
+---
+# Synopsis: Performs tasks to prepare two hana systems to replicate their database with each other.
+# Inputs:
+#   - sqlcmd_folder : (provided by playbook) path to the sql command files. If missing, this role will
+#                 populate the folder with the required commands, but will not overwrite newer commands from SAP.
+#   - dr_prereq_primary_ip: (provided by playbook) ip address of the primary HANA DB
+#   - dr_prereq_secondary_ip: (provided by playbook) ip address of the secondart HANA DB
+# Outputs: none
+# Comments: N/A
+
+- name: "Get System Ram size in GB"
+  set_fact:
+    ram_size: "{{ (ansible_facts.memtotal_mb/1000)|round|int }}"
+
+- name: "Calculate log shipping size"
+  set_fact:
+    log_shipping_size: >-
+        {% if ram_size|int < 1000 %} 204800
+        {% else %} 307200
+        {% endif %}
+
+- name: "Validate log_shipping_size match"
+  assert:
+    that: hostvars[dr_prereq_primary_ip].log_shipping_size ==  hostvars[dr_prereq_secondary_ip].log_shipping_size
+    fail_msg: "Log shipping size mismatch:  {{ log_shipping_size|int }}"
+    success_msg: "Log shipping size matches: {{ log_shipping_size|int }}"
+
+- name: "Make sure the sql command folder exisits"
+  file:
+    path: "{{ sqlcmd_folder }}"
+    state: directory
+
+# Force is set to 'no' so if the commands are updated from SAP Parent, they won't be overwritten.
+- name: "Ensure sql commands exist"
+  copy:
+    dest: "{{ sqlcmd_folder }}/{{ item }}"
+    src: "sqlcmd/{{ item }}"
+    force: no
+  become: true
+  run_once: true
+  loop:
+  - 'change_log_mode_normal.sql'
+  - 'show_log_mode.sql'
+  - 'HANA_Configuration_PatchLevel.sql'
+  - 'HANA_Replication_SystemReplication_Overview.sql'
+
+- name: "Change sql log mode to normal"
+  include_tasks: operations/sqlcmd-run.yml
+  args:
+    apply:
+      become: true
+      become_user: "{{ sid|lower }}adm"
+  vars:
+    sql_description: "change_log_mode_normal on {{ item }}"
+    sql_userstorekey: "{{ item }}"
+    sql_command: 'change_log_mode_normal.sql'
+    sql_shell: '/bin/csh'
+  loop:
+    - 'SYSTEMDB-ADMIN'
+    - 'TENANTDB-ADMIN'
+
+- name: "Get SQL log mode"
+  include_tasks: operations/sqlcmd-run.yml
+  args:
+    apply:
+      become: true
+      become_user: "{{ sid|lower }}adm"
+  vars:
+    sql_description: "show_log_mode on {{ item }}"
+    sql_userstorekey: "{{ item }}"
+    sql_command: 'show_log_mode.sql'
+    sql_shell: '/bin/csh'
+    sql_results: true
+  loop:
+    - 'SYSTEMDB-ADMIN'
+    - 'TENANTDB-ADMIN'
+
+- name: "Stop primary and secondary Hana DB"
+  include_tasks: operations/hana-softstop.yml
+
+- name: "Fail if active inventory doesn't match all servers"
+  fail:
+    msg: "We lost a server somewhere."
+  when: ansible_play_hosts != ansible_play_hosts_all
+
+- name: "Delete log folder"
+  file:
+    path: "/hana/backups/{{ sid|upper }}/HDB02/backup/log/DB_{{ sid|upper }}"
+    state: absent
+  become: true
+
+- name: "Recreate log folders"
+  file:
+    path: "/hana/backups/{{ sid|upper }}/HDB02/backup/log/DB_{{ sid|upper }}"
+    group: "sapsys"
+    state: directory
+    mode: 0754
+    owner: "{{ sid|lower }}adm"
+  become: true
+
+- name: "Start primary and secondary Hana DB"
+  include_tasks: operations/hana-softstart.yml
+
+- name: "Get hana versions with sql"
+  include_tasks: operations/sqlcmd-run.yml
+  args:
+    apply:
+      become: true
+      become_user: "{{ sid|lower }}adm"
+  vars:
+    sql_description: "HANA_Configuration_PatchLevel"
+    sql_userstorekey: 'SYSTEMDB-ADMIN'
+    sql_command: 'HANA_Configuration_PatchLevel.sql'
+    sql_shell: '/bin/csh'
+    sql_results: false
+    register: sql_patchlevellog_mode_output
+
+- name: "Fail if patch levels are different"
+  assert:
+    that: hostvars[dr_prereq_primary_ip].sqlcmd_run_output.stdout ==  hostvars[dr_prereq_secondary_ip].sqlcmd_run_output.stdout
+    fail_msg: "Patch levels don't match: {{ sqlcmd_run_output.stdout }}"
+    success_msg: "Patch Levels are identical: {{ sqlcmd_run_output.stdout }}"
+
+- name: "Fail when short and long hostnames are identical"
+  assert:
+    that:
+      - hostvars[dr_prereq_primary_ip].ansible_hostname !=  hostvars[dr_prereq_secondary_ip].ansible_hostname
+      - hostvars[dr_prereq_primary_ip].ansible_fqdn !=  hostvars[dr_prereq_secondary_ip].ansible_fqdn
+    fail_msg: "Names are identical! Shortname: {{ ansible_hostname }} FQDN: {{ ansible_fqdn }}"
+    success_msg: "Names are ok! Shortname: {{ ansible_hostname }} FQDN: {{ ansible_fqdn }}"
+
+- name: "Copy hana-set-jwt-parameter.sql command to system"
+  template:
+    dest: "{{ sqlcmd_folder }}/ansible-{{ ansible_hostname }}-hana-set-jwt-parameter.sql"
+    src: 'sqlcmd/sql-hana-set-jwt-parameter.j2'
+    force: yes
+  vars:
+    sql_hostname: "{{ ansible_hostname|lower }}"
+    sql_sid: "{{ sid|upper }}"
+  become: true
+
+- name: "Tune jwt parameter with sql"
+  include_tasks: operations/sqlcmd-run.yml
+  args:
+    apply:
+      become: true
+      become_user: "{{ sid|lower }}adm"
+  vars:
+    sql_description: "hana-set-jwt-parameter"
+    sql_userstorekey: 'TENANTDB-ADMIN'
+    sql_command: 'ansible-{{ ansible_hostname }}-hana-set-jwt-parameter.sql'
+    sql_shell: '/bin/csh'
+
+- name: "Remove ansible-hana-set-jwt-parameter.sql"
+  file:
+    path: "{{ sqlcmd_folder }}/ansible-{{ ansible_hostname }}-hana-set-jwt-parameter.sql"
+    state: absent
+  become: true
+
+- name: "Copy hana-set-replication-parameters.sql command to system"
+  template:
+    dest: "{{ sqlcmd_folder }}/ansible-hana-set-replication-parameters.sql"
+    src: 'sqlcmd/sql-hana-set-replication-parameters.j2'
+    force: yes
+  vars:
+    sql_computed_log_shipping_size: "{{ log_shipping_size|int }}"
+  become: true
+  run_once: true
+
+- name: "Tune replication parameters with sql"
+  include_tasks: operations/sqlcmd-run.yml
+  args:
+    apply:
+      become: true
+      become_user: "{{ sid|lower }}adm"
+  vars:
+    sql_description: "hana-set-replication-parameters"
+    sql_userstorekey: 'SYSTEMDB-ADMIN'
+    sql_command: 'ansible-hana-set-replication-parameters.sql'
+    sql_shell: '/bin/csh'
+
+- name: "Remove ansible-hana-set-replication-parameters.sql"
+  file:
+    path: "{{ sqlcmd_folder }}/ansible-hana-set-replication-parameters.sql"
+    state: absent
+  become: true
+  run_once: true
+...

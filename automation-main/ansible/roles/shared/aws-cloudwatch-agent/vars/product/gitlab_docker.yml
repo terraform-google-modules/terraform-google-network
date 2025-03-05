@@ -1,0 +1,70 @@
+---
+# List of GitLab-specific log groups for docker based installs of GitLab.
+
+# When 'gitlab' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_gitlab_docker:
+  - file_path: /srv/gitlab/logs/gitaly/current
+    log_group_name: /srv/gitlab/logs/gitaly
+  - file_path: /srv/gitlab/logs/gitaly/gitaly_hooks.log
+    log_group_name: /srv/gitlab/logs/gitaly/gitaly_hooks
+  - file_path: /srv/gitlab/logs/gitlab-kas/current
+    log_group_name: /srv/gitlab/logs/gitlab-kas
+  - file_path: /srv/gitlab/logs/gitlab-rails/application_json.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/application_json
+  - file_path: /srv/gitlab/logs/gitlab-rails/api_json.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/api_json
+  - file_path: /srv/gitlab/logs/gitlab-rails/audit_json.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/audit_json
+  - file_path: /srv/gitlab/logs/gitlab-rails/auth_json.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/auth_json
+  - file_path: /srv/gitlab/logs/gitlab-rails/backup_json.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/backup_json
+  - file_path: /srv/gitlab/logs/gitlab-rails/ci_resource_groups_json.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/ci_resource_groups_json
+  - file_path: /srv/gitlab/logs/gitlab-rails/database_load_balancing.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/database_load_balancing
+  - file_path: /srv/gitlab/logs/gitlab-rails/elasticsearch.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/elasticsearch
+  - file_path: /srv/gitlab/logs/gitlab-rails/exceptions_json.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/exceptions_json
+  - file_path: /srv/gitlab/logs/gitlab-rails/git_json.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/git_json
+  - file_path: /srv/gitlab/logs/gitlab-rails/graphql_json.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/graphql_json
+  - file_path: /srv/gitlab/logs/gitlab-rails/grpc.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/grpc
+  - file_path: /srv/gitlab/logs/gitlab-rails/importer.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/importer
+  - file_path: /srv/gitlab/logs/gitlab-rails/integrations_json.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/integrations_json
+  - file_path: /srv/gitlab/logs/gitlab-rails/production.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/production
+  - file_path: /srv/gitlab/logs/gitlab-rails/production_json.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/production_json
+  - file_path: /srv/gitlab/logs/gitlab-rails/service_measurement.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/service_measurement
+  - file_path: /srv/gitlab/logs/gitlab-rails/sidekiq_client.log
+    log_group_name: /srv/gitlab/logs/gitlab-rails/sidekiq_client
+  - file_path: /srv/gitlab/logs/gitlab-shell/gitlab-shell.log
+    log_group_name: /srv/gitlab/logs/gitlab-shell/gitlab-shell
+  - file_path: /srv/gitlab/logs/gitlab-workhorse/current
+    log_group_name: /srv/gitlab/logs/gitlab-workhorse
+  - file_path: /srv/gitlab/logs/logrotate/current
+    log_group_name: /srv/gitlab/logs/logrotate
+  - file_path: /srv/gitlab/logs/nginx/gitlab_access.log
+    log_group_name: /srv/gitlab/logs/nginx/gitlab_access
+  - file_path: /srv/gitlab/logs/nginx/gitlab_error.log
+    log_group_name: /srv/gitlab/logs/nginx/gitlab_error
+  - file_path: /srv/gitlab/logs/postgresql/current
+    log_group_name: /srv/gitlab/logs/postgresql
+  - file_path: /srv/gitlab/logs/puma/puma_stderr.log
+    log_group_name: /srv/gitlab/logs/puma/puma_stderr
+  - file_path: /srv/gitlab/logs/puma/puma_stdout.log
+    log_group_name: /srv/gitlab/logs/puma/puma_stdout
+  - file_path: /srv/gitlab/logs/reconfigure/*.log
+    log_group_name: /srv/gitlab/logs/reconfigure
+  - file_path: /srv/gitlab/logs/redis/current
+    log_group_name: /srv/gitlab/logs/redis
+  - file_path: /srv/gitlab/logs/sidekiq/current
+    log_group_name: /srv/gitlab/logs/sidekiq
+...

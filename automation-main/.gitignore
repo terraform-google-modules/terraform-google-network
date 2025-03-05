@@ -1,0 +1,31 @@
+# Don't allow binaries to be committed
+*.a
+*.o
+*.so
+
+# Editors create swap files/backups
+*.swp
+*.swo
+*~
+
+# Python may leave .pyc files around
+*.pyc
+
+# macOS annoyance
+.DS_Store
+
+# terraform files
+tfplan
+.terraform*
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+*.lock.hcl
+crash.log
+crash.*.log

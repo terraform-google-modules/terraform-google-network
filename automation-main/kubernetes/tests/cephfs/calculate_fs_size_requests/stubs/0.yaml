@@ -1,0 +1,8 @@
+customerConfig:
+  - customerName: customer1
+    sftpgo:
+      enabled: false
+  - customerName: customer2
+    sftpgo:
+      enabled: true
+      uploadFsSize: 0Gi

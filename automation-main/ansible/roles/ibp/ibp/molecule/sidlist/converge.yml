@@ -1,0 +1,7 @@
+---
+# Description: Molecule converge.yml playbook used to run an Ansible role in a testing scenario.
+
+- name: Converge
+  hosts: all
+  become: false
+  gather_facts: false

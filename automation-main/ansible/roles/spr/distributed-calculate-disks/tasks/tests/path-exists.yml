@@ -1,0 +1,8 @@
+- name: "Test - Ensure path exists"
+  ansible.builtin.stat:
+    path: "{{ path }}"
+  loop: "{{ distributed_calculate_disks_test_paths }}"
+  register: distributed_calculate_disks_test_path_status
+  failed_when: not distributed_calculate_disks_test_path_status.stat.exists
+  loop_control:
+    loop_var: path

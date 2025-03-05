@@ -1,0 +1,86 @@
+---
+# Synopsis: Sets up iptables for RedHat systems.
+# Inputs:
+#   - N/A
+#
+# Outputs:
+#   - Installs the iptables-services package.
+
+  - name: Check whether the 'ANSIBLE_MANAGED' iptables chain exists
+    ansible.builtin.shell: iptables -L ANSIBLE_MANAGED
+    register: custom_chain_results
+    failed_when: custom_chain_results.rc not in [0,1,127] # continue with install when command not found
+    changed_when: false
+    become: true
+
+  - name: Check whether the original iptables rules backup file exists
+    ansible.builtin.stat:
+      path: /etc/sysconfig/iptables-ORIGINAL
+    register: original_iptables_rules_result
+    become: true
+
+  - name: Create a copy of the original iptables rules
+    ansible.builtin.shell: iptables-save > /etc/sysconfig/iptables-ORIGINAL
+    become: true
+    when:
+      - custom_chain_results.rc == 1
+      - original_iptables_rules_result.stat.exists | bool == false
+
+  - name: Install the iptables package
+    ansible.builtin.package:
+      name: iptables
+      state: present
+    become: true
+
+  - name: Install the iptables-services package
+    ansible.builtin.package:
+      name: iptables-services
+      state: present
+    register: installed_iptables_services_results
+    become: true
+    when: ansible_distribution | lower != 'amazon'
+
+  - name: Stop, disable, and mask the firewalld service
+    ansible.builtin.service:
+      name: firewalld
+      state: stopped
+      enabled: false
+      masked: true
+    become: true
+    when: ansible_distribution | lower != 'amazon'
+
+  - name: Check whether the original iptables rules file now exists
+    ansible.builtin.stat:
+      path: /etc/sysconfig/iptables-ORIGINAL
+    register: new_original_iptables_rules_result
+    become: true
+
+  - name: Load the original iptables rules to overwrite the rules that come with the iptables-services package
+    ansible.builtin.shell: iptables-restore < /etc/sysconfig/iptables-ORIGINAL
+    become: true
+    when:
+      - installed_iptables_services_results is defined
+      - installed_iptables_services_results.changed | bool
+      - new_original_iptables_rules_result.stat.exists | bool
+
+  - name: Overwrite the default iptables rules that come with the iptables-services package
+    ansible.builtin.shell: iptables-save > /etc/sysconfig/iptables
+    become: true
+    when:
+      - installed_iptables_services_results is defined
+      - installed_iptables_services_results.changed | bool
+
+# NOTE: The iptables service won't start without issuing this command first.
+  - name: List the iptables rules
+    ansible.builtin.shell: iptables -L
+    changed_when: false
+    become: true
+
+  - name: Start and enable the iptables service
+    ansible.builtin.service:
+      name: iptables
+      enabled: true
+      state: started
+    become: true
+    when: ansible_distribution | lower != 'amazon'
+...

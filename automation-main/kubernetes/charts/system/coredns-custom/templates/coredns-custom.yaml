@@ -1,0 +1,31 @@
+{{- $top := . -}}
+---
+apiVersion: v1
+data:
+  changeme.override: |
+    # checkout the docs on how to use: https://github.com/gardener/gardener/blob/master/docs/usage/custom-dns-config.md
+  changeme.server: |
+    # checkout the docs on how to use: https://github.com/gardener/gardener/blob/master/docs/usage/custom-dns-config.md
+  hec_region.server: |
+    {{ if .Values.coreDnsCustomNameList }}
+    {{- range $val := $.Values.coreDnsCustomNameList -}}
+    {{- $val -}}:{{ $.Values.coreDnsCustomPort }} {
+            errors
+            cache 30
+            forward .{{ range $ips := $.Values.coreDnsCustomIpList }} {{ $ips }}{{- end }}
+            reload
+        }{{ print "" | nindent 4 -}}
+    {{- end -}}
+    {{- end -}}
+    {{- range $key, $domain := .Values.corednsCustom }}
+    {{ $domain.name }}:{{ $domain.corednsPort }} {
+            errors
+            cache 30
+            forward .{{ range $key, $server := $domain.servers }} {{ $server }}{{ end }}
+            reload
+        }
+    {{- end }}
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system

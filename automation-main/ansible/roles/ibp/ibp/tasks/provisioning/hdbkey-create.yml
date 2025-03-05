@@ -1,0 +1,52 @@
+---
+# Synopsis: Creates hdbuserstore keys to allow sql command runs
+# Inputs:
+#   - hdbkey_create_keyname : Name of the key
+#   - hdbkey_create_envs : Environments of the key (host:port) seperated by semicolon
+#   - hdbkey_create_user : Username that the key is for
+#   - hdbkey_create_password : password for the key
+#   - hdbkey_create_sid : SAP ID of the system
+#   - hdbkey_create_force : Forces the (re)creation of the key
+# Outputs: HDB keys created
+# Comments:
+#  - From SAP help:
+#     hdbuserstore Set <KEY> <ENV>[@<DATABASE>] <USERNAME> <PASSWORD>
+#       Add or update a profile entry.
+#         <KEY>       entry key name
+#         <ENV>       database location (host:port)
+#         <USERNAME>  user name
+#         <PASSWORD>  password
+#         <DATABASE>  database name in MDC environment
+
+- name: "BLOCK Create DB keys"
+  block:
+  - name: "Check for pre-existing keys for {{ hdbkey_create_keyname }}"
+    shell: "hdbuserstore list"
+    args:
+      executable: /bin/csh
+    register: hdbuserstore_list
+    changed_when: false
+    failed_when: "'Command not found' in hdbuserstore_list.stdout"
+
+  - name: "Create {{ hdbkey_create_keyname }} key for {{ hdbkey_create_envs }}"
+    shell: "hdbuserstore SET {{ hdbkey_create_keyname }} \"{{ hdbkey_create_envs }}\" {{ hdbkey_create_user }} {{ hdbkey_create_password }}"
+    args:
+      executable: /bin/csh
+    when: |
+      hdbkey_create_keyname not in hdbuserstore_list.stdout or
+      hdbkey_create_force|default(false)|bool
+    no_log: true
+
+  - name: "Validate keys were created for {{ hdbkey_create_keyname }}"
+    shell: "hdbuserstore list"
+    args:
+      executable: /bin/csh
+    register: validate_hdbuserstore
+    changed_when: false
+    failed_when:
+    - "hdbkey_create_keyname not in validate_hdbuserstore.stdout"
+
+  #End "BLOCK: Primary DB keys"
+  become: true
+  become_user: "{{ hdbkey_create_sid|lower }}adm"
+...

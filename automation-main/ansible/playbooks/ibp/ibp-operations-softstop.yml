@@ -1,0 +1,120 @@
+---
+# Playbook Name: ibp-operations-softstop.yml
+# Synopsis: stops the ibp environment
+# Description: This playbook consists of several plays which will stop the IBP environment.
+#     It is designed to work with the ibp-ansible-inventory-template file
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS CLI v1.16+
+#   - sudo capability or root privileges on target machine
+# Dependencies:
+#   - ibp ansible role
+# Variables:
+#   - sid (provided by ansible inventory hostfile)
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-operations-softstop.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>'
+#
+# Example
+#   Execution on a single instance with ip address of 192.168.1.1
+#     ansible-playbook ibp-operations-softstop.yml -k -i /tmp/hosts -l 192.168.1.1
+#
+# Example
+#   Execution on a single landscape 'production'
+#     ansible-playbook ibp-operations-softstop.yml -k -i /tmp/hosts -l production
+
+# Example
+#   Execution of a specific play 'stop-hana'.  This will automatically include 'stop-sap' as a pre-requisite
+#     ansible-playbook ibp-operations-softstop.yml -k -i /tmp/hosts --tags 'stop-hana'
+#
+# Authors: Vighnesh Sivakumar
+# Version: 2.9-000004
+# Modified: 2020-05-18 - Created playbook
+#           2020-05-28 - Added CPIDS
+#           2020-06-02 - Added Web Dispatcher
+#           2020-06-23 - Merged ibp-provision and ibp-operations roles to ibp role
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Some plays are prerequisites for other plays and are tagged accordingly.
+#
+#   Play Tags:
+#     play1 stop-sapapp stop-hana stop-all: Stops Sap Application systems. Prerequisite for stopping HANA
+#     play2 stop-hana stop-all: Stops Hana systems
+#     play3 stop-cpids stop-all: Stops CPIDS
+#     play4 stop-webdispatcher stop-all: Starts Web Dispatcher
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Soft Stop SAPAPP"
+  hosts: ibpapp
+  gather_facts: false
+  tags:
+  - play1
+  - stop-sapapp
+  - stop-hana
+  - stop-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call sapapp-softstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-softstop.yml
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Soft Stop Hana"
+  hosts: ibpdb
+  gather_facts: false
+  tags:
+  - play2
+  - stop-hana
+  - stop-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call hana-softstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-softstop.yml
+
+#################
+##### Play3 #####
+#################
+- name: "Play 3: Soft Stop CPIDS"
+  hosts: cpids
+  gather_facts: false
+  tags:
+  - play3
+  - stop-cpids
+  - stop-all
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Call cpids-softstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/cpids-softstop.yml
+
+#################
+##### Play4 #####
+#################
+- name: "Play 4: Soft Stop Web Dispatcher"
+  hosts: webdispatcher
+  gather_facts: false
+  tags:
+  - play4
+  - stop-webdispatcher
+  - stop-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call webdispatcher-softstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/webdispatcher-softstop.yml
+
+...

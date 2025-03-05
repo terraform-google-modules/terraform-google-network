@@ -1,0 +1,7 @@
+modules:
+  - name: context
+    provider: null
+    namespace: ns2
+    description: Context, Tagging and Naming module used for standardizing resource naming and tags.
+    prerelease: false
+    owner: c5309336

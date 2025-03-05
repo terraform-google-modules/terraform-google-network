@@ -1,0 +1,31 @@
+---
+# List of bastion-specific log groups
+# When 'bastion' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_bastion:
+  - file_path: /var/log/consul/consul-*.log
+    log_group_name: /var/log/consul
+  - file_path: /var/log/messages
+    log_group_name: /var/log/messages
+    # timestamp: 2020-11-14T02:11:45.830443+00:00 .... (UBUNTU)
+    timestamp_format: '%Y-%d-%mT%H:%M:%S.%f'
+  - file_path: /var/log/secure
+    log_group_name: /var/log/secure
+    # timestamp: 2020-11-14T02:11:45.830443+00:00 .... (UBUNTU)
+    timestamp_format: '%Y-%d-%mT%H:%M:%S.%f'
+  - file_path: /var/log/clamscan.log
+    log_group_name: /var/log/clamscan
+  - file_path: /var/log/aide/aide.log
+    log_group_name: /var/log/aide
+  - file_path: /var/log/audit/audit.log*
+    log_group_name: /var/log/audit
+  - file_path: /var/log/tuned/tuned.log
+    log_group_name: /var/log/tuned
+  - file_path: /var/log/vault/vault_audit.log
+    log_group_name: /var/log/vault
+  - file_path: /var/log/ansible.log
+    log_group_name: /var/log/ansible
+  - file_path: /var/log/amazon/efs/mount.log
+    log_group_name: /var/log/amazon/efs/mount
+  - file_path: /var/log/amazon/efs/mount-watchdog.log
+    log_group_name: /var/log/amazon/efs/mount-watchdog
+...

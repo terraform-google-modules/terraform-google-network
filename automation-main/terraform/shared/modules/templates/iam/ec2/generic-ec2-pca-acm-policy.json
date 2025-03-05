@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+        "Sid": "AllowEC2InstancesCertificateRights",
+        "Effect": "Allow",
+        "Action": [
+            "acm-pca:GetCertificate",
+            "acm-pca:IssueCertificate"
+        ],
+        "Resource": ${jsonencode(acm_pca_arn)}
+      },
+      {
+        "Sid": "AllowEc2InstancesQueryCertificateAuthority",
+        "Effect": "Allow",
+        "Action": "acm-pca:ListCertificateAuthorities",
+        "Resource": "*"
+      }
+  ]
+}

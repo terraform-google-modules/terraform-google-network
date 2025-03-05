@@ -1,0 +1,19 @@
+---
+# Synopsis: default variables file for role
+
+# shell command to retrieve the ID of an instance in AWS
+aws_instance_id_command: curl -s http://169.254.169.254/latest/meta-data/instance-id
+# shell command to retrieve the current Availability Zone of an instance in AWS
+aws_instance_az_command: curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone
+
+# shell command to retrieve the ID of a virtual machine in Azure
+azure_virtual_machine_id_command: curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute/vmId?api-version=2017-08-01&format=text"
+# shell command to retrieve the Name of a virtual machine in Azure
+azure_virtual_machine_name_command: curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute/name?api-version=2017-08-01&format=text"
+# shell command to retrieve the Location of a virtual machine in Azure
+azure_virtual_machine_location_command: curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/compute/location?api-version=2017-08-01&format=text"
+
+# shell command to retrieve the ID of an instance in GCP
+gcp_instance_id_command: curl -s -H Metadata-Flavor:Google http://metadata.google.internal/computeMetadata/v1/instance/id
+gcp_instance_az_command: curl -s -H Metadata-Flavor:Google http://metadata.google.internal/computeMetadata/v1/instance/zone | cut -d '/' -f4
+...

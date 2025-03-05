@@ -1,0 +1,298 @@
+# Playbook Name: spr-setup-pacemaker-hana.yml
+# Description: This playbook will install the pacemaker software on the specified database pair
+# Prerequisites:
+#   - 2 SPR Provisioned (blank) S4/HANA DB Servers
+#   - Replication already created with `setup_hana_hsr_primary.yml`
+#   - Database Ansible Inventory created from template (./inventorydb_template)
+# Dependencies: N/A
+# Variables:
+#   Inventory Host Variables (See template for descriptions)
+#     - sap_hana_hsr_hana_sid
+#     - sap_hana_hsr_hana_instance_number
+#     - sap_hana_ha_pacemaker_hacluster_password
+#       sap_hana_ha_pacemaker_node1
+#       sap_hana_ha_pacemaker_node2
+#     - sap_hana_ha_pacemaker_node1_fqdn
+#     - sap_hana_ha_pacemaker_node2_fqdn
+#     - sap_hana_ha_pacemaker_cluster_name
+#     - sap_hana_ha_pacemaker_stonith_name
+#     - aws_region
+# Example:
+#   ansible-playbook spr-setup-pacemaker-hana.yml.yml --i defaults.yml -i inventory.yml -i solman-db-cluster.vars.yml -k
+# Authors: Sean-Thomas Saloom
+# Version: 2.9-000002
+#           2023-07-17 - Hotfix and rename
+# Modified: 2023-07-10 - Created
+# Comments: N/A
+
+- name: Play0
+  hosts: dbservers
+  tags:
+    - always
+    - play0
+  tasks:
+
+    - name: "Dynamic Group Assignment"
+      group_by:
+        key: "{{ item }}"
+      when: "item != 'undefined'"
+      loop:
+      - "{{ spr_nodetype|default('undefined')|lower }}"
+      - "{{ spr_landscape|default('undefined')|lower }}"
+      - "{{ spr_productname|default('undefined')|lower }}"
+      - "{{ sap_ha_role|default('undefined')|lower }}"
+      - "{{ sap_hana_hsr_role|default('undefined')|lower }}"
+
+    - name: Set dynamic facts
+      set_fact:
+        sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+
+
+- name: "Play1: setup pacemaker ha cluster for hana"
+  become: true
+  hosts: dbservers
+  gather_facts: true
+  any_errors_fatal: true
+  tags:
+    - play1
+  tasks:
+  - name: Gather ec2 meta data facts
+    amazon.aws.ec2_metadata_facts:
+
+  - name: "Save landscape metadata"
+    set_fact:
+      instance_id_db01: "{{ hostvars[groups.dbprimary[0]].ansible_ec2_instance_id }}"
+      instance_id_db02: "{{ hostvars[groups.dbsecondary[0]].ansible_ec2_instance_id }}"
+
+  - name: "Sanity check debug"
+    debug:
+      msg:
+      - "instance id 1 is '{{ instance_id_db01 }}'"
+      - "instance id 2 is '{{ instance_id_db02 }}'"
+
+  - name: Wait until HANA SYNC is active
+    when: sap_hana_hsr_role == 'primary'
+    shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        python /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/python_support/systemReplicationStatus.py
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: verifysyncstatus
+    changed_when: false
+    failed_when: false
+    retries: 1000
+    delay: 10
+    until: |
+      'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+
+  - name: Verify HANA sync status
+    when: sap_hana_hsr_role == 'primary'
+    assert:
+      that: |
+        'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+      fail_msg: "Syncing error"
+      success_msg: "Syncing completed"
+
+  - name: Ensure required packages for Resource Agents are installed
+    yum:
+      name:
+        - resource-agents-sap-hana
+        - pcs
+        - pacemaker
+        - fence-agents-aws
+      state: present
+
+  - name: Ensure the ports that are required by the Red Hat High Availability Add-On are open
+    firewalld:
+      service: high-availability
+      permanent: yes
+      state: enabled
+    when: sap_hana_ha_pacemaker_configure_firewall
+
+  - name: Ensure password for hacluster is configured
+    user:
+      name: hacluster
+      password: "{{ sap_hana_ha_pacemaker_hacluster_password | password_hash('sha512') }}"
+
+  - name: Ensure pcsd service is enabled
+    systemd:
+      name: pcsd.service
+      state: started
+      enabled: yes
+
+  - name: Authenticate the cluster Nodes
+    command: |
+      pcs {{ _subject }} auth \
+      {{ sap_hana_ha_pacemaker_node1_fqdn }} {{ sap_hana_ha_pacemaker_node2_fqdn }} \
+      -u hacluster -p {{ sap_hana_ha_pacemaker_hacluster_password }}
+    register: auth_cluster
+    changed_when: "'Authorized' in auth_cluster.stdout"
+    vars:
+    # https://access.redhat.com/solutions/3814351 for RHEL 8 use 'host' and not 'cluster' in pcs command
+      _subject: "{{ 'cluster' if ansible_facts['distribution_major_version'] | int == 7 else 'host' }}"
+
+  - name: Create RHEL HA Cluster
+    when: sap_hana_hsr_role == 'primary'
+    command: |
+      pcs cluster setup {{ sap_hana_ha_pacemaker_cluster_name }} \
+      {{ sap_hana_ha_pacemaker_node1_fqdn }} \
+      {{ sap_hana_ha_pacemaker_node2_fqdn }} \
+    register: create_cluster
+    changed_when: "'Cluster has been successfully set up' in create_cluster.stdout"
+
+
+  - name: Increase Corosync timeout to 30000
+    when: sap_hana_hsr_role == 'primary'
+    # For AWS, it is recommended to follow https://access.redhat.com/solutions/221263 and increase corosync’s token timeout to 30000.
+    command: pcs cluster config update totem token=30000
+    register: increase_timeout
+
+  - name: Enable the RHEL HA Cluster
+    when: sap_hana_hsr_role == 'primary'
+    command: pcs cluster enable --all
+    register: enable_cluster
+    changed_when: "'Cluster Enabled' in enable_cluster.stdout"
+
+  - name: Start the RHEL HA Cluster
+    when: sap_hana_hsr_role == 'primary'
+    command: pcs cluster start --all
+    register: start_cluster
+    changed_when: "'Starting Cluster' in start_cluster.stdout"
+
+  - name: create pcmk_host_map value
+    set_fact:
+      pcmk_host_map_var: "pcmk_host_map=\"{{ sap_hana_ha_pacemaker_node1_fqdn }}:{{ instance_id_db01 }};{{ sap_hana_ha_pacemaker_node2_fqdn }}:{{ instance_id_db02 }}\""
+
+  - name: Print hostvars
+    debug:
+      var: pcmk_host_map_var
+
+  - name: Create STONITH
+   # The default pcmk action is reboot.
+   # If you want to have the instance remain in a stopped state until it has been investigated and then manually started again, add pcmk_reboot_action=off.
+   # Any High Memory (u-*tb1.*) instances or metal instance running on a dedicated host won't support reboot and will require pcmk_reboot_action=off
+    when: sap_hana_hsr_role == 'primary'
+    command: |
+      pcs stonith create {{ sap_hana_ha_pacemaker_stonith_name }} fence_aws region={{ aws_region }} \
+      {{ pcmk_host_map_var }} \
+      power_timeout=240 pcmk_reboot_timeout=600 pcmk_reboot_retries=4 \
+      op start timeout=600 op stop timeout=600 op monitor interval=180
+    register: create_stonith
+
+  - name: Print STONITH create
+    when: sap_hana_hsr_role == 'primary'
+    debug:
+      var: create_stonith.stdout_lines
+
+  - name: Check STONITH config
+    when: sap_hana_hsr_role == 'primary'
+    command: pcs config
+    register: check_stonith_config
+    changed_when: "'(class=stonith type=fence_aws)' in check_stonith_config.stdout"
+
+  - name: Print STONITH config
+    debug:
+    #      var: check_stonith_config.stdout_lines
+      msg: "Stonith configured successfully"
+    when:
+      - sap_hana_hsr_role == 'primary'
+      - check_stonith_config.rc == 0
+
+
+  - name: Check PCS status
+    when: sap_hana_hsr_role == 'primary'
+    command: pcs status
+    register: check_pcs_status
+
+  - name: Print PCS status
+    when: sap_hana_hsr_role == 'primary'
+    debug:
+      var: check_pcs_status.stdout_lines
+
+
+####
+#### FUTURE: Add logic to validate PCS status, nodes online etc.
+#### Stonith has started on primary
+####
+
+  - name: Fence HDB Node-2
+  # Fencing will stop node-2 instance.
+  # Check in AWS Console if the instance is stopping
+  # Check the HDB Replication status. It should be broken as well.
+    when: sap_hana_hsr_role == 'primary'
+    command: pcs stonith fence {{ sap_hana_ha_pacemaker_node2_fqdn }}
+    register: fence_node2
+    changed_when: "'fenced' in fence_node2.stdout"
+
+  - name: Print fencing stdout
+    when: sap_hana_hsr_role == 'primary'
+    debug:
+      var: fence_node2.stdout
+
+  - name: Check PCS status after fencing
+    when: sap_hana_hsr_role == 'primary'
+    # Fencing will make node-2 offline
+    command: pcs status
+    register: check_pcs_status_fenced
+    changed_when: "'OFFLINE' in check_pcs_status_fenced.stdout"
+
+  - name: Print pcs status after fencing
+    when: sap_hana_hsr_role == 'primary'
+    debug:
+      var: check_pcs_status_fenced.stdout
+
+  - name: Check if node-2 rebooted and available
+    when: sap_hana_hsr_role == 'primary'
+    become: false
+    wait_for:
+      port: 22
+      host: '{{ sap_hana_ha_pacemaker_node2_fqdn }}'
+      state: started
+      delay: 60
+      timeout: 600
+    register: node2_ssh_status
+
+  - name: Print node-2 availability status
+    when: sap_hana_hsr_role == 'primary'
+    debug:
+      var: node2_ssh_status.state
+
+  # Start secondary db when it is available in cluster
+  - name: start secondary hdb after it is available
+    shell: |
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/HDB start
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: starthdb2
+    changed_when: "'StartWait' in starthdb2.stdout"
+    when:
+      - sap_hana_hsr_role == 'secondary'
+
+
+  - name: Wait until HANA SYNC is active
+    shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        python /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/python_support/systemReplicationStatus.py
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: verifysyncstatus
+    changed_when: false
+    failed_when: false
+    retries: 1000
+    delay: 10
+    until: |
+      'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Verify HANA sync status
+    assert:
+      that: |
+        'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+      fail_msg: "Syncing error"
+      success_msg: "Syncing completed"
+    when:
+      - sap_hana_hsr_role == 'primary'
+...

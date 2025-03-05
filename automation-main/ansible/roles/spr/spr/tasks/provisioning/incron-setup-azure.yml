@@ -1,0 +1,55 @@
+---
+# Synopsis: Sets up incron backups
+# Inputs:
+#   spr_hana_incron_storage_account_name: Backup Storage account, used by templates.
+#   spr_hana_backup_container: Backup Storage Container, used by templates
+#   spr_hana_landscape: Used in incron file path naming
+#   spr_hana_install_sid: Sid of the hana instance
+#   cloud_partition: from cloud-identify role
+# Outputs: Configured file in incron.d (named after major release number)
+# Comments: N/A
+
+- name: "Create backup folders"
+  file:
+    path: "{{ item }}"
+    group: "sapsys"
+    state: directory
+    mode: 0754
+    owner: "{{ spr_hana_install_sid|lower }}adm"
+  become: true
+  loop:
+    - "/hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/data/SYSTEMDB"
+    - "/hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/data/DB_{{ spr_hana_install_sid|upper }}"
+    - "/hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/log/SYSTEMDB"
+    - "/hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/log/DB_{{ spr_hana_install_sid|upper }}"
+
+- name: "Setup incron.d file for Azure"
+  template:
+    dest: "/etc/incron.d/{{ spr_hana_install_sid|upper }}.incron"
+    src: "provisioning/incron-azure.j2"
+  become: true
+
+- name: "Restart the incron service"
+  service:
+    name: incrond
+    state: restarted
+  become: true
+
+- name: "Pausing for 10 seconds"
+  pause:
+    seconds: 10
+
+- name: "Create backup test files"
+  copy:
+    dest: "{{ item }}/backup_test.txt"
+    group: "sapsys"
+    content: "test file to confirm that incron setup works"
+    mode: 0640
+    owner: "{{ spr_hana_install_sid|lower }}adm"
+  become: true
+  loop:
+    - "/hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/data/SYSTEMDB"
+    - "/hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/data/DB_{{ spr_hana_install_sid|upper }}"
+    - "/hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/log/SYSTEMDB"
+    - "/hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/log/DB_{{ spr_hana_install_sid|upper }}"
+...

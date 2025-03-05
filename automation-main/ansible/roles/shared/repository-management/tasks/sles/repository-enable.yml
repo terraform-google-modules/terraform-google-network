@@ -1,0 +1,39 @@
+---
+# Description: Enables the selected Zypper repositories.
+# Inputs:
+#   - repository_list_selected: (list) A list of repositories to enable.
+#   - enabled_repositories_results: (list) A list of repositories that were enabled before this role was ran.
+# Outputs:
+#   - Enables each repository that is listed in 'repository_list_selected' via Zypper.
+
+  - name: '[SLES] - List the repositories to be enabled'
+    debug:
+      msg: '{{ repository_list_selected | union( enabled_repositories_results.stdout_lines | default([], true) ) }}'
+
+  - name: '[SLES] - Ensure that there is at least one repository to enable'
+    fail:
+      msg: There must be at least one repository listed in the 'repository_list_selected' or 'enabled_repositories_results' variables.
+    when: repository_list_selected | union( enabled_repositories_results.stdout_lines | default([], true) ) | length == 0
+
+# NOTE: The 'command' module is used over the 'zypper_repository' module here due to a lack of support from the 'zypper_repository'
+#       for repofiles with >1 repo or repos with >1 baseurl, as well as idempotency issues.
+
+  - name: '[SLES] - Enable the selected repositories via zypper'
+    command: zypper modifyrepo --enable {{ item }}
+    become: true
+    loop: '{{ repository_list_selected | union( enabled_repositories_results.stdout_lines | default([], true) ) }}'
+    register: selected_repository
+    changed_when: "'successfully enabled' in selected_repository.stdout"
+    ignore_errors: true
+
+  - name: '[SLES] - Update the zypper cache'
+    community.general.zypper_repository:
+      repo: '*'
+      runrefresh: true
+      auto_import_keys: true
+    register: zypper_makecache_results
+    failed_when:
+      - zypper_makecache_results.failed is true
+      - zypper_makecache_results.rc != 6 # Don't consider failed if no repositories are defined
+    become: true
+...

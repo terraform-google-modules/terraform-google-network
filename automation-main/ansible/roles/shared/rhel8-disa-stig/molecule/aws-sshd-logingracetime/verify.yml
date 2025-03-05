@@ -1,0 +1,45 @@
+---
+# Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+  - name: Verify
+    hosts: all
+    gather_facts: true
+    vars:
+    vars_files:
+      - ../../defaults/main.yml
+
+    tasks:
+
+      - name: Get stats for the '/etc/ssh/sshd_config' file
+        stat:
+          path: /etc/ssh/sshd_config
+        register: sshd_config_file_results
+        become: true
+
+      - name: Test whether the '/etc/ssh/sshd_config' file exists
+        assert:
+          that: sshd_config_file_results.stat.exists | bool
+
+      - name: Ensure that the '/etc/ssh/sshd_config' file has the correct 'LoginGraceTime' setting
+        lineinfile:
+          path: /etc/ssh/sshd_config
+          line: LoginGraceTime {{ sshd_login_grace_time }}
+          regexp: ^LoginGraceTime {{ sshd_login_grace_time }}$
+          create: true
+        become: true
+        check_mode: true
+        register: lininfile_results
+        failed_when: lininfile_results.changed
+
+      - name: Ensure that the SSHD configuration is valid
+        shell: /usr/sbin/sshd -t -f /etc/ssh/sshd_config
+        become: true
+        changed_when: false
+
+      - name: Ensure that the SSHD service is enabled and running
+        service_facts:
+        become: true
+        register: service_facts_results
+        failed_when: service_facts_results.ansible_facts.services['sshd.service'].status | lower != 'enabled' or service_facts_results.ansible_facts.services['sshd.service'].state
+          | lower != 'running'
+...

@@ -1,0 +1,95 @@
+---
+# Playbook Name: s4pce-incron-setup-aws.yml
+# Description: Sets up incrontab services on database servers in the S4 PCE environment. All variables should be set in the inventory file.
+# Dependencies:
+# - Ansible v2.9+
+# Variables:
+#   - Groupvars + Hostvars from inventory file
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook incron-setup-aws.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Katja Cresanti, Jian Ouyang
+# Version: 2.9-000006
+# Modified: 2021-02-10 - Created playbook
+#           2021-10-10 - Add play0 for metadata
+#           2022-01-07 - Renamed as aws specific playbook
+#           2022-04-20 - Exclude SAP IQ
+#           2022-07-01 - Exclude non_spr products
+#           2022-08-03 - case sensitivity handling
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+
+- name: "Play1: Set up incron service on database hosts"
+  gather_facts: false
+  hosts: db:!iq:!non_spr
+  tags:
+  - play1
+  - db
+  - incron
+
+  tasks:
+    - name: Get EC2 Metadata
+      ec2_metadata_facts:
+      register: ec2_metadata
+
+    - name: "Get EC2 Instance Info"
+      ec2_instance_info:
+        region: "{{ ansible_facts.ec2_placement_region }}"
+        instance_ids:
+          - "{{ ansible_ec2_instance_id }}"
+      register: ec2_instance_info
+
+    - name: "Set AWS Region to {{ aws_region }}"
+      shell: "/usr/local/bin/aws configure set region {{ aws_region }}"
+      become: yes
+
+    - name: "Get VPC ID of instance"
+      set_fact:
+        vpc_id: "{{ ec2_instance_info.instances.0.vpc_id }}"
+      no_log: true
+
+    - name: "Get VPC Name"
+      ec2_vpc_net_info:
+        region: "{{ aws_region }}"
+        vpc_ids: "{{ vpc_id }}"
+      become: true
+      register: vpc_info
+
+    - name: "Get S3 Bucket List"
+      aws_s3_bucket_info:
+      become: true
+      register: get_s3buckets_info_output
+
+    - name: "Save S3 Bucket Name"
+      set_fact:
+        s3_bucket_name: "{{ get_s3buckets_info_output | to_json | from_json | json_query(query) | first }}"
+      vars:
+        query: 'buckets[?starts_with(name,`ns2-{{ vpc_info.vpcs[0].tags.Name }}-backups`)].name'
+
+    - name: "Setup Incron"
+      include_role:
+        name: spr
+        allow_duplicates: yes
+        tasks_from: provisioning/incron-setup-aws.yml
+      vars:
+        spr_hana_install_sid: "{{ spr_sid|upper }}"
+        spr_hana_landscape: "{{ spr_landscape }}"
+        spr_hana_incron_s3_bucket_name: "{{ s3_bucket_name }}"
+...

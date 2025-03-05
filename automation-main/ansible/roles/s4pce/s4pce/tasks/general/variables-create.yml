@@ -1,0 +1,267 @@
+---
+# Synopsis: Generates variables used by S4PCE Provisioning.
+# Inputs:
+#   - s4pce_variables_create_nodetype: The type of system the instance is classified as (db or app)
+#   - s4pce_variables_create_productname : The type of product it's classified as.
+# Outputs:
+#   - s4pce_firewall_preset_selection: (HostVar) Used by iptables role
+#   - s4pce_cw_preset_selection: (HostVar) Used by Cloudwatch roles
+#   - s4pce_productcomponent: (HostVar) Used for tagging, dynamic inventory, telegraph and vector roles.
+# Comments: N/A
+
+- name: "Generate dynamic variables from hostvars"
+  delegate_to: localhost
+  set_fact:
+    s4pce_firewall_preset_selection: >-
+      {% if 'db' == s4pce_variables_create_nodetype|lower %}
+        {% if s4pce_variables_create_productname|lower in [
+          'hanacockpit',
+        ] %} {{ s4pce_variables_create_productname|lower  }}
+        {% else %} hana
+        {% endif %}
+      {% elif 'app' == s4pce_variables_create_nodetype|lower %}
+        {% if s4pce_variables_create_productname|lower in [
+          'bobj',
+          'bobj_bip',
+          'cloudconnector',
+          'contentserver',
+          'data_services',
+          'hana_ee',
+          'information_steward',
+          'iq',
+          'lumira',
+          'plc',
+          'router',
+          'webdispatcher',
+        ] %} {{ s4pce_variables_create_productname|lower  }}
+        {% elif s4pce_variables_create_productname|lower in [
+          'access_control',
+          'access_control_s4hana',
+          'apache_ftp',
+          'attp',
+          'bw4hana',
+          'bw4hana_addons',
+          'bw4hana_bpc',
+          'bwnetweaver',
+          'car',
+          'convergent_mediation',
+          'cors',
+          'crm',
+          'ehp7_erp',
+          'ehp8_erp',
+          'fiori_carab',
+          'fiori_fes',
+          'frun',
+          'gbtr',
+          'gts',
+          'gts_ed4hana',
+          'ilm',
+          'optimizer',
+          's4hana_addons',
+          's4hana',
+          's4hana_livecache',
+          's4hana_foundation',
+          'scm',
+          'slt',
+          'solman_abap',
+          'tm',
+        ] %} sapapp_abap
+        {% elif s4pce_variables_create_productname|lower in [
+          'ads',
+          'lama_ent_java',
+          'mii',
+          'nwjava',
+          'po',
+          'portal',
+          'solman_java',
+          'sso',
+        ] %} sapapp_java
+        {% elif s4pce_variables_create_productname|lower in [
+          'convergent_charging',
+          'cpids_agent',
+          'dpagent',
+          'non_spr',
+          'opentext',
+          'sac_agent',
+          'sftp_interface',
+        ] %} default
+        {% else %} undetermined
+        {% endif %}
+      {% else %} undetermined
+      {% endif %}
+
+    s4pce_cw_preset_selection: >-
+      {% if 'db' == s4pce_variables_create_nodetype|lower %} hana
+      {% elif 'app' == s4pce_variables_create_nodetype|lower %}
+        {% if s4pce_variables_create_productname|lower in [
+          'bobj',
+          'bobj_bip',
+          'cloudconnector',
+          'contentserver',
+          'data_services',
+          'hana_ee',
+          'information_steward',
+          'iq',
+          'lumira',
+          'plc',
+          'router',
+          'webdispatcher',
+        ] %} {{ s4pce_variables_create_productname|lower  }}
+        {% elif s4pce_variables_create_productname|lower in [
+          'access_control',
+          'access_control_s4hana',
+          'apache_ftp',
+          'attp',
+          'bw4hana',
+          'bw4hana_addons',
+          'bw4hana_bpc',
+          'bwnetweaver',
+          'car',
+          'cors',
+          'convergent_mediation',
+          'crm',
+          'ehp7_erp',
+          'ehp8_erp',
+          'fiori_carab',
+          'fiori_fes',
+          'frun',
+          'gbtr',
+          'gts',
+          'gts_ed4hana',
+          'ilm',
+          'optimizer',
+          's4hana_addons',
+          's4hana',
+          's4hana_livecache',
+          's4hana_foundation',
+          'scm',
+          'slt',
+          'solman_abap',
+          'tm',
+        ] %} sapapp_abap
+        {% elif s4pce_variables_create_productname|lower in [
+          'ads',
+          'lama_ent_java',
+          'mii',
+          'nwjava',
+          'po',
+          'portal',
+          'solman_java',
+          'sso',
+        ] %} sapapp_java
+        {% elif s4pce_variables_create_productname|lower in [
+          'cloudconnector',
+          'convergent_charging',
+          'cpids_agent',
+          'data_services',
+          'dpagent',
+          'hanacockpit',
+          'information_steward',
+          'non_spr',
+          'opentext',
+          'sac_agent',
+          'sftp_interface',
+        ] %} base
+        {% else %} undetermined
+        {% endif %}
+      {% else %} undetermined
+      {% endif %}
+
+    s4pce_productcomponent: >-
+      {% if 'db' == s4pce_variables_create_nodetype|lower %}
+        {% if s4pce_variables_create_productname|lower in [
+          'hanacockpit',
+        ] %} sap_{{ s4pce_variables_create_productname|lower }}
+        {% else %} sap_database_hana
+        {% endif %}
+      {% elif 'app' == s4pce_variables_create_nodetype|lower %}
+        {% if s4pce_variables_create_productname|lower in [
+          'bobj',
+          'bobj_bip',
+          'cloudconnector',
+          'contentserver',
+          'data_services',
+          'hana_ee',
+          'information_steward',
+          'iq',
+          'lumira',
+          'router',
+          'webdispatcher',
+        ] %} sap_application_{{ s4pce_variables_create_productname|lower  }}
+        {% elif s4pce_variables_create_productname|lower in [
+          'access_control',
+          'access_control_s4hana',
+          'apache_ftp',
+          'attp',
+          'bw4hana',
+          'bw4hana_addons',
+          'bw4hana_bpc',
+          'bwnetweaver',
+          'car',
+          'cors',
+          'convergent_mediation',
+          'crm',
+          'ehp7_erp',
+          'ehp8_erp',
+          'fiori_carab',
+          'fiori_fes',
+          'frun',
+          'gbtr',
+          'gts',
+          'gts_ed4hana',
+          'ilm',
+          'optimizer',
+          's4hana_addons',
+          's4hana',
+          's4hana_livecache',
+          's4hana_foundation',
+          'scm',
+          'slt',
+          'solman_abap',
+          'tm',
+        ] %} sap_application_abap
+        {% elif s4pce_variables_create_productname|lower in [
+          'ads',
+          'lama_ent_java',
+          'mii',
+          'nwjava',
+          'po',
+          'portal',
+          'solman_java',
+          'sso',
+        ] %} sap_application_java
+        {% elif s4pce_variables_create_productname|lower in [
+          'convergent_charging',
+          'cpids_agent',
+          'dpagent',
+          'non_spr',
+          'opentext',
+          'sac_agent',
+          'sftp_interface',
+        ] %} sap_default
+        {% else %} undetermined
+        {% endif %}
+      {% else %} undetermined
+      {% endif %}
+- name: "Sanitize variables"
+  delegate_to: localhost
+  set_fact:
+    s4pce_firewall_preset_selection: "{{ s4pce_firewall_preset_selection | trim }}"
+    s4pce_cw_preset_selection:  "{{ s4pce_cw_preset_selection | trim }}"
+    s4pce_productcomponent:  "{{ s4pce_productcomponent | trim }}"
+
+
+- name: "Fail if variables are undetermined"
+  delegate_to: localhost
+  fail:
+    msg: |
+      s4pce_firewall_preset_selection is {{ s4pce_firewall_preset_selection }}
+      s4pce_cw_preset_selection is  {{ s4pce_cw_preset_selection }}
+      s4pce_productcomponent is  {{ s4pce_productcomponent }}
+  when: |
+    'undetermined' in [
+      s4pce_firewall_preset_selection,
+      s4pce_cw_preset_selection,
+      s4pce_productcomponent,
+    ]
+...

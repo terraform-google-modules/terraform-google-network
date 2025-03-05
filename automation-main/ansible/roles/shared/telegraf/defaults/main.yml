@@ -1,0 +1,23 @@
+---
+telegraf_version: 1.21.1
+telegraf_s3_binaries_url: ''
+
+# List of primary nodes for ElasticSearch
+telegraf_elastic_primary_nodes: []
+telegraf_elastic_user: telegraf
+telegraf_elastic_password: logging
+
+telegraf_elastic_index_prefix: ns2-metrics-telegraf
+telegraf_elastic_template_name: ns2-telegraf-from-telegraf
+telegraf_elastic_default_pipeline: ns2_telegraf
+
+# A list of profiles to enable for monitoring, for example: smtp, sapapp-apab,
+# sapapp_java, sap, more than one may be specified, each will install its own
+# monitors
+telegraf_monitor_profiles: []
+
+# This should be set by the playbook, as a fact before running this role, it is
+# unused if the system is not a SAP system, and thus does not use the SAP port
+# numbers
+system_instance_number: '00'
+...

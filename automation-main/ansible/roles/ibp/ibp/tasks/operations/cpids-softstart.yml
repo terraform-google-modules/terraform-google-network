@@ -1,0 +1,55 @@
+---
+# Synopsis: Does a software start of CPIDS
+# Inputs:
+# Outputs: Start CPIDS
+# Comments: This task is also functions as a hard start of cpids.
+# Updated script for changes in directory structure changes - SCSTE-933 (Trushar Desai-i000173)
+
+# Start HANA DB
+
+- name: "BLOCK: Start HANA DB"
+  become: true
+  become_user: n01adm
+  block:
+    - name: "Start HANA DB"
+      shell: '/usr/sap/N01/HDB00/HDB start'
+      failed_when: false
+      args:
+        executable: '/bin/sh'
+
+    - name: "Get Process list after start"
+      shell: 'sapcontrol -nr 00 -function GetProcessList'
+      args:
+        executable: '/bin/sh'
+      failed_when: false
+      changed_when: false
+      register: hdb_poststart_process_output
+
+    - name: "Validate HANA DB Start"
+      assert:
+        that: |
+          'GRAY' not in hdb_poststart_process_output.stdout and
+          'YELLOW' not in hdb_poststart_process_output.stdout
+        fail_msg: |
+          "HANA DB did not fully start"
+          {{ hdb_poststart_process_output.stdout }}
+        success_msg: HANA DB Started
+
+    - name: "Output post-start processes"
+      debug:
+        var: hdb_poststart_process_output.stdout_lines
+# End "BLOCK: Start HANA DB"
+
+- name: "Check if kotyo exists"
+  become: true
+  stat:
+    path: '/usr/sap/dsod_package/kotyo/bin/startup.sh'
+    follow: yes
+  register: check_file_output
+
+# Start Kotyo and ActiveMQ
+- name: "Start Kotyo and ActiveMQ"
+  include_tasks: operations/cpids-start-kotyo.yml
+  vars:
+    cpids_hostname: "ns2cpids.{{ input_hostfile_fqdn|lower }}"
+...

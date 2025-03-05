@@ -1,0 +1,29 @@
+---
+# Synopsis: Updates the stack.xml
+# Inputs:
+#   - sid: SAP ID of the system
+#   - sapapp_stackxml_update_source:
+# Outputs:
+#   - new stack.xml for sid with updated sid values
+# Comments:
+
+- name: "Copy stack_N00.xml to stack_{{ sid|upper }}.xml"
+  copy:
+    dest: "{{ sapapp_stackxml_update_source }}/stack_{{ sid|upper }}.xml"
+    src: "{{ sapapp_stackxml_update_source }}/stack_N00.xml"
+    force: yes
+    remote_src: yes
+  become: true
+
+- name: "Update stack.xml with correct sids"
+  replace:
+    path: "{{ sapapp_stackxml_update_source }}/stack_{{ sid|upper }}.xml"
+    regexp: "{{ item.regex }}"
+    replace: "{{ item.replace }}"
+  become: true
+  loop:
+    - regex: '<sid>N00</sid>'
+      replace: "<sid>{{ sid|upper }}</sid>"
+    - regex: '<host>ibpapp01-n00</host>'
+      replace: "<host>ibpapp01-{{ sid|lower }}</host>"
+...

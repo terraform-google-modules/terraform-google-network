@@ -1,0 +1,28 @@
+{
+    "Version": "2012-10-17",
+    "Id": "guard-duty-key-policy",
+    "Statement": [
+        {
+            "Sid": "EnableIAMUserPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+                "kms:EnableKey",
+                "kms:Encrypt",
+                "kms:GenerateDataKey",
+                "kms:GetKeyPolicy",
+                "kms:ListAliases",
+                "kms:ListGrants",
+                "kms:PutKeyPolicy"
+            ],
+            "Resource": "${ kms_arn }"
+        },
+        {
+            "Sid": "AllowGuardDutyToEncryptFindings",
+            "Effect": "Allow",
+            "Action": "kms:GenerateDataKey",
+            "Resource": "${ kms_arn }"
+        }
+    ]
+}

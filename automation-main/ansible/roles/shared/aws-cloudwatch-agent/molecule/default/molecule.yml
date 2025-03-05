@@ -1,0 +1,65 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: docker
+
+lint:
+  name: yamllint
+  options:
+    config-data:
+      ignore: venv
+
+platforms:
+  - name: centos-7
+    image: centos:7
+
+  - name: centos-6
+    image: centos:6
+
+  - name: amazonlinux-2
+    image: amazonlinux:2
+
+  - name: amazonlinux-1
+    image: amazonlinux:1
+
+  - name: ubuntu-14.04
+    image: ubuntu:14.04
+
+  - name: ubuntu-16.04
+    image: ubuntu:16.04
+
+  - name: ubuntu-18.04
+    image: ubuntu:18.04
+
+  - name: ubuntu-18.10
+    image: ubuntu:18.10
+
+  - name: debian-buster
+    image: debian:buster
+
+  - name: debian-jessie
+    image: debian:jessie
+
+  - name: debian-sid
+    image: debian:sid
+
+  - name: debian-stretch
+    image: debian:stretch
+
+provisioner:
+  name: ansible
+  lint:
+    name: ansible-lint
+    options:
+      x: ['403']
+
+scenario:
+  name: default
+
+verifier:
+  name: testinfra
+  lint:
+    name: flake8
+...

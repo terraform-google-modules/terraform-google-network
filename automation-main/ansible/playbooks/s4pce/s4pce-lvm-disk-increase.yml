@@ -1,0 +1,240 @@
+---
+# Playbook Name: s4pce-lvm-disk-increase.yml
+# Description: Increase disk partition, PV, LV and filesystem
+#   This playbook will increase filesystems after they have been increased on cloud platform
+#
+# Dependencies:
+#   - Ansible v2.9+
+#   - cloud-utils-growpart package installed or rhel-8-for-x86_64-appstream-rpms repository enabled
+#   - jmespath installed on local ansible host
+#   - sudo capability or root privileges on target machine
+#   - Only supports LVs on disks with single partition
+#
+# Variables:
+#   - filesystems: Comma seperated list, default: /hana/backups,/hana/shared,/hana/log,/hana/data
+#
+# Example:
+#   Execution on remote systems using the any inventory host file
+#     ansible-playbook s4pce-lvm-disk-increase.yml -kK -i <PATH-TO-INVENTORY>
+#     ansible-playbook s4pce-lvm-disk-increase.yml -kK -i <PATH-TO-INVENTORY> -e "filesystems=vg_swap,/usr/sap"
+#
+# Authors: Curtis Hoffman
+# Version: 2.9-000001
+# Modified: 2023-04-28 - Initial playbook creation
+#
+# Comments: |
+#   Ensure OS and DB backups have successfully completed before running this playbook
+#
+
+- hosts: all
+  gather_facts: true
+
+  vars:
+    log_directory: "/var/log/ansible"
+    log_pre: "{{ log_directory }}/s4pce-lvm-disk-increase_pre_{{ timestamp }}.log"
+    log_post: "{{ log_directory }}/s4pce-lvm-disk-increase_post_{{ timestamp }}.log"
+    filesystems: "/hana/backups,/hana/shared,/hana/log,/hana/data"
+
+  pre_tasks:
+    - name: Set timestamp fact
+      tags:
+        - always
+      ansible.builtin.set_fact:
+        timestamp: "{{ lookup('pipe', 'date +%m-%d-%y-%H-%M') }}"
+
+    - name: Create log directory {{ log_directory }}
+      ansible.builtin.file:
+        path: "{{ log_directory }}"
+        state: directory
+        mode: '0755'
+      become: true
+
+    - name: Get df output
+      ansible.builtin.command: df -hP
+      become: true
+      changed_when: false
+      register: df_output
+
+    - name: Log df output to {{ log_pre }}
+      ansible.builtin.blockinfile:
+        path: "{{ log_pre }}"
+        mode: '0640'
+        create: true
+        block: |
+          {{ df_output.stdout }}
+        marker: "# {mark} DF BLOCK"
+      become: true
+
+  tasks:
+    - name: Install cloud-utils-growpart
+      ansible.builtin.dnf:
+        name: cloud-utils-growpart
+        state: latest
+      become: true
+
+    - name: Validate specified filesystems exist
+      ansible.builtin.assert:
+        that: ansible_mounts | selectattr('mount', 'match', '^' + item + '$') | list | length != 0
+        fail_msg: "Unable to find filesystem {{ item }}"
+        success_msg: "Found filesystem {{ item }}"
+      loop: "{{ filesystems.split(',') }}"
+      when: item != "vg_swap"
+
+    - name: Validate vg_swap VG exist
+      ansible.builtin.shell: "lsblk -nplo NAME,MOUNTPOINT | awk '{print $1}' | grep vg_swap"
+      register: filesystem_swap
+      when: "'vg_swap' in filesystems"
+
+    - name: Get device name
+      ansible.builtin.set_fact:
+        filesystem_devices: "{{ filesystem_devices | default([]) + ansible_mounts | json_query(query) }}"
+      vars:
+        query: "[?mount == '{{ item }}'].device"
+      loop: "{{ filesystems.split(',') }}"
+      when: item != "vg_swap"
+
+    - name: Run non-swap filesystem increase tasks
+      when: "filesystem_devices is defined"
+      block:
+        - name: Get disk name
+          ansible.builtin.shell: "pvs --noheadings -o pv_name,lv_dm_path | grep {{ item }} | awk '{print $1}'"
+          become: true
+          failed_when: filesystem_disks.stdout | length == 0
+          register: filesystem_disks
+          loop: "{{ filesystem_devices }}"
+
+        - name: Get VG name
+          ansible.builtin.shell: "pvs --noheadings -o vg_name,lv_dm_path | grep {{ item }} | awk '{print $1}'"
+          become: true
+          failed_when: filesystem_vg.stdout | length == 0
+          register: filesystem_vg
+          loop: "{{ filesystem_devices }}"
+
+        - name: Get LV name
+          ansible.builtin.shell: "pvs --noheadings -o lv_name,lv_dm_path | grep {{ item }} | awk '{print $1}'"
+          become: true
+          failed_when: filesystem_lv.stdout | length == 0
+          register: filesystem_lv
+          loop: "{{ filesystem_devices }}"
+
+        - name: Get disk name
+          ansible.builtin.command: "lsblk -ndo pkname {{ item.stdout }}"
+          become: true
+          failed_when: filesystem_base_disks.stdout | length == 0
+          register: filesystem_base_disks
+          loop: "{{ filesystem_disks.results }}"
+          loop_control:
+            label: "{{ item.stdout }}"
+
+        - name: Check disk only has 1 partition
+          ansible.builtin.command: "grep -c '{{ item.stdout }}[0-9|p]' /proc/partitions"
+          failed_when: disk_partitions.stdout | int != 1
+          register: disk_partitions
+          loop: "{{ filesystem_base_disks.results }}"
+          loop_control:
+            label: "{{ item.stdout }}"
+
+        - name: Test growpart
+          ansible.builtin.command: "growpart -N /dev/{{ item.stdout }} 1"
+          become: true
+          loop: "{{ filesystem_base_disks.results }}"
+
+        - name: Run growpart
+          ansible.builtin.command: "growpart /dev/{{ item.stdout }} 1"
+          become: true
+          loop: "{{ filesystem_base_disks.results }}"
+
+        - name: Resize LVM PV
+          ansible.builtin.command: "pvresize {{ item.stdout }}"
+          become: true
+          loop: "{{ filesystem_disks.results }}"
+
+        - name: Extend and resize XFS filesystem
+          lvol:
+            vg: "{{ item.0.stdout }}"
+            lv: "{{ item.1.stdout }}"
+            size: 100%PVS
+            resizefs: true
+          become: true
+          loop: "{{ filesystem_vg.results | zip(filesystem_lv.results) | list }}"
+          loop_control:
+            label: "{{ item.1.stdout }}"
+
+    - name: Run swap filesystem increase tasks
+      when: "'vg_swap' in filesystems"
+      block:
+        - name: Get swap disk name
+          ansible.builtin.shell: "pvs --noheadings -o pv_name,lv_dm_path | grep vg_swap | grep lv_swap | awk '{print $1}'"
+          failed_when: swap_disk.stdout | length == 0
+          become: true
+          register: swap_disk
+
+        - name: Get swap VG name
+          ansible.builtin.shell: "pvs --noheadings -o vg_name,lv_dm_path | grep vg_swap | grep lv_swap | awk '{print $1}'"
+          failed_when: swap_vg.stdout | length == 0
+          become: true
+          register: swap_vg
+
+        - name: Get swap LV name
+          ansible.builtin.shell: "pvs --noheadings -o lv_name,lv_dm_path | grep vg_swap | grep lv_swap | awk '{print $1}'"
+          failed_when: swap_lv.stdout | length == 0
+          become: true
+          register: swap_lv
+
+        - name: Get swap disk name
+          ansible.builtin.command: "lsblk -ndo pkname {{ swap_disk.stdout }}"
+          become: true
+          register: swap_base_disk
+
+        - name: Test growpart on swap disk
+          ansible.builtin.command: "growpart -N /dev/{{ swap_base_disk.stdout }} 1"
+          become: true
+
+        - name: Run growpart on swap disk
+          ansible.builtin.command: "growpart /dev/{{ swap_base_disk.stdout }} 1"
+          become: true
+
+        - name: Resize swap PV
+          ansible.builtin.command: "pvresize {{ swap_disk.stdout }}"
+          become: true
+
+        - name: Extend swap filesystem
+          lvol:
+            vg: "{{ swap_vg.stdout }}"
+            lv: "{{ swap_lv.stdout }}"
+            size: 100%FREE
+          become: true
+
+        - name: Recreate swap
+          ansible.builtin.shell: "swapoff {{ filesystem_swap.stdout }}; mkswap {{ filesystem_swap.stdout }}; swapon {{ filesystem_swap.stdout }}"
+          become: true
+
+  post_tasks:
+    - name: Update ansible facts
+      ansible.builtin.setup:
+
+    - name: Get df output
+      ansible.builtin.command: df -hP
+      become: true
+      changed_when: false
+      register: df_output
+
+    - name: Log df output to {{ log_post }}
+      ansible.builtin.blockinfile:
+        path: "{{ log_post }}"
+        mode: '0640'
+        create: true
+        block: |
+          {{ df_output.stdout }}
+        marker: "# {mark} DF BLOCK"
+      become: true
+
+    - name: Get difference in pre and post df outputs
+      ansible.builtin.command: "diff {{ log_pre }} {{ log_post }}"
+      failed_when: false
+      become: true
+      register: df_diff
+
+    - name: Show difference in pre and post df outputs
+      ansible.builtin.debug:
+        var: df_diff.stdout_lines

@@ -1,0 +1,66 @@
+---
+
+# Whether to reboot the system if required by the role.
+reboot_if_needed: false
+
+var_sshd_approved_ciphers: aes128-ctr,aes192-ctr,aes256-ctr
+var_selinux_state: enforcing
+var_selinux_policy_name: targeted
+var_sshd_client_alive_interval: '600'
+var_sshd_client_alive_count_max: '0'
+var_sshd_login_grace_time: '60'
+var_accounts_max_concurrent_login_sessions: '10'
+var_password_expire_min_days: 1
+var_password_expire_max_days: 60
+var_fapolicyd_permissive: 1
+aide_cronjob_name: run AIDE check
+
+login_banner_text: '{{ login_banner_text_usg }}'
+login_banner_text_usg_gnome: "'You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only.\\nBy using\
+  \ this IS (which includes any device attached to this IS), you consent to the following conditions:\\n-The USG routinely intercepts and monitors communications\
+  \ on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct\
+  \ (PM), law enforcement (LE), and counterintelligence (CI) investigations.\\n-At any time, the USG may inspect and seize data stored on this IS.\\n-Communications\
+  \ using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any\
+  \ USG-authorized purpose.\\n-This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal\
+  \ benefit or privacy.\\n-Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of\
+  \ the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy,\
+  \ and their assistants. Such communications and work product are private and confidential. See User Agreement for details.'"
+login_banner_text_usg: |
+  You are accessing a U.S. Government (USG) Information System (IS) that is provided for USG-authorized use only.
+
+  By using this IS (which includes any device attached to this IS), you consent to the following conditions:
+
+  -The USG routinely intercepts and monitors communications on this IS for purposes including, but not limited to, penetration testing, COMSEC monitoring, network operations and defense, personnel misconduct (PM), law enforcement (LE), and counterintelligence (CI) investigations.
+
+  -At any time, the USG may inspect and seize data stored on this IS.
+
+  -Communications using, or data stored on, this IS are not private, are subject to routine monitoring, interception, and search, and may be disclosed or used for any USG-authorized purpose.
+
+  -This IS includes security measures (e.g., authentication and access controls) to protect USG interests--not for your personal benefit or privacy.
+
+  -Notwithstanding the above, using this IS does not constitute consent to PM, LE or CI investigative searching or monitoring of the content of privileged communications, or work product, related to personal representation or services by attorneys, psychotherapists, or clergy, and their assistants. Such communications and work product are private and confidential. See User Agreement for details.
+
+login_banner_text_dod: |
+  WARNING: DoD CLASSIFIED COMPUTER
+
+  Use of this or any other DOD interest computer system constitutes consent to monitoring at all times.
+
+  This is a DoD interest computer system. All DoD interest computer systems and related equipment are intended for the  communication, transmission, processing, and storage of official U.S. Government or other authorized information only.  All DoD interest computer systems are subject to monitoring at all times to ensure proper functioning of the equipment  and systems including security devices and systems, to prevent unauthorized use and violations of statues and security regulations, to deter criminal activity, and for other similar purposes. Any user of a DoD interest computer system should be aware that any information placed in the system is subject to monitoring and is not subject to any expectation of privacy.
+
+  If monitoring of this or any other DoD interest computer system reveals possible evidence of violation of criminal statues, this evidence and any other related information, including identification information about the user may be provided to law enforcement officials. If monitoring of this or any other DoD interest computer systems reveals violations of security regulations or unauthorized use, employees who violate security regulations or make unauthorized use of DoD interest computer systems are subject to appropriate disciplinary action.
+
+login_banner_text_aus: |
+  USE OF DEFENCE ICT NETWORKS.
+  Your use of this system is being monitored.
+  Your authorised logon allows you to use this system primarily for official Defence business, with limited and reasonable personal use in accordance with the Information and Communications Technology Manual (ICTMAN) Chapter 3-Use of Defence Information and Communication Technology Resources.  Inappropriate use of Defence ICT networks, including unauthorised disclosure of Defence information, may lead to serious sanction under the Public Service Act 1999, the Defence Force Discipline Act 1982, the criminal law, or in accordance with the terms of your contract.
+  Paragraph 7(2)(aaa) of the Telecommunications Interception and Access Act 1979 allows authorised staff within Defence to intercept communications on all Defence ICT networks for the purposes of conducting network protection duties in relation to the network.  All interactions with this system, including any associated data processed, stored or communicated by the system may be recorded and accessed.  This may include encrypted or stored or personal data.
+  As an authorised user, you agree to comply with all policies relating to the use of this syste, including ICTMAN Chapter 3, Defence Instruction – Administrative policy (Annex J, PPL7 – Required behaviours in Defence), the Defence Security Principles Framework, Defence Privacy Policy and this system’s security standard operating procedures.
+  This is a reminder that by logging into the network, you acknowledge that you have read these policies and you agree to comply with them.
+  DEFENCE ICT PRIVACY NOTICE
+  1.    Defence is an Australian Privacy Principles (APP) entity under the Privacy Act 1988 (Privacy Act).  Defence monitors, records and stores official, unofficial and personal invormation and data on its systems.
+  2.    All interactions with Defence ICT systems, including collection of encrypted or stored personal information is accessed by authorised personnel, and may be used in accordance with the provisions of the Privacy Act for personnel administration and management pruposes, including but not limited to investigations of misuse or inappropriate use of Defence ICT resources, possible breaches of legislation or policies, or for security pruposes.
+  3.    Personal information collected by Defence is managed in accordance with the Privacy Act, the Defence Prvacy Policy, Australian Government Agencies Privacy Code, protocols and control instructions contained in the Australian Government Information Security Manual and the Defence Security Principles Framework.  Access to such information may be required, consistent with Defence policy, including ICTMAN Chapter and Defence Instruction – Administrative policy (Annex J, PPL7 – Required behaviours in Defence).
+  4.    Information collected may also be disclosed to another person, body or agency in accordance with the Privacy Act, such as investigative agencies or, in some cases, overseas recipients (for example, where Defence personnel are located overseas on posting, or involved in military operations).
+  5.    For information on the collection of information using Defence ICT resources, contact the Defence Privacy Officer by email to defence.privacy@defence.gov.au.  The Defence Privacy Policy is available on the Internet at http://www.defence.gov.au/CompaintResolution/privacy.asp.  This policy informs individuals about how Defence collects, stores, uses and discloses personal information, and how to raise potential breaches of privacy with Defence.
+
+...

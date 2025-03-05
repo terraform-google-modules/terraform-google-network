@@ -1,0 +1,348 @@
+---
+
+# Playbook Name: ibp-provision-cpids-upgrade.yml
+# Description: Provisions new CPIDS Instance
+#     The following items will be done; volume creation, efs mounts, App provision, post-provisioning tasks.
+# Dependencies:
+#   - Ansible v2.9+
+#   - AWS CLI v2+
+#   - sudo capability or root privileges on target machine
+#   - Ansible roles: ibp, disk-management, nfs, repository-management, tag-management, aws-cloudwatch-alarms, iptables, clamav, aide, postfix-relay
+# Variables: Pulled from IBP Inventory File.
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-provision-cpids-upgrade.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>
+#
+# Authors: Louis Lee
+# Version: 2.9-000001
+# Modified: 2021-07-01 - Created playbook
+#           2024-12-02 - Use variable for 'aws_region' in tag-management role.
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Please note that updated environment paths to lines 170 & 171 are only valid for CPIDS version:   1.0.11.52-HF3
+#   This playbook does ** NOT ** do the following
+#     Update host files of existing systems
+#     Set up InCRON Backups on CPIDS
+#     Modify the existing loadbalancers in any way.
+#   Play Tags:
+#     play1 create-disk           : EBS Disk Creation
+#     play2 configure-os          : OS Configuration
+#     play3 provision-cpids       : Provision CPIDS DB and Application
+#     play4 post-provisioning     : Sets tags on Instances, Volumes and other AWS Resources
+#     play5 post-provisioning     : Create Cloudwatch Alarms and Monitoring
+#     play6 post-provisioning     : Setup IPTables for Kinesis/Splunk Monitoring
+#     play7 post-provisioning     : Setup ClamAV
+#     play8 post-provisioning     : Setup AIDE
+#     play9 post-provisioning     : Setup postfix
+
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  any_errors_fatal: true
+  hosts: all
+  tags:
+    - play0
+    - always
+
+  vars_prompt:
+    - name: input_aws_region
+      prompt: What is the aws region?
+      private: false
+
+  tasks:
+    - name: Fetch EC2 metadata facts
+      ec2_metadata_facts:
+
+    - name: "Generate role dynamic variables"
+      ansible.builtin.include_role:
+        name: ibp
+        tasks_from: general/variables-create.yml
+
+    - name: Save Input Variables for later playbook use.
+      set_fact:
+        playbook_aws_region: '{{ input_aws_region }}'
+
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: EBS Disk Creation"
+  hosts: cpids
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play1
+    - create-disk
+
+  vars:
+    staging_ip: "{{ efs_staging_ip }}"
+
+  tasks:
+    - name: "{{ inventory_hostname }} has {{ (ansible_facts.memtotal_mb/1000)|round|int }}Gb of system memory"
+      ansible.builtin.set_fact:
+        ram_size: "{{ (ansible_facts.memtotal_mb/1000)|round|int }}"
+
+    - name: "Caluculate disk size"
+      ansible.builtin.set_fact:
+        hana_shared_size: >-
+            {% if ram_size|int < 1000 %} {{ ram_size|int }}
+            {% else %} 1000
+            {% endif %}
+        hana_log_size: >-
+            {% if ram_size|int < 2000 %} {{ (ram_size|int / 2)|int  }}
+            {% else %} 1000
+            {% endif %}
+
+    - name: "Mount volumes for {{ inventory_hostname }}"
+      ansible.builtin.include_role:
+        name: disk-management
+      vars:
+        disk_create: true
+        disk_encryption: true
+        disk_encryption_key_default: ''
+        disk_preset_selection: 'custom'
+        custom:
+          hana_data:
+            mount_point: '/hana/data'
+            size: "{{ ram_size|int * 2 }}"
+          hana_log:
+            mount_point: '/hana/log'    #limit this to max of 1 terabyte
+            size: "{{ hana_log_size|int }}"
+          hana_shared:
+            mount_point: '/hana/shared'   #limit this to max of 1 terabyte
+            size: "{{ hana_shared_size|int }}"
+          hana_backups:
+            mount_point: '/hana/backups'
+            size: "{{ ram_size|int * 2 }}"
+          usr_sap:
+            mount_point: '/usr/sap'
+            size: 50
+
+    - name: "Mount staging EFS"
+      ansible.builtin.include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          staging:
+            path: /staging
+            src: "{{ staging_ip }}"
+
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: OS Configuration"
+  hosts: cpids
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play2
+    - configure-os
+
+  tasks:
+    - name: "Set the host file"
+      ansible.builtin.include_role:
+        name: ibp
+        tasks_from: provisioning/hostfile-install.yml
+
+    - name: Set the Hostname
+      become: true
+      ansible.builtin.hostname:
+        name: "{{ ibp_hostname }}"
+
+    - name: "Set AWS Region to {{ ansible_ec2_placement_region }}"
+      become: true
+      ansible.builtin.shell: "/usr/local/bin/aws configure set region {{ ansible_ec2_placement_region }}"
+
+    - name: "Configure Red Hat Repositories from S3"
+      ansible.builtin.include_role:
+        name: repository-management
+      vars:
+        repo_enable: true
+        application_preset_selection: ['epel','{{ ibp_application_preset_selection }}']
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Provision CPIDS DB and Application"
+  hosts: cpids
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play3
+    - provision-cpids
+
+  environment:
+    JAVA_HOME: '/usr/sap/dsod_package/sapmachine-jdk-17.0.8.1'
+    PATH: '/usr/sap/dsod_package/sapmachine-jdk-17.0.8.1/bin:.:/usr/local/sbin:/usr/local/bin:{{ ansible_env.PATH }}:/root/bin'
+
+  tasks:
+    - name: "Provisioning CPIDS with these settings"
+      ansible.builtin.debug:
+        msg: |
+          Host {{ inventory_hostname }}
+          CPIDS Tar Source is {{ cpids_tar_source }}
+          SAP Host Agent Source is {{ saphostagent_source }}
+          Hostname will be {{ ibp_hostname }}
+
+    - name: "Provision CPIDS with IBP role"
+      ansible.builtin.include_role:
+        name: ibp
+        tasks_from: provisioning/cpids-provision.yml
+
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Sets tags on Instances, Volumes and other AWS Resources"
+  hosts: cpids
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play4
+    - tag-management
+    - post-provisioning
+
+  tasks:
+    - name: "Update tags"
+      ansible.builtin.include_role:
+        name: tag-management
+      vars:
+        aws_tag_business: 'ibp'
+        aws_region: '{{ playbook_aws_region }}'
+
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: Create Cloudwatch Alarms and Monitoring"
+  hosts: cpids
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play5
+    - cloudwatch-alarms
+    - post-provisioning
+
+  tasks:
+    - name: "Create AWS CloudWatch Alarms"
+      ansible.builtin.include_role:
+        name: aws-cloudwatch-alarms
+      vars:
+        aws_topic_name: 'ibp-monitoring'
+        aws_sns_subscription_email: "DLSAPNS2IBPOPS@sapns2.com"
+        aws_sns_text_numbers: "17033008235,12028191715,18152174853"
+        ignore_disks:
+          - /dev
+          - /dev/shm
+          - /sap/staging
+          - /hana/staging
+          - /boot
+          - /staging
+          - /usr/sap/trans
+
+
+#################
+##### Play6 #####
+#################
+- name: "Play6: Setup IPTables for Kinesis/Splunk Monitoring"
+  hosts: cpids
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play6
+    - iptables
+    - post-provisioning
+
+  tasks:
+    - name: "Update iptables configuration"
+      ansible.builtin.include_role:
+        name: iptables
+
+
+#################
+##### Play7 #####
+#################
+- name: "Play7: Setup ClamAV"
+  hosts: cpids
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play7
+    - clamav
+    - post-provisioning
+
+  tasks:
+    - name: "Update clamav configuration"
+      ansible.builtin.include_role:
+        name: clamav
+      vars:
+        clamav_create_cron_schedule: true
+        clamav_dir_ignore_pattern: '^/hana/|^/dev/|^/usr/sap/|^/backup/|^/sys|^/proc|^/swap|^/staging'
+
+
+#################
+##### Play8 #####
+#################
+- name: "Play8: Setup AIDE"
+  hosts: cpids
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play8
+    - aide
+    - post-provisioning
+
+  tasks:
+    - name: "Update aide configuration"
+      ansible.builtin.include_role:
+        name: aide
+        apply:
+          become: true
+
+
+#################
+##### Play9 #####
+#################
+- name: "Play9: Setup postfix"
+  hosts: cpids
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play9
+    - postfix
+    - post-provisioning
+
+  tasks:
+    - name: "Configure postfix"
+      ansible.builtin.include_role:
+        name: postfix-relay
+      vars:
+        postfix_relay_canonical_recipient: {}
+        postfix_relay_canonical_sender: {}
+        postfix_relay_sender_rules: {}
+        postfix_relay_smtp_address: 'mail.ibp.cre.sapns2.internal'
+        postfix_relay_smtp_port: '25'
+
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tags:
+    - play-end
+    - always
+    - the-end
+
+  tasks:
+    - name: "This is the end"
+      ansible.builtin.debug:
+        msg: "Of the world as we know it"
+...

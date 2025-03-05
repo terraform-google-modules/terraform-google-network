@@ -1,0 +1,258 @@
+---
+# Playbook Name: ibp-create-tar-webdispatcher.yml
+# Description: Creates a new tar release of Webdispatcher
+#   Gracefully stops SAP Webdispatcher.  Then creates tar files
+#   of desired folders.  Tars are saved to EFS and uploaded to
+#   S3 buckets.
+#   Restarts webdispatcher service afterwards
+# Dependencies:
+#   - Ansible v2.9+
+#   - AWS permissions to upload to S3 Bucket for tar files upload
+#   - Sudo access to IBP Webdispatcher instance
+# Variables:
+#   - ipaddress_webdispatcher : IP Address of the Webdispatcher instance
+#   - release_name : Name of the release
+#   - aws_access_key : AWS access key to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - aws_secret_key : AWS secret key to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - aws_security_token : AWS security token to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - sid : SAP ID of the system. Used to shutdown the Webdispatcher Servers; IBP defaults to 'n02'
+#   - webdispatcher_staging_location : efs volume location for webdispatcher staging
+#   - upload_bucket : s3 bucket to upload to
+#   - upload_location : path to prepend to s3 upload location
+# Example:
+#   How to start with remote execution using ssh key
+#    ansible-playbook -u ec2-user --private-key myprivatekey.pem -c ssh ibp-create-tar-webdispatcher.yml
+#
+#   How to start with remote execution using username/password
+#   - Requires sshpass installed
+#   - Requires ssh fingerprints of remote systems installed
+#      ansible-playbook -u i123456 -k ibp-create-tar-webdispatcher.yml
+#
+# Authors: Louis Lee, Vighnesh Sivakumar
+# Version: 2.9-000004
+# Modified: 2020-01-23 - Created
+#           2020-01-29 - Aligned with other tar playbooks
+#           2020-06-14 - Updated to use start/stop tasks
+#           2020-10-12 - Update play tags
+#           2024-05-29 - Removed path /home/swpm (Trushar Desai)
+# Comments: N/A
+#   Tags:
+#   - play0 always                          : Obtain server information and metadata
+#   - play1 stop-webdispatcher create-tars  : Hard stop Webdispatcher
+#   - play2 create-tars                     : Create Tars
+#   - play3 upload-s3                       : Upload to S3
+#   - play4 start-webdispatcher             : Start Webdispatcher
+#   - play-end always the-end               : The End
+
+
+#################
+##### Play0 #####
+#################
+- name: Play0 Obtain server information and metadata
+  hosts: localhost
+  gather_facts: false
+  tags:
+    - always
+    - play0
+
+  vars_prompt:
+  - name: ipaddress_webdispatcher
+    prompt: "What is the Web Dispatcher ip address?"
+    private: no
+
+  - name: release_name
+    prompt: "What is the release_name of the tar?"
+    private: no
+
+  - name: aws_access_key
+    prompt: "Enter your AWS Access Key for S3 Bucket Upload"
+    private: no
+
+  - name: aws_secret_key
+    prompt: "Enter your AWS Secret Key for S3 Bucket Upload"
+    private: yes
+
+  - name: aws_security_token
+    prompt: "Enter your AWS Security Token for S3 Bucket Upload"
+    private: yes
+
+  vars:
+    sid: 'n02'
+    webdispatcher_staging_location: '/staging/webdispatcher/Build'
+    upload_bucket: 'sap-ibp-artifacts'
+    upload_location: 'staging/webdispatcher/Build'
+
+  tasks:
+  - name: "Confirm values with 'Y'"
+    pause:
+      prompt: |
+
+        Webdispatcher ip address      : {{ ipaddress_webdispatcher }}
+        Release Destination Location  : {{ webdispatcher_staging_location }}/{{ release_name }}
+        S3 Upload Location            : s3://{{ upload_bucket }}/{{ upload_location }}/{{ release_name }}
+    register: confirm_input
+
+  - name: "Fail if not confirmed"
+    fail:
+      msg: 'Input not confirmed.  Quitting now.'
+    when:
+    - confirm_input.user_input != 'Y'
+    - confirm_input.user_input != 'y'
+
+  - name: "Add Webdispatcher to ansible hosts"
+    add_host:
+      name: "{{ ipaddress_webdispatcher }}"
+      groups:
+      - webdispatcher
+      sid: "{{ sid }}"
+      release_name: "{{ release_name }}"
+      staging_location: "{{ webdispatcher_staging_location }}"
+      upload_bucket: "{{ upload_bucket }}"
+      upload_location: "{{ upload_location }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      aws_security_token: "{{ aws_security_token }}"
+
+
+#################
+##### Play1 #####
+#################
+- name: Play1 Stop Webdispatcher Service
+  hosts: webdispatcher
+  gather_facts: false
+  tags:
+    - play1
+    - stop-webdispatcher
+    - create-tars
+
+  tasks:
+  - name: "Check if {{ staging_location }}/{{ release_name }} exists"
+    stat:
+      path: "{{ staging_location }}/{{ release_name }}"
+    register: destination_webdispatcher
+  - name: "Fail if destiantion folder already exists"
+    fail:
+      msg: "Destination folder already exists! Please remove the destination folder and rerun script."
+    when: destination_webdispatcher.stat.exists == true
+
+  - name: Stop Webdispatcher
+    include_role:
+      name: ibp
+      tasks_from: operations/webdispatcher-hardstop.yml
+      allow_duplicates: yes
+
+
+#################
+##### Play2 #####
+#################
+- name: Play2 Create tar files
+  hosts: webdispatcher
+  gather_facts: false
+  tags:
+    - play2
+    - create-tars
+
+  tasks:
+  - name: "Create {{ staging_location }}/{{ release_name }}"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}"
+      state: directory
+    become: true
+
+  - name: "Create Webdispatcher Tars"
+    shell: "/bin/tar -cvzf - {{ item.path }}/* | split -b 2000M - {{ item.name }}"
+    become: true
+    args:
+      chdir: "{{ staging_location }}/{{ release_name }}"
+      warn: false
+    loop:
+    - path: "/usr/sap"
+      name: "webdispatcher-part"
+    register: webdispatchertarcreate_status
+
+  - name: "Initialize {{ sid|lower }}adm Tar"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}/webdispatcher-{{ sid|lower }}adm-partaa"
+      state: touch
+    become: true
+
+  - name: "Add files to {{ sid|lower }}adm Tar"
+    shell: "/bin/tar -rvf webdispatcher-{{ sid|lower }}adm-partaa {{ item.path }} "
+    become: true
+    args:
+      chdir: "{{ staging_location }}/{{ release_name }}"
+      warn: false
+    loop:
+      - path: "/home/{{ sid|lower }}adm"
+      - path: "/home/sapadm"
+
+  - name: "Compress {{ sid|lower }}adm Tar"
+    shell: |
+      /bin/gzip webdispatcher-{{ sid|lower }}adm-partaa
+      /bin/mv webdispatcher-{{ sid|lower }}adm-partaa.gz webdispatcher-{{ sid|lower }}adm-partaa
+    args:
+      chdir: "{{ staging_location }}/{{ release_name }}"
+    become: true
+
+
+#################
+##### Play3 #####
+#################
+- name: Play3 Upload to S3
+  hosts: webdispatcher
+  gather_facts: false
+  tags:
+    - play3
+    - upload-s3
+
+  tasks:
+  - name: "Upload HanaDB files to S3"
+    s3_sync:
+      file_root: "{{ staging_location }}/{{ release_name }}"
+      bucket: "{{ upload_bucket }}"
+      mode: push # required. choices: push. sync direction.
+      file_change_strategy: date_size
+      permission: bucket-owner-full-control
+      key_prefix: "{{ upload_location }}/{{ release_name }}"
+      delete: false
+      security_token: "{{ aws_security_token }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+    become: true
+
+
+#################
+##### Play4 #####
+#################
+- name: Play4 Restart Webdispatcher services
+  hosts: webdispatcher
+  gather_facts: false
+  tags:
+    - play4
+    - start-webdispatcher
+
+  tasks:
+  - name: Start Webdispatcher
+    include_role:
+      name: ibp
+      tasks_from: operations/webdispatcher-hardstart.yml
+      allow_duplicates: yes
+
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    debug:
+      msg: "Of the world as we know it"
+...

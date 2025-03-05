@@ -1,0 +1,60 @@
+---
+# Description: Gets a list of repositories to enable/disable via the user-provided 'application_preset_selection' variable.
+# Inputs:
+#   - application_preset_selection: (list/string) A list of repository list presets or a string of a single repository preset to enable/disable.
+#   - repository_list: (dict) A dictionary of repository list presets for each operating system.
+#   - epel_repo: (bool) DEPRECATED, whether to enable/disable the epel repositories. Epel repositories can now be selected by including
+#                       it in the 'application_preset_selection' list. For example: -e "application_preset_selection=['base','epel']"
+# Outputs:
+#   - repository_list_selected: (list) A list of repositories to enable/disable.
+#   - formatted_application_preset_selection: (list) The value of 'application_preset_selection' saved as a list.
+
+  - name: Save the 'application_preset_selection' variable as a fact so that it is properly formatted
+    set_fact:
+      formatted_application_preset_selection: '{{ application_preset_selection | default([], true) }}'
+
+  - name: Convert the 'formatted_application_preset_selection' variable into a list if it is a string
+    set_fact:
+      formatted_application_preset_selection: '{{ [ formatted_application_preset_selection ] }}'
+    when: formatted_application_preset_selection is string
+
+  - name: "[LEGACY SUPPORT] - Add the 'epel' repositories to 'formatted_application_preset_selection' if 'epel_repo=true'"
+    set_fact:
+      formatted_application_preset_selection: "{{ formatted_application_preset_selection + ['epel'] }}"
+    when: epel_repo | default(false, true) | bool
+
+# NOTE: For SLES targets, the 'regex_replace' in the following task will prepend the service pack to each of the application preset
+#       selections. For example, selecting 'base' as the repository list preset when running this role against a SLES 15 SP3 target will
+#       result in 'sp3.base' after formatting. This is to support service pack specific repositories for SLES as nested dictionaries.
+
+  - name: "[SLES] - Update repositories to be service pack specific in 'formatted_application_preset_selection'"
+    set_fact:
+      formatted_application_preset_selection: "{{ formatted_application_preset_selection | map('regex_replace', '^', 'sp' ~ ( ansible_distribution_version.split('.')[1]\
+        \ ) ~ '.') | list }}"
+    when: ansible_distribution | lower  == 'sles'
+
+# NOTE: The 'default(['EMPTY_PLACEHOLDER'], true)' that is used inside of the loop parameter is used to ensure that this task runs at
+#       least once. This is needed because if the variable 'formatted_application_preset_selection' is an empty, null, or none type list,
+#       then Ansible will completely skip this task, thus never setting the 'repository_list_selected' variable.
+
+# NOTE: Added the 'difference( nonexistent_repositories )' filter to this task so that the role will not attempt to enable
+#       repositories that do not exist for the given operating system (For example, 'rhel-7-server-eus-rpms' does not exist
+#       for RHEL 7.9).
+
+  - name: Get the list of repositories to enable/disable
+    set_fact:
+      repository_list_selected: "{{ repository_list_selected | default([], true) | union( repository_list[ ansible_distribution | lower + '_' + ansible_distribution_major_version\
+        \ ][ item ] | default([], true) ) | difference( nonexistent_repositories[ ansible_distribution | lower + '_' + ( latest_os_versions[ ansible_distribution\
+        \ | lower + '_' + ansible_distribution_major_version ] if repo_latest | bool else ansible_distribution_version ) ] | default([], true) ) }}"
+    loop: "{{ formatted_application_preset_selection | default(['EMPTY_PLACEHOLDER'], true) }}"
+    when: ansible_distribution | lower  != 'sles'
+
+  - name: '[SLES] - Get the list of repositories to enable/disable'
+    set_fact:
+      repository_list_selected: "{{ repository_list_selected | default([], true) | union( repository_list[ ansible_distribution | lower + '_' + ansible_distribution_major_version\
+        \ ][ item.split('.')[0] ][item.split('.')[1] ] | default([], true) ) | difference( nonexistent_repositories[ ansible_distribution | lower + '_'\
+        \ + ( latest_os_versions[ ansible_distribution | lower + '_' + ansible_distribution_major_version ] if repo_latest | bool else ansible_distribution_version\
+        \ ) ] | default([], true) ) }}"
+    loop: "{{ formatted_application_preset_selection | default(['EMPTY_PLACEHOLDER'], true) }}"
+    when: ansible_distribution | lower  == 'sles'
+...

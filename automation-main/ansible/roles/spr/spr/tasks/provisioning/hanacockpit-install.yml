@@ -1,0 +1,139 @@
+---
+# Synopsis: UnTARs and renames SAP HANA Cockpit
+# Inputs:
+#   spr_hana_install_source : Source folder for the hana cockpit tar images
+#   spr_hana_file_install_rsp_xml : Location of the install.rsp.xml file
+#   spr_hana_file_install_rsp : Location of the install.rsp file
+#   spr_hana_install_hostname: Hostname of the instance where hana will be installed
+#   spr_hana_install_sid: Sid of the hana instance
+#   spr_hana_product: Type of product
+# Outputs:
+# Comments:
+
+- name: Extract "{{ spr_hana_product }}" tars
+  include_tasks: general/tar-extract.yml
+  vars:
+    spr_tar_extract_list:
+      - "{{ spr_hana_install_source }}/usr-sap.tgz*"
+      - "{{ spr_hana_install_source }}/hana-data.tgz*"
+      - "{{ spr_hana_install_source }}/hana-log.tgz*"
+      - "{{ spr_hana_install_source }}/hana-shared.tgz*"
+    spr_tar_extract_overwrite: false
+    spr_tar_extract_async: false
+
+- name: Check for /hana/backups/G01/HDB00/backup/log
+  become: true
+  stat:
+    path: '/hana/backups/G01/HDB00/backup/log'
+  register: hana_backups_G01_HDB00_backup_log
+
+- name: Check for /hana/backups/G01/HDB00/backup/data
+  become: true
+  stat:
+    path: '/hana/backups/G01/HDB00/backup/data'
+  register: hana_backups_G01_HDB00_backup_data
+
+- name: Create /hana/backups/G01/HDB00/backup/log if it does not exist
+  when: hana_backups_G01_HDB00_backup_log.stat.exists == false
+  become: true
+  file:
+    path: /hana/backups/G01/HDB00/backup/log
+    state: directory
+
+- name: Create /hana/backups/G01/HDB00/backup/data if it does not exist
+  when: hana_backups_G01_HDB00_backup_data.stat.exists == false
+  become: true
+  file:
+    path: /hana/backups/G01/HDB00/backup/data
+    state: directory
+
+- name: "BLOCK: rename"
+  block:
+      - name: "Create /tmp/{{ spr_hana_product|lower }}"
+        file:
+          path: '/tmp/{{ spr_hana_product|lower }}'
+          state: directory
+
+      - name: "Save Configuration Files to /tmp/{{ spr_hana_product|lower }}"
+        copy:
+          dest: '/tmp/{{ spr_hana_product|lower }}/'
+          src: "{{ item }}"
+          force: yes
+          remote_src: yes
+        loop_control:
+          label: "Saving /tmp/{{ spr_hana_product|lower }}/{{ item | basename }}"
+        loop:
+          - "{{ spr_hana_file_install_rsp_xml }}"
+          - "{{ spr_hana_file_install_rsp }}"
+
+      - name: "Update install.rsp.xml values"
+        no_log: true
+        replace:
+          path: "/tmp/{{ spr_hana_product|lower }}/{{ spr_hana_file_install_rsp_xml.split('/')[-1] }}"
+          regexp: '[*]{3}'
+          replace: "{{ standard_deployment_password }}"
+
+      - name: "Update install.rsp values"
+        ini_file:
+          path: /tmp/{{ spr_hana_product|lower }}/install.rsp
+          create: no
+          section: null
+          option: "{{ item.name }}"
+          value: '{{ item.value }}'
+          no_extra_spaces: true
+        loop:
+          - { name: 'target_sid', value: '{{ spr_hana_install_sid|upper }}' }
+          - { name: 'certificates_hostmap', value: 'hdb-g01={{ spr_hana_install_hostname|lower }}' }
+          - { name: 'number', value: '00' }
+          - { name: 'hostmap', value: 'hdb-g01={{ spr_hana_install_hostname|lower }}' }
+        become: true
+
+      - name: "Execute rename command"
+        no_log: true
+        become: true
+        shell: >-
+          cat /tmp/{{ spr_hana_product|lower }}/install.rsp.xml | /hana/shared/G01/hdblcm/hdblcm --action rename_system --configfile=/tmp/{{ spr_hana_product|lower }}/install.rsp --target_sid {{ spr_hana_install_sid|upper }} --hostmap=hdb-g01={{ spr_hana_install_hostname|lower }} --target_password={{ standard_deployment_password }} --read_password_from_stdin=xml --xs_domain_name={{ spr_hana_install_hostname }}.{{ spr_hana_install_domain }} --batch -nostart
+        args:
+          chdir: '/'
+
+# Below code addition is to address SCSTE-2084 and SAP OSS note 3190917 bug with hdblcm rename process.
+      - name: "Update /hana/shared/{{ spr_sid|upper }}/lm_structure/landscapeVariables.properties values"
+        ini_file:
+          path: "/hana/shared/{{ spr_sid|upper }}/lm_structure/landscapeVariables.properties"
+          create: no
+          section: null
+          option: "{{ item.name }}"
+          value: '{{ item.value }}'
+          no_extra_spaces: true
+        become: true
+        loop_control:
+          label: "Modifying value of {{ item.name }} to {{ item.value }} in /hana/shared/{{ spr_sid|upper }}/lm_structure/landscapeVariables.properties"
+        loop:
+          - { name: 'SID', value: '{{ spr_sid|upper }}' } # This is not mandatory. Already reflecting the correct value
+          - { name: 'centralserver', value: '{{ spr_hana_install_hostname }}' }
+
+      - name: "chown scriptserver.ini file"
+        ansible.builtin.file:
+          path: '/usr/sap/{{ spr_hana_install_sid}}/SYS/global/hdb/custom/config/scriptserver.ini'
+          owner: "{{ spr_hana_install_sid|lower }}adm"
+          group: sapsys
+        become: true
+
+      - name: "Rename the /hana/backups/G01 to /hana/backups/{{ spr_hana_install_sid}}"
+        ansible.builtin.command:
+          cmd: mv /hana/backups/G01 /hana/backups/{{ spr_hana_install_sid}}
+        become: true
+
+- name: Change ownership of /hana/backups
+  become: true
+  file:
+    path: '/hana/backups'
+    owner: '{{ spr_hana_install_sid|lower }}adm'
+    group: sapsys
+    recurse: true
+
+- name: "Remove /tmp/{{ spr_hana_product }}"
+  file:
+    path: '/tmp/{{ spr_hana_product }}'
+    state: absent
+...

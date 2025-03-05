@@ -1,0 +1,46 @@
+---
+# Synopsis: Creates hdbuserstore keys to allow sql command runs
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+#   - hdb_hostname : (provided by playbook) hostname of the instance that the key is for.
+#   - hdb_password : (provided by playbook) password for the key
+# Outputs: HDB keys created in HANA DB
+# Comments: N/A
+
+- name: "BLOCK Create DB keys"
+  block:
+  - name: "Check for pre-existing keys for {{ hdb_hostname }}"
+    shell: "hdbuserstore list"
+    args:
+      executable: /bin/csh
+    register: hdbuserstore_list
+    changed_when: false
+    failed_when: "'Command not found' in hdbuserstore_list.stdout"
+
+  - name: "Create SYSTEMDB-ADMIN key for {{ hdb_hostname }}"
+    shell: "hdbuserstore SET SYSTEMDB-ADMIN {{ hdb_hostname }}:30213 SYSTEM {{ hdb_password }}"
+    args:
+      executable: /bin/csh
+    when: "'SYSTEMDB-ADMIN' not in hdbuserstore_list.stdout"
+
+  - name: "Create TENANTDB-ADMIN key for {{ hdb_hostname }}"
+    shell: "hdbuserstore SET TENANTDB-ADMIN {{ hdb_hostname }}:30213@{{ sid|lower }} SYSTEM {{ hdb_password }}"
+    args:
+      executable: /bin/csh
+    when: "'TENANTDB-ADMIN' not in hdbuserstore_list.stdout"
+
+  - name: "Validate keys were created for {{ hdb_hostname }}"
+    shell: "hdbuserstore list"
+    args:
+      executable: /bin/csh
+    register: validate_hdbuserstore
+    changed_when: false
+    failed_when:
+    - "'SYSTEMDB-ADMIN' not in validate_hdbuserstore.stdout"
+    - "'TENANTDB-ADMIN' not in validate_hdbuserstore.stdout"
+
+  #End "BLOCK: Primary DB keys"
+  become: true
+  become_user: "{{ sid|lower }}adm"
+
+...

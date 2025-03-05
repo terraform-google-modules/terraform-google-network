@@ -1,0 +1,7 @@
+---
+# List of pi log groups we want to capture
+# When 'pi' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_pi:
+  - file_path: /usr/sap/NS2/J00/j2ee/cluster/server0/log/*
+    log_group_name: /usr/sap/NS2/J00/j2ee/cluster/server0/log
+...

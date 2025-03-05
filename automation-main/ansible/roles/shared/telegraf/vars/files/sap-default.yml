@@ -1,0 +1,5 @@
+---
+monitor_files:
+  - files: [/hana/**available.log, /usr/sap/**available.log]
+    tail_name: available.log
+...

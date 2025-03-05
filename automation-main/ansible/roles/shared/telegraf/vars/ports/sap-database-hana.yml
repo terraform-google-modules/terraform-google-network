@@ -1,0 +1,274 @@
+---
+net_ports:
+  - name: ssh
+    host: localhost
+    port: 22
+    protocol: tcp
+    application: hana
+    service: ssh
+    description: ssh (hana:22)
+
+  - name: hana_saphostctrl
+    host: localhost
+    port: 1128
+    protocol: tcp
+    application: hana
+    service: saphostctrl
+    description: SAP Host Agent with SOAP/HTTP (hana:1128)
+
+  - name: hana_saphostctrls
+    host: localhost
+    port: 1129
+    protocol: tcp
+    application: hana
+    service: saphostctrls
+    description: SAP Host Agent with SOAP/HTTPS (hana:1129)
+
+  - name: hana_https
+    host: localhost
+    port: 43nn
+    protocol: tcp
+    application: hana
+    service: https
+    description: SAP HANA HTTPS Web Dispatcher (hana:43<NN>)
+
+  - name: hana_http
+    host: localhost
+    port: 80nn
+    protocol: tcp
+    application: hana
+    service: http
+    description: SAP HANA HTTP Web Dispatcher (hana:80<NN>)
+
+  - name: hana_daemon
+    host: localhost
+    port: 3nn00
+    protocol: tcp
+    application: hana
+    service: daemon
+    description: SAP HANA deamon (hana:3<NN>00)
+
+  - name: hana_nameserver_3nn01
+    host: localhost
+    port: 3nn01
+    protocol: tcp
+    application: hana
+    service: nameserver
+    description: SAP HANA Nameserver (hana:3<NN>01)
+
+  - name: hana_preprocessor
+    host: localhost
+    port: 3nn02
+    protocol: tcp
+    application: hana
+    service: preprocessor
+    description: SAP Hana preprocessor (hana:3<NN>02)
+
+  - name: hana_indexserver_3nn03
+    host: localhost
+    port: 3nn03
+    protocol: tcp
+    application: hana
+    service: indexserver
+    description: SAP HANA indexserver (hana:3<NN>03)
+
+  - name: hana_scriptserver_3nn04
+    host: localhost
+    port: 3nn04
+    protocol: tcp
+    application: hana
+    service: scriptserver
+    description: SAP HANA scriptserver (hana:3<NN>04)
+
+  - name: hana_3nn05
+    host: localhost
+    port: 3nn05
+    protocol: tcp
+    application: hana
+    service: statisticsserver,diserver
+    description: SAP HANA statisticsserver or diserver (hana:3<NN>05)
+
+  - name: hana_webdispatcher
+    host: localhost
+    port: 3nn06
+    protocol: tcp
+    application: hana
+    service: webdispatcher
+    description: SAP HANA webdispatcher (hana:3<NN>06)
+
+  - name: hana_xsengine_3nn07
+    host: localhost
+    port: 3nn07
+    protocol: tcp
+    application: hana
+    service: xsengine
+    description: SAP HANA xsengine (hana:3<NN>07)
+
+  - name: hana_xsengine_3nn08
+    host: localhost
+    port: 3nn08
+    protocol: tcp
+    application: hana
+    service: xsengine
+    description: SAP HANA xsengine (hana:3<NN>08)
+
+  - name: hana_hdbrss
+    host: localhost
+    port: 3nn09
+    protocol: tcp
+    application: hana
+    service: hdbrss
+    description: SAP HANA Support hdbrss (hana:3<NN>09)
+
+  - name: hana_compileserver
+    host: localhost
+    port: 3nn10
+    protocol: tcp
+    application: hana
+    service: compileserver
+    description: SAP HANA compileserver (hana:3<NN>10)
+
+  - name: hana_nameserver_3nx01
+    host: localhost
+    port: 3nx01
+    protocol: tcp
+    application: hana
+    service: nameserver
+    description: SAP HANA nameserver (hana:3<NX>01)
+
+  - name: hana_nameserver_3nx02
+    host: localhost
+    port: 3nx02
+    protocol: tcp
+    application: hana
+    service: nameserver
+    description: SAP HANA nameserver (hana:3<NX>02)
+
+  - name: hana_indexserver_3nx03
+    host: localhost
+    port: 3nx03
+    protocol: tcp
+    application: hana
+    service: indexserver
+    description: SAP HANA indexserver (hana:3<NX>03)
+
+  - name: hana_scriptserver_3nx04
+    host: localhost
+    port: 3nx04
+    protocol: tcp
+    application: hana
+    service: scriptserver
+    description: SAP HANA scriptserver (hana:3<NX>04)
+
+  - name: hana_statisticsserver_3nx05
+    host: localhost
+    port: 3nx05
+    protocol: tcp
+    application: hana
+    service: statisticsserver
+    description: SAP HANA statisticsserver (hana:3<NX>05)
+
+  - name: hana_xsengine_3nx07
+    host: localhost
+    port: 3nx07
+    protocol: tcp
+    application: hana
+    service: xsengine
+    description: SAP HANA xsengine (hana:3<NX>07)
+
+  - name: hana_3nn17
+    host: localhost
+    port: 3nn17
+    protocol: tcp
+    application: hana
+    service: statisticsserver,indexserver,backupserver
+    description: SAP HANA statisticsserver, indexserver or backupserver (hana:3<NN>17)
+
+  - name: hana_r
+    host: localhost
+    port: 3nn19
+    protocol: tcp
+    application: hana
+    service: rserve
+    description: SAP HANA R Server Rserve (hana:3<NN>19)
+
+  - name: hana_diserver
+    host: localhost
+    port: 3nn25
+    protocol: tcp
+    application: hana
+    service: diserver
+    description: SAP HANA diserver (hana:3<NN>25)
+
+  - name: hana_3nn40
+    host: localhost
+    port: 3nn40
+    protocol: tcp
+    application: hana
+    service: indexserver,scriptserver,xsengine,diserver,dpserver,streamingserver
+    description: SAP HANA indexserver, scriptserver, xsengine, diserver, dpserver or streamingserver (hana:3<NN>40)
+
+  - name: hana_3nn42
+    host: localhost
+    port: 3nn42
+    protocol: tcp
+    application: hana
+    service: indexserver,xsengine,streamingserver
+    description: SAP HANA ndexserver, xsengine or streamingserver (hana:3<NN>42)
+
+  - name: hana_3nn41
+    host: localhost
+    port: 3nn41
+    protocol: tcp
+    application: hana
+    service: indexserver,scriptserver,streamingserver
+    description: SAP HANA indexserver, scriptserver or streamingserver (hana:3<NN>41)
+
+  - name: hana_nameserver_4nn01
+    host: localhost
+    port: 4nn01
+    protocol: tcp
+    application: hana
+    service: nameserver
+    description: SAP HANA nameserver (hana:4<NN>01)
+
+  - name: hana_nameserver_4nn02
+    host: localhost
+    port: 4nn02
+    protocol: tcp
+    application: hana
+    service: nameserver
+    description: SAP HANA nameserver (hana:4<NN>02)
+
+  - name: hana_nameserver_4nn06
+    host: localhost
+    port: 4nn06
+    protocol: tcp
+    application: hana
+    service: nameserver
+    description: SAP HANA nameserver (hana:4<NN>06)
+
+  - name: hana_xsengine_4nn14
+    host: localhost
+    port: 4nn14
+    protocol: tcp
+    application: hana
+    service: xsengine
+    description: SAP HANA xsengine (hana:4<NN>14)
+
+  - name: hana_sapctrl
+    host: localhost
+    port: 5nn13
+    protocol: tcp
+    application: hana
+    service: sapctrl
+    description: SAP HANA HTTP sapctrls (SCS ASCS) (hana:5<NN>13)
+
+  - name: hana_sapctrls
+    host: localhost
+    port: 5nn14
+    protocol: tcp
+    application: hana
+    service: sapctrls
+    description: SAP HANA HTTPS sapctrls (SCS ASCS) (hana:5<NN>14)
+...

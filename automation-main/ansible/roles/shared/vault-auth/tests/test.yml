@@ -1,0 +1,14 @@
+---
+  - hosts: all
+    gather_facts: no
+    vars:
+      vault_auth_delegate_local: true
+    tasks:
+      - name: Retrieve secrets from Vault
+        include_role:
+          name: vault-auth
+          apply:
+            delegate_to: '{{ "localhost" if (vault_auth_delegate_local | bool) else omit }}'
+            connection: '{{ "local" if (vault_auth_delegate_local | bool) else omit }}'
+            run_once: '{{ true if (vault_auth_delegate_local | bool) else omit }}'
+...

@@ -1,0 +1,129 @@
+---
+# Install the vector configuration files, and configure it to use the new config path
+  - name: Remove the existing NS2 vector configuration files
+    file:
+      state: absent
+      path: /etc/vector/ns2
+    become: true
+
+  - name: Remove the existing NS2 vector GCP CROSS PROJECT configuration files
+    file:
+      state: absent
+      path: /etc/vector/ns2/gcp_cross_project_logging
+    become: true
+
+  - name: Remove the existing NS2 vector log_collectors files
+    file:
+      state: absent
+      path: /etc/vector/log_collectors
+    become: true
+
+  - name: Ensure that the Vector certs folder exists
+    file:
+      state: directory
+      path: /etc/vector/certs/
+      mode: '0700'
+    become: true
+
+  - name: Create temporary build directory for Vector collectors
+    delegate_to: localhost
+    ansible.builtin.tempfile:
+      state: directory
+      prefix: vector_collectors
+    register: vector_local_temp_directory
+
+  - name: Create a temp folder in temp to copy config files to
+    delegate_to: localhost
+    file:
+      state: directory
+      path: '{{ vector_local_temp_directory.path }}'
+    become: false
+
+  - name: Add the CA root to be trusted by Vector
+    copy:
+      dest: /etc/vector/certs/ca.pem
+      content: '{{ vector_ca_root }}'
+      mode: '0600'
+    become: true
+    notify: restart vector
+
+  - name: Configure the vector.yaml file
+    ansible.builtin.template:
+      src: vector.yaml.j2
+      dest: /etc/vector/vector.yaml
+      selevel: s0
+      seuser: system_u
+      setype: etc_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0600'
+    become: true
+    notify:
+      - restart vector
+
+  - name: Install NS2 Vector log collector configuration files
+    delegate_to: localhost
+    ansible.builtin.copy:
+      dest: '{{ vector_local_temp_directory.path }}/'
+      src: config/log_collectors
+      directory_mode: '0755'
+      mode: '0644'
+      force: true
+    become: false
+    notify:
+      - restart vector
+
+#   - name: Install NS2 GCP Cross Projec Shared configuration files
+#     delegate_to: localhost
+#     ansible.builtin.copy:
+#       dest: '{{ vector_local_temp_directory.path }}/ns2/'
+#       src: config/gcp_cross_project_logs_shared
+#       directory_mode: '0755'
+#       mode: '0644'
+#       force: true
+#     when:
+#       - vector_gcp_cross_project_logging  | length > 0 is defined
+#     become: false
+#     notify:
+#       - restart vector
+
+  - name: Install NS2 Vector Azure transforms configuration files
+    delegate_to: localhost
+    ansible.builtin.copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/'
+      src: config/azure_transforms
+      mode: '0644'
+    become: false
+    when:
+      - vector_hyperscaler_azure is defined
+    notify:
+      - restart vector
+
+  - name: Install NS2 Vector GCP transforms configuration files
+    delegate_to: localhost
+    ansible.builtin.copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/'
+      src: config/gcp_transforms
+      mode: '0644'
+    become: false
+    when:
+      - vector_hyperscaler_gcp is defined
+    notify:
+      - restart vector
+
+  - name: Update the vector default environment variables
+    ansible.builtin.template:
+      src: default.j2
+      dest: /etc/default/vector
+      selevel: s0
+      seuser: system_u
+      setype: etc_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0600'
+    become: true
+    notify:
+      - restart vector
+...

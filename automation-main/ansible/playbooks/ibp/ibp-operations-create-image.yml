@@ -1,0 +1,171 @@
+---
+
+# Playbook Name: ibp-operations-create-image.yml
+# Synopsis: Creates tagged images with options for both online and offline image creation.
+# Description: Prompts users for a set of information before performing a full backup with tags for retention and cost monitoring purposes before updates or upgrade of any IBP instance.
+# Prerequisites:
+#   - Ansible v2.9
+# Dependencies: AWS EC2 Image and Tag permissions
+# Variables:
+#   - user_id: Username of the user performing the work e.g., c12345, i456789
+#   - desired_environment: Specific SAP landscape e.g.m Development, Staging, Test, Production
+#   - desired_product_version: Specific SAP release e.g., 2002-HFC08
+#   - desired_backup_type: Backup method e.g., INITIAL, PRE-UPGRADE, POST-UPGRADE
+#   - target_ip: IP address of the instance to be backed up
+# Example:
+#   Image a system with sap services manually stopped and no user input for a staging IBP application server, n26, for the 2002HFC4 post-upgrade image on 10.0.0.1 as bob
+#   ansible-playbook ibp-operations-create-image.yml -c local -i localhost, -e "desired_customer=customer0003 desired_environment=staging desired_sid=n26 desired_product_name=IBPAPP desired_product_version=2002-HFC04 desired_backup_type=POST-UPGRADE target_ip=10.0.0.1 user_id=c12345"
+# Authors: Richard Brieten, Alijohn Ghassemlouei
+# Version: 2.9-000002
+# Modified: 2020-02-29 - Created
+#           2020-04-25 - Adding online backup support and adding more tags
+#           2024-10-29 - Updated `amazon.aws.ec2` module references to `amazon.aws.ec2_instance`
+# Comments: None
+
+- hosts: all
+  gather_facts: false
+  vars:
+    aws_region: "us-gov-west-1"
+  vars_prompt:
+    - name: user_id
+      prompt: "What is your user id e.g., c12345, i456789"
+      private: no
+    - name: desired_environment
+      prompt: "What is the environment? (Development, Staging, Test, Production)"
+      private: no
+    - name: desired_product_version
+      prompt: "What is the product version? ([Release]-HFC[nn], [Release]-PL[nn])"
+      private: no
+    - name: desired_backup_type
+      prompt: "Why is the backup being performed? (INITIAL, PRE-UPGRADE, POST-UPGRADE)"
+      private: no
+    - name: online_image
+      prompt: "Is this an online AMI? (yes, no)"
+      private: no
+    - name: target_ip
+      prompt: "What is the target ip address?"
+      private: no
+    - name: target_application_down
+      prompt: "Are application/database services down? (yes, no)"
+      private: no
+
+# TODO: reduce questions only once we have confidence that everything is tagged properly
+
+  tasks:
+  - name: "Fail if offline backup selected and application is up"
+    fail:
+      msg: 'Offline backup selected but application is still up!'
+    when: ( not online_image|bool ) and ( not target_application_down|bool )
+
+# TODO: consider switching back to ec2_metadata_facts with a dependency of having ansible log into the target system where ansible_ec2_instance_id and ansible_ec2_placement_region would be available
+
+  - name: 'Gather EC2 instance metadata'
+    ec2_instance_info:
+      region: "{{ aws_region }}"
+      filters:
+        network-interface.addresses.private-ip-address: "{{target_ip}}"
+    register: ec2_instance_output
+    delegate_to: localhost
+
+  - name: 'Gather EC2 tags for instance'
+    ec2_tag_info:
+      region: "{{ aws_region }}"
+      resource: "{{ ec2_instance_output.instances[0].instance_id }}"
+    register: ec2_tag_list_output
+    delegate_to: localhost
+
+  - name: "Confirm values with 'Y'"
+    pause:
+      prompt: |
+
+        AMI to create : {{ ec2_tag_list_output.tags.Customer | upper }}-{{ desired_environment | upper }}-{{ ec2_tag_list_output.tags.SID | upper }}-{{ ec2_tag_list_output.tags.ProductName | upper }}-{{ desired_product_version | upper }}-{{ desired_backup_type | upper }}
+        Tagged as:
+          BuildUser: {{ user_id | lower }}
+          Customer: {{ ec2_tag_list_output.tags.Customer | lower }}
+          SID: {{ ec2_tag_list_output.tags.SID | lower }}
+          Environment: {{  desired_environment | lower }}
+          Image: {{ ec2_tag_list_output.tags.Image }}
+          ImageType: {{'full-online-backup' if (online_image | bool) else 'full-offline-backup'}}
+          Hostname:  {{ ec2_tag_list_output.tags.Hostname | lower }}
+          ProductName:  {{ ec2_tag_list_output.tags.ProductName | lower }}
+    register: confirm_input
+
+  - name: "Fail if not confirmed"
+    fail:
+      msg: 'Input not confirmed.  Quitting now.'
+    when:
+    - confirm_input.user_input != 'Y'
+    - confirm_input.user_input != 'y'
+
+# TODO: stopping instance task times out waiting for hana to gracefully shutdown but timeout doesn't execute sooner, could use some more testing on wait_timeout parameter
+
+  - name: 'Stopping instance'
+    ec2_instance:
+      instance_ids: "{{ ec2_instance_output.instances[0].instance_id }}"
+      region: "{{ aws_region }}"
+      state: stopped
+      wait: false
+    delegate_to: localhost
+    when: ( not online_image|bool ) and ( target_application_down|bool )
+
+# NOTE: The following task has been added given the ec2 wait and timeout settings seem to wait until the timeline is reached and not execute any sooner; this requires more patient validation
+
+  - name: 'Wait until instance is gracefully stopped'
+    ec2_instance_info:
+      region: "{{ aws_region }}"
+      filters:
+        network-interface.addresses.private-ip-address: "{{target_ip}}"
+    register: ec2_instance_state_output
+    until: ec2_instance_state_output.instances[0].state.name == 'stopped'
+    retries: 1800
+    delay: 30
+    delegate_to: localhost
+    when: ( not online_image|bool ) and ( target_application_down|bool )
+
+  - name: 'Create image of instance'
+    ec2_ami:
+      instance_id: "{{ ec2_instance_output.instances[0].instance_id }}"
+      no_reboot: "{{ online_image|bool }}"
+      wait: no
+      name: "{{ ec2_tag_list_output.tags.Customer | upper }}-{{ desired_environment | upper }}-{{ ec2_tag_list_output.tags.SID | upper }}-{{ ec2_tag_list_output.tags.ProductName | upper }}-{{ desired_product_version | upper }}-{{ desired_backup_type | upper }}"
+      description: "Backup image created by build automation."
+      tags:
+        BuildUser: "{{ user_id | lower }}"
+        Customer: "{{ ec2_tag_list_output.tags.Customer | lower }}"
+        SID: "{{ ec2_tag_list_output.tags.SID | lower }}"
+        Environment: "{{  desired_environment | lower }}"
+        Image: "{{ ec2_tag_list_output.tags.Image }}"
+        ImageType: "{{'full-online-backup' if (online_image | bool) else 'full-offline-backup'}}"
+        Hostname:  "{{ ec2_tag_list_output.tags.Hostname | lower }}"
+        ProductName:  "{{ ec2_tag_list_output.tags.ProductName | lower }}"
+    register: ec2_image_creation_ouput
+    delegate_to: localhost
+    when: |
+      (( not online_image|bool ) and ( target_application_down|bool )) or
+      online_image|bool
+
+# NOTE: The following task has been added given the ec2_ami wait and timeout settings seem to wait until the timeline is reached and not execute any sooner; this requires more patient validation
+
+  - name: 'Wait until image is available'
+    ec2_ami_info:
+      image_ids: "{{ ec2_image_creation_ouput.image_id }}"
+    register: ec2_image_info_output
+    until: ec2_image_info_output.images[0].state == 'available'
+    retries: 7200
+    delay: 30
+    delegate_to: localhost
+    when: |
+      (( not online_image|bool ) and ( target_application_down|bool )) or
+      online_image|bool
+
+  - name: 'Start instance'
+    ec2_instance:
+      instance_ids: "{{ ec2_instance_output.instances[0].instance_id }}"
+      region: "{{ aws_region }}"
+      state: running
+      wait: true
+    delegate_to: localhost
+    when: ( not online_image|bool ) and ( target_application_down|bool )
+# TODO: consider having a quick summary of image id, image name, and image size with an sns notification going out upon completion of the play
+
+...

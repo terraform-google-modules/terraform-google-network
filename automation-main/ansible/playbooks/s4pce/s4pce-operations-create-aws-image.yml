@@ -1,0 +1,142 @@
+---
+# Playbook Name: s4pce-operations-create-aws-image.yml
+# Synopsis: Creates tagged images with options for both online and offline image creation.
+# Description: Prompts users for a set of information before performing a full backup with tags for retention and cost monitoring purposes before updates or upgrade of any S4-PCE instance.
+# Prerequisites:
+#   - Ansible v2.9+
+# Dependencies: AWS EC2 Image and Tag permissions
+# Variables:
+#   - backup_vault_name: AWS backup vault name where backups will be stored in
+#   - vault_backup_iam_role_arn: ARN of backup vault name
+#   - user_id: Username of the user performing the work e.g., c12345, i456789
+#   - desired_product_version: Specific SAP release e.g., 2002-HFC08
+#   - desired_backup_type: Backup method e.g., INITIAL, PRE-UPGRADE, POST-UPGRADE
+#   - online_image: Whether or not to take an online AMI
+#   - target_ip: IP address of the instance to be backed up
+#   - target_application_down: Whether the application or database is down
+#   - create_backup_vault_job: To store job in AWS backup vault
+# Example:
+#   Image a system with sap services manually stopped and no user input for a staging S4PCE application server, n26, for the 2002HFC4 post-upgrade image on 10.0.0.1 as bob
+#   ansible-playbook s4pce-operations-create-aws-image.yml -c local -i localhost, -e  backup_vault_name=<vault name> -e vault_backup_iam_role_are=<arn of vault name>
+# Authors:  Alijohn Ghassemlouei, Katja Cresanti, Abdulla Rubaid
+# Version: 2.9-000002
+# Modified:2021-05-13 - Adapted for use in S4 PCE from the script used in IBP.
+#          2022-02-01 - Including compatibility for AWS backup vault method
+# Comments: None
+  - hosts: localhost
+    gather_facts: false
+    vars:
+
+    ## backup vault vars
+      backup_vault_name: ''
+      vault_backup_iam_role_arn: ''
+      start_window_minutes: 60
+      complete_window_minutes: 10080
+      delete_after_days: 30
+
+    vars_prompt:
+      - name: user_id
+        prompt: What is your user id e.g., c12345, i456789
+        private: no
+      - name: desired_product_version
+        prompt: What is the product version? ([MAJOR RELEASE]-HFC[NN], [MAJOR RELEASE]-PL[NN])
+        private: no
+      - name: desired_backup_type
+        prompt: Why is the backup being performed? (INITIAL, PRE-UPGRADE, POST-UPGRADE)
+        private: no
+      - name: online_image
+        prompt: Is this an online AMI? (yes, no)
+        private: no
+      - name: target_ip
+        prompt: What is the target ip address?
+        private: no
+      - name: target_application_down
+        prompt: Are application/database services down? (yes, no)
+        private: no
+      - name: create_backup_vault_job
+        prompt: Want to store job in backup vault? (yes, no)
+        private: no
+
+# TODO: reduce questions only once we have confidence that everything is tagged properly
+
+    tasks:
+      - name: Gather EC2 facts
+        ec2_metadata_facts:
+
+      - name: Fail if offline backup selected and application is up
+        fail:
+          msg: Offline backup selected but application is still up!
+        when: ( not online_image|bool ) and ( not target_application_down|bool )
+
+      - name: Gather EC2 instance metadata
+        ec2_instance_info:
+          region: '{{ ansible_ec2_placement_region }}'
+          filters:
+            network-interface.addresses.private-ip-address: '{{target_ip}}'
+        register: ec2_instance_output
+        delegate_to: localhost
+
+      - name: Gather EC2 tags for instance
+        ec2_tag:
+          region: '{{ ansible_ec2_placement_region }}'
+          resource: '{{ ec2_instance_output.instances[0].instance_id }}'
+          state: list
+        register: ec2_tag_list_output
+        delegate_to: localhost
+
+      - name: Confirm values with 'Y'
+        pause:
+          prompt: |
+            AMI to create : '{{ ec2_tag_list_output.tags.Customer | upper }}-{{ ec2_tag_list_output.tags.Environment | upper }}-{{ ec2_tag_list_output.tags.SID | upper }}-{{ ec2_tag_list_output.tags.ProductName | upper }}-{{ desired_product_version | upper }}-{{ desired_backup_type | upper }}'
+            Tagged as:
+              BuildUser: {{ user_id | lower }}
+              Customer: {{ ec2_tag_list_output.tags.Customer | lower }}
+              Sid: {{ ec2_tag_list_output.tags.SID | lower }}
+              Environment: {{  ec2_tag_list_output.tags.Environment | lower }}
+              Image: {{ ec2_tag_list_output.tags.Image }}
+              ImageType: {{'full-online-backup' if (online_image | bool) else 'full-offline-backup'}}
+              Hostname:  {{ ec2_tag_list_output.tags.Hostname | lower }}
+              ProductName:  {{ ec2_tag_list_output.tags.ProductName | lower }}
+        register: confirm_input
+
+      - name: Fail if not confirmed
+        fail:
+          msg: Input not confirmed.  Quitting now.
+        when:
+          - confirm_input.user_input != 'Y'
+          - confirm_input.user_input != 'y'
+
+      - name: Stopping instance
+        ec2:
+          instance_ids: '{{ ec2_instance_output.instances[0].instance_id }}'
+          region: '{{ ansible_ec2_placement_region }}'
+          state: stopped
+          wait: yes
+        delegate_to: localhost
+
+# vault backup
+      - name: Create backup job to store ami into backup_vault
+        shell: >
+          aws backup start-backup-job \
+          --backup-vault-name {{ backup_vault_name }} \
+          --resource-arn arn:aws-us-gov:ec2:{{ ansible_ec2_placement_region }}:{{ ec2_instance_output.instances[0].network_interfaces[0].owner_id }}:instance/{{
+          ec2_instance_output.instances[0].instance_id
+          \
+          }} \
+          --iam-role-arn {{ vault_backup_iam_role_arn }} \
+          --start-window-minutes {{ start_window_minutes }} \
+          --complete-window-minutes {{ complete_window_minutes }} \
+          --lifecycle DeleteAfterDays={{ delete_after_days }} \
+          --region {{ ansible_ec2_placement_region }} \
+          --recovery-point-tags internalIP={{ target_ip }}
+        when: create_backup_vault_job|bool
+
+      - name: Start instance
+        ec2:
+          instance_ids: '{{ ec2_instance_output.instances[0].instance_id }}'
+          region: '{{ ansible_ec2_placement_region }}'
+          state: running
+          wait: yes
+        delegate_to: localhost
+        when: ( not online_image|bool ) and ( target_application_down|bool )
+...

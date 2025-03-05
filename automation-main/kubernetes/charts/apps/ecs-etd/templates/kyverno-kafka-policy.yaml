@@ -1,0 +1,53 @@
+{{ $ecs_etd := ( index .Values "ecs-etds") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-kafka-nodeselector
+  annotations:
+    policies.kyverno.io/title: Add kafka nodeselector
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Label
+spec:
+  mutateExistingOnPolicyUpdate: true
+  webhookTimeoutSeconds: 5
+  rules:
+  - name: add-kafka-nodeselector
+    skipBackgroundRequests: false
+    match:
+      any:
+      - resources:
+          kinds:
+          - Kafka
+          namespaces:
+          - etd-kafka-prd-{{ $ecs_etd.sid }}
+    mutate:
+      targets:
+      - apiVersion: kafka.strimzi.io/v1beta2
+        kind: Kafka
+        namespace: etd-kafka-prd-{{ $ecs_etd.sid }}
+      patchStrategicMerge:
+        spec:
+          kafka:
+            template:
+              pod:
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                      - matchExpressions:
+                        - key: worker.gardener.cloud/pool
+                          operator: In
+                          values:
+                          - application
+          zookeeper:
+            template:
+              pod:
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                      - matchExpressions:
+                        - key: worker.gardener.cloud/pool
+                          operator: In
+                          values:
+                          - application

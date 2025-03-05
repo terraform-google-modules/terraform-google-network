@@ -1,0 +1,12 @@
+---
+
+  - hosts: all
+    gather_facts: yes
+    become: true
+  # leading dots and slash required for AWX since we're using a dedicated playbooks folder
+  # rather than holding our playbooks in the parent of the roles directory.
+  # Without indicating it's in the roles subdirectory of this directory's parent, the playbook
+  # will be unable to find its roles.
+    roles:
+      - role: aws-cloudwatch-alarms
+...

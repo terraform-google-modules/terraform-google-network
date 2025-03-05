@@ -1,0 +1,29 @@
+galaxy_info:
+  role_name: ibp
+  namespace: ns2
+  author: louis lee
+  description: Provisions IBP Application
+  company: SAP NS2
+
+  issue_tracker_url: https://gitlab.core.sapns2.us/golden-ami-dev/ansible-roles/issues
+
+  license: BSD
+
+  min_ansible_version: 2.9
+
+  # If this a Container Enabled role, provide the minimum Ansible Container version.
+  # min_ansible_container_version:
+
+  platforms:
+    - name: EL
+      versions:
+        - 7
+        - 8
+
+  galaxy_tags:
+    - ibp
+    - sap
+
+dependencies: []
+  # List your role dependencies here, one per line. Be sure to remove the '[]' above,
+  # if you add dependencies to this list.

@@ -1,0 +1,17 @@
+---
+
+# Description: Calls other task files to install the Azure Cloud CLI tools.
+# Inputs:
+#   - install_cli: Whether or not to install the Azure Cloud CLI onto target system
+#   - remove_cli: Whether or not to remove the Azure Cloud CLI from target system
+# Outputs:
+#   - Calls other task files.
+
+  - name: Install Azure Cloud CLI
+    include_tasks: '{{ ansible_distribution | lower }}/install.yml'
+    when: install_cli | bool
+
+  - name: Uninstall Azure Cloud CLI
+    include_tasks: '{{ ansible_distribution | lower }}/uninstall.yml'
+    when: remove_cli | bool
+...

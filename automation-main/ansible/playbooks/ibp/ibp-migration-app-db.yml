@@ -1,0 +1,692 @@
+---
+# Playbook Name: ibp-migration-app-db.yml
+# Description: Performs a volume snapshot migration of IBP App and DB to a new AWS Instances.
+#  Stops the app and db application and created volume snapshots of the source.
+#  New EBS Volumes are created from the snapshots. The Volumes are attached to a target
+#  instance, with no pre-existing volumes except for root. Finally, the systemd services,
+#  polkit security, and lss files (only for DB) are copied over to complete migration process.
+#
+#  To migrate between two inventories, the old inventory must contain the word `_old` in its
+#  filename.  Likewise, the new inventory must not contain the word `_old` in its filename.
+#  To execute ansible, follow the examples provided below.
+#
+#  Using two different ansible inventories will cause certain hostvars to be squashed and
+#  merged.  Because of this, a single playbook cannot do a complete migration.  This playbook
+#  must be combined with the ibp-operations-update-hosts, ibp-operations-hardstart, and
+#  ibp-post-provision playbooks to finish the migration.
+#
+# Dependencies:
+#   - Ansible v2.9+
+#   - AWS CLI v1.18+
+#   - Jinja2 2.8+
+#   - sudo capability or root privileges on target machine
+#   - ibp ansible role
+#   - New Instances and prepared ansible inventory files (see description)
+#   - ibp-operations-update-hosts Playbook (Completes Host entry update after migration)
+#   - ibp-operations-hardstart playbook (Used to start applications after migration)
+#   - IAM Permissions:
+#     - ec2:DescribeInstances
+#     - ec2:DescribeVolumes
+#     - ec2:AttachVolume
+#     - ec2:CreateVolume
+#     - ec2:StopInstances (optional)
+#     - ec2:StartInstances (optional)
+#     - ec2:Describe* (ansible aws requires something in here to start/stop instances. like wtf)
+#     - ec2:CreateSnapshot
+#     - ec2:DeleteSnapshot (optional)
+# Variables:
+#   - play_saphostagent_source : (optional) Alternate source for saphostagent install binaries. Leave blank to use inventory value
+#   - play_landscape_sid : (required) Lowercase SID Admin for the landscape to migrate.
+#
+# Example:
+#   Execution on remote systems
+#     ansible-playbook ibp-migration-app-db.yml -i </PATH-TO/OLD-HOST-INVENTORY-FILE> -i </PATH-TO/NEW-HOST-INVENTORY-FILE> -k
+#
+# Example
+#   Execution on remote systems
+#     ansible-playbook ibp-migration-app-db.yml -k -i /tmp/hosts_old -i /tmp/hosts
+#
+# Example
+#   Update the hostfiles on all servers after this playbook is finished to complete migration.
+#     ansible-playbook ibp-operations-update-hosts.yml -k -i /tmp/hosts
+#
+# Example
+#   Start staging landscape after migration is complete.
+#     ansible-playbook ibp-operations-hardstart.yml -k -i /tmp/hosts -l staging
+#
+# Authors: Louis Lee, Jian Ouyang, Dexter Le
+# Version: 2.9-000005
+# Modified: 2020-10-15 - Created playbook
+#           2020-10-29 - Bugfix for fstab clone
+#           2022-02-15 - Add NFS Package, Folder ownership, LocalSecureStore support
+#           2022-02-17 - Enable fact gathering, add alert if  AWS_DEFAULT_REGION not defined
+#           2024-11-13 - Ensure local files are copied over to complete migration process
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Play Tags:
+#     play0 always hostfiles                                : Create Inventory and Generate Metadata
+#     play1 stop-landscape clone-ebs-hana
+#           clone-ebs-sapapp clone-profile-hana
+#           clone-profile-sapapp                   : Stop Source SapApp and HanaDB Application
+#     play2 clone-ebs-hana clone-profile-hana      : Clone HanaDB Volumes
+#     play3 clone-profile-hana                     : Clone HanaDB Profile Data
+#     play4 clone-local-files-db                   : Clone local files (systemd service, lss, and polkit)
+#     play5 clone-ebs-sapapp clone-profile-sapapp  : Clone SapApp Volumes
+#     play6 clone-profile-sapapp                   : Clone SapApp Profile Data
+#     play7 clone-local-files-sapapp               : Clone local files (systemd service and polkit)
+#     playEND                                      : End of the playbook
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Create Inventory and Generate Metadata"
+  hosts: all
+  gather_facts: true
+  tags:
+    - play0
+    - always
+    - hostfiles
+
+  vars:
+    nfs_package: 'nfs-utils'
+
+  vars_prompt:
+  - name: play_saphostagent_source
+    prompt: "Alternate source for saphostagent install binaries. Leave blank to use inventory value"
+    private: no
+    default: ''
+
+  - name: play_landscape_sid
+    prompt: "Lowercase SID of the IBP App and DB to migrate"
+    private: no
+
+  - name: play_hostfile_fqdn
+    prompt: "What is the dns fqdn of the IBP Systems? (ibp.cre.sapns2.internal | ibp.sapns2.us)"
+    default: "ibp.sapns2.us"
+    private: no
+
+  tasks:
+  - name: "check whether aws default region is defined"
+    delegate_to: localhost
+    run_once: true
+    assert:
+      that:
+          - "lookup('env','AWS_DEFAULT_REGION')"
+      fail_msg: define environment variable AWS_DEFAULT_REGION before applying this playbook
+
+  - name: "Get ec2 metadata"
+    ec2_metadata_facts:
+
+  - name: "Find all hosts that match sid {{ play_landscape_sid|upper }} in hostvars"
+    delegate_to: localhost
+    run_once: true
+    set_fact:
+      lower_sid_hosts: >
+        {{ hostvars |
+        json_query('*') |
+        selectattr('sid', 'defined') |
+        selectattr('sid', 'equalto', play_landscape_sid|lower) |
+        map(attribute='inventory_hostname')  |
+        list }}
+      upper_sid_hosts: >
+        {{ hostvars |
+        json_query('*') |
+        selectattr('sid', 'defined') |
+        selectattr('sid', 'equalto', play_landscape_sid|upper) |
+        map(attribute='inventory_hostname')  |
+        list }}
+  # Deconstructing what just happened:
+  # hostvars - read from the hostvars
+  # json_query('*') - search all hosts
+  # selectattr('sid', 'defined') - Select from above, only sets that have the sid attribute
+  # selectattr('sid', 'equalto', sid|upper)
+  # map(attribute='sid') - Pull data from the sid attribute
+
+  - name: "Combine the uppercase and lowercase results"
+    delegate_to: localhost
+    run_once: true
+    set_fact:
+      find_sid_hosts: "{{ find_sid_hosts|default([]) + lower_sid_hosts + upper_sid_hosts }}"
+
+  - name: "Clear any dynamically created groups"
+    meta: refresh_inventory
+
+  - name: "Add old hosts to source group"
+    when:
+        - inventory_hostname in find_sid_hosts
+        - "'_old' in inventory_file"
+    group_by:
+      key: source_hosts
+
+  - name: "Add new hosts to target group"
+    when:
+    - inventory_hostname in find_sid_hosts
+    - "'_old' not in inventory_file"
+    group_by:
+      key: target_hosts
+
+  - name: "Fail if more than one host defined for app/db per source/target"
+    delegate_to: localhost
+    run_once: true
+    when:
+      - groups.source_hosts|intersect(groups.ibpapp)|count != 1
+      - groups.source_hosts|intersect(groups.ibpdb)|count != 1
+      - groups.target_hosts|intersect(groups.ibpapp)|count != 1
+      - groups.target_hosts|intersect(groups.ibpdb)|count != 1
+    fail:
+      msg: |
+        Source App contains {{ groups.source_hosts|intersect(groups.ibpapp)|count }}
+        Source DB contains {{ groups.source_hosts|intersect(groups.ibpdb)|count }}
+        Target App contains {{ groups.target_hosts|intersect(groups.ibpapp)|count }}
+        Target DB contains {{ groups.target_hosts|intersect(groups.ibpdb)|count }}
+
+  - name: "Save landscape metadata"
+    set_fact:
+      play_source_app_instance: "{{ hostvars[(groups.source_hosts|intersect(groups.ibpapp))[0]].ansible_ec2_instance_id }}"
+      play_target_app_instance: "{{ hostvars[(groups.target_hosts|intersect(groups.ibpapp))[0]].ansible_ec2_instance_id }}"
+      play_source_db_instance: "{{ hostvars[(groups.source_hosts|intersect(groups.ibpdb))[0]].ansible_ec2_instance_id }}"
+      play_target_db_instance: "{{ hostvars[(groups.target_hosts|intersect(groups.ibpdb))[0]].ansible_ec2_instance_id }}"
+      play_saphostagent_source: "{{ play_saphostagent_source|default(saphostagent_source,true) }}"
+
+  - name: "Set the host file on the new hosts"
+    when: "'target_hosts' in group_names"
+    ansible.builtin.include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hostfile-install.yml
+    vars:
+      hostfile_fqdn: "{{ play_hostfile_fqdn }}"
+
+  - name: "Configure Red Hat Repositories from S3"
+    include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: ['base','hana','epel']
+
+  - name: "Ensure NFS is installed."
+    become: true
+    package: "name={{ nfs_package }} state=installed"
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Stop Source SapApp and HanaDB Application"
+  hosts: source_hosts
+  gather_facts: false
+  any_errors_fatal: yes
+
+  tags:
+    - play1
+    - stop-landscape
+    - clone-ebs-hana
+    - clone-ebs-sapapp
+    - clone-profile-hana
+    - clone-profile-sapapp
+
+  tasks:
+  - name: "Stop Source SapApp Application"
+    when: inventory_hostname in groups.ibpapp
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-hardstop.yml
+
+  - name: "Stop Source HanaDB"
+    when: inventory_hostname in groups.ibpdb
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-hardstop.yml
+
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Clone HanaDB Volumes"
+  hosts: source_hosts:target_hosts:&ibpdb
+  any_errors_fatal: yes
+  gather_facts: true
+  tags:
+    - play2
+    - clone-ebs-hana
+    - clone-profile-hana
+
+  tasks:
+  - name: "Clone and Attach Volumes"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/ebs-clone.yml
+    vars:
+      ebs_clone_source_instance: "{{ play_source_db_instance }}"
+      ebs_clone_target_instance: "{{ play_target_db_instance }}"
+      ebs_clone_region: "{{ ansible_ec2_placement_region }}"
+
+  - name: "Make sure instances are up and responding"
+    wait_for_connection:
+
+  - name: "Clone fstab and Mount"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/fstab-clone.yml
+    vars:
+      fstab_clone_mount_targets:
+        - "/hana/backups"
+        - "/hana/data"
+        - "/hana/log"
+        - "/hana/shared"
+        - "/usr/sap"
+        - "/staging"
+
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Clone HanaDB Profile Data"
+  hosts: source_hosts:target_hosts:&ibpdb
+  any_errors_fatal: yes
+  gather_facts: false
+  tags:
+    - play3
+    - clone-profile-hana
+
+  vars:
+    staging_location: '/staging/migrations'
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  - name: "Pull user metadata"
+    getent:
+      database: passwd
+      split: ":"
+
+  tasks:
+  - name: "Create destination folder"
+    when: "'source_hosts' in group_names"
+    become: true
+    file:
+      path: "{{ staging_location }}/{{ play_source_db_instance }}"
+      state: directory
+
+  - name: "Set the sidadm variable"
+    set_fact:
+      sidadm: "{{ sid|lower}}adm"
+
+  - name: "Tar profile folders"
+    when: "'source_hosts' in group_names"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/folder-tar.yml
+    vars:
+      folder_tar_name: "{{ staging_location }}/{{ play_source_db_instance }}/ibpdb"
+      folder_tar_paths:
+      - "{{ getent_passwd[sidadm][4] }}"
+      - "{{ getent_passwd['sapadm'][4] }}"
+      - "/var/lib/hdb"
+      - "/etc/incron.d"
+
+  - name: "Setup Hana Profile on Target"
+    when: "'target_hosts' in group_names"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hana-rebuild-profile.yml
+    vars:
+      hana_rebuild_profile_tars:
+        - "{{ staging_location }}/{{ play_source_db_instance }}/ibpdb"
+      hana_rebuild_profile_saphostagent_source: "{{ play_saphostagent_source }}"
+      hana_rebuild_profile_hostname: "{{ ibp_hostname }}"
+      hana_rebuild_profile_sid: "{{ sid|lower }}"
+
+  - name: "Cleanup Hana Migration Tars"
+    when: "'target_hosts' in group_names"
+    become: true
+    file:
+      path: "{{ staging_location }}/{{ play_source_db_instance }}"
+      state: absent
+
+  - name: Create SAP Crypt Groups
+    when: "'target_hosts' in group_names"
+    become: true
+    group:
+      name: "{{ item.name }}"
+      gid: "{{ item.gid }}"
+      state: present
+      local: yes
+    loop:
+      - name: "{{ sid|lower }}crypt"
+        gid: '80'
+
+  - name: "Create crypt user"
+    when: "'target_hosts' in group_names"
+    become: true
+    user:
+      comment: "{{ item.comment }}"
+      home: "{{ item.home }}"
+      uid: "{{ item.uid }}"
+      group: "{{ item.group }}"
+      name: "{{ item.name }}"
+      shell: "{{ item.shell }}"
+    loop:
+      - name: "{{ sid|lower }}crypt"
+        comment: 'SAP HANA Crypt User'
+        home: /usr/sap/{{ sid|upper }}/lss/home
+        uid: '1002'
+        group: "{{ sid|lower }}crypt"
+        shell: '/bin/sh'
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Clone LSS and Initiate Migration"
+  hosts: source_hosts:target_hosts:&ibpdb:localhost
+  any_errors_fatal: yes
+  gather_facts: false
+  tags:
+    - play4
+    - clone-local-files-db
+
+  tasks:
+
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  - name: Determine location of source host lss directory
+    become: true
+    when: "'source_hosts' in group_names"
+    ansible.builtin.stat:
+      path: "{{ lss_path }}"
+    register: ibp_migration_app_db_lss_stat
+    loop_control:
+      loop_var: lss_path
+    loop:
+      - /usr/sap/lss
+      - /lss
+
+  - name: Set fact for source lss directories that exist
+    when: "'source_hosts' in group_names"
+    ansible.builtin.set_fact:
+      ibp_migration_app_db_existing_lss_dirs: "{{ ibp_migration_app_db_lss_stat.results | selectattr('stat.exists') | map(attribute='lss_path') | list }}"
+
+  - name: "Create TARs of DB files"
+    when: "'source_hosts' in group_names"
+    ansible.builtin.include_role:
+      name: ibp
+      tasks_from: general/folder-tar.yml
+    vars:
+      folder_tar_name: '{{ file | basename | regex_replace("\.(.*)$", "") }}'
+      folder_tar_paths: "{{ [file] }}"
+    loop_control:
+      loop_var: file
+    loop: "{{ ibp_migration_app_db_existing_lss_dirs }}"
+
+  - name: "Migrate local files to target host"
+    ansible.builtin.include_role:
+      name: ibp
+      tasks_from: operations/migrate-local-gzip-files.yml
+    vars:
+      ibp_local_gzip_files: "{{ hostvars[(groups.source_hosts|intersect(groups.ibpdb))[0]].ibp_migration_app_db_existing_lss_dirs }}"
+      ibp_source_hostname: "{{ hostvars[(groups.source_hosts|intersect(groups.ibpdb))[0]].inventory_hostname }}"
+      ibp_target_hostname: "{{ hostvars[(groups.target_hosts|intersect(groups.ibpdb))[0]].inventory_hostname }}"
+
+  - name: Apply migration
+    when: "'target_hosts' in group_names"
+    ansible.builtin.include_role:
+      name: ibp
+      tasks_from: operations/initiate-migration.yml
+    vars:
+      ibp_instances:
+        - name: HDB
+          number: "02"
+
+  - name: Set package compat map
+    set_fact:
+      compat_package_map:
+        RedHat8: compat-sap-c++-11.x86_64
+        RedHat9: compat-sap-c++-13.x86_64
+
+  - name: Get Specific compat package
+    set_fact:
+      compat_package: "{{ compat_package_map[ansible_distribution + ansible_distribution_major_version] }}"
+
+  - name: Install required yum packages
+    become: true
+    ansible.builtin.yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - "{{ compat_package }}"
+      - tuned-profiles-sap-hana.noarch
+      - libatomic
+      - libstdc++.so.6
+
+  - name: Determine location of target lss directory
+    become: true
+    when: "'target_hosts' in group_names"
+    ansible.builtin.stat:
+      path: "{{ lss_symlink_path }}"
+    register: ibp_migration_app_db_lss_stat
+    loop_control:
+      loop_var: lss_symlink_path
+    loop:
+      - "/usr/sap/lss/shared/{{ sid | upper }}/exe/libstdc++.so.6"
+      - "/lss/shared/{{ sid | upper }}/exe/libstdc++.so.6"
+
+  - name: Initialize symlink directories for /usr/sap/SYS
+    when: "'target_hosts' in group_names"
+    ansible.builtin.set_fact:
+      ibp_migration_app_db_symlink_directories:
+        - src: "/opt/rh/SAP/lib64/{{ compat_package | regex_replace('.x86_64', '.so') }}"
+          dest: "/usr/sap/{{ sid | upper }}/SYS/exe/hdb/libstdc++.so.6"
+
+  - name: Set fact on existing lss directories (at least one)
+    when: "'target_hosts' in group_names"
+    ansible.builtin.set_fact:
+      ibp_migration_app_db_lss_symlink_directories:
+        - src: "/opt/rh/SAP/lib64/{{ compat_package | regex_replace('.x86_64', '.so') }}"
+          dest: "{{ lss_path }}"
+    loop_control:
+      loop_var: lss_path
+    loop: "{{ ibp_migration_app_db_lss_stat.results | selectattr('stat.exists') | map(attribute='lss_symlink_path') | list }}"
+
+  - name : "Create libstdc++.so.6 symlinks"
+    when: "'target_hosts' in group_names"
+    become: true
+    ansible.builtin.file:
+      src: "{{ symlink.src }}"
+      dest: "{{ symlink.dest }}"
+      state: link
+      owner: sapadm
+      group: sapsys
+    loop_control:
+      loop_var: symlink
+    loop: "{{ ibp_migration_app_db_symlink_directories + ibp_migration_app_db_lss_symlink_directories | default([], true) }}"
+
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: Clone SapApp Volumes"
+  hosts: source_hosts:target_hosts:&ibpapp
+  any_errors_fatal: yes
+  gather_facts: true
+  tags:
+    - play5
+    - clone-ebs-sapapp
+    - clone-profile-sapapp
+
+  tasks:
+  - name: "Clone and Attach Volumes"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/ebs-clone.yml
+    vars:
+      ebs_clone_source_instance: "{{ play_source_app_instance }}"
+      ebs_clone_target_instance: "{{ play_target_app_instance }}"
+      ebs_clone_region: "{{ ansible_ec2_placement_region }}"
+
+  - name: "Make sure instances are up and responding"
+    wait_for_connection:
+
+  - name: "Clone fstab and Mount"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/fstab-clone.yml
+    vars:
+      fstab_clone_mount_targets:
+        - "/sapmnt"
+        - "/usr/sap"
+        - "swap"
+        - "/staging"
+        - "/usr/sap/trans"
+
+
+#################
+##### Play6 #####
+#################
+- name: "Play6: Clone SapApp Profile Data"
+  hosts: source_hosts:target_hosts:&ibpapp
+  any_errors_fatal: yes
+  gather_facts: true
+  tags:
+    - play6
+    - clone-profile-sapapp
+
+  vars:
+    staging_location: '/staging/migrations'
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  - name: "Pull user metadata"
+    getent:
+      database: passwd
+      split: ":"
+
+  tasks:
+  - name: "Create destination folder"
+    when: "'source_hosts' in group_names"
+    become: true
+    file:
+      path: "{{ staging_location }}/{{ play_source_app_instance }}"
+      state: directory
+
+  - name: "Set the sidadm variable"
+    set_fact:
+      sidadm: "{{ sid|lower}}adm"
+
+  - name: "Tar profile folders"
+    when: "'source_hosts' in group_names"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/folder-tar.yml
+    vars:
+      folder_tar_name: "{{ staging_location }}/{{ play_source_app_instance }}/ibpapp"
+      folder_tar_paths:
+      - "{{ getent_passwd[sidadm][4] }}"
+      - "{{ getent_passwd['sapadm'][4] }}"
+      - "/etc/services"
+
+  - name: "Setup SapApp Profile on Target"
+    when: "'target_hosts' in group_names"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/sapapp-rebuild-profile.yml
+    vars:
+      sapapp_rebuild_profile_tars:
+        - "{{ staging_location }}/{{ play_source_app_instance }}/ibpapp"
+      sapapp_rebuild_profile_saphostagent_source: "{{ play_saphostagent_source }}"
+      sapapp_rebuild_profile_hostname: "{{ ibp_hostname }}"
+      sapapp_rebuild_profile_sid: "{{ sid|lower }}"
+
+  - name: "Cleanup SapApp Migration Tars"
+    when: "'target_hosts' in group_names"
+    become: true
+    file:
+      path: "{{ staging_location }}/{{ play_source_app_instance }}"
+      state: absent
+
+  - name: Recursively change ownership for two folders on ibpapp
+    when: "'target_hosts' in group_names"
+    become: true
+    ansible.builtin.file:
+      path: "{{ item.path }}"
+      state: directory
+      recurse: yes
+      owner: "{{ sid|lower }}adm"
+      group: sapsys
+    loop:
+      - path: "/usr/sap/{{ sid|upper }}"
+      - path: "/sapmnt/{{ sid|upper }}"
+
+
+#################
+##### Play7 #####
+#################
+- name: "Play7: Initiate Migration"
+  hosts: target_hosts:&ibpapp:localhost
+  any_errors_fatal: yes
+  gather_facts: false
+  tags:
+    - play7
+    - clone-local-files-sapapp
+
+  tasks:
+
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  - name: Apply migration
+    ansible.builtin.include_role:
+      name: ibp
+      tasks_from: operations/initiate-migration.yml
+    vars:
+      ibp_instances:
+        - name: ASCS
+          number: "01"
+        - name: DVEBMGS
+          number: "00"
+
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

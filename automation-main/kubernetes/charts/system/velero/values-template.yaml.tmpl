@@ -1,0 +1,71 @@
+{{ $envConfig := (datasource "envConfig") }}
+gardener:
+  project: {{ .Env.projectName }}
+  shootName: {{ $envConfig.shootName }}
+  baseDomain: {{ .Env.gardenerBaseDomain }}
+providerConfigRef:
+  name: aws-provider-config
+awsAccountID: "{{ .Env.accountID }}"
+awsPartition: {{ .Env.awsPartition }}
+awsRegion: {{ $envConfig.region }}
+backupBucketName: velero-backups-{{ $envConfig.envBaseDomain }}
+
+velero:
+  backupNamespace: "velero"
+
+  credentials:
+    useSecret: true
+    existingSecret: velero-aws-credentials
+
+
+  serviceAccount:
+    server:
+      annotations:
+        eks.amazonaws.com/role-arn: "arn:{{ .Env.awsPartition }}:iam::{{ .Env.accountID }}:role/velero-backups-{{ $envConfig.envBaseDomain }}-velero-bucket-role"
+
+  podAnnotations:
+    eks.amazonaws.com/role-arn: "arn:{{ .Env.awsPartition }}:iam::{{ .Env.accountID }}:role/velero-backups-{{ $envConfig.envBaseDomain }}-velero-bucket-role"
+
+  metrics:
+    serviceMonitor:
+      enabled: true
+      autodetect: false
+    nodeAgentPodMonitor:
+      enabled: true
+      autodetect: false
+    prometheusRule:
+      enabled: true
+      autodetect: false
+
+  # Velero plugin configuration
+  initContainers:
+  - name: velero-plugin-for-{{ $envConfig.provider }}
+    image: velero/velero-plugin-for-{{ $envConfig.provider }}:{{ $envConfig.veleroPluginVersion }}
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+      - mountPath: /target
+        name: plugins
+
+  # Backup and Snapshot storage
+  configuration:
+    backupStorageLocation:
+    - name: default
+      provider: "velero.io/{{ $envConfig.provider }}"
+      bucket: "velero-backups-{{ $envConfig.envBaseDomain }}"
+      #credentials:
+      #  name: velero-aws-credentials
+      #  key: config
+      config:
+        region: {{ $envConfig.region }}
+        prefix: backups
+    volumeSnapshotLocation:
+    - name: default
+      provider: "velero.io/{{ $envConfig.provider }}"
+      #credentials:
+      #  name: velero-aws-credentials
+      #  key: config
+      config:
+        region: {{ $envConfig.region }}
+  
+  # Backup schedules to create.
+  schedules: {}

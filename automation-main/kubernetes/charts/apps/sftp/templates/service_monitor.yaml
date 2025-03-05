@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sftpgo-exporter
+spec:
+  endpoints:
+    - interval: 10s
+      path: /metrics
+      port: telemetry
+  namespaceSelector:
+    matchNames:
+      - "{{ .Release.Namespace }}"
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: "{{ include "sftpgo_override.fullname" . }}"

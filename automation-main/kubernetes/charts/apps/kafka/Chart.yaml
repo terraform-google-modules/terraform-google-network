@@ -1,0 +1,10 @@
+apiVersion: v2
+name: kafka
+description: Helm Chart for deploying ecs-etd-kafka CR
+type: application
+version: 2.13.0
+appVersion: "2.13.12"
+dependencies: 
+  - name: kafka
+    version: 2.13.0
+    repository: oci://harbor.dev.ste.dev.scs.sap/helm-chart-museum

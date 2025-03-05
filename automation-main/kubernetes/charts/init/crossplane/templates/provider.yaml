@@ -1,0 +1,48 @@
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: upbound-provider-aws-s3
+  annotations:
+    # helm.sh/hook: post-install
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-s3:{{ .Values.crossplaneAWSProviderVersion }}
+  runtimeConfigRef:
+    name: irsa-runtimeconfig
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: upbound-provider-aws-iam
+  annotations:
+    # helm.sh/hook: post-install
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-iam:{{ .Values.crossplaneAWSProviderVersion }}
+  runtimeConfigRef:
+    name: irsa-runtimeconfig
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: upbound-provider-aws-vpc
+  annotations:
+    # helm.sh/hook: post-install
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-vpc:{{ .Values.crossplaneAWSProviderVersion }}
+  runtimeConfigRef:
+    name: irsa-runtimeconfig
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: upbound-provider-aws-ec2
+  annotations:
+    # helm.sh/hook: post-install
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  package: xpkg.upbound.io/upbound/provider-aws-ec2:{{ .Values.crossplaneAWSProviderVersion }}
+  runtimeConfigRef:
+    name: irsa-runtimeconfig

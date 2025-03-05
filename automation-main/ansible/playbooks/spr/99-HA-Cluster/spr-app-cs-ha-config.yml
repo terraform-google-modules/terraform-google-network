@@ -1,0 +1,1221 @@
+---
+# Playbook Name: spr-app-cs-ha-config.yml
+# Description: This playbook configures app HA.
+# Dependencies:
+# - Ansible v2.9+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# - SPR Ansible Role (start/stop db instances)
+# Variables:
+#   - Groupvars and Hostvars from inventory
+# Example:
+#   Execution on remote systems using the spr ansible-inventory template
+#     ansible-playbook spr-app-cs-ha-config.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Rakesh Walekar, Jian Ouyang, Sean-Thomas Saloom
+# Version: 2.9-000001
+# Modified: 2022-03-30 - Created playbook
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+#   For the purposes of this playbook, all variables should be set in the inventory file.
+#   Apply this playbook after spr-app-ha-install.yml.
+#
+#   Tags:
+#     play0 always                          : Prepare dynamic values and aws cli for pacemaker
+#     play1                                 : Disable Automatic restarts of services (managed by cluster)
+#     play2                                 : Prepare SAP Central Services for HA Cluster
+#     play3                                 : setup pacemaker ha cluster for central services
+#     play4                                 : configure resoures on ha cluster for central services
+#     playEND always                        : End of playbook
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+    - "{{ sap_ha_role|default('undefined')|lower }}"
+    - "{{ sap_hana_hsr_role|default('undefined')|lower }}"
+
+  - name: Group hosts whose hostname contains 'cs'
+    group_by:
+      key: "cs"
+    when: "'cs' in inventory_hostname"
+
+  #for pacemaker to work correctly
+  - name: Create a symbolic link for aws
+    ansible.builtin.file:
+      src: /usr/local/bin/aws
+      dest: /usr/bin/aws
+      state: link
+    become: true
+
+  - name: Retrieve EC2 metadata
+    amazon.aws.ec2_metadata_facts:
+
+  - name: set aws region
+    set_fact:
+      aws_region: '{{ ansible_ec2_instance_identity_document_region }}'
+
+  - name: Create AWS config file
+    become: true
+    ansible.builtin.copy:
+      content: |
+          [default]
+          region = {{ aws_region }}
+          output = json
+      dest: ~/.aws/config
+      mode: "0440"
+
+  - name: set sids
+    set_fact:
+      db_sid: "{{  hostvars[(groups['primary'] | intersect(groups['db'])) | first]['spr_sid'] | upper }}"
+      db_system_sid:  "{{  hostvars[(groups['primary'] | intersect(groups['db'])) | first]['spr_sid'] | upper }}"
+
+  - name: Set additional Facts
+    set_fact:
+      sap_cs_ha_pacemaker_node1: "{{ hostvars[ (groups['primary']|intersect(groups['cs'])) | first ]['spr_hostname'] }}"
+      sap_cs_ha_pacemaker_node2: "{{ hostvars[ (groups['secondary']|intersect(groups['cs'])) | first ]['spr_hostname'] }}"
+
+
+#################
+##### PlayR #####
+#################
+- name: "PlayR: Disable Automatic restarts of services (managed by cluster)"
+  gather_facts: false
+  become: yes
+  hosts: app
+  tags:
+    - playr
+
+  tasks:
+    - name: enable yum repos
+      include_role:
+        name: repository-management
+      vars:
+        repo_enable: true
+        application_preset_selection: ['hana','epel','base']
+
+
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Disable Automatic restarts of services (managed by cluster)"
+  gather_facts: false
+  become: yes
+  hosts: app:!cs
+  tags:
+  - play1
+  - app
+
+  tasks:
+## Post-Installation
+## Prevent automatic restart of enqueue server as it will be managed by cluster
+## (A)SCS profile modification
+## ERS profile modification
+## Comment out lines in /usr/sap/sapservices
+
+  - name: Set host variable
+    set_fact:
+      sap_sid: "{{ spr_sid | upper }}"
+
+## With the newer version Start_Program is already in place
+  - name: Adapt ASCS profile to prevent sapsrv from restarting it
+    replace:
+      path: '/sapmnt/{{ sap_sid }}/profile/{{ sap_sid }}_ASCS01_{{ ascs_virtual_hostname }}'
+      backup: yes
+      regexp: 'Restart_Program_01'
+      replace: 'Start_Program_01'
+    ignore_errors: yes
+## With the newer version Start_Program is already in place
+  - name: Adapt ERS profile to prevent sapsrv from restarting it
+    replace:
+      path: '/sapmnt/{{ sap_sid }}/profile/{{ sap_sid }}_ERS02_{{ ers_virtual_hostname }}'
+      backup: yes
+      regexp: 'Restart_Program_00'
+      replace: 'Start_Program_00'
+    ignore_errors: yes
+## New /usr/sap/services looks like the following:
+## systemctl --no-ask-password start SAPPS4_01 # sapstartsrv pf=/usr/sap/PS4/SYS/profile/PS4_ASCS01_ps4cs
+## Below may not be required:
+  - name: Remove 'Autostart' from ERS profile
+    replace:
+      path: /usr/sap/sapservices
+      backup: yes
+      regexp: '(Autostart*)'
+      replace: '#\1'
+    ignore_errors: yes
+
+  - name: Configure Keep Alive
+  # 3125994 - Connection issues between the application servers and the Standalone Enqueue Server
+    sysctl:
+      name: net.ipv4.tcp_keepalive_time
+      value: 300
+## New /usr/sap/services looks like the following:
+## systemctl --no-ask-password start SAPPS4_01 # sapstartsrv pf=/usr/sap/PS4/SYS/profile/PS4_ASCS01_ps4cs
+## Below may not be required:
+  - name: Update /usr/sap/services
+    replace:
+      path: /usr/sap/sapservices
+      backup: yes
+      regexp: '(LD_LIBRARY*)'
+      replace: '#\1'
+    ignore_errors: yes
+
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Prepare SAP Central Services for HA Cluster"
+  gather_facts: false
+  become: yes
+  hosts: cs
+  vars:
+    app_sid: "{{ spr_sid | upper }}"
+    efs_ha_app: "{{ efs_ha_app_fsid }}.efs.{{ aws_region }}.amazonaws.com:/{{ app_sid }}/ha-app"
+  tags:
+  - play2
+  - cs
+
+  tasks:
+## Preparation 1
+## Create empty mount points for ERS and ASCS failovers
+  - name: Set host variable
+    set_fact:
+      sap_sid: "{{ spr_sid | upper }}"
+
+  - name: Create mount point for ERS on ASCS Node
+    file:
+      path: "/usr/sap/{{ sap_sid }}/ERS02/"
+      state: directory
+      owner: "{{ sap_sid|lower }}adm"
+      group: sapsys
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Create mount point for ASCS on ERS Node
+    file:
+      path: "/usr/sap/{{ sap_sid }}/ASCS01/"
+      state: directory
+      owner: "{{ sap_sid|lower }}adm"
+      group: sapsys
+    when:
+      - sap_ha_role == "secondary"
+
+ ###### added to avoid error, we need to mount one directory each on these 2 nodes
+  - name: Mount filesystems on central services node 2
+    mount:
+      src: "{{ item.src }}"
+      path: "{{ item.path }}"
+      fstype: "{{ item.fstype }}"
+      opts: "{{ item.opts }}"
+      state: mounted
+    loop:
+      - src: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/ASCS01'
+        path: '/usr/sap/{{ sap_sid }}/ASCS01'
+        fstype: 'nfs4'
+        opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: Mount filesystems on central services node 1
+    mount:
+      src: "{{ item.src }}"
+      path: "{{ item.path }}"
+      fstype: "{{ item.fstype }}"
+      opts: "{{ item.opts }}"
+      state: mounted
+    loop:
+      - src: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/ERS02'
+        path: '/usr/sap/{{ sap_sid }}/ERS02'
+        fstype: 'nfs4'
+        opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'
+    when:
+      - sap_ha_role == "primary"
+
+
+## Preparation 2
+## Create systemctl services for ERS and ASCS failovers
+## Stop ASCS and ERS Instances and Services
+
+## On ASCS node
+##    Stop ASCS on ASCS Node
+##    Wait for ASCS instance to stop
+
+  - name: Stop ASCS on ASCS Node
+    shell: |
+        /usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 01 -function Stop
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_sid | lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: "Wait for ASCS instance to stop"
+    become: true
+    become_user: "{{ sap_sid|lower }}adm"
+    shell: '/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 01 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sap_ascs_status
+    retries: 10
+    delay: 15
+    until: |
+      'GRAY' in sap_ascs_status.stdout
+    when:
+      - sap_ha_role == "primary"
+
+## On ERS node
+##    Stop ERS on ERS Node
+##    Wait for ERS instance to stop
+
+  - name: Stop ERS on ERS Node
+    shell: |
+        /usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 02 -function Stop
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_sid | lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: "Wait for ERS instance to stop"
+    become: true
+    become_user: "{{ sap_sid|lower }}adm"
+    shell: '/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 02 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sap_ers_status
+    retries: 10
+    delay: 15
+    until: |
+      'GRAY' not in sap_ers_status.stdout
+    when:
+      - sap_ha_role == "secondary"
+
+
+## Refer "3115048 - sapstartsrv with native Linux systemd support" on how to register service to systemd
+## Check if the ERS service "SAPPEW_02,service" exists on primary, if not, then create/start the service on ASCS node
+## Check if the ASCS service "SAPPEW_01.service" exists on secondary, if not, then create/start the service on ERS node
+
+## On ASCS node
+##    Check systemctl service [SAPSID_02.service] for ERS on ASCS Node
+##    Create and start systemctl service [SAPSID_02.service] for ERS on ASCS Node
+##    Stop ERS SAP{{ sap_sid|upper }}_02.service on ASCS Node
+##    Start ASCS SAP{{ sap_sid|upper }}_01.service on ASCS Node
+##    Start ASCS on ASCS Node
+##    Wait for ASCS instance to start
+
+  - name: Check systemctl service [SAPSID_02.service] for ERS on ASCS Node
+    ansible.builtin.service_facts:
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Print service facts on ASCS Node
+    ansible.builtin.debug:
+      msg: "Service not present"
+    when:
+      - sap_ha_role == "primary"
+      - "'SAP{{ sap_sid|upper }}.service' not in ansible_facts.services"
+
+  - name: Create and start systemctl service [SAPSID_02.service] for ERS on ASCS Node
+    shell: |
+        export LD_LIBRARY_PATH=/usr/sap/{{ sap_sid }}/ERS02/exe &&
+        /usr/sap/{{ sap_sid }}/ERS02/exe/sapstartsrv pf=/usr/sap/{{ sap_sid }}/SYS/profile/{{ sap_sid }}_ERS02_{{ ers_virtual_hostname }} -reg &&
+        systemctl start SAP{{ sap_sid }}_02
+    args:
+      executable: /bin/bash
+    when:
+      - sap_ha_role == "primary" #this is the orignal from Rakesh
+      - "'SAP{{ sap_sid|upper }}_02.service' not in ansible_facts.services"
+
+  - name: Stop ERS SAP{{ sap_sid|upper }}_02.service on ASCS Node
+    ansible.builtin.systemd:
+      state: stopped
+      name: SAP{{ sap_sid|upper }}_02.service
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Start ASCS SAP{{ sap_sid|upper }}_01.service on ASCS Node
+    ansible.builtin.systemd:
+      state: started
+      name: SAP{{ sap_sid|upper }}_01.service
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Start ASCS on ASCS Node
+    shell: |
+        /usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 01 -function Start
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_sid | lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: "Wait for ASCS instance to start"
+    become: true
+    become_user: "{{ sap_sid|lower }}adm"
+    shell: '/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 01 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sap_ascs_status
+    retries: 10
+    delay: 15
+    until: |
+      'GRAY' not in sap_ascs_status.stdout and
+      'YELLOW' not in sap_ascs_status.stdout
+    when:
+      - sap_ha_role == "primary"
+
+## On ERS node
+##    Check systemctl service [SAPSID_01.service] for ASCS on ERS Node
+##    Create and start systemctl service [SAPPEW_01.service] for ASCS on ERS Node
+##    Stop ASCS SAPPEW_01.service on ERS Node
+##    Start ERS SAPPEW_02.service on ERS Node
+##    Start ERS on ERS Node
+##    Wait for ERS instance to start
+
+  - name: Check systemctl service [SAPSID_01.service] for ASCS on ERS Node
+    ansible.builtin.service_facts:
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: Print service facts on ERS Node
+    ansible.builtin.debug:
+      msg: "Service not present"
+    when:
+      - sap_ha_role == "secondary"
+      - "'SAP{{ sap_sid|upper }}_01.service' not in ansible_facts.services"
+
+  - name: Create and start systemctl service [SAP{{ sap_sid|upper }}_01.service] for ASCS on ERS Node
+    shell: |
+        export LD_LIBRARY_PATH=/usr/sap/{{ sap_sid }}/ASCS01/exe &&
+        /usr/sap/{{ sap_sid }}/ASCS01/exe/sapstartsrv pf=/usr/sap/{{ sap_sid }}/SYS/profile/{{ sap_sid }}_ASCS01_{{ ascs_virtual_hostname }} -reg &&
+        systemctl start SAP{{ sap_sid }}_01
+    args:
+      executable: /bin/bash
+    when:
+      - sap_ha_role == "secondary" #original from Rakesh
+      - "'SAP{{ sap_sid|upper }}_01.service' not in ansible_facts.services"
+
+  - name: Stop ASCS SAP{{ sap_sid|upper }}_01.service on ERS Node
+    ansible.builtin.systemd:
+      state: stopped
+      name: SAP{{ sap_sid|upper }}_01.service
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: Start ERS SAP{{ sap_sid|upper }}_02.service on ERS Node
+    ansible.builtin.systemd:
+      state: started
+      name: SAP{{ sap_sid|upper }}_02.service
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: Start ERS on ERS Node
+    shell: |
+        /usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 02 -function Start
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_sid | lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: "Wait for ERS instance to start"
+    become: true
+    become_user: "{{ sap_sid|lower }}adm"
+    shell: '/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 02 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sap_ers_status
+    retries: 10
+    delay: 15
+    until: |
+      'GRAY' not in sap_ers_status.stdout and
+      'YELLOW' not in sap_ers_status.stdout
+    when:
+      - sap_ha_role == "secondary"
+
+# Preparation 3
+# Stop service amazon-cloudwatch-agent.service
+# This service collects awslogs from SAP filesystems, however in HA, SAP filesystems are mounted using EFS instead of local volume.
+# If this service is active, it will prevent the filesystem to be unmounted (device busy message), and HA will not work.
+
+  - name: Stop amazon-cloudwatch-agent.service on ASCS and ERS Nodes
+    ansible.builtin.systemd:
+      state: stopped
+      name: amazon-cloudwatch-agent.service
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: setup pacemaker ha cluster for central services"
+  gather_facts: false
+  become: yes
+  hosts: cs
+  tags:
+  - play3
+  - cs
+
+  tasks:
+
+  - name: Set host variable
+    set_fact:
+      sap_sid: "{{ spr_sid | upper }}"
+    tags:
+      - testing_fencing
+
+# Ensure required packages for Resource Agents are installed on central services nodes
+  - name: Ensure required packages for Resource Agents are installed on central services nodes
+    yum:
+      name:
+        - resource-agents-sap
+        - pcs
+        - pacemaker
+        - fence-agents-aws
+      state: present
+
+# Ensure the ports that are required by the Red Hat High Availability Add-On are open
+# Add sap_cs_ha_pacemaker_configure_firewall to the inventory file
+
+  - name: Ensure the ports that are required by the Red Hat High Availability Add-On are open
+    firewalld:
+      service: high-availability
+      permanent: yes
+      state: enabled
+    when: sap_cs_ha_pacemaker_configure_firewall
+
+# Ensure password for hacluster is configured on central services nodes
+# Add sap_cs_ha_pacemaker_hacluster_password to the inventory file
+  - name: Ensure password for hacluster is configured on central services nodes
+    user:
+      name: hacluster
+      password: "{{ sap_cs_ha_pacemaker_hacluster_password | password_hash('sha512') }}"
+
+# Ensure pcsd service is enabled on central services nodes
+  - name: Ensure pcsd service is enabled on central services nodes
+    systemd:
+      name: pcsd.service
+      state: started
+      enabled: yes
+
+# Authenticate the central services cluster nodes
+# Add sap_cs_ha_pacemaker_node1, sap_cs_ha_pacemaker_node2, sap_cs_ha_pacemaker_hacluster_password to the inventory file
+  - name: Authenticate the central services cluster nodes
+    command: |
+      pcs {{ _subject }} auth \
+      {{ sap_cs_ha_pacemaker_node1 }} {{ sap_cs_ha_pacemaker_node2 }} \
+      -u hacluster -p {{ sap_cs_ha_pacemaker_hacluster_password }}
+    register: auth_cluster
+    changed_when: "'Authorized' in auth_cluster.stdout"
+    vars:
+    # https://access.redhat.com/solutions/3814351 for RHEL 8 use 'host' and not 'cluster' in pcs command
+      _subject: "{{ 'cluster' if ansible_facts['distribution_major_version'] | int == 7 else 'host' }}"
+
+# Create RHEL HA Cluster for central service
+# Add sap_cs_ha_pacemaker_cluster_name
+  - name: Create RHEL HA Cluster for central services
+    command: |
+      pcs cluster setup {{ sap_cs_ha_pacemaker_cluster_name }} \
+      {{ sap_cs_ha_pacemaker_node1 }} \
+      {{ sap_cs_ha_pacemaker_node2 }} --force --wait=6000 --start
+    register: create_cluster
+    changed_when: "'Cluster has been successfully set up' in create_cluster.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+# Start the RHEL HA Cluster for central services
+  - name: Start the RHEL HA Cluster for central services
+    command: pcs cluster start --all
+    register: start_cluster
+    changed_when: "'Starting Cluster' in start_cluster.stdout"
+    when:
+      - sap_ha_role == "secondary"
+
+# Set cluster properties for central services
+  - name: Set resource-stickiness cluster property
+    command: pcs resource defaults resource-stickiness=1
+    register: resource_stickiness
+    changed_when: "'Defaults do not apply to resource' in resource_stickiness.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Set migration-threshold cluster property
+    command: pcs resource defaults migration-threshold=3
+    register: migration_threshold
+    changed_when: "'Defaults do not apply to resource' in migration_threshold.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+# Enable the cluster to auto-start after reboot
+# if you are testing then you may want to run this task after cluster manual testing
+  - name: Enable the RHEL HA Cluster for central services
+    command: pcs cluster enable --all
+    register: enable_cluster
+    changed_when: "'Cluster Enabled' in enable_cluster.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+# STONITH setup
+# Look up the AWS Instance ID for central services primary and secondary nodes.
+
+# Look up the AWS Instance ID for central services primary
+  - name: Get EC2 instance-id of central services primary
+    shell: 'echo $(curl -s http://169.254.169.254/latest/meta-data/instance-id)'
+    register: instance_id_cs01
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Set fact instance-id of central services primary
+    set_fact:
+      instance_id_cs01: "{{ instance_id_cs01.stdout }}"
+    when:
+      - sap_ha_role == "primary"
+
+# Look up the AWS Instance ID for central services secondary
+  - name: Get EC2 instance-id of central services secondary
+    shell: 'echo $(curl -s http://169.254.169.254/latest/meta-data/instance-id)'
+    register: instance_id_cs02
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: Set fact instance-id of central services secondary
+    set_fact:
+      instance_id_cs02: "{{ instance_id_cs02.stdout }}"
+    when:
+      - sap_ha_role == "secondary"
+
+# Build pcmk_host_map string
+# Note that hostnames for hostvars should be internal hostname and not custom
+#         sap_cs_primary_hostname: "s010cs01pew"
+#         sap_cs_secondary_hostname: "s010cs02pew"
+#{{ hostvars[groups['primary'][0]]['spr_hostname'] }}
+
+  - name: create pcmk_host_map value
+    set_fact:
+      #pcmk_host_map_var: "pcmk_host_map=\"{{ sap_cs_ha_pacemaker_node1 }}:{{ hostvars[sap_cs_primary_hostname].instance_id_cs01 }};{{ sap_cs_ha_pacemaker_node2 }}:{{ hostvars[sap_cs_secondary_hostname].instance_id_cs02 }}\""
+      #(groups['primary'] | intersect(groups['cs'])) | first
+      pcmk_host_map_var: "pcmk_host_map=\"{{ sap_cs_ha_pacemaker_node1 }}:{{ hostvars[(groups['primary'] | intersect(groups['cs'])) | first].instance_id_cs01 }};{{ sap_cs_ha_pacemaker_node2 }}:{{  hostvars[(groups['secondary'] | intersect(groups['cs'])) | first].instance_id_cs02 }}\""
+    when:
+      - sap_ha_role == "primary"
+
+# Create STONITH
+  - name: Create STONITH
+   # The default pcmk action is reboot.
+   # If you want to have the instance remain in a stopped state until it has been investigated and then manually started again, add pcmk_reboot_action=off.
+   # Any High Memory (u-*tb1.*) instances or metal instance running on a dedicated host won't support reboot and will require pcmk_reboot_action=off
+    command: |
+      pcs stonith create {{ sap_cs_ha_pacemaker_stonith_name }} fence_aws region={{ aws_region }} \
+      {{ pcmk_host_map_var }} \
+      power_timeout=240 pcmk_reboot_timeout=600 pcmk_reboot_retries=4 \
+      op start timeout=600 op stop timeout=600 op monitor interval=180
+    register: create_stonith
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Check STONITH config
+    command: pcs config
+    register: check_stonith_config
+    changed_when: "'(class=stonith type=fence_aws)' in check_stonith_config.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Check PCS status
+    command: pcs status
+    register: check_pcs_status
+    when:
+      - sap_ha_role == "primary"
+
+# Test Fencing of node 2
+#   a) Execute fencing of Node 2
+#   b) validate that pcs status shows OFFLINE for node2. Node2 will reboot
+#   c) Wait till Node2 becomes available
+#   d) Validate if node 2 is added back to cluster after its reboot
+#   e) validate it is reachable
+#   f) start ERS on node 2
+
+  - name: Fence ERS node 2
+  # Fencing will stop node 2 instance.
+  # Check in AWS Console if the instance is stopping
+  # Check the HDB Replication status. It should be broken as well.
+    command: pcs stonith fence {{ sap_cs_ha_pacemaker_node2 }}
+    register: fence_node2
+    changed_when: "'fenced' in fence_node2.stdout"
+    when:
+      - sap_ha_role == "primary"
+    tags:
+      - testing_fencing
+
+  # Fencing will make node-2 offline
+  - name: Check PCS status after fencing
+    command: pcs status
+    register: check_pcs_status_fenced
+    changed_when: "'OFFLINE' in check_pcs_status_fenced.stdout"
+    when:
+      - sap_ha_role == "primary"
+    tags:
+      - testing_fencing
+
+
+  - name: Check if node-2 rebooted and available
+    become: false
+    delegate_to: localhost
+    wait_for:
+      port: 22
+      #host: '{{ sap_cs_ha_pacemaker_node2 }}'
+      host: "{{ hostvars[(groups['secondary'] | intersect(groups['cs'])) | first].inventory_hostname }}"
+      state: started
+      delay: 60
+      timeout: 600
+    register: node2_ssh_status
+    run_once: true
+    tags:
+      - testing_fencing
+
+# Start ERS on secondary node when it is available in cluster
+
+## On ERS node
+  - name: Start ERS on ERS Node
+    shell: |
+        /usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 02 -function Start
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_sid | lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    when:
+      - sap_ha_role == "secondary"
+    tags:
+      - testing_fencing
+
+  - name: "Wait for ERS instance to start"
+    become: true
+    become_user: "{{ sap_sid|lower }}adm"
+    shell: '/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 02 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sap_ers_status
+    retries: 10
+    delay: 15
+    until: |
+      'GRAY' not in sap_ers_status.stdout and
+      'YELLOW' not in sap_ers_status.stdout
+    when:
+      - sap_ha_role == "secondary"
+      - node2_ssh_status.state == "started"
+    tags:
+      - testing_fencing
+
+
+## Preparation for ASCS and ERS: Stonith testing may remove the secondary ip from the ERS node
+## Add Overlay IP for ascs on primary central services node
+## Add Overlay IP for ers on secondary central services node
+
+  - name: Show network interface device
+    shell: |
+        ip route get 8.8.8.8 | awk '{print $5}'
+    args:
+      executable: /bin/bash
+    register: network_device
+
+  - name: Validate if overlay ip address was added
+    shell: |
+        ip address show dev {{ network_device.stdout }}
+    args:
+      executable: /bin/bash
+    register: pre_oip
+
+# Add Overlay IP to the network interface
+  - name: Add overlay ip address to central services nodes
+    shell: |
+        ip address add {{ sap_ha_oip }} dev {{ network_device.stdout }}
+    args:
+      executable: /bin/bash
+    when: "'{{ sap_ha_oip }}/32' not in pre_oip.stdout"
+
+# Validate if Overlay IP added to the network interface
+  - name: Validate if overlay ip address was added
+    shell: |
+        ip address show dev {{ network_device.stdout }}
+    args:
+      executable: /bin/bash
+    register: oip_added
+    changed_when: "'{{ sap_ha_oip }}/32' in oip_added.stdout"
+
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: configure resoures on ha cluster for central services"
+  gather_facts: false
+  become: yes
+  hosts: cs
+  vars:
+    app_sid: "{{ spr_sid | upper }}"
+    efs_ha_app: "{{ efs_ha_app_fsid }}.efs.{{ aws_region }}.amazonaws.com:/{{ app_sid }}/ha-app"
+    efs_usrsaptrans:  "{{ efs_usr_sap_trans_fsid }}.efs.{{ aws_region }}.amazonaws.com:/"
+  tags:
+  - play4
+  - cs
+
+  tasks:
+# Configure cluster resources
+  - name: Set host variable
+    set_fact:
+      sap_sid: "{{ spr_sid | upper }}"
+
+## Preparation for ASCS and ERS
+## Add Overlay IP for ascs on primary central services node
+## Add Overlay IP for ers on secondary central services node
+
+  - name: Show network interface device
+    shell: |
+        ip route get 8.8.8.8 | awk '{print $5}'
+    args:
+      executable: /bin/bash
+    register: network_device
+
+  - name: Validate if overlay ip address was added
+    shell: |
+        ip address show dev {{ network_device.stdout }}
+    args:
+      executable: /bin/bash
+    register: pre_oip
+
+# Add Overlay IP to the network interface
+  - name: Add overlay ip address to central services nodes
+    shell: |
+        ip address add {{ sap_ha_oip }} dev {{ network_device.stdout }}
+    args:
+      executable: /bin/bash
+    when: "'{{ sap_ha_oip }}/32' not in pre_oip.stdout"
+
+# Validate if Overlay IP added to the network interface
+  - name: Validate if overlay ip address was added
+    shell: |
+        ip address show dev {{ network_device.stdout }}
+    args:
+      executable: /bin/bash
+    register: oip_added
+    changed_when: "'{{ sap_ha_oip }}/32' in oip_added.stdout"
+
+  - name: Delete PCS resource groups
+    shell: |
+      pcs resource group delete  {{ sap_sid | lower}}_ASCS{{ sap_ascs_instance_number }}_group
+      pcs resource group delete  {{ sap_sid | lower}}_ERS{{ sap_ers_instance_number }}_group
+    ignore_errors: true
+    failed_when: false
+    no_log: true
+    when:
+      - sap_ha_role == "primary"
+
+## Task - Configure shared filesystems managed by the cluster
+## shared filesystems on EFS: /sapmnt, /usr/sap/trans, /usr/sap/SID/SYS
+## Add efs_usrsaptrans to inventory file
+#the following is the original commands
+      # pcs resource create {{ item.fs }} Filesystem device='{{ item.dev }}' \
+      # directory={{ item.dir }} \
+      # options={{ item.opts }} \
+      # fstype=nfs clone clone-max=2 clone-node-max=1 interleave=true
+
+  - name: Delete PCS resources if existing
+    shell: |
+      pcs resource delete {{ item.fs }}
+    ignore_errors: true
+    failed_when: false
+    no_log: true
+    when:
+      - sap_ha_role == "primary"
+    loop:
+      - { fs: '{{ sap_sid | lower }}_fs_sapmnt', dev: '{{ efs_ha_app }}/sap-ha/sapmnt', dir: '/sapmnt', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { fs: '{{ sap_sid | lower }}_fs_usrsaptrans', dev: '{{ efs_usrsaptrans }}trans-{{  sap_sid | lower }}', dir: '/usr/sap/trans', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { fs: '{{ sap_sid | lower }}_fs_sys', dev: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/SYS', dir: '/usr/sap/{{ sap_sid }}/SYS', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+
+
+  - name: Configure shared filesystems managed by the cluster
+    command: |
+      pcs resource create {{ item.fs }} Filesystem device='{{ item.dev }}' \
+      directory={{ item.dir }} \
+      options={{ item.opts }} \
+      force_unmount=safe \
+      fstype=nfs4 clone clone-max=2 clone-node-max=1 interleave=true
+    register: create_fs
+    changed_when: "'Assumed agent name' in create_fs.stdout"
+    when:
+      - sap_ha_role == "primary"
+    loop:
+      - { fs: '{{ sap_sid | lower }}_fs_sapmnt', dev: '{{ efs_ha_app }}/sap-ha/sapmnt', dir: '/sapmnt', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { fs: '{{ sap_sid | lower }}_fs_usrsaptrans', dev: '{{ efs_usrsaptrans }}trans-{{  sap_sid | lower }}', dir: '/usr/sap/trans', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { fs: '{{ sap_sid | lower }}_fs_sys', dev: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/SYS', dir: '/usr/sap/{{ sap_sid }}/SYS', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+
+  - name: Validate status of the shared filesystems managed by the cluster
+    command: |
+      pcs status resources {{ item.fs_clone }}
+    register: check_fs_clone
+    changed_when: "'Started: [' in check_fs_clone.stdout"
+    when:
+      - sap_ha_role == "primary"
+    loop:
+      - { fs_clone: '{{ sap_sid | lower }}_fs_sapmnt-clone'}
+      - { fs_clone: '{{ sap_sid | lower }}_fs_usrsaptrans-clone'}
+      - { fs_clone: '{{ sap_sid | lower }}_fs_sys-clone'}
+
+## Task - Create resource for virtual IP address (ASCS)
+##  Terraform creates a route to the OIP on Primary ASCS node
+##  This resource creation should assign the OIP to the other instance eth0 e.g. node 2
+##  Check the eni assignment for the route table in AWS console
+##  Check the oip ip addr assingment on other instance
+  - name: Delete pcs vip resource
+    shell: |
+      pcs resource delete vip_{{ sap_sid }}_{{ sap_ascs_instance_number }}
+    ignore_errors: true
+    failed_when: false
+    no_log: true
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Create resource for virtual IP address (ASCS)
+    shell: |
+      pcs resource create vip_{{ sap_sid }}_{{ sap_ascs_instance_number }}  \
+      aws-vpc-move-ip ip={{ sap_cs_cluster_oip }} interface=eth0 routing_table={{ customer_vpc_route_table_id_1a }},{{ customer_vpc_route_table_id_1b }},{{ customer_vpc_route_table_id_1c }} \
+      --group {{ sap_sid | lower}}_ASCS{{ sap_ascs_instance_number }}_group
+    register: create_resource_ascs_vip
+    changed_when: "'Assumed agent name' in create_resource_ascs_vip.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Set fact for ascs vip status
+    set_fact:
+      vip_started: "vip_{{ sap_sid }}_{{ sap_ascs_instance_number }}\t(ocf::heartbeat:aws-vpc-move-ip):\t Started"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Show ascs vip resource status
+    shell: pcs status resources vip_{{ sap_sid }}_{{ sap_ascs_instance_number }}
+    register: ascs_vip_resource_status
+    when:
+      - sap_ha_role == "primary"
+    retries: 10
+    delay: 10
+    until: 'vip_started in ascs_vip_resource_status.stdout'
+
+  - name: Delete pcs resource for ASCS filesystem if existing
+    shell: |
+      pcs resource delete  {{ sap_sid | lower}}_fs_ascs{{ sap_ascs_instance_number }}
+    ignore_errors: true
+    failed_when: false
+    no_log: true
+    when:
+      - sap_ha_role == "primary"
+
+## Task - Create resource for ASCS filesystem
+  - name: Create resource for ASCS filesystem
+    command: |
+      pcs resource create {{ sap_sid | lower}}_fs_ascs{{ sap_ascs_instance_number }} Filesystem \
+      device='{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/ASCS01' \
+      directory='/usr/sap/{{ sap_sid  }}/ASCS01' \
+      fstype='nfs4' \
+      options='nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport' \
+      force_unmount=safe \
+      --group {{ sap_sid | lower}}_ASCS{{ sap_ascs_instance_number }}_group \
+      op start interval=0 timeout=60 \
+      op stop interval=0 timeout=120 \
+      op monitor interval=200 timeout=40
+    register: create_resource_ascs_fs
+    changed_when: "'Assumed agent name' in create_resource_ascs_fs.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Set fact for ascs filesystem
+    set_fact:
+      ascs_filesystem_started: "{{ sap_sid | lower}}_fs_ascs{{ sap_ascs_instance_number }}\t(ocf::heartbeat:Filesystem):\t Started"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Show ascs filesystem resource status
+    shell: pcs status resources {{ sap_sid | lower}}_fs_ascs{{ sap_ascs_instance_number }}
+    register: ascs_filesystem_resource_status
+    when:
+      - sap_ha_role == "primary"
+    retries: 10
+    delay: 20
+    until: "ascs_filesystem_started in ascs_filesystem_resource_status.stdout"
+
+
+## Task - Create resource for ASCS instance
+##  meta resource-stickiness=5000 is here to balance out the failover constraint with ERS so the
+##  resource stays on the node where it started and doesn't migrate around cluster uncontrollably.
+  - name: Delete pcs resource for ASCS instance if existing
+    shell: |
+      pcs resource delete  {{ sap_sid | lower}}_ascs{{ sap_ascs_instance_number }}
+    ignore_errors: true
+    failed_when: false
+    no_log: true
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Create resource for ASCS instance
+    command: |
+      pcs resource create {{ sap_sid | lower}}_ascs{{ sap_ascs_instance_number }} SAPInstance \
+      InstanceName="{{ sap_sid }}_ASCS{{ sap_ascs_instance_number }}_{{ ascs_virtual_hostname }}" \
+      START_PROFILE=/sapmnt/{{ sap_sid }}/profile/{{ sap_sid }}_ASCS{{ sap_ascs_instance_number }}_{{ ascs_virtual_hostname }} \
+      AUTOMATIC_RECOVER=false \
+      meta resource-stickiness=5000 \
+      --group {{ sap_sid | lower}}_ASCS{{ sap_ascs_instance_number }}_group \
+      op monitor interval=20 on-fail=restart timeout=60 \
+      op start interval=0 timeout=600 \
+      op stop interval=0 timeout=600
+    register: create_resource_ascs_instance
+    changed_when: "'Assumed agent name' in create_resource_ascs_instance.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Set fact for ascs instance
+    set_fact:
+      ascs_instance_started: "{{ sap_sid | lower}}_ascs{{ sap_ascs_instance_number }}\t(ocf::heartbeat:SAPInstance):\t Started"
+    when:
+      - sap_ha_role == "primary"
+
+
+  - name: Show ascs instance resource status
+    shell: pcs status resources {{ sap_sid | lower}}_ascs{{ sap_ascs_instance_number }}
+    register: ascs_instance_resource_status
+    when:
+      - sap_ha_role == "primary"
+    retries: 5
+    delay: 20
+    until: "ascs_instance_started in ascs_instance_resource_status.stdout"
+
+
+## Task - Create resource for virtual IP address (ERS)
+  - name: Delete pcs resource for virtual IP address (ERS) if existing
+    shell: |
+      pcs resource delete  vip_{{ sap_sid }}_{{ sap_ers_instance_number }}
+    ignore_errors: true
+    failed_when: false
+    no_log: true
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Create resource for virtual IP address (ERS)
+    shell: |
+      pcs resource create vip_{{ sap_sid }}_{{ sap_ers_instance_number }}  \
+      aws-vpc-move-ip ip={{ sap_er_cluster_oip }} interface=eth0 routing_table={{ customer_vpc_route_table_id_1a }},{{ customer_vpc_route_table_id_1b }},{{ customer_vpc_route_table_id_1c }} \
+      --group {{ sap_sid | lower}}_ERS{{ sap_ers_instance_number }}_group
+    register: create_resource_ers_vip
+    changed_when: "'Assumed agent name' in create_resource_ers_vip.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Set fact for ers vip status
+    set_fact:
+      vip_started: "vip_{{ sap_sid }}_{{ sap_ers_instance_number }}\t(ocf::heartbeat:aws-vpc-move-ip):\t Started"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Show ers vip resource status
+    shell: pcs status resources vip_{{ sap_sid }}_{{ sap_ers_instance_number }}
+    register: ers_vip_resource_status
+    when:
+      - sap_ha_role == "primary"
+    retries: 5
+    delay: 10
+    until: "vip_started in ers_vip_resource_status.stdout"
+
+## Task - Create resource for ERS filesystem
+  - name: Delete pcs resource for ERS filesystem if existing
+    shell: |
+      pcs resource delete   {{ sap_sid | lower}}_fs_ers{{ sap_ers_instance_number }}
+    ignore_errors: true
+    failed_when: false
+    no_log: true
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Create resource for ERS filesystem
+    command: |
+      pcs resource create {{ sap_sid | lower}}_fs_ers{{ sap_ers_instance_number }} Filesystem \
+      device='{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/ERS02' \
+      directory='/usr/sap/{{ sap_sid  }}/ERS02' \
+      fstype='nfs4' \
+      options='nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport' \
+      force_unmount=safe \
+      --group {{ sap_sid | lower}}_ERS{{ sap_ers_instance_number }}_group \
+      op start interval=0 timeout=60 \
+      op stop interval=0 timeout=120 \
+      op monitor interval=200 timeout=40
+    register: create_resource_ers_fs
+    changed_when: "'Assumed agent name' in create_resource_ers_fs.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Set fact for ers filesystem
+    set_fact:
+      ers_filesystem_started: "{{ sap_sid | lower}}_fs_ers{{ sap_ers_instance_number }}\t(ocf::heartbeat:Filesystem):\t Started"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Show ers filesystem resource status
+    shell: pcs status resources {{ sap_sid | lower}}_fs_ers{{ sap_ers_instance_number }}
+    register: ascs_filesystem_resource_status
+    when:
+      - sap_ha_role == "primary"
+    retries: 5
+    delay: 10
+    until: "ers_filesystem_started in ascs_filesystem_resource_status.stdout"
+
+## Task - Create resource for ERS instance
+  - name: Delete pcs resource for ERS instance if existing
+    shell: |
+      pcs resource delete {{ sap_sid | lower}}_ers{{ sap_ers_instance_number }}
+    ignore_errors: true
+    failed_when: false
+    no_log: true
+    when:
+      - sap_ha_role == "primary"
+
+
+  - name: Create resource for ERS instance
+    command: |
+      pcs resource create {{ sap_sid | lower}}_ers{{ sap_ers_instance_number }} SAPInstance \
+      InstanceName="{{ sap_sid }}_ERS{{ sap_ers_instance_number }}_{{ ers_virtual_hostname }}" \
+      START_PROFILE=/sapmnt/{{ sap_sid }}/profile/{{ sap_sid }}_ERS{{ sap_ers_instance_number }}_{{ ers_virtual_hostname }} \
+      AUTOMATIC_RECOVER=false \
+      IS_ERS=true \
+      --group {{ sap_sid | lower}}_ERS{{ sap_ers_instance_number }}_group \
+      op monitor interval=20 on-fail=restart timeout=60 \
+      op start interval=0 timeout=600 \
+      op stop interval=0 timeout=600
+    register: create_resource_ers_instance
+    changed_when: "'Assumed agent name' in create_resource_ers_instance.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Set fact for ers instance
+    set_fact:
+      ers_instance_started: "{{ sap_sid | lower}}_ers{{ sap_ers_instance_number }}\t(ocf::heartbeat:SAPInstance):\t Started"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Show ers instance resource status
+    shell: pcs status resources {{ sap_sid | lower}}_ers{{ sap_ers_instance_number }}
+    register: ers_instance_resource_status
+    when:
+      - sap_ha_role == "primary"
+    retries: 10
+    delay: 10
+    until: "ers_instance_started in ers_instance_resource_status.stdout"
+
+# Configure cluster constraints
+
+## Task - Create colocation constraint for ASCS and ERS resource groups
+## Note that location constraint is not required
+## Resource groups sid_ASCS01_group and sid_ERS02_group should try to avoid running on same node. Order of groups matters.
+  - name: Create colocation constraint for ASCS and ERS resource groups
+    command: |
+      pcs constraint colocation add {{ sap_sid | lower}}_ERS{{ sap_ers_instance_number }}_group with {{ sap_sid | lower}}_ASCS{{ sap_ascs_instance_number }}_group -5000
+    register: create_colocation_ascs_ers
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Set fact for colocation constraint
+    set_fact:
+      colocation_constraint: "{{ sap_sid | lower}}_ERS{{ sap_ers_instance_number }}_group with {{ sap_sid | lower}}_ASCS{{ sap_ascs_instance_number }}_group"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Show colocation constraint status
+    shell: pcs constraint colocation config
+    register: colocation_constraint_status
+    when:
+      - sap_ha_role == "primary"
+    retries: 3
+    delay: 10
+    until: "colocation_constraint in colocation_constraint_status.stdout"
+
+## Task - Create order constraint for ASCS and ERS resource groups
+##  Prefer to start sid_ASCS01_group before the sid_ERS02_group
+
+  - name: Create order constraint for ASCS and ERS resource groups
+    command: |
+      pcs constraint order start {{ sap_sid | lower}}_ASCS{{ sap_ascs_instance_number }}_group then stop {{ sap_sid | lower}}_ERS{{ sap_ers_instance_number }}_group \
+      symmetrical=false kind=Optional
+    register: create_order_ascs_ers
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Set fact for order constraint
+    set_fact:
+      order_constraint: "start {{ sap_sid | lower}}_ASCS{{ sap_ascs_instance_number }}_group then stop {{ sap_sid | lower}}_ERS{{ sap_ers_instance_number }}_group"
+    when:
+      - sap_ha_role == "primary"
+
+  - name: Show order constraint status
+    shell: pcs constraint order config
+    register: order_constraint_status
+    when:
+      - sap_ha_role == "primary"
+    retries: 10
+    delay: 10
+    until: "order_constraint in order_constraint_status.stdout"
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it."
+...

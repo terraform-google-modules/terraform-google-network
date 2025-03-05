@@ -1,0 +1,27 @@
+---
+# Synopsis: Selects target folders for watchman configuration
+# Inputs:
+#   spr_watchman_preconfigure_replication_pair : task required input   # Unique pair name. Should be max of 15 characters due to linux group name limitations.
+#   spr_watchman_preconfigure_lookup : task required input   # Identifies which target folder set to configure Watchman for
+#   spr_watchman_preconfigure_force : When true, overwrites the current Watchman configuration. Default False
+#   spr_watchman_preconfigure_dict: Defined in role defaults, Dictionary of predefined target folder sets
+# Outputs:
+#   Calls the watchman-configure task with correct target folders
+# Comments:
+
+- debug:
+    msg="{{ spr_watchman_preconfigure_dict[spr_watchman_preconfigure_lookup] }}"
+
+
+- name: "Run watchman-configure"
+  include_tasks: general/watchman-configure.yml
+  vars:
+    spr_watchman_configure_replication_pair: "{{ spr_watchman_preconfigure_replication_pair }}"
+    spr_watchman_configure_force: "{{ spr_watchman_preconfigure_force }}"
+    spr_watchman_configure_target_folder: "{{ item.target_folder}}"
+    spr_watchman_configure_trigger_name: "{{ item.trigger_name }}"
+    spr_watchman_configure_exclusion_list: "{{ item.exclusion_list }}"
+    host_app_node_type: "{{ spr_watchman_preconfigure_lookup }}"
+  loop_control:
+    label: "Running watchman-configure for {{ item.target_folder }} with {{ item.trigger_name }}"
+  loop: "{{ spr_watchman_preconfigure_dict[spr_watchman_preconfigure_lookup] }}"

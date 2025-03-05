@@ -1,0 +1,75 @@
+---
+# Synopsis: Gets the list of ports to create iptables rules for.
+# Inputs:
+#   - dynamic_preset_selection : True when dynamically determining application type
+#   - firewall_preset_selection : The chosen preset in the 'application_variants' variable containing a list of ports to create iptables rules for.
+#
+# Outputs:
+#   - iptables_tcp_source_ports : The list of TCP source ports to create iptables rules for.
+#   - iptables_tcp_destination_ports : The list of TCP destination ports to create iptables rules for.
+#   - iptables_udp_source_ports : The list of UDP source ports to create iptables rules for.
+#   - iptables_udp_destination_ports : The list of UDP destination ports to create iptables rules for.
+
+  - name: Validate that the 'firewall_preset_selection' value is a valid item in the 'application_variants' variable
+    ansible.builtin.fail:
+      msg: The value of 'firewall_preset_selection' is not an item listed in the 'application_variants' variable.
+    when:
+      - firewall_preset_selection not in application_variants
+      - dynamic_preset_selection | bool == false
+      - iptables_use_instance_tags | bool == false
+
+  - name: Configure iptables based on netstat when 'firewall_preset_selection' value not in 'application_variants' variable and using 'dynamic_preset_selection'
+    block:
+      - name: Find all tcp ports open on instance
+        ansible.builtin.shell: netstat -nlt |grep tcp |sed 's/127.*//g; s/tcp6.*//g' |awk '{print $4}' |grep ':' |sed -e 's/.*://g'
+        become: true
+        register: open_tcp_ports
+
+      - name: Find all udp ports open on instance
+        ansible.builtin.shell: netstat -nlu |grep udp |sed 's/127.*//g; s/udp6.*//g' |awk '{print $4}' |grep ':' |sed -e 's/.*://g'
+        become: true
+        register: open_udp_ports
+
+      - name: Save the ports as facts
+        ansible.builtin.set_fact:
+          iptables_tcp_source_ports: '{{ open_tcp_ports.stdout_lines }}'
+          iptables_tcp_destination_ports: '{{ open_tcp_ports.stdout_lines }}'
+          iptables_udp_source_ports: '{{ open_udp_ports.stdout_lines }}'
+          iptables_udp_destination_ports: '{{ open_udp_ports.stdout_lines }}'
+
+    when: firewall_preset_selection not in application_variants
+  # End Block - Configure iptables based on netstat
+
+  - name: Configure iptables based on 'firewall_preset_selection' variable when not using 'dynamic_preset_selection'
+    block:
+      - name: Get the ports based on the value of the 'firewall_preset_selection' variable
+        ansible.builtin.set_fact:
+          instance_ports: '{{ item }}'
+        loop: '{{ application_variants | dict2items }}'
+        when: item.key | lower == firewall_preset_selection | lower
+
+      - name: Save the ports as facts
+        ansible.builtin.set_fact:
+          iptables_tcp_source_ports: '{{ instance_ports.value.tcp.src }}'
+          iptables_tcp_destination_ports: '{{ instance_ports.value.tcp.dest }}'
+          iptables_udp_source_ports: '{{ instance_ports.value.udp.src }}'
+          iptables_udp_destination_ports: '{{ instance_ports.value.udp.dest }}'
+        when: instance_ports is defined
+
+    when: firewall_preset_selection in application_variants
+  # End Block - Configure iptables based on 'firewall_preset_selection' variable
+
+  - name: Get the system's instance number if present
+    ansible.builtin.shell: find /usr/sap/ -maxdepth 2 | grep -E '^/usr/sap/[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]/(DVEBMGS|HDB|W|D|J|G)[0-9][0-9]$' | sed -r
+      's|^/usr/sap/.*([0-9][0-9])$|\1|'
+    register: system_instance_number_results
+    changed_when: false
+    become: true
+
+  - name: Set the system's instance number as a fact
+    ansible.builtin.set_fact:
+      system_instance_number: '{{ system_instance_number_results.stdout }}'
+    when:
+      - system_instance_number_results is defined
+      - system_instance_number_results.stdout | length == 2
+...

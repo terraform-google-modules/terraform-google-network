@@ -1,0 +1,9 @@
+---
+monitor_urls:
+  - name: FioriLaunchpad
+    urls:
+      - https://localhost:44301/sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html?sap-client=100
+    response_timeout: 10s
+    method: GET
+    insecure_skip_verify: 'true'
+...

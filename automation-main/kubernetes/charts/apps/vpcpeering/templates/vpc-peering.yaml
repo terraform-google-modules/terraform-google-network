@@ -1,0 +1,40 @@
+---
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: VPCPeeringConnectionOptions
+metadata:
+  name: {{ .Values.customerName }}-vpcpeeroptions
+  annotations:
+    meta.upbound.io/{{ .Values.customerName }}: ec2/v1beta1/vpcpeeringconnectionoptions
+  labels:
+    resource.upbound.io/{{ .Values.customerName }}: {{ .Values.customerName }}-VPCPeeringConnectionOptions
+spec:
+  forProvider:
+    accepter:
+      - allowRemoteVpcDnsResolution: true
+    region: {{ .Values.region }}
+    requester:
+      - allowRemoteVpcDnsResolution: true
+    vpcPeeringConnectionIdSelector:
+      matchLabels:
+        resource.upbound.io/{{ .Values.customerName }}: VPCPeeringConnection
+  providerConfigRef:
+    name: aws-provider-config
+---
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: VPCPeeringConnection
+metadata:
+  name: {{ .Values.customerName }}-vpc-peering
+  annotations:
+    meta.upbound.io/{{ .Values.customerName }}: ec2/v1beta1/vpcpeeringconnectionoptions
+  labels:
+    resource.upbound.io/{{ .Values.customerName }}: VPCPeeringConnection
+spec:
+  forProvider:
+    autoAccept: true
+    vpcId: {{ .Values.shootVpcId }}
+    peerVpcId: {{ .Values.customerVpcId }}
+    region: {{ .Values.region }}
+    tags:
+      Name: {{ .Values.shootClusterName }}/{{ .Values.customerName }}--peer
+  providerConfigRef:
+    name: aws-provider-config

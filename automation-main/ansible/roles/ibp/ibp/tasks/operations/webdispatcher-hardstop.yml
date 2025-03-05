@@ -1,0 +1,71 @@
+---
+# Synopsis: Does a hard stop of web dispatcher
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+# Outputs: Started web dispatcher
+# Comments: N/A
+
+- name: "Run stopsap as n02adm"
+  shell: stopsap
+  become: yes
+  become_user: "n02adm"
+  args:
+    executable: /bin/csh
+  register: results_startsap
+
+- name: "Display results_startsap"
+  debug:
+    var: results_startsap.stdout_lines
+
+- name: "Get saphostagent status"
+  command: "/usr/sap/hostctrl/exe/saphostexec -status"
+  become: true
+  register: saphostagent_status
+  failed_when: "'FAILED' in saphostagent_status.stderr"
+  changed_when: false
+
+- name: "Display saphostagent status"
+  debug:
+    var: saphostagent_status.stderr_lines
+
+- name: "BLOCK - Stop saphostagent"
+  block:
+  - name: "Stop saphostagent as root"
+    command: "/usr/sap/hostctrl/exe/saphostexec -stop"
+    become: true
+
+  - name: "Get saphostagent status"
+    command: "/usr/sap/hostctrl/exe/saphostexec -status"
+    become: true
+    register: saphostagent_statusblock
+    failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+    changed_when: false
+
+  - name: "Display saphostagent status"
+    debug:
+      var: saphostagent_statusblock.stderr_lines
+  when: saphostagent_status.stderr != 'saphostexec stopped '
+  #End "BLOCK - Stop saphostagent"
+
+- name: "Find sidadm processes"
+  shell: "ps -fu n02adm"
+  become: true
+  register: "pssidadm_output"
+  failed_when: "'FAILED' in pssidadm_output.stderr"
+  changed_when: false
+
+- name: "List process to kill"
+  debug:
+    var: pssidadm_output.stdout_lines
+
+- name: "Stop sidadm processes"
+  command: "pkill -9 -fu n02adm"
+  become: true
+  failed_when: "'FAILED' in pkillsidadm_output.stderr"
+  register: pkillsidadm_output
+
+- name: "Display stop sidadm output if verbosity >= 1"
+  debug:
+    var: pkillsidadm_output
+    verbosity: 1
+...

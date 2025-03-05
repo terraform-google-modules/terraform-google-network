@@ -1,0 +1,22 @@
+{
+  "storage_bucket": {
+    "description": "Cloud Storage Bucket",
+    "name": "ns2-scp-dev-storage-bucket",
+    "tags": {
+      "BuildUser": "c5309336",
+      "Business": "ns2",
+      "Customer": "ns2",
+      "Description": "Cloud Storage Bucket",
+      "Environment": "dev",
+      "Generated-By": "terraform",
+      "Managed-By": "terraform",
+      "Module": "example-module",
+      "ModuleVersion": "0.0.1",
+      "Name": "storage-bucket",
+      "Owner": "sapns2",
+      "ProvisionDate": "2020-08-13T01:45:38Z",
+      "SecurityBoundary": "scp",
+      "SecurityBoundaryName": "Build Dev (scp)"
+    }
+  }
+}

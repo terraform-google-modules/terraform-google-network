@@ -1,0 +1,122 @@
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: {{ .Values.backupBucketName }}
+  annotations:
+    meta.upbound.io/velero: s3/v1beta1/bucketversioning
+  labels:
+    resource.upbound.io/velero: velero-backup-bucket
+spec:
+  forProvider:
+    region: {{ .Values.awsRegion }}
+  providerConfigRef:
+    name: {{ .Values.providerConfigRef.name }}
+  deletionPolicy: Orphan
+---
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: BucketVersioning
+metadata:
+  annotations:
+    meta.upbound.io/velero: s3/v1beta1/bucketversioning
+  labels:
+    resource.upbound.io/velero: velero-backup-bucketversioning
+  name: velero-backup-bucketversioning
+spec:
+  forProvider:
+    bucketSelector:
+      matchLabels:
+        resource.upbound.io/velero: velero-backup-bucket
+    region: {{ .Values.awsRegion }}
+    versioningConfiguration:
+      - status: Enabled
+  providerConfigRef:
+    name: {{ .Values.providerConfigRef.name }}
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: Role
+metadata:
+  name: {{ .Values.backupBucketName }}-velero-bucket-role
+spec:
+    forProvider:
+        assumeRolePolicy: |
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "AWS": "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:role/shoot--{{ .Values.gardener.project }}--{{ .Values.gardener.shootName }}-nodes"
+                },
+                "Action": "sts:AssumeRole"
+              },
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:oidc-provider/api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.internal.{{ .Values.gardener.baseDomain }}"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                  "StringLike": {
+                    "api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.internal.{{ .Values.gardener.baseDomain }}:sub": "system:serviceaccount:velero:*"
+                  }
+                }
+              }
+            ]
+          }
+        inlinePolicy:
+          - name: {{ .Values.backupBucketName }}-velero-bucket-policy
+            policy: |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ec2:DescribeVolumes",
+                                "ec2:DescribeSnapshots",
+                                "ec2:CreateTags",
+                                "ec2:CreateVolume",
+                                "ec2:CreateSnapshot",
+                                "ec2:DeleteSnapshot"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:GetObject",
+                                "s3:DeleteObject",
+                                "s3:PutObject",
+                                "s3:AbortMultipartUpload",
+                                "s3:ListMultipartUploadParts"
+                            ],
+                            "Resource": [
+                                "arn:{{ .Values.awsPartition }}:s3:::{{ .Values.backupBucketName }}/*"
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:ListBucket"
+                            ],
+                            "Resource": [
+                                "arn:{{ .Values.awsPartition }}:s3:::{{ .Values.backupBucketName }}"
+                            ]
+                        }
+                    ]
+                }
+    providerConfigRef:
+      name: {{ .Values.providerConfigRef.name }}
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: velero-aws-credentials
+  namespace: {{ .Values.velero.backupNamespace | default "velero" | quote }}
+type: Opaque
+stringData:
+  cloud: |
+    [default]
+    role_arn = "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:role/{{ .Values.backupBucketName }}-velero-bucket-role"
+    credential_source = Ec2InstanceMetadata
+    region = {{ .Values.awsRegion }}

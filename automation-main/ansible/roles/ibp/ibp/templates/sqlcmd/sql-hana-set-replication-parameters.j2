@@ -1,0 +1,9 @@
+ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM' ) SET ('inifile_checker', 'replicate') = 'true' WITH RECONFIGURE;
+ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM' ) SET ('communication', 'tcp_backlog') = '2048' WITH RECONFIGURE;
+ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM' ) SET ('system_replication', 'logshipping_max_retention_size') = '{{ sql_computed_log_shipping_size }}' WITH RECONFIGURE;
+ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM' ) SET ('system_replication_communication', 'enable_ssl') = 'on' WITH RECONFIGURE;
+ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM' ) SET ('system_replication', 'datashipping_snapshot_max_retention_time') = '60' WITH RECONFIGURE;
+ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM' ) SET ('system_replication', 'logshipping_async_wait_on_buffer_full') = 'false' WITH RECONFIGURE;
+ALTER SYSTEM ALTER CONFIGURATION ('indexserver.ini', 'SYSTEM' ) SET ('system_replication', 'logshipping_replay_push_persistent_segment_count') = '64' WITH RECONFIGURE;
+ALTER SYSTEM ALTER CONFIGURATION ('indexserver.ini', 'SYSTEM' ) SET ('system_replication', 'logshipping_replay_logbuffer_cache_size') = '21474836480' WITH RECONFIGURE;
+ALTER SYSTEM ALTER CONFIGURATION ('indexserver.ini', 'SYSTEM' ) SET ('pitrestart', 'replay_step_size') = '1073741824' WITH RECONFIGURE;

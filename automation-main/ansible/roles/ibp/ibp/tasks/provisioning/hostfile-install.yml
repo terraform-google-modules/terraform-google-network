@@ -1,0 +1,29 @@
+---
+# Synopsis: Replaces Host File
+# Inputs:
+#   hostfile_fqdn : DNS Domain the host belongs to. pulled from role defaults.
+#   customer_number : hostvar value, two digit customer number, pulled from inventory
+#   groups.*.sid : hostvar value, SAP ID number pulled from inventory
+#   groups.*.suffix : hostvar value, suffix to attach to the hostname, pulled form inventory
+#   groups.cpids[0] : hostvars value, ip address pulled from inventory
+#   groups.webdispatcher[0] : hostvars value, ip address pulled from inventory
+#   groups.staging : hostvars value, ip addresses pulled from inventory
+#
+# Outputs: New Host File
+# Comments: N/A
+
+- name: "Generate list of all active sids"
+  set_fact:
+    sidlist: "{{ hostvars | to_json | from_json | json_query('*.sid') | sort | unique }}"
+  # Deconstructing what just happened:
+  # json_query('*.sid') - get sids for all hosts
+  # sort - sorts in alphabetical/numerical
+  # unique - remove duplicates
+
+- name: update /etc/hosts file
+  template:
+    dest: /etc/hosts
+    src: provisioning/ibp-hostfile.j2
+    backup: yes
+  become: yes
+...

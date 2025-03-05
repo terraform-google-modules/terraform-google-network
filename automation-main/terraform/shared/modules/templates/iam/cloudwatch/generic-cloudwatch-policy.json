@@ -1,0 +1,51 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowCloudWatchLog",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "logs:PutSubscriptionFilter"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowKinesisDataStream",
+      "Effect": "Allow",
+      "Action": [
+        "kinesis:PutRecord",
+        "kinesis:SubscribeToShard",
+        "kinesis:DescribeStreamSummary",
+        "kinesis:DescribeStreamConsumer",
+        "kinesis:PutRecords",
+        "kinesis:GetShardIterator",
+        "kinesis:GetRecords",
+        "kinesis:DescribeStream",
+        "kinesis:ListTagsForStream"
+      ],
+      "Resource": "${ kinesis_stream_arn }"
+    },
+    {
+      "Sid": "ExternalEntityKinesisConnection",
+      "Effect": "Allow",
+      "Action": [
+        "kinesis:DescribeLimits",
+        "kinesis:ListShards",
+        "kinesis:ListStreamConsumers",
+        "kinesis:ListStreams"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowKinesistoPassRole",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "${ cloudwatch_arn }"
+    }
+  ]
+}

@@ -1,0 +1,625 @@
+---
+# Playbook Name: s4pce-os-update.yml
+# Description: Update OS packages with option of upgrading minor release version
+#     This playbook will run pre-checks, update Redhat 8, reboot if required, and run post-checks
+# Dependencies:
+#   - Ansible v2.12+
+#   - sudo capability or root privileges on target machine
+# Variables:
+#   - log_pre_dir: Pre log directory, default of /var/log/ansible/s4pce-os-update_pre
+#   - log_post_dir: Post log directory, default of /var/log/ansible/s4pce-os-update_pre
+#   - excluded_packages: Comma seperated list of packages to exclude from OS updates
+#   - target_os_version: Target os version (ie 8.6)
+#   - aws_region: Region of instance updating, this is optional and only required for updating AWS tags
+#   - repository_management: Boolean to run repoistory-management role
+#   - reboot_if_required: Boolean to skip reboot task
+# Example:
+#   Execution on remote systems using the any inventory host file
+#     ansible-playbook s4pce-os-update.yml -kK -i <PATH-TO-INVENTORY>
+#     ansible-playbook s4pce-os-update.yml -kK -i <comma delimited instances IPs or CNAMES, ended with comma>
+#     ansible-playbook s4pce-os-update.yml -kK -i <PATH-TO-INVENTORY> -t <pre,update,post>
+#     ansible-playbook s4pce-os-update.yml -kK -i <PATH-TO-INVENTORY> -e repository_management=true
+#     ansible-playbook s4pce-os-update.yml -kK -i <PATH-TO-INVENTORY> -e target_os_version=8.6
+#     ansible-playbook s4pce-os-update.yml -kK -i <PATH-TO-INVENTORY> -e "target_os_version=8.6 aws_region=us-gov-west-1"
+#     ansible-playbook s4pce-os-update.yml -kK -i <PATH-TO-INVENTORY> -e "target_os_version=8.6 reboot_if_required=false"
+# Authors: Curtis Hoffman, Nick Martinez
+# Version: 2.12-000005
+# Modified: 2022-12-21 - Initial playbook creation
+#           2023-01-08 - Switch to using nobest DNF option for installing epel packages for RHEL 8.5 and below
+#                        due to bug https://access.redhat.com/errata/RHBA-2022:2027
+#           2023-01-18 - Update mount validation checks, add fix for grub.cfg missing symlink,
+#                        update filesystem usage checks to use correct binary value, make excluded packages variable
+#           2023-04-03 - Add enhancement to perform minor OS upgrades (ie 8.4 -> 8.6),
+#                        Add option to include repository-management role, Add option to run tag-management
+#           2023-04-18 - Add option to make reboot task optional
+#           2023-12-15 - Add bool filter to reboot when condition in order to evaluate correctly
+#           2024-01-24 - Add RHEL 8.8 as a valid target_os_version; change minimum Ansible version dependency from 2.9 to 2.12
+#           2024-02-29 - Exclude ansible-core package as we do not want to upgrade to 2.14
+#           2024-03-15 - Increase async timeout, clean yum cache before /var usage check
+#           2024-06-18 - Add kernel file check before reboot
+#           2024-09-20 - Add exclusion for clamav-update from EPEL as package has been replaced by clamav-freshclam in 1.0.6+
+#           2024-09-20 - Add RHEL 8.10 as a valid target_os_version
+#           2024-12-02 - Use variable for 'aws_region' in tag-management role.
+#           2024-12-16 - Reverting previos change for `aws_region`
+# Comments: |
+#   Ensure OS and DB backups have successfully completed before starting OS updates.
+#   Before running this playbook, all SAP services should be gracefully shutdown on targeted VMs as this playbook may reboot the targeted VMs.
+#
+#   Tags:
+#     pre:    Run prerequisite OS update tasks
+#     update: Run OS updates
+#     post:   Run post OS update tasks
+#
+
+- name: OS Update
+  hosts: all
+  gather_facts: true
+  any_errors_fatal: false
+
+  vars:
+    log_pre_dir: /var/log/ansible/s4pce-os-update_pre
+    log_post_dir: /var/log/ansible/s4pce-os-update_post
+    log_pre: "{{ log_pre_dir }}_{{ timestamp }}.log"
+    log_post: "{{ log_post_dir }}_{{ timestamp }}.log"
+    excluded_packages: "ansible,ansible-core,libknet1*,clamav-update"
+    repository_management: false
+    reboot_if_required: true
+
+  pre_tasks:
+    - name: Set timestamp fact
+      tags:
+        - always
+      ansible.builtin.set_fact:
+        timestamp: "{{ lookup('pipe', 'date +%m-%d-%y-%H-%M') }}"
+
+  tasks:
+    - name: Run always tasks
+      tags:
+        - always
+      block:
+        - name: Validate ansible is running inside a SCREEN or TMUX session
+          ansible.builtin.fail:
+            msg: "You must run this playbook inside a SCREEN or a TMUX session!"
+          delegate_to: localhost
+          become: false
+          run_once: true
+          when: "'screen' not in lookup('env', 'TERM')"
+
+        - name: Validate targeted VMs are Redhat 8
+          ansible.builtin.fail:
+            msg: "Only Redhat 8 hosts are supported at this time"
+          when: ansible_distribution_major_version != '8'
+
+        - name: Validate target_os_version value is in [8.4, 8.6, 8.8, 8.10]
+          ansible.builtin.fail:
+            msg: "Only the following target_os_version are supported: [8.4, 8.6, 8.8, 8.10]"
+          when: target_os_version is defined and target_os_version not in ['8.4', '8.6', '8.8', '8.10']
+
+    - name: Run pre tasks
+      tags:
+        - pre
+      block:
+        - name: Ensure log directory {{ log_pre_dir }} exists
+          ansible.builtin.file:
+            path: "{{ log_pre_dir }}"
+            state: directory
+            mode: '0755'
+          become: true
+
+        - name: Remove current repository file
+          ansible.builtin.include_role:
+            name: repository-management
+          vars:
+            repo_delete: true
+          when: target_os_version is defined or (repository_management is defined and repository_management | bool)
+
+        - name: Configure new repository file for version {{ ansible_distribution_version }}
+          ansible.builtin.include_role:
+            name: repository-management
+          vars:
+            repo_enable: true
+            repo_force: true
+            automatic_preset_selection: true
+          when: repository_management is defined and repository_management | bool
+
+        - name: Configure new repository file for version {{ target_os_version }}
+          ansible.builtin.include_role:
+            name: repository-management
+          vars:
+            repo_enable: true
+            repo_force: true
+            automatic_preset_selection: true
+            ansible_distribution_version: "{{ target_os_version }}"
+          when: target_os_version is defined
+
+        - name: Validate yum repositories
+          block:
+            - name: Run dnf check-update
+              ansible.builtin.command: dnf check-update
+              no_log: true
+              become: true
+              changed_when: false
+              failed_when: dnf_result.rc not in [0, 100] or 'Errors during downloading' in dnf_result.stderr
+              register: dnf_result
+          rescue:
+            - name: Display dnf output if dnf check-update fails
+              ansible.builtin.command: dnf check-update
+              become: true
+              changed_when: false
+              failed_when: dnf_result.rc not in [0, 100] or 'Errors during downloading' in dnf_result.stderr
+
+        - name: Validate /etc/fstab by running mount -av
+          ansible.builtin.command: mount -av
+          become: true
+          register: mount_all
+          failed_when: false
+          changed_when: mount_all.rc != 0
+
+        - name: Fail if mount errors
+          ansible.builtin.fail:
+            msg: "{{ mount_all.stderr_lines }}{{ mount_all.stdout_lines }}"
+          when: mount_all.rc != 0
+
+        - name: Remove dnf cache
+          ansible.builtin.command: dnf clean all
+          become: true
+
+        - name: Remove old kernels on RHEL8
+          ansible.builtin.command: dnf remove -y --oldinstallonly
+          become: true
+          failed_when: false
+
+        - name: Validate installonly_limit set to 3 or 2, default 3
+          ansible.builtin.shell: dnf config-manager --dump | grep ^installonly_limit | awk '{print $3}'
+          become: true
+          changed_when: false
+          register: installonly_limit
+
+        - name: Set dnf installonly_limit to default of 3 (keep max of 3 versions)
+          ansible.builtin.lineinfile:
+            path: /etc/dnf/dnf.conf
+            regexp: '^installonly_limit='
+            line: 'installonly_limit=3'
+          become: true
+          when: installonly_limit.stdout | int not in [2, 3]
+
+        - name: Update ansible facts
+          ansible.builtin.setup:
+
+        - name: Check for EFI
+          ansible.builtin.stat:
+            path: /sys/firmware/efi
+          register: efi_stat
+
+        - name: Set boot_mnt fact
+          ansible.builtin.set_fact:
+            boot_mnt: "{{ (efi_dir_check.stat.isdir is defined) | ternary('/boot/efi', '/boot') }}"
+
+        - name: Fail if {{ boot_mnt }} not mounted
+          ansible.builtin.fail:
+            msg: "Could not find {{ boot_mnt }} mounted, please fix before proceeding!"
+          when: "boot_mnt not in ansible_mounts | map(attribute='mount') | list"
+
+        - name: Check that /var has at least 2.5GB available
+          ansible.builtin.fail:
+            msg: "/var needs at least 2.5GB free space"
+          vars:
+            var_mount: "{{ ansible_mounts | json_query('[?mount == `/var`] | [0]') }}"
+          when: var_mount.size_available < 2684354560
+
+        - name: Check that /boot has at least 150MB available
+          ansible.builtin.fail:
+            msg: "/boot needs at least 150MB free space"
+          vars:
+            boot_mount: "{{ ansible_mounts | json_query('[?mount == `/boot`] | [0]') }}"
+          when: boot_mount.size_available < 157286400
+
+        - name: Check that / has at least 10% free space available
+          ansible.builtin.fail:
+            msg: "/ needs at least 10% free space"
+          vars:
+            root_mount: "{{ ansible_mounts | json_query('[?mount == `/`] | [0]') }}"
+          when: root_mount.size_available < root_mount.size_total | float * 0.1
+
+        - name: Log selected ansible facts to {{ log_pre }}
+          ansible.builtin.blockinfile:
+            path: "{{ log_pre }}"
+            mode: '0640'
+            create: true
+            block: |
+              Hostname: {{ ansible_hostname }}
+              Default IP: {{ ansible_default_ipv4.address }}
+              OS Version: {{ ansible_distribution }} {{ ansible_distribution_version }}
+              Kernel: {{ ansible_kernel }}
+              FIPS: {{ ansible_fips }}
+              SELinux: {{ (ansible_selinux.status == 'disabled') | ternary('disabled', ansible_selinux.mode, omit) }}
+            marker: "# {mark} FACT BLOCK"
+          become: true
+
+        - name: Get df output
+          ansible.builtin.command: df -hP
+          become: true
+          changed_when: false
+          register: df_output
+
+        - name: Log df output to {{ log_pre }}
+          ansible.builtin.blockinfile:
+            path: "{{ log_pre }}"
+            mode: '0640'
+            create: true
+            block: |
+              {{ df_output.stdout }}
+            marker: "# {mark} DF BLOCK"
+          become: true
+
+        - name: Get file contents to save
+          ansible.builtin.slurp:
+            src: "{{ item }}"
+          become: true
+          register: logfiles
+          loop:
+            - /etc/fstab
+
+        - name: Log file contents to {{ log_pre }}
+          ansible.builtin.blockinfile:
+            path: "{{ log_pre }}"
+            mode: '0640'
+            create: true
+            block: |
+              {{ item['content'] | b64decode }}
+            marker: "# {mark} LOG FILE BLOCK {{ item.item }}"
+          become: true
+          loop: "{{ logfiles['results'] }}"
+          loop_control:
+            label: "{{ item.item }}"
+
+        - name: Get service_facts
+          ansible.builtin.service_facts:
+
+        - name: Log service facts to {{ log_pre }}
+          ansible.builtin.blockinfile:
+            path: "{{ log_pre }}"
+            mode: '0640'
+            create: true
+            block: |
+              {% for service in ansible_facts.services.keys() | list %}
+              {% if ansible_facts.services[service]['state'] == 'running' or ansible_facts.services[service]['status'] == 'enabled' %}
+              {{ ansible_facts.services[service]['name'] }}  {{ ansible_facts.services[service]['state'] }}  {{ ansible_facts.services[service]['status'] }}
+              {% endif %}
+              {% endfor %}
+            marker: "# {mark} Services BLOCK"
+          become: true
+
+        - name: Get installed packages
+          ansible.builtin.command: dnf list installed
+          become: true
+          changed_when: false
+          register: dnf_installed
+
+        - name: Log installed packages to {{ log_pre }}
+          ansible.builtin.blockinfile:
+            path: "{{ log_pre }}"
+            mode: '0640'
+            create: true
+            block: |
+              {{ dnf_installed.stdout }}
+            marker: "# {mark} Installed Packages BLOCK"
+          become: true
+
+    - name: Run update tasks
+      tags:
+        - update
+
+      block:
+        - name: Validate yum repositories
+          block:
+            - name: Run dnf check-update
+              ansible.builtin.command: dnf check-update
+              no_log: true
+              become: true
+              changed_when: false
+              failed_when: dnf_result.rc not in [0, 100] or 'Errors during downloading' in dnf_result.stderr
+              register: dnf_result
+          rescue:
+            - name: Display dnf output if dnf check-update fails
+              ansible.builtin.command: dnf check-update
+              become: true
+              changed_when: false
+              failed_when: dnf_result.rc not in [0, 100] or 'Errors during downloading' in dnf_result.stderr
+
+        - name: Stop fapolicyd due to bug https://access.redhat.com/errata/RHBA-2022:6989
+          ansible.builtin.service:
+            name: fapolicyd
+            state: stopped
+          become: true
+          failed_when: false
+
+        - name: Check if /etc/grub2.cfg a symlink
+          ansible.builtin.stat:
+            path: /etc/grub2.cfg
+          register: grub2_stat
+
+        - name: Run grub fixes when /etc/grub2.cfg not a symlink
+          when: grub2_stat.stat.islnk is defined and not grub2_stat.stat.islnk
+          block:
+            - name: Check for EFI
+              ansible.builtin.stat:
+                path: /sys/firmware/efi
+              register: efi_stat
+
+            - name: Set grub2 config file fact
+              ansible.builtin.set_fact:
+                grub2_config: "{{ (efi_dir_check.stat.isdir is defined) | ternary('/boot/efi/EFI/redhat/grub.cfg', '/boot/grub2/grub.cfg') }}"
+
+            - name: Update grub config
+              ansible.builtin.command: "grub2-mkconfig -o {{ grub2_config }}"
+              become: true
+              changed_when: true
+
+            - name: Move existing /etc/grub2.cfg to /etc/grub2.bkp
+              ansible.builtin.command: "mv /etc/grub2.cfg /etc/grub2.bkp_{{ lookup('pipe', 'date +%m-%d-%y-%H-%M') }}"
+              become: true
+              changed_when: true
+
+            - name: Create symlink /etc/grub2.cfg
+              ansible.builtin.file:
+                src: "{{ grub2_config }}"
+                dest: /etc/grub2.cfg
+                state: link
+              become: true
+
+        - name: Run OS Upgrade (disable epel due to dependencies issues) (times out after 40 minutes)
+          ansible.builtin.dnf:
+            name: '*'
+            state: latest
+            update_cache: true
+            disablerepo: epel
+            exclude: "{{ excluded_packages }}"
+          async: 2400
+          poll: 30
+          become: true
+
+        - name: Find packages installed from epel for RHEL 8.6 and above'
+          ansible.builtin.shell: find-repos-of-install | grep @epel | awk '{print $1}' | grep -vE '{{ excluded_packages | regex_replace(',', '|') }}'
+          become: true
+          changed_when: false
+          register: epel_packages
+          when: ansible_facts['distribution_version'] is version('8.6', '>=')
+
+        - name: Upgrade epel packages (times out after 20 minutes) for RHEL 8.6 and above
+          ansible.builtin.dnf:
+            name: "{{ packages }}"
+            state: latest
+            update_cache: true
+            enablerepo: epel
+          vars:
+            packages: "{{ epel_packages.stdout_lines }}"
+          async: 1200
+          poll: 30
+          become: true
+          when: ansible_facts['distribution_version'] is version('8.6', '>=')
+
+        - name: Upgrade epel packages (times out after 20 minutes) for RHEL 8.5 and below
+          ansible.builtin.command: "dnf upgrade --disablerepo=* --enablerepo=epel --nobest --allowerasing --exclude={{ excluded_packages }} -y"
+          async: 1200
+          poll: 30
+          become: true
+          changed_when: false
+          when: ansible_facts['distribution_version'] is version('8.6', '<')
+
+        - name: Get the default kernel version (grubby --grub2 --default-kernel)
+          ansible.builtin.command: grubby --grub2 --default-kernel
+          become: true
+          changed_when: false
+          register: newkernel
+
+        - name: Check if initramfs exists for default kernel
+          ansible.builtin.stat:
+            path: "{{ newkernel.stdout | regex_replace('vmlinuz', 'initramfs') }}.img"
+          register: stat_initramfs
+          become: true
+
+        - name: Validate kernel initramfs
+          ansible.builtin.assert:
+            that: stat_initramfs.stat.exists
+            fail_msg: "Cannot find {{ newkernel.stdout | regex_replace('vmlinuz', 'initramfs') }}.img !!! Please fix before REBOOT!!!"
+            success_msg: "{{ newkernel.stdout | regex_replace('vmlinuz', 'initramfs') }}.img present, all good!"
+
+        - name: Check if kernel exists for default kernel
+          ansible.builtin.stat:
+            path: "{{ newkernel.stdout }}"
+          register: stat_newkernel
+          become: true
+
+        - name: Validate kernel
+          ansible.builtin.assert:
+            that: stat_newkernel.stat.exists
+            fail_msg: "Cannot find {{ newkernel.stdout }} !!! Please fix before REBOOT!!!"
+            success_msg: "{{ newkernel.stdout }} present, all good!"
+
+        - name: Check if reboot required
+          ansible.builtin.command: "/usr/bin/needs-restarting -r"
+          failed_when: false
+          no_log: true
+          become: true
+          register: reboot_required
+          changed_when: false
+
+        - name: Reboot required hosts (usually takes 3-10 minutes and times out at 15)
+          ansible.builtin.reboot:
+            reboot_timeout: 900
+            post_reboot_delay: 60
+          become: true
+          when:
+            - reboot_required.rc == 1
+            - reboot_if_required | bool
+
+        - name: Check for missing mounts
+          ansible.builtin.shell: mount -fav | awk '/successfully/{print $1}'
+          become: true
+          register: fake_mount
+          failed_when: false
+          changed_when: false
+          when: reboot_required.rc == 1
+
+        - name: Find missing mounts
+          when: (fake_mount.stdout is defined and fake_mount.stdout | length > 0) or (fake_mount.stderr is defined and fake_mount.stderr | length > 0)
+          block:
+            - name: Show missing mounts
+              ansible.builtin.debug:
+                msg: "{{ fake_mount.stdout_lines }} is not mounted"
+              when: fake_mount.stdout | length > 0
+
+            - name: Show stderr if present
+              ansible.builtin.debug:
+                msg: "{{ fake_mount.stderr_lines }}"
+              when: fake_mount.stderr | length > 0
+
+            - name: Validate /etc/fstab by running mount -av
+              ansible.builtin.command: mount -av
+              become: true
+              register: mount_all
+              failed_when: false
+              changed_when: mount_all.rc != 0
+
+            - name: Fail if mount errors
+              ansible.builtin.fail:
+                msg: "{{ mount_all.stderr_lines }}{{ mount_all.stdout_lines }}"
+              when: mount_all.rc != 0
+
+        - name: Restart fapolicyd service
+          ansible.builtin.service:
+            name: fapolicyd
+            state: started
+          become: true
+          failed_when: false
+          when: reboot_required.rc != 1
+
+    - name: Run post tasks
+      tags:
+        - post
+      block:
+        - name: Ensure log directory {{ log_post_dir }} exists
+          ansible.builtin.file:
+            path: "{{ log_post_dir }}"
+            state: directory
+            mode: '0755'
+          become: true
+
+        - name: Force update of ansible facts
+          ansible.builtin.setup:
+
+        - name: Log selected ansible facts to {{ log_post }}
+          ansible.builtin.blockinfile:
+            path: "{{ log_post }}"
+            mode: '0640'
+            create: true
+            block: |
+              Hostname: {{ ansible_hostname }}
+              Default IP: {{ ansible_default_ipv4.address }}
+              OS Version: {{ ansible_distribution }} {{ ansible_distribution_version }}
+              Kernel: {{ ansible_kernel }}
+              FIPS: {{ ansible_fips }}
+              SELinux: {{ (ansible_selinux.status == 'disabled') | ternary('disabled', ansible_selinux.mode, omit) }}
+            marker: "# {mark} FACT BLOCK"
+          become: true
+
+        - name: Get df output
+          ansible.builtin.command: df -hP
+          become: true
+          changed_when: false
+          register: df_output
+
+        - name: Log df output to {{ log_post }}
+          ansible.builtin.blockinfile:
+            path: "{{ log_post }}"
+            mode: '0640'
+            create: true
+            block: |
+              {{ df_output.stdout }}
+            marker: "# {mark} DF BLOCK"
+          become: true
+
+        - name: Get file contents to save
+          ansible.builtin.slurp:
+            src: "{{ item }}"
+          become: true
+          register: logfiles
+          loop:
+            - /etc/fstab
+
+        - name: Log file contents to {{ log_post }}
+          ansible.builtin.blockinfile:
+            path: "{{ log_post }}"
+            mode: '0640'
+            create: true
+            block: |
+              {{ item['content'] | b64decode }}
+            marker: "# {mark} LOG FILE BLOCK {{ item.item }}"
+          become: true
+          loop: "{{ logfiles['results'] }}"
+          loop_control:
+            label: "{{ item.item }}"
+
+        - name: Get service_facts
+          ansible.builtin.service_facts:
+
+        - name: Log service facts to {{ log_post }}
+          ansible.builtin.blockinfile:
+            path: "{{ log_post }}"
+            mode: '0640'
+            create: true
+            block: |
+              {% for service in ansible_facts.services.keys() | list %}
+              {% if ansible_facts.services[service]['state'] == 'running' or ansible_facts.services[service]['status'] == 'enabled' %}
+              {{ ansible_facts.services[service]['name'] }}  {{ ansible_facts.services[service]['state'] }}  {{ ansible_facts.services[service]['status'] }}
+              {% endif %}
+              {% endfor %}
+            marker: "# {mark} Services BLOCK"
+          become: true
+
+        - name: Get installed packages
+          ansible.builtin.command: dnf list installed
+          become: true
+          changed_when: false
+          register: dnf_installed
+
+        - name: Log installed packages to {{ log_post }}
+          ansible.builtin.blockinfile:
+            path: "{{ log_post }}"
+            mode: '0640'
+            create: true
+            block: |
+              {{ dnf_installed.stdout }}
+            marker: "# {mark} Installed Packages BLOCK"
+          become: true
+
+        - name: Update instance tags
+          ansible.builtin.include_role:
+            name: tag-management
+          when: target_os_version is defined
+
+        - name: Get current kernel versions
+          ansible.builtin.set_fact:
+            current_kernels: |
+              {%- set kernels = [] %}
+              {%- for host in play_hosts %}
+              {%- if kernels.append(hostvars[host].ansible_kernel) %}
+              {%- endif %}
+              {%- endfor %}
+              {{ kernels }}
+          delegate_to: localhost
+          run_once: true
+
+        - name: Check if hosts running same kernel version
+          block:
+            - name: Fail if more than one kernel version
+              ansible.builtin.fail:
+                msg: "{{ current_kernels | unique }}"
+              when: current_kernels | unique | length > 1
+              delegate_to: localhost
+              run_once: true
+          always:
+            - name: Display hosts kernel versions
+              ansible.builtin.debug:
+                msg: "{{ ansible_kernel }}"

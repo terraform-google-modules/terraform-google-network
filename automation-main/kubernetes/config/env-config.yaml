@@ -1,0 +1,39 @@
+---
+# cluster info
+gardenerInfraSecretName: <infra-secret-name> # docs/deployment-steps.md#Create-Infra-Secret-in-Gardener-Project
+shootOwnerEmail: <owner-email> # user must be added to project. docs/before-you-deploy.md#Gardener-Project
+shootHelmChartName: ste-shoot # Helm chart name + shoot name must be under 21 characters combined 
+shootName: <shoot-name> # User defined name. Will be applied when cluster is created and used when it is updated
+dnsSecretName: <dns-secret-name> # docs/deployment-steps.md#Create-DNS-Secret
+haControlPlane: true
+vpc_id: <vpc-id> # docs/before-you-deploy.md#Request-New-VPC-Cidr-Range terraform outputs: management/integrations/gardener/shoot-vpc/layer-00
+# hosted zone info
+envBaseDomain: <base-domain> # docs/before-you-deploy.md#Public-Route53-Hosted-Zone
+# vault info
+vaultAddr: <vault-addr> # Vault URL <https://vault.my.vault.us/>
+vaultBasePath: <vault-base-path> # docs/before-you-deploy.md#Vault-Path-and-AppRole-Token <kv_core_secrets/data/products/ste/dev/gardener>
+# hyperscalar info
+provider: aws
+region: us-gov-west-1
+# gitlab info
+gitlabRepoUrl: <gitlab-repo-url> # docs/deployment-steps.md#Create-Repository-in-GitLab
+targetBranchName: <target-branch-name> # docs/deployment-steps.md#Create-Branch-in-GitLab
+# argocd oidc toggle
+argocdOidcEnabled: true
+# crossplane toggle
+crossplaneEnabled: true
+# uncomment below if manual shoot cluster cidr definition is needed
+# vpcConfig:
+#   zonenet:
+#     - workers: 10.90.0.0/19
+#       public: 10.90.96.0/22
+#       internal: 10.90.112.0/22
+#     - workers: 10.90.128.0/19
+#       public: 10.90.160.0/20
+#       internal: 10.90.176.0/20
+#     - workers: 10.90.192.0/19
+#       internal: 10.90.224.0/20
+#       public: 10.90.240.0/20
+# uncomment below to manually define pod or service overlay network cidr range
+#   pods: 100.96.0.0/11
+#   services: 100.64.0.0/13

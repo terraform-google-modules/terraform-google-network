@@ -1,0 +1,128 @@
+---
+# Description: Provision IBP App
+# Inputs:
+#   - sapapp_rebuild_profile_tars: path to the sapapp source folder (version unique)
+#   - sapapp_rebuild_profile_saphostagent_source - path to the SAPHOSTAGENT install files (version unique)
+#   - sapapp_rebuild_profile_hostname:
+#   - sapapp_rebuild_profile_sid:
+# Outputs: Configured IBP App system
+# Comments: N/A
+
+- name: Get EC2 Metadata
+  ec2_metadata_facts:
+  register: ec2_metadata
+
+- name: Validate environment
+  include_tasks: general/directories-validate.yml
+  vars:
+    folder_path: "{{ item }}"
+  loop: "{{ sapapp_rebuild_profile_tars + [sapapp_rebuild_profile_saphostagent_source] | list}}"
+
+- name: Disable Firewall
+  service:
+    name: firewalld
+    enabled: false
+    state: stopped
+  become: true
+
+- name: Set the Hostname
+  hostname:
+    name: "{{ sapapp_rebuild_profile_hostname }}"
+  become: true
+
+- name: Ensure Sapsys group has GID of 79
+  group:
+    name: sapsys
+    state: present
+    gid: 79
+    local: yes
+  become: true
+
+- name: "Create {{sapapp_rebuild_profile_sid|lower}}adm SAP System Administrator"
+  user:
+    name: "{{spr_sid|lower}}adm"
+    comment: "SAP System Administrator"
+    create_home: yes
+    home: "/home/{{spr_sid|lower}}adm"
+    uid: "20203"
+    group: "79"
+    shell: /bin/csh
+    state: present
+  become: true
+
+- name: "Create sapadm user account"
+  user:
+    name: "sapadm"
+    comment: "SAP Local Administrator"
+    create_home: yes
+    home: "/home/sapadm"
+    group: "79"
+    shell: /bin/false
+    state: present
+  become: true
+
+- name: "Backup /etc/services"
+  copy:
+    dest: "/etc/services.{{ ansible_date_time.epoch }}"
+    src: "/etc/services"
+    remote_src: yes
+  become: true
+
+- name: Extract Profile tars
+  become: true
+  ignore_errors: true
+  unarchive:
+    src: "{{ item }}"
+    dest: "/"
+    remote_src: yes
+    list_files: no
+  loop: "{{ sapapp_rebuild_profile_tars }}"
+
+- name: Check execute mode on saphostexec
+  become: true
+  file:
+    path: "{{ sapapp_rebuild_profile_saphostagent_source }}/saphostexec"
+    mode: 'u+x'
+
+- name: Run the SAP Host Agent Setup script
+  command: "./saphostexec -install"
+  args:
+    chdir: "{{ sapapp_rebuild_profile_saphostagent_source }}"
+  become: true
+
+- name: Restart SAP Host Agent
+  become: true
+  command: "./saphostexec -restart"
+  args:
+    chdir: "/usr/sap/hostctrl/exe"
+  register: results_restart_saphostagent
+
+- name: Show SAP Host Agent Status
+  debug:
+    var: results_restart_saphostagent.stderr_lines
+
+- name: Get hdbuserstore list
+  shell: "hdbuserstore list"
+  become: true
+  become_user: "{{ spr_sid|lower }}adm"
+  become_flags: '-i'
+  register: hdbuserstore_list
+
+- name: Display hdbuserstore Results
+  debug:
+    var: hdbuserstore_list.stdout_lines
+
+- name: Reset sapadm password
+  user:
+    name: sapadm
+    update_password: always
+    password: "{{ default_password }}"
+  become: true
+
+- name: Reset {{ sapapp_rebuild_profile_sid|lower }}adm password
+  user:
+    name: "{{ spr_sid|lower }}adm"
+    update_password: always
+    password: "{{ default_password }}"
+  become: true
+...

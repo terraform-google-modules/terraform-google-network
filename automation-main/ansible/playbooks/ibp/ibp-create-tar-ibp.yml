@@ -1,0 +1,485 @@
+---
+# Playbook Name: ibp-create-tar-ibp.yml
+# Synopsis: Creates a new release by tarring the current version of IBP App and Hana. Saves to EFS and S3
+# Description: Gracefully stops SAP App and Hana.  Then creates split tar files of desired folders.  Tars are saved to EFS and uploaded to S3 buckets
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS permissions to upload to S3 Bucket for tar files upload
+#   - Sudo access to IBP App and DB instances
+# Dependencies: N/A
+# Variables:
+#   - save_profiles : when true, it will also save the sidadm and sapadm profiles.
+#   - sid : SAP ID of the system. Used to shutdown the App and DB servers
+#   - ipaddress_db : IP Address of the Hana DB instance
+#   - ipaddress_sapapp : IP Address of the SAPApp instance
+#   - release_name : Name of the tar release.  [Release]_HFC[XX]EP[NN]_[RDS|NO_RDS]_TAR   i.e. 1911_HFC02EP05_RDS_TAR
+#   - aws_access_key : AWS access key to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - aws_secret_key : AWS secret key to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - aws_security_token : AWS security token to use when uploading to S3 Bucket; leave Blank to use remote environment
+#   - app_staging_location : efs volume location for sap staging
+#   - db_staging_location : efs volume location for hana staging
+#   - upload_bucket : s3 bucket to upload to
+#   - upload_location : path to prepend to s3 upload location
+# Example:
+#   How to start with remote execution using ssh key
+#    ansible-playbook -u ec2-user --private-key myprivatekey.pem -c ssh ibp-create-tar-ibp.yml
+#
+#   How to start with remote execution using username/password
+#   - Requires sshpass installed
+#   - Requires ssh fingerprints of remote systems installed
+#      ansible-playbook -u i123456 -k ibp-create-tar-ibp.yml
+#
+# Authors: Louis Lee, Vighnesh Sivakumar
+# Version: 2.9-000005
+# Modified: 2020-01-21 - Created
+#           2020-01-29 - Aligned with other tar playbooks
+#           2020-03-03 - Bugfix. Fixes Copy SAPHOSTAgent when run locally.
+#           2020-06-07 - Updated to use start/stop tasks
+#           2020-09-11 - Bugfix, wrong group names; Add save profile feature; Added tags
+#           2024-02-19 - Make confirmation prompt more intuitive
+# Comments:
+#   Tags:
+#   - play0 always                          : Obtain server information and metadata
+#   - play1 stop-app stop-hana create-tars  : Stop App
+#   - play2 stop-hana create-tars           : Stop Hana
+#   - play3 create-tars                     : Create Tars
+#   - play4                                 : Upload to S3
+#   - play5 start-hana start-app            : Start Hana
+#   - play6 start-app                       : Start App
+#   - play-end always the-end               : The End
+
+
+##### Play0
+- name: Play0 Obtain server information and metadata
+  hosts: localhost
+  gather_facts: false
+  tags:
+    - always
+    - play0
+
+  vars_prompt:
+  - name: save_profiles
+    prompt: "Save the profiles? (yes|no)"
+    default: "no"
+    private: no
+
+  - name: sid
+    prompt: "What is the SID (Sap ID)"
+    private: no
+
+  - name: ipaddress_db
+    prompt: "What is the Hana DB ip address?"
+    private: no
+
+  - name: ipaddress_sapapp
+    prompt: "What is the SAP Application Server ip address?"
+    private: no
+
+  - name: release_name
+    prompt: "What is the release_name of the tar?"
+    private: no
+
+  - name: aws_access_key
+    prompt: "Enter your AWS Access Key for S3 Bucket Upload"
+    private: no
+
+  - name: aws_secret_key
+    prompt: "Enter your AWS Secret Key for S3 Bucket Upload"
+    private: yes
+
+  - name: aws_security_token
+    prompt: "Enter your AWS Security Token for S3 Bucket Upload"
+    private: yes
+
+  vars:
+    app_staging_location: '/staging/ibp/Build'
+    db_staging_location: '/staging/ibp/Build'
+    upload_bucket: 'sap-ibp-artifacts'
+    upload_location: 'staging/ibp/Build'
+
+  tasks:
+  - name: "Display Configuration values"
+    debug:
+      msg:
+        - "SID                  : {{ sid }}"
+        - "Hana DB ip address   : {{ ipaddress_db }}"
+        - "SAP App ip address   : {{ ipaddress_sapapp }}"
+
+        - "App Release Destination Location  : {{ app_staging_location }}/{{ release_name }}/APP"
+        - "Hana Release Destination Location : {{ db_staging_location }}/{{ release_name }}/DB"
+        - "S3 Upload Location                : s3://{{ upload_bucket }}/{{ upload_location }}/{{ release_name }}"
+
+  - name: Review configuration values.
+    pause:
+      prompt: "If the above values are correct, enter yes"
+    register: confirm_input
+
+  - name: "Fail if not confirmed"
+    fail:
+      msg: 'Input not confirmed.  Quitting now.'
+    when:
+    - confirm_input.user_input | lower != 'y'
+    - confirm_input.user_input | lower != 'yes'
+
+  - name: "Add DB to ansible hosts"
+    add_host:
+      name: "{{ ipaddress_db }}"
+      groups:
+      - hanadb
+      - "{{ sid|lower }}"
+      sid: "{{ sid|lower }}"
+      save_profiles: "{{ save_profiles }}"
+      release_name: "{{ release_name }}"
+      staging_location: "{{ db_staging_location }}"
+      upload_bucket: "{{ upload_bucket }}"
+      upload_location: "{{ upload_location }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      aws_security_token: "{{ aws_security_token }}"
+
+  - name: "Add SapApp to ansible hosts"
+    add_host:
+      name: "{{ ipaddress_sapapp }}"
+      groups:
+      - sapapp
+      - "{{ sid|lower }}"
+      sid: "{{ sid|lower }}"
+      save_profiles: "{{ save_profiles }}"
+      release_name: "{{ release_name }}"
+      staging_location: "{{ app_staging_location }}"
+      upload_bucket: "{{ upload_bucket }}"
+      upload_location: "{{ upload_location }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+      aws_security_token: "{{ aws_security_token }}"
+
+#################
+##### Play1 #####
+#################
+- name: "Play1:  Stop SapApp"
+  hosts: sapapp
+  any_errors_fatal: true
+  tags:
+    - play1
+    - stop-app
+    - stop-hana
+    - create-tars
+
+  tasks:
+  - name: "Check if {{ staging_location }}/{{ release_name }}/APP exists"
+    stat:
+      path: "{{ staging_location }}/{{ release_name }}/APP"
+    register: destination_app
+
+  - name: "Fail if destiantion folder already exists"
+    fail:
+      msg: "Destination folder already exists! Please remove the destination folder and rerun script."
+    when: destination_app.stat.exists == true
+
+  - name: "Call sapapp-hardstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-hardstop.yml
+
+#################
+##### Play2 #####
+#################
+- name: "Play2:  Stop Hana"
+  hosts: hanadb
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play2
+    - stop-hana
+    - create-tars
+
+  tasks:
+  - name: "Check if {{ staging_location }}/{{ release_name }}/DB exists"
+    stat:
+      path: "{{ staging_location }}/{{ release_name }}/DB"
+    register: destination_db
+
+  - name: "Fail if destiantion folder already exists"
+    fail:
+      msg: "Destination folder already exists! Please remove the destination folder and rerun script."
+    when: destination_db.stat.exists == true
+
+  - name: "Call hana-hardstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-hardstop.yml
+
+#################
+##### Play3 #####
+#################
+- name: Play3 Create tar files
+  hosts: hanadb,sapapp
+  gather_facts: true
+  tags:
+    - play3
+    - create-tars
+
+  tasks:
+  - name: "BLOCK : Create Profiles"
+    when: save_profiles|bool
+    block:
+      - name: "Pull user metadata"
+        getent:
+          database: passwd
+          split: ":"
+
+      - name: "Create {{ staging_location }}/{{ release_name }}/PROFILES folder"
+        file:
+          path: "{{ staging_location }}/{{ release_name }}/PROFILES"
+          state: directory
+        become: true
+        run_once: true
+
+      - name: "Initialize Profile Tar"
+        file:
+          path: "{{ staging_location }}/{{ release_name }}/PROFILES/{{ ansible_hostname }}-profiles"
+          state: touch
+        become: true
+
+      # Note: getent_passwd is automatically generated by ansible getent task module
+      - name: "Add home directories to Profile Tar"
+        shell: "/bin/tar -rvf {{ ansible_hostname }}-profiles {{ getent_passwd[item][4] }}"
+        become: true
+        args:
+          chdir: "{{ staging_location }}/{{ release_name }}/PROFILES"
+          warn: false
+        loop_control:
+          label: "Add {{ item }} to {{ staging_location }}/{{ release_name }}/PROFILES/{{ ansible_hostname }}-profiles"
+        loop:
+          - "{{ sid|lower }}adm"
+          - "sapadm"
+
+      - name: "Add additional hanadb files to Profile Tar"
+        shell: "/bin/tar -rvf {{ ansible_hostname }}-profiles {{ item }}"
+        become: true
+        args:
+          chdir: "{{ staging_location }}/{{ release_name }}/PROFILES"
+          warn: false
+        when: inventory_hostname in groups['hanadb']
+        loop:
+          - "/usr/sap"
+          - "/var/lib/hdb"
+          - "/hana/backups"
+          - "/etc/incron.d"
+
+      - name: "Add additional sapapp files to Profile Tar"
+        shell: "/bin/tar -rvf {{ ansible_hostname }}-profiles {{ item }}"
+        become: true
+        args:
+          chdir: "{{ staging_location }}/{{ release_name }}/PROFILES"
+          warn: false
+        when: inventory_hostname in groups['sapapp']
+        loop:
+          - "/etc/services"
+
+      - name: "Compress profile Tars"
+        shell: |
+          /bin/gzip {{ ansible_hostname }}-profiles
+          /bin/mv {{ ansible_hostname }}-profiles.gz {{ ansible_hostname }}-profiles.tgz
+        args:
+          chdir: "{{ staging_location }}/{{ release_name }}/PROFILES"
+        become: true
+  #End "BLOCK - Create Profiles"
+
+  - name: "Create {{ staging_location }}/{{ release_name }}/APP folder"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}/APP"
+      state: directory
+    become: true
+    when: inventory_hostname in groups['sapapp']
+
+  - name: "Create {{ staging_location }}/{{ release_name }}/DB folder"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}/DB"
+      state: directory
+    become: true
+    when: inventory_hostname in groups['hanadb']
+
+  - name: "Create {{ staging_location }}/{{ release_name }}/SAPHOSTAGENT folder"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}/SAPHOSTAGENT"
+      state: directory
+    become: true
+    when: inventory_hostname in groups['hanadb']
+
+  - name: "Copy the SAPHOSTAGENT to {{ staging_location }}/{{ release_name }}/SAPHOSTAGENT"
+    copy:
+      dest: "{{ staging_location }}/{{ release_name }}/SAPHOSTAGENT"
+      src: "/usr/sap/hostctrl/exe/"
+      remote_src: yes
+    become: yes
+    when: inventory_hostname in groups['hanadb']
+
+  - name: "Create Hana Tars"
+    shell: "/bin/tar -cvzf - {{ item.path }}/* | split -b 2000M - {{ item.name }}"
+    become: true
+    args:
+      chdir: "{{ staging_location }}/{{ release_name }}/DB"
+    loop:
+    - path: "/hana/data"
+      name: "hana-data.tgz-"
+    - path: "/hana/log"
+      name: "hana-log.tgz-"
+    - path: "/hana/shared"
+      name: "hana-shared.tgz-"
+    when: inventory_hostname in groups['hanadb']
+    async: 14400 # set async timeout to 4 hours
+    poll: 0
+    register: hanatarcreate_status
+
+  - name: "Create SapAPP Tars"
+    shell: "/bin/tar -cvzf - {{ item.path }}/* | split -b 2000M - {{ item.name }}"
+    become: true
+    args:
+      chdir: "{{ staging_location }}/{{ release_name }}/APP"
+    loop:
+    - path: "/sapmnt"
+      name: "sapmnt.tgz-"
+    - path: "/usr/sap"
+      name: "usrsap.tgz-"
+    when: inventory_hostname in groups['sapapp']
+
+  - name: "Wait for Hana Tar Creation to finish"
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+    become: true
+    register: job_result
+    until: job_result.finished
+    delay: 60  # Check every 60 seconds. Adjust as you like.
+    retries: 240  # Retry for 4 hours
+    loop: "{{ hanatarcreate_status.results }}"
+    when: inventory_hostname in groups['hanadb']
+
+
+
+#################
+##### Play4 #####
+#################
+- name: Play4 Upload to S3
+  hosts: hanadb,sapapp
+  gather_facts: false
+  tags:
+    - play4
+
+  tasks:
+  # - name: "upload environments"
+  - name: "Upload SAPHOSTAGENT to S3"
+    s3_sync:
+      file_root: "/usr/sap/hostctrl/exe/"
+      bucket: "{{ upload_bucket }}"
+      mode: push # required. choices: push. sync direction.
+      file_change_strategy: date_size
+      permission: bucket-owner-full-control
+      key_prefix: "{{ upload_location }}/{{ release_name }}/SAPHOSTAGENT/"
+      delete: false
+      security_token: "{{ aws_security_token }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+    when: inventory_hostname in groups['hanadb']
+    become: true
+
+  - name: "Upload HanaDB files to S3"
+    s3_sync:
+      file_root: "{{ staging_location }}/{{ release_name }}/DB/"
+      bucket: "{{ upload_bucket }}"
+      mode: push # required. choices: push. sync direction.
+      file_change_strategy: date_size
+      permission: bucket-owner-full-control
+      key_prefix: "{{ upload_location }}/{{ release_name }}/DB/"
+      delete: false
+      security_token: "{{ aws_security_token }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+    when: inventory_hostname in groups['hanadb']
+    become: true
+    register: hanaupload_status
+    async: 14400 # timeout in seconds (4 hours)
+    poll: 0
+
+  - name: "Upload SapAPP files to S3"
+    s3_sync:
+      file_root: "{{ staging_location }}/{{ release_name }}/APP/"
+      bucket: "{{ upload_bucket }}"
+      mode: push # required. choices: push. sync direction.
+      file_change_strategy: date_size
+      permission: bucket-owner-full-control
+      key_prefix: "{{ upload_location }}/{{ release_name }}/APP/"
+      delete: false
+      security_token: "{{ aws_security_token }}"
+      aws_access_key: "{{ aws_access_key }}"
+      aws_secret_key: "{{ aws_secret_key }}"
+    when: inventory_hostname in groups['sapapp']
+    become: true
+
+  - name: "Wait for Hana Tar Upload to finish"
+    async_status:
+      jid: "{{ hanaupload_status.ansible_job_id }}"
+    become: true
+    register: job_result
+    until: job_result.finished
+    delay: 60  # Check every 60 seconds. Adjust as you like.
+    retries: 240  # Retry for 4 hours
+    when: inventory_hostname in groups['hanadb']
+
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: Start Hana"
+  hosts: hanadb
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play5
+    - start-hana
+    - start-app
+
+  tasks:
+  - name: "Call hana-hardstart task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-hardstart.yml
+
+#################
+##### Play6 #####
+#################
+- name: "Play6:  Start SapApp"
+  hosts: sapapp
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play6
+    - start-app
+
+  tasks:
+  - name: "Call sapapp-hardstart task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-hardstart.yml
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    debug:
+      msg: "Of the world as we know it"
+...

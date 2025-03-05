@@ -1,0 +1,506 @@
+---
+# Synopsis: Creates EBS disks and configures LVM
+# Inputs:
+#   - disk_preset_list: Either a custom defined dictionary or prexisting variables defined in defaults.yml  which includes relevant information to resize disk and volumes
+#   - replace_ec2_placement_region: set this to aws_region, if the ec2_metadata_facts (ansible_ec2_placement_region) is different from the aws_region
+#   - aws_region: Aws region for the ec2 instance (required if replace_ec2_placement_region is set to true)
+# Outputs: EBS disks tagged with the instance id as well as the mount point along with volume group names with epoch time appended
+
+# Determine if any actions need to be performed for the current mount
+
+  - name: Construct block device names
+    block:
+      - name: Get pvs Block Device Names
+        shell: lsblk | grep -o -E -e '^xvd[a-z]' -e '^nvme[0-9][0-9]?n1' -e '^sd[a-z]'
+        register: current_block_device_names
+
+      - name: Get current mount points
+        shell: lsblk | grep -Ev "nvme0|sda|xvda|vg_root" | awk '{print $7}' | sed 's/MOUNTPOINT//;/^#/d;/^[[:space:]]*$/d'
+        register: current_mount_points
+
+      - name: Prep alphabet to support generating device names
+        set_fact:
+          alphabet: bcdefghijklmnopqrstuvwxyz
+
+      - name: Set AWS EBS block device name
+        set_fact:
+          device_name_aws_list: "{{ device_name_aws_list + ['/dev/sd' ~ alphabet[current_block_device_names.stdout_lines | length - 1 + item | int ]] }}"
+        with_sequence: start=0 end={{ disk_preset_list | length - 1 }}
+  # End block "Construct block device names"
+
+  - name: Gather Facts for EC2 Metadata
+    action: ec2_metadata_facts
+    failed_when: false
+
+  - name: Update fact if does not match the region
+    set_fact:
+      ansible_ec2_placement_region: '{{ aws_region }}'
+    when: replace_ec2_placement_region|default(false)|bool
+
+  - name: Collect current AWS volume information
+    delegate_to: '{{ task_delegation | default(omit, true) }}'
+    block:
+      - name: Determine whether specified mount exists
+        set_fact:
+          mount_exists: '{{ mount_exists + [(item.value.mount_point if (item.value.mount_point != "/swap") else "[SWAP]") in current_mount_points.stdout_lines]
+            }}'
+        loop: '{{ disk_preset_list }}'
+
+      - name: Get AWS volume info if it exists
+        block:
+          - name: Get AWS instance volume details
+            ec2_vol_info:
+              region: '{{ ansible_ec2_placement_region | default(omit, true) }}'
+              filters:
+                attachment.instance-id: '{{ ansible_ec2_instance_id }}'
+            register: volume_info_list
+            when: current_mount_points.stdout != ""
+
+          - name: Get AWS volume size
+            set_fact:
+              volume_size: '{{ volume_size + [volume_info_list.volumes | to_json | from_json | json_query(query_one)] }}'
+            loop: '{{ disk_preset_list }}'
+            loop_control:
+              index_var: index
+            vars:
+              query_one: "[? tags.MountPoint =='{{ item.value.mount_point }}'].size"
+            when: current_mount_points.stdout != ""
+
+          - name: Determine if a resize is needed
+            set_fact:
+              resize_needed: '{{ resize_needed + [item[0] | default(disk_preset_list[index].value.size) | int != disk_preset_list[index].value.size | int]
+                }}'
+            loop: '{{ volume_size }}'
+            loop_control:
+              index_var: index
+            when: current_mount_points.stdout != ""
+    # End block "Get volume info if it exists"
+  # End block "Collect current volume information"
+
+  - name: Disk information
+    debug:
+      msg:
+        - 'Mount Key:             {{item.key}}'
+        - 'Mount Point:           {{item.value.mount_point}}'
+        - 'Size:                  {{item.value.size}}'
+        - 'Create requested:      {{disk_create}}'
+        - 'Volume exists already: {{mount_exists[index]}}'
+        - 'Resize requested:      {{disk_resize}}'
+        - "Resize Needed:         {{resize_needed[index] | default('False')}}"
+    loop: '{{ disk_preset_list }}'
+    loop_control:
+      index_var: index
+
+# NOTE: The majority of the rest of this task file falls under this block.
+
+  - name: Create/Resize volumes and mounts only if needed
+    block:
+
+  ### Create/resize AWS volumes as necessary
+
+      - name: Create, tag, and attach additional volumes on AWS
+        when: >
+          disk_create | bool and
+          ansible_ec2_placement_region != "us-gov-east-1"
+        delegate_to: '{{ task_delegation | default(omit, true) }}'
+        block:
+
+          - name: Check if KMS key is valid
+            shell: >
+              /usr/local/bin/aws kms list-keys --region '{{ ansible_ec2_placement_region }}' |
+              grep "{{ item.value.disk_encryption_key | default(disk_encryption_key_default) }}"
+            register: kms_validation
+            failed_when: kms_validation.rc | int != 0
+            when: (disk_preset_list.value.disk_encryption_key is defined and disk_preset_list.value.disk_encryption_key | length > 0) or disk_encryption_key_default
+              | length > 0
+            loop: '{{ disk_preset_list }}'
+
+          - name: Set the AWS volume KMS key ID parameter if specified
+            set_fact:
+              aws_volume_kms_key_id: --kms-key-id {{ disk_preset_list.value.disk_encryption_key | default(disk_encryption_key_default) }}
+            when: (disk_preset_list.value.disk_encryption_key is defined and disk_preset_list.value.disk_encryption_key | length > 0) or disk_encryption_key_default
+              | length > 0
+
+          - name: Create and tag the additonal volumes on AWS using ec2_vol
+            ec2_vol:
+              device_name: '{{ item }}'
+              instance: '{{ ansible_ec2_instance_id }}'
+              volume_type: '{{ disk_preset_list[index].value.type | default("gp3") }}'
+              throughput: '{{disk_preset_list[index].value.throughput | default(omit, true) }}'
+              iops: '{{disk_preset_list[index].value.iops | default(omit, true) }}' # Max 500:1 disk size
+              encrypted: '{{ disk_encryption }}'
+              kms_key_id: '{{ disk_preset_list.value.disk_encryption_key | default(disk_encryption_key_default) }}'
+              volume_size: '{{ disk_preset_list[index].value.size|int }}'
+              zone: '{{ ansible_ec2_placement_availability_zone }}'
+              region: '{{ ansible_ec2_placement_region }}'
+              tags:
+                Name: '{{ volume_name_randomization_string }}_{{ disk_preset_list[index].key }}'
+                MountPoint: '{{ disk_preset_list[index].value.mount_point }}'
+                Hostname: '{{ ansible_hostname }}'
+                Instance: '{{ ansible_ec2_instance_id }}'
+            register: aws_volume_info_list
+            async: 1000
+            poll: 0
+            when: disk_create | bool and not mount_exists[index] | bool
+            loop: '{{ device_name_aws_list }}'
+            loop_control:
+              index_var: index
+
+          - name: Wait for volumes to be created
+            async_status:
+              jid: '{{ item.ansible_job_id }}'
+            register: volume_create_status
+            until: volume_create_status.finished
+            retries: 100
+            delay: 3
+            when: disk_create | bool and not mount_exists[index] | bool
+            loop: '{{ aws_volume_info_list.results }}'
+            loop_control:
+              index_var: index
+    # End block "Create, tag, and attach additional volumes on AWS"
+
+      - name: Create, tag, and attach additional volumes on AWS (scripted)
+        when: >
+          disk_create | bool and
+          ansible_ec2_placement_region == "us-gov-east-1"
+        delegate_to: '{{ task_delegation | default(omit, true) }}'
+        block:
+
+          - name: Check if KMS key is valid
+            shell: >
+              /usr/local/bin/aws kms list-keys --region '{{ ansible_ec2_placement_region }}' |
+              grep "{{ item.value.disk_encryption_key | default(disk_encryption_key_default) }}"
+            register: kms_validation
+            failed_when: kms_validation.rc | int != 0
+            when: (disk_preset_list.value.disk_encryption_key is defined and disk_preset_list.value.disk_encryption_key | length > 0) or disk_encryption_key_default
+              | length > 0
+            loop: '{{ disk_preset_list }}'
+
+          - name: Set the AWS volume KMS key ID parameter if specified
+            set_fact:
+              aws_volume_kms_key_id: --kms-key-id {{ disk_preset_list.value.disk_encryption_key | default(disk_encryption_key_default) }}
+            when: (disk_preset_list.value.disk_encryption_key is defined and disk_preset_list.value.disk_encryption_key | length > 0) or disk_encryption_key_default
+              | length > 0
+
+          - name: Create and tag the additonal volumes on AWS using AWS CLI
+            shell: >
+              aws ec2 create-volume --volume-type '{{ disk_preset_list[index].value.type | default("gp3") }}'
+              {{ '--throughput' if (disk_preset_list[index] | selectattr( "throughput", "defined" ) | list | length > 0) else '' }} {{ disk_preset_list[index].value.throughput
+              if (disk_preset_list[index] | selectattr( "throughput", "defined" ) | list | length > 0) else '' }}
+              {{ '--iops' if (disk_preset_list[index] | selectattr( "iops", "defined" ) | list | length > 0) else '' }} {{ disk_preset_list[index].value.iops
+              if (disk_preset_list[index] | selectattr( "iops", "defined" ) | list | length > 0) else '' }}
+              {{ '--encrypted' if (disk_encryption | bool) else '' }} {{ aws_volume_kms_key_id if (disk_encryption | bool and aws_volume_kms_key_id is defined)
+              else '' }}
+              --size '{{ disk_preset_list[index].value.size|int }}'
+              --tag-specifications 'ResourceType=volume,Tags=[{Key=Name,Value={{ volume_name_randomization_string }}_{{ disk_preset_list[index].key }}},{Key=MountPoint,Value={{
+              disk_preset_list[index].value.mount_point }}},{Key=Hostname,Value={{ ansible_hostname }}},{Key=Instance,Value={{ ansible_ec2_instance_id }}}]'
+              --availability-zone '{{ ansible_ec2_placement_availability_zone }}'
+              --region '{{ ansible_ec2_placement_region }}'
+              --query 'VolumeId' --output text
+            register: aws_cli_volume_info_list
+            async: 100
+            poll: 0
+            when: disk_create | bool and not mount_exists[index] | bool
+            loop: '{{ device_name_aws_list }}'
+            loop_control:
+              index_var: index
+
+          - name: Wait for volumes to be created
+            async_status:
+              jid: '{{ item.ansible_job_id }}'
+            register: scripted_volume_create_status
+            until: scripted_volume_create_status.finished
+            retries: 100
+            delay: 1
+            when: disk_create | bool and not mount_exists[index] | bool
+            loop: '{{ aws_cli_volume_info_list.results }}'
+            loop_control:
+              index_var: index
+
+          - name: Wait for the AWS volume to become available
+            shell: aws ec2 wait volume-available --volume-ids '{{ item.stdout }}' --region '{{ ansible_ec2_placement_region }}'
+            when: disk_create | bool and not mount_exists[index] | bool
+            loop: '{{ scripted_volume_create_status.results }}'
+            loop_control:
+              index_var: index
+
+          - name: Attach the additional volumes on AWS
+            shell: aws ec2 attach-volume --device '{{ item }}' --instance-id '{{ ansible_ec2_instance_id }}' --volume-id '{{ scripted_volume_create_status.results[index].stdout
+              }}' --region '{{ ansible_ec2_placement_region }}' --query 'Device'
+            register: aws_volume_attachment
+            when: disk_create | bool and not mount_exists[index] | bool
+            async: 1000
+            poll: 0
+            loop: '{{ device_name_aws_list }}'
+            loop_control:
+              index_var: index
+
+          - name: Wait for volumes to be attached
+            async_status:
+              jid: '{{ item.ansible_job_id }}'
+            register: volume_attachment_status
+            until: volume_attachment_status.finished
+            retries: 100
+            delay: 1
+            when: disk_create | bool and not mount_exists[index] | bool
+            loop: '{{ aws_volume_attachment.results }}'
+            loop_control:
+              index_var: index
+    # End block "Create, tag, and attach additional volumes on AWS (scripted)"
+
+  ### Volume resizing
+
+      - name: Resize new AWS volume if needed
+        when:
+          - current_mount_points.stdout != ""
+          - azure_resource_group == ''
+        delegate_to: '{{ task_delegation | default(omit, true) }}'
+        block:
+          - name: Get EBS volume id
+            set_fact:
+              volume_id_list: '{{ volume_id_list + [volume_info_list.volumes | to_json | from_json | json_query(query_one)] }}'
+            vars:
+              query_one: "[? tags.MountPoint =='{{ item.value.mount_point }}'].id"
+            loop: '{{ disk_preset_list }}'
+            loop_control:
+              index_var: index
+
+          - name: Expand AWS EBS volume size via AWS CLI
+            shell: |
+              /usr/local/bin/aws configure set region {{ ansible_ec2_placement_region }}
+              /usr/local/bin/aws ec2 modify-volume --volume-id {{ item[0] }} --size {{ disk_preset_list[index].value.size }}
+            register: aws_volume_resize
+            async: 1000
+            retries: 100
+            poll: 0
+            loop: '{{ volume_id_list }}'
+            loop_control:
+              index_var: index
+            when: resize_needed[index] | bool
+
+      - name: Get resized device names
+        shell: lsblk | grep -Ev "nvme0|sda|xvda|vg_root" | grep -B2 "{{ (item.value.mount_point if (item.value.mount_point != "/swap") else "\[SWAP\]")
+          }}$" | head -1 | cut -d" " -f 1
+        register: resized_device_names
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        when: resize_needed[index] is defined and resize_needed[index] | bool
+        become: true
+
+      - name: Wait for volume resize
+        shell: lsblk | grep -w "{{ resized_device_names.results[index].stdout }}" | awk '{print $4}' | sed 's/[^0-9]*//g'
+        register: resize_volume_status
+        until: resize_volume_status.stdout | int == item.value.size | int
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        when: resize_needed[index] is defined and resize_needed[index] | bool
+
+  # NOTE: This assumes that all partitions use 100% of the volume and there are no other issues with the GPT table
+  #       printf "fix\nfix\n" is used to pass inputs to the parted prompts to remove old GPT tables
+      - name: Remove old GPT table for resize
+        shell: printf "fix\nfix\n" | $(which parted) ---pretend-input-tty "{{ '/dev/' ~ resized_device_names.results[index].stdout }}" print
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        when:
+          - resized_device_names is defined
+          - resize_needed[index] is defined and resize_needed[index] | bool
+        become: true
+
+      - name: Resize partition to full size of disk
+        shell: $(which parted) "{{ '/dev/' ~ resized_device_names.results[index].stdout }}" resizepart 1 100%
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        when:
+          - resized_device_names is defined
+          - resize_needed[index] is defined and resize_needed[index] | bool
+        become: true
+
+      - name: Add resized volume to partition_names list
+        set_fact:
+          partition_names: "{{ partition_names + [ resized_device_names.results[index].stdout ~ ('p1' if ('nvme' in resized_device_names.results[index].stdout)\
+            \ else '1')] }}"
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        when:
+          - resized_device_names is defined
+          - resize_needed[index] is defined and resize_needed[index] | bool
+
+  ### Configure new volumes
+
+      - name: Get existing device names
+        shell: lsblk | grep -Ev "nvme0|sda|xvda|vg_root" | grep -B2 "{{ (item.value.mount_point if (item.value.mount_point != "/swap") else "\[SWAP\]")
+          }}$" | head -1 | cut -d" " -f 1
+        register: existing_device_names
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+
+      - name: Get new device names
+        vars:
+          disk_lookup_string: ((xvd|sd)%s)|(%s)
+        shell: |-
+          lsblk -ndo +SERIAL | sed 's/vol/vol-/g' | grep -P "{{ disk_lookup_string|format(
+          volume_create_status.results[index].device[-1] | default('')
+          if ansible_ec2_placement_region != 'us-gov-east-1' else scripted_volume_create_status.results[index].stdout,
+          volume_create_status.results[index].volume_id | default('')
+          if ansible_ec2_placement_region != 'us-gov-east-1' else scripted_volume_create_status.results[index].stdout
+          )}}" |  cut -d" " -f 1
+        register: new_device_names
+        when: not mount_exists[index] | bool
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+
+      - name: Create list of all device names
+        set_fact:
+          device_names: "{{ device_names + [ (existing_device_names.results[index].stdout if (existing_device_names.results[index].stdout != '') else new_device_names.results[index].stdout)]\
+            \ }}"
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+
+      - name: Set partition names
+        set_fact:
+          partition_names: "{{ partition_names + [ item ~ ('p1' if ('nvme' in item) else '1')] }}"
+        loop: '{{ device_names }}'
+
+  # Required to allow the kernel to recognize that a drive exists
+      - name: Wait for drive to become available
+        wait_for:
+          path: /dev/{{ item }}
+          delay: 1
+        loop: '{{ device_names }}'
+
+      - name: Partition new disk
+        parted:
+          device: /dev/{{ item }}
+          number: 1
+          label: gpt
+          part_type: primary
+          state: present
+        register: partition_disk
+        become: true
+        failed_when: false
+        loop: '{{ device_names }}'
+
+  # Required to allow the kernel to re-read the partition table before attempting to resize a partition
+      - name: Wait for partition to become available
+        wait_for:
+          path: /dev/{{ item }}
+          delay: 1
+        loop: '{{ partition_names }}'
+
+
+      - name: Get existing physical volumes
+        shell: /sbin/pvs | $(which awk) 'FNR == 1 {next}{print $1}'
+        register: physical_volumes_fact
+        become: true
+
+  ### Configure LVM for volumes
+
+      - name: Set Volume Group name
+        set_fact:
+          volume_group: "{{ volume_group + ['vg_' ~ (item.key)] }}"
+          volume_group_name: "{{ volume_group_name + ['vg_' ~ (item.key) ~ '_' ~ (volume_name_randomization_string)] }}"
+        loop: '{{ disk_preset_list }}'
+
+      - name: Get existing volume groups
+        shell: /sbin/vgs | $(which awk) 'FNR == 1 {next}{print $1}'
+        register: volume_groups_fact
+        become: true
+
+      - name: Search for existing volume group matching targeted mount
+        set_fact:
+          existing_volume_groups: "{{ existing_volume_groups + [volume_groups_fact.stdout | regex_search( '(' + item + '_.*)', multiline=True)] }}"
+        loop: '{{ volume_group }}'
+
+      - name: Create volume groups through LVM
+        lvg:
+          vg: '{{ volume_group_name[index] }}'
+          pvs: /dev/{{ item }}
+        when:
+          - ('/dev/' + item) not in physical_volumes_fact.stdout_lines
+          - existing_volume_groups[index] is not defined or existing_volume_groups[index] == "" or existing_volume_groups | length > 0
+        loop: '{{ partition_names }}'
+        loop_control:
+          index_var: index
+        become: true
+
+      - name: Resize physical volumes through pvresize
+        command: pvresize "/dev/{{ item }}"
+        loop: '{{ partition_names }}'
+        become: true
+
+      - name: Create/resize a logical volume the size of all remaining space in the pv through LVM
+        lvol:
+          vg: '{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}'
+          lv: lv_{{ item.key }}
+          size: 100%PVS
+          resizefs: true
+          force: yes
+          state: present
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        become: true
+
+      - name: Create filesystem on each logical volume (except swap)
+        filesystem:
+          fstype: '{{ item.value.filesystem | default( disk_filesystem ) }}'
+          dev: /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }}
+        when: item.value.mount_point != '/swap'
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        become: true
+
+      - name: Mount volumes and update fstab
+        mount:
+          path: '{{ item.value.mount_point }}'
+          src: /dev/mapper/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}-lv_{{ item.key }}
+          fstype: '{{ item.value.filesystem | default( disk_filesystem ) }}'
+          state: mounted
+        when: item.value.mount_point != '/swap'
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+        become: true
+
+  ### SWAP ONLY
+      - name: Configure Swap
+        become: true
+        block:
+          - name: Create swap filesystem and enable swap for swap volume
+            shell: |
+              mkswap /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }}
+              swapon -v /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }}
+            register: create_swap
+            become: true
+            ignore_errors: true
+            when:
+              - item.value.mount_point == '/swap'
+              - existing_volume_groups[index] is not defined or existing_volume_groups[index] == "" or existing_volume_groups | length > 0
+            loop: '{{ disk_preset_list }}'
+            loop_control:
+              index_var: index
+
+    # NOTE: the create swap filesystem will fail if the play has failed since the resource is busy, adding ignore errors for now
+          - name: Update fstab with swap volume
+            lineinfile:
+              path: /etc/fstab
+              line: /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }} swap swap defaults 0 0
+              state: present
+            when:
+              - item.value.mount_point == '/swap'
+              - existing_volume_groups[index] is not defined or existing_volume_groups[index] == "" or existing_volume_groups | length > 0
+            loop: '{{ disk_preset_list }}'
+            loop_control:
+              index_var: index
+    # End block "Swap"
+  # End block "Create/Resize volumes and mounts only if needed"
+...

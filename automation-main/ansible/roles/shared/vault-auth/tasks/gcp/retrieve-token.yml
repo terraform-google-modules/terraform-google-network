@@ -1,0 +1,101 @@
+---
+# Synopsis: This playbook will retrieve a temporary Hashicorp Vault token used for authentication, it will first check if the local system has any vault credentials before retrieving the token from Vault.
+# Inputs:
+#   - vault_address: This is the IP address of the vault server
+#   - vault_engine_gcp: the name of the Azure Auth Method to leverage in Vault
+#   - vault_gcp_auth_role: The name of the Vault Azure authentication method role that is being authenticated to
+#   - vault_gcp_auth_type: The type of GCP entity that is authenticating to the GCP authentication method. Options are 'service_account' and 'virtual_machine'(default)
+#                            This relates to the 'role_type' of the authentication method that is being authenticated to.
+#                            The 'service_account' option should be used when the authentication method role has 'role_type: iam' and 'allow_gce_inference: false'.
+#                            The 'virtual_machine' option should be used when the authentication method role has 'role_type: gce' or when it has 'role_type: iam' and 'allow_gce_inferece: true'(default).
+#   - vault_gcp_max_jwt_exp: Only valid with 'vault_gcp_auth_type: service_account'. The expiration, in minutes, of the json web token that is retrieved from GCP. Defaults to 60.
+#                            This value cannot exceed that 'max_jwt_exp' configured on the GCP authentication method. If no value was specified on the authentication method, leave this field empty.
+#   - vault_gcp_service_account_email - Only valid with 'vault_gcp_auth_type: service_account'. The service account email being used for authentication to the GCP authentication method.
+#   - vault_ssl_verify: (bool) Whether to validate the ssl certificate of the Vault server
+# Outputs: A valid temporary vault token that can be used to retrieve secrets.
+
+
+  - name: '[BLOCK] Get Json Web Token from VM Metadata'
+    when: vault_gcp_auth_type == "virtual_machine"
+    block:
+      - name: Determine whether source host is in GCP
+        uri:
+          url: http://metadata.google.internal/computeMetadata/v1/
+          timeout: 2
+          headers:
+            Metadata-Flavor: Google
+        register: metadata_output
+        ignore_errors: true
+
+      - name: Fail check that instance is in fact in GCP when attempting to leverage VM authentication
+        fail:
+          msg: '[ERROR]: No vault-token passed. Source host is also not in GCP to attempt to leverage GCP VM authentication.'
+        when: metadata_output.status | int != 200
+
+      - name: Get Json Web Token from VM Metadata
+        shell: |
+          curl \
+            --header "Metadata-Flavor: Google" \
+            --get \
+            --data-urlencode "audience=http://vault/{{ vault_gcp_auth_role }}" \
+            --data-urlencode "format=full" \
+            "http://metadata/computeMetadata/v1/instance/service-accounts/default/identity"
+        register: metadata_token
+        no_log: true
+
+      - name: Set Virtual Machine Token Fact
+        set_fact:
+          virtual_machine_token: '{{ metadata_token.stdout }}'
+
+  - name: '[BLOCK] - Get Json Web Token from GCP Service Account'
+    when: vault_gcp_auth_type == "service_account"
+    block:
+      - name: Check if gcloud is installed and commands are available
+        stat:
+          path: '{{ item }}'
+        loop:
+          - /usr/bin/gcloud
+          - /usr/bin/gsutil
+        register: gcloud_facts_results
+
+      - name: Ensure that the gcloud is installed and commands are available
+        assert:
+          that: item.stat.exists | bool
+        loop: '{{ gcloud_facts_results.results }}'
+
+      - name: Set Json Web Token expiration timestamp
+        shell: expr $(date +%s) + $(expr 60 \* {{ vault_gcp_max_jwt_exp | default(60, true) }} )
+        register: expiration_output
+
+      - name: Set Expiration Timestamp Fact
+        set_fact:
+          expiration_timestamp: '{{ expiration_output.stdout }}'
+
+      - name: Create Json Web Token Claim File
+        template:
+          src: vault-gcp-jwt-claim.json.j2
+          dest: '{{ vault_gcp_auth_role }}-jwt-claim.json'
+
+      - name: Retrieve Json Web Token via gcloud CLI
+        shell: |
+          gcloud beta iam service-accounts sign-jwt {{ vault_gcp_auth_role }}-jwt-claim.json {{ vault_gcp_auth_role }}-jwt \
+            --iam-account={{ vault_gcp_service_account_email }}
+
+      - name: Set Service Account Token Fact
+        set_fact:
+          service_account_token: "{{ lookup('file', '{{ vault_gcp_auth_role }}-jwt') }}"
+
+  - name: Obtain Vault Token for Current {{ vault_gcp_auth_type }}
+    shell: |
+      curl -s {{ '-k' if (vault_ssl_verify | bool == false) else '' }} -X POST \
+        -d '{"role":"{{ vault_gcp_auth_role }}","jwt":"{{ service_account_token | default(virtual_machine_token, true) }}"}' {{ vault_address }}/v1/auth/{{ vault_engine_gcp }}/login | \
+        grep -Po '"client_token": *\K"[^"]*"' | tr -d \"
+    register: vault_token_output
+    no_log: true
+
+  - name: Set vault token fact
+    set_fact:
+      vault_token: '{{ vault_token_output.stdout }}'
+    no_log: true
+    when: vault_token_output is changed
+...

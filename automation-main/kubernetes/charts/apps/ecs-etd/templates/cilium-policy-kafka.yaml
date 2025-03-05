@@ -1,0 +1,83 @@
+{{ $ecs_etd := ( index .Values "ecs-etds") }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: etd-kafka-{{ $ecs_etd.etdStage }}-{{ $ecs_etd.sid }}
+  namespace: etd-kafka-{{ $ecs_etd.etdStage }}-{{ $ecs_etd.sid }}
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - {}
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: monitoring
+    - fromEndpoints:
+        - matchLabels:
+            sid: {{ $ecs_etd.sid }}
+            io.kubernetes.pod.namespace: ecs-etd-{{ .Values.customer }}
+      toPorts:
+        - ports:
+            - port: "9093"
+    - fromEndpoints:
+        - matchLabels:
+            name: strimzi-cluster-operator
+            io.kubernetes.pod.namespace: strimzi-kafka-operator
+      toPorts:
+        - ports:
+            - port: "2181"
+        - ports:
+            - port: "9091"
+    - fromEndpoints:
+        - matchLabels:
+            app: {{ .Values.customer }}-kafka-kf
+  egress:
+    - toEndpoints:
+        - {}
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+        - ports:
+            - port: "8053"
+              protocol: UDP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: node-local-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: monitoring
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+    - toEndpoints:
+        - matchLabels:
+            sid: {{ $ecs_etd.sid }}
+    - toFQDNs:
+        - matchName: api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.internal.{{ .Values.gardener.baseDomain }}
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.shoot.{{ .Values.gardener.baseDomain }}
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+

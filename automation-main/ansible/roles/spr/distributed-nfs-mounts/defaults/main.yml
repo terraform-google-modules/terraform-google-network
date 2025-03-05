@@ -1,0 +1,6 @@
+# These are the required variables that are overwritten.
+# Test Mount
+distributed_nfs_mounts_test_app_mounts_efs: false
+distributed_nfs_mounts_test_staging_mount_efs: false
+
+distributed_nfs_mounts_subdir: []

@@ -1,0 +1,49 @@
+/*
+  Description: Terraform variables for module run; The variables contained in this page will be used to run this terraform module.
+    The resulting S3 Bucket will be created with the specified options as well as a default lifecycle policy applied
+  Comments:
+    - Two sets of variables are listed to demonstrate the required variables and optional values.
+    - The optional values will show the default values used if not specified.
+
+    - If a bucket policy is set, Terraform will enforce the policy.  If not specified, Terraform will NOT enforce policy.
+    - Bucket Policy must be a valid AWS JSON policy.
+    - Refer to terraform.tfvars.testing for a sample of a functional bucket policy
+
+    - Terraform will not enforce the following: AWS Tags, "force_destroy" attribute, and S3 lifecycle rules.
+*/
+
+###################
+# REQUIRED VALUES #
+###################
+
+##### AWS Variables
+// aws_region = "us-gov-west-1"
+// build_user = ""
+
+##### S3 Bucket Map showing required values
+// s3_bucket_map = {
+//   name                    = "NAME OF THE BUCKET"
+//   tag_description         = "DESCRIPTION OF THE BUCKET"
+// }
+
+###################
+# OPTIONAL VALUES #
+###################
+
+##### S3 Bucket Map showing All Optional values
+// s3_bucket_map = {
+//   name                    = ""                      # This is a required value.  Must be a GLOBALLY unique AWS Bucket Name
+//   versioning              = "Disabled"              # ("Enabled"|"Disabled") Whether the bucket uses versioning or not.
+//   bucket_expiration       = "Disabled"              # ("Enabled"|"Disabled") Whether objects in the bucket expire or not.
+//   bucket_policy           = "none"                  # (AWS JSON POLICY) Valid AWS JSON policy to apply to the bucket
+//   restrict_public_buckets = true                    # (true|false) AWS Public policy restrictions
+//   ignore_public_acls      = true                    # (true|false) AWS Public policy restrictions
+//   block_public_acls       = true                    # (true|false) AWS Public policy restrictions
+//   block_public_policy     = true                    # (true|false) AWS Public policy restrictions
+//   tag_name                = "s3.bucket_map.name"    # AWS Tag Name to apply.  If not specified, it will be the same as the name.
+//   tag_managedby           = "UNTAGGED"              # Technology that will be managing the bucket
+//   tag_environment         = "UNTAGGED"              # (staging|production|management) Related plane
+//   tag_business            = "UNTAGGED"              # Line of Business (labs, build, ibp, scp, sac, hcm)
+//   tag_customer            = "UNTAGGED"              # Customer/Client that this bucket belongs to.
+//   tag_description         = ""                      # This is a required value. Description of the Bucket
+// }

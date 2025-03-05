@@ -1,0 +1,72 @@
+---
+# Synopsis: Upgrade saphostagent
+# Inputs:
+#   - saphostagent_upgrade_source: Path to the upgrade folder
+#   - saphostagent_upgrade_patch_target: Target patch level
+# Outputs:
+#   - Upgraded saphostagent
+#   - saphostagent_upgrade_patch_level: Variable containing the current patch level
+# Comments: N/A
+
+- name: "Get saphostagent version"
+  shell: >-
+    ./saphostexec -version
+    | grep 'patch number'
+  args:
+    chdir: '/usr/sap/hostctrl/exe'
+  failed_when: false
+  become: true
+  register: pre_upgrade_saphostagent_version_output
+
+- name: "Sanitize saphostagent_version_output"
+  set_fact:
+    pre_upgrade_patch_level: "{{ pre_upgrade_saphostagent_version_output.stdout|replace('patch number','')|trim }}"
+
+- name: "Validate if upgrade is needed"
+  assert:
+    that: pre_upgrade_patch_level|int < saphostagent_upgrade_patch_target|int
+    fail_msg: |
+      SAP Host Agent patch level is equal or greater than target.
+      Current patch level: {{ pre_upgrade_patch_level }}.
+      Target patch level {{ saphostagent_upgrade_patch_target }}.
+      Skipping upgrade.
+    success_msg: |
+      SAP Host Agent patch level is less than target.
+      Current patch level: {{ pre_upgrade_patch_level }}.
+      Target patch level {{ saphostagent_upgrade_patch_target }}.
+      Upgrade begins in next step
+  failed_when: false
+  changed_when: false
+
+- name: "BLOCK: Upgrade saphostagent"
+  when: pre_upgrade_patch_level|int < saphostagent_upgrade_patch_target|int
+  block:
+    - name: "Upgrade saphostagent"
+      command: "./saphostexec -upgrade -archive {{ saphostagent_upgrade_source }}"
+      args:
+        chdir: '/usr/sap/hostctrl/exe'
+      become: true
+      register: saphostagent_upgrade_output
+
+    - name: "Get saphostagent version"
+      shell: >-
+        ./saphostexec -version
+        | grep 'patch number'
+      args:
+        chdir: '/usr/sap/hostctrl/exe'
+      failed_when: false
+      become: true
+      register: saphostagent_version_output
+
+    - name: "Sanitize saphostagent_version_output"
+      set_fact:
+        saphostagent_upgrade_patch_level: "{{ saphostagent_version_output.stdout|replace('patch number','')|trim }}"
+
+    - name: "Validate saphostagent is patched to target {{ saphostagent_upgrade_patch_target }}"
+      assert:
+        that: saphostagent_upgrade_patch_level|string == saphostagent_upgrade_patch_target|string
+        fail_msg: "SAP Host Agent is still at patch level {{ saphostagent_upgrade_patch_level }}. Expected target patch level is {{ saphostagent_upgrade_patch_target }}"
+        success_msg: "SAP Host Agent patch level is now {{ saphostagent_upgrade_patch_level }}"
+
+# End"BLOCK: Upgrade saphostagent"
+...

@@ -1,0 +1,131 @@
+---
+# Synopsis: Creates an AWS VPC with build team defaults
+# Inputs:
+#   aws_region: required, some modules do not automatically use the boto profile when this is null
+#   create-vpc-vars.yml : Contains all information needed to setup the vpc
+# Outputs:
+#   New vpc with subnets, igw, route tables, and security groups as specified by the variables file
+
+# TODO: Warn on VPC CIDR Collisions
+# TODO: figure out how to swap between running with aws profile, and providing as credentials from vault
+
+  - name: Create VPC in AWS
+    ec2_vpc_net:
+      name: '{{ vpc_name }}'
+      cidr_block: '{{ vpc_cidr_block }}'
+      state: present
+      tenancy: default
+    # multi_ok: false # not required. By default the module will not create another VPC if there is another VPC with the same name and CIDR block. Specify this as true if you want duplicate VPCs created.
+    # tags: undefined # not required. The tags you want attached to the VPC. This is independent of the name value, note if you pass a 'Name' key it would override the Name of the VPC if it's different.
+    # dhcp_opts_id: undefined # not required. the id of the DHCP options to use for this vpc
+      region: '{{ aws_region }}'
+    # aws_secret_key: "{{ aws_automation_secret_key }}"
+    # aws_access_key: "{{ aws_automation_access_key }}"
+    register: create_vpc_output
+
+# parse the output of creating the VPC to extract the VPC ID -- we need to specify this in the subsequent tasks
+  - name: Set VPC ID as fact
+    set_fact:
+      vpc_id: '{{ create_vpc_output.vpc.id }}'
+
+  - name: Create subnets for new VPC {{ vpc_name }} {{ vpc_id }}
+    ec2_vpc_subnet:
+      vpc_id: '{{ vpc_id }}'
+      cidr: '{{ item.value.cidr }}'
+      az: '{{ item.value.az }}'
+      map_public: '{{ item.value.give_publicip|bool }}'
+      state: present
+      tags:
+        Name: '{{ vpc_name }}-az{{ aws_region[-1] }}{{ item.value.az[-1] }}-{{ item.value.subnet_name }}'
+      region: '{{ aws_region }}'
+    # aws_secret_key: "{{ aws_automation_secret_key }}"
+    # aws_access_key: "{{ aws_automation_access_key }}"
+    loop: "{{ query('dict',vpc_subnets) }}"
+
+  - name: Create Internet Gateway for VPC {{ vpc_name }} {{ vpc_id }}
+    ec2_vpc_igw:
+      vpc_id: '{{ vpc_id }}'
+      tags:
+        Name: '{{ vpc_name }}-default'
+      state: present
+      region: '{{ aws_region }}'
+    # aws_secret_key: "{{ aws_automation_secret_key }}"
+    # aws_access_key: "{{ aws_automation_access_key }}"
+    register: create_igw_output
+
+  - name: Get default route table for VPC {{ vpc_name }} {{ vpc_id }}
+    ec2_vpc_route_table_facts:
+      region: '{{ aws_region }}'
+    # aws_secret_key: "{{ aws_automation_secret_key }}"
+    # aws_access_key: "{{ aws_automation_access_key }}"
+      filters:
+        vpc-id: '{{ vpc_id }}'
+    register: route_table_facts
+
+  - name: Configure main route table with internet gateway for {{ vpc_name }} {{ vpc_id }}
+    ec2_vpc_route_table:
+      vpc_id: '{{ vpc_id }}'
+      tags:
+        Name: '{{ vpc_name }}-route-default'
+      purge_tags: no # not required. Purge existing tags that are not found in route table
+      purge_routes: no
+      routes:
+        - dest: 0.0.0.0/0
+          gateway_id: '{{ create_igw_output.gateway_id}}'
+      lookup: id
+      route_table_id: '{{ route_table_facts.route_tables[0].id }}'
+      state: present
+      region: '{{ aws_region }}'
+    # aws_secret_key: "{{ aws_automation_secret_key }}"
+    # aws_access_key: "{{ aws_automation_access_key }}"
+
+# NOTE: when modifying existing secyrity groups, you must specify both the name AND description
+  - name: Remove security group rules from default security group
+    ec2_group:
+      name: default
+      description: default VPC security group
+      rules: []
+      purge_rules: true
+      rules_egress: []
+      purge_rules_egress: true
+      tags:
+        Name: '{{ vpc_name }}-default'
+      purge_tags: false
+      state: present
+      vpc_id: '{{ vpc_id }}'
+      region: '{{ aws_region }}'
+    # aws_secret_key: "{{ aws_automation_secret_key }}"
+    # aws_access_key: "{{ aws_automation_access_key }}"
+
+  - name: Configuring security groups for VPC {{ vpc_name }} {{ vpc_id }}
+    ec2_group:
+      name: '{{ item.name }}'
+      description: '{{ item.description }}'
+      rules: '{{ item.rules }}'
+      purge_rules: true
+      rules_egress: '{{ item.rules_egress }}'
+      purge_rules_egress: true
+      tags:
+        Name: '{{ item.name }}'
+      purge_tags: false
+      state: present
+      vpc_id: '{{ vpc_id }}'
+      region: '{{ aws_region }}'
+    # aws_secret_key: "{{ aws_automation_secret_key }}"
+    # aws_access_key: "{{ aws_automation_access_key }}"
+    loop: '{{ vpc_security_groups }}'
+
+# TODO: consider use case for ec2 key
+# # create an EC2 key -- pretty simple
+# - name: create EC2 key
+#   ec2_key:
+#     name: "{{ vpc_key }}"
+
+# # create a private hosted zone for the VPC with the Ansible module
+# - name: create Route 53 private hosted zone
+#   route53_zone:
+#     zone: "{{ vpc_dns_zone }}"
+#     state: present
+#     vpc_id: "{{ vpc_id }}"
+#     vpc_region: "{{ aws_region }}"
+...

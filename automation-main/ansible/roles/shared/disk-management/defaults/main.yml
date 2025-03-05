@@ -1,0 +1,305 @@
+---
+# defaults file for disk-management
+
+# The host to delegate the tasks to that interact with the cloud providers.
+# NOTE: To have these tasks run on the remote hosts, set this variable to an empty string ''.
+# NOTE: The host that these tasks are delegated must be authenticated with the cloud provider.
+task_delegation: localhost
+
+# List variable initialization
+create_volume_group: []
+device_names: []
+device_name_aws_list: []
+device_name_gcp_list: []
+device_name_azure_list: []
+existing_volume_groups: []
+mount_exists: []
+partition_names: []
+resize_needed: []
+volume_group: []
+volume_group_name: []
+volume_id_list: []
+volume_size: []
+mountpoint_label_list: []
+# create ebs volumes and configure lvm
+disk_create: false
+
+# force configuration of new disks with specific filesystem e.g., xfs, ext4
+# default filesystem types are used e.g., xfs for RHEL7 and ext4 for RHEL6
+disk_filesystem: ''
+
+# create ebs volumes with encryption
+disk_encryption: false
+
+# create ebs volumes with encryption for swap volumes
+disk_encryption_swap: false
+
+# resize ebs volumes and reconfigure lvm
+disk_resize: false
+
+# specify the default kms key id for volume encryption
+disk_encryption_key_default: ''
+disk_encryption_keyring_default: ''
+
+# resource group to create Azure disks in
+azure_resource_group: ''
+
+# specify the disk type for Azure disks e.g., Standard_LRS, StandardSSD_LRS, Premium_LRS, UltraSSD_LRS
+azure_disk_type: StandardSSD_LRS
+
+# Whether to download Azure dependencies via pip or skip it.
+# NOTE: Set this to false when working in an environment that has no internet access. Still requires that the dependencies be already installed however.
+azure_install_pip_packages: true
+
+# specify what unique attribute should be used e.g., uuid or aws
+volume_name_randomization_method: uuid
+
+# default disk type for GCP disks e.g., pd-ssd, pd-standard, pd-balanced, pd-extreme
+gcp_disk_type: pd-balanced
+
+# service account file for default GCP project service account
+gcp_service_account_file: ''
+
+# default authentication method for gcp
+gcp_auth_kind: application
+
+# default GCP disk snapshot policy
+gcp_disk_snapshot_policy: ''
+
+# default hana disk values
+sap_hana:
+  hana_backups:
+    mount_point: /hana/backups
+    size: 50 # twice the current ram
+  hana_shared:
+    mount_point: /hana/shared
+    size: 60 # current ram (maximum 1tb)
+  hana_data:
+    mount_point: /hana/data
+    size: 240 # twice the current ram
+  hana_log:
+    mount_point: /hana/log
+    size: 60 # half the current ram
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  hana_staging:
+    mount_point: /hana/staging
+    size: 250
+
+# default ibp hana disk values for test environments
+ibp_hana_test:
+  hana_backups:
+    mount_point: /hana/backups
+    size: 138 # half the current ram
+  hana_shared:
+    mount_point: /hana/shared
+    size: 61 # quarter the current ram (maximum 1tb)
+  hana_data:
+    mount_point: /hana/data
+    size: 138 # half the current ram
+  hana_log:
+    mount_point: /hana/log
+    size: 61 # quarter the current ram
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  hana_staging: # remove once system has been fully configured
+    mount_point: /hana/staging
+    size: 250
+
+# default ibp hana disk values for production environments
+ibp_hana_production:
+  hana_backups:
+    mount_point: /hana/backups
+    size: 50 # twice the current ram
+  hana_shared:
+    mount_point: /hana/shared
+    size: 60 # current ram (maximum 1tb)
+  hana_data:
+    mount_point: /hana/data
+    size: 240 # twice the current ram
+  hana_log:
+    mount_point: /hana/log
+    size: 60 # half the current ram
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  hana_staging:
+    mount_point: /hana/staging
+    size: 250
+
+# default ecc payroll hana disk values for production environments
+ecc_hana_production:
+  hana_backups:
+    mount_point: /hana/backups
+    size: 200 # twice the current ram
+  hana_shared:
+    mount_point: /hana/shared
+    size: 60 # current ram (maximum 1tb)
+  hana_data:
+    mount_point: /hana/data
+    size: 240 # twice the current ram
+  hana_log:
+    mount_point: /hana/log
+    size: 120 # half the current ram
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  sapmnt:
+    mount_point: /sapmnt
+    size: 50
+  swap:
+    mount_point: /swap
+    size: 10
+  hana_staging:
+    mount_point: /hana/staging
+    size: 50
+
+# default hana cockpit disk values
+sap_hana_cockpit:
+  hana_backups:
+    mount_point: /hana/backups
+    size: '{{ (ansible_facts.memtotal_mb/1000)|round|int * 2 }}' # twice the current ram
+  hana_shared:
+    mount_point: /hana/shared
+    size: '{{ (ansible_facts.memtotal_mb/1000)|round|int if (ansible_facts.memtotal_mb/1000)|round|int < 1000 else 1000 }}' # current ram (maximum 1tb)
+  hana_data:
+    mount_point: /hana/data
+    size: '{{ (ansible_facts.memtotal_mb/1000)|round|int * 2 }}' # twice the current ram
+  hana_log:
+    mount_point: /hana/log
+    size: '{{ ((ansible_facts.memtotal_mb/1000)|round|int / 2)|round|int if (ansible_facts.memtotal_mb/1000)|round|int < 2000 else 1000 }}' # half current ram (maximum 1tb)
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+#hana_staging:   COMMENTED OUT, TO BE MOUNTED AS EFS SHARE
+#  mount_point: '/hana/staging'
+#  size: 250
+
+# default sap ci (central instance) disk values
+sap_ci:
+  sapmnt:
+    mount_point: /sapmnt
+    size: 50
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  usr_sap_trans: #only created in development
+    mount_point: /usr/sap/trans
+    size: 500
+  swap:
+    mount_point: /swap
+    size: 20 #twice the current ram
+
+# default ibp ci (central instance) disk values for test environments
+ibp_ci_test:
+  sapmnt:
+    mount_point: /sapmnt
+    size: 50
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  swap:
+    mount_point: /swap
+    size: 64 # twice the ram
+  sap_staging: # remove once system has been fully configured
+    mount_point: /sap/staging
+    size: 250
+
+# default ibp ci (central instance) disk values for production environments
+ibp_ci_production:
+  sapmnt:
+    mount_point: /sapmnt
+    size: 50
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  usr_sap_trans: #only created in development
+    mount_point: /usr/sap/trans
+    size: 500
+  swap:
+    mount_point: /swap
+    size: 20
+
+# default sap cs (central service) disk values
+sap_cs:
+  sapmnt:
+    mount_point: /sapmnt
+    size: 50
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  swap:
+    mount_point: /swap
+    size: 20 #twice the current ram
+
+# default ecc payroll application disk values
+ecc_pas_production:
+  sapmnt:
+    mount_point: /sapmnt
+    size: 50
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  usr_sap_trans: #only created in development
+    mount_point: /usr/sap/trans
+    size: 500
+  swap:
+    mount_point: /swap
+    size: 20 #twice the current ram
+
+# default sap pas (primary application server) disk values
+sap_pas:
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  usr_sap_trans: #only created in development
+    mount_point: /usr/sap/trans
+    size: 500
+  swap:
+    mount_point: /swap
+    size: 20 #twice the current ram
+
+# default sap aas (additional application server) disk values
+sap_aas:
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  swap:
+    mount_point: /swap
+    size: 20 #twice the current ram
+
+# Default for the HANA DB VM of the Azure S4/HANA deployment
+azure_s4_sap_hana:
+  hana_backups:
+    mount_point: /hana/backups
+    size: 512 # twice the current ram
+  hana_shared:
+    mount_point: /hana/shared
+    size: 256 # current ram (maximum 1tb)
+  hana_data:
+    mount_point: /hana/data
+    size: 512 # twice the current ram
+  hana_log:
+    mount_point: /hana/log
+    size: 128 # half the current ram
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+
+# Default for the SAPAPP VM of the Azure S4/HANA deployment
+azure_s4_sapapp:
+  sapmnt:
+    mount_point: /sapmnt
+    size: 50
+  usr_sap:
+    mount_point: /usr/sap
+    size: 50
+  usr_sap_trans: #only created in development
+    mount_point: /usr/sap/trans
+    size: 500
+  swap:
+    mount_point: /swap
+    size: 64 #twice the current ram
+...

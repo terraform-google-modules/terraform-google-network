@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  role_name: nessus_agent
+  namespace: ns2
+  author: Devon Thyne (i513825)
+  description: Installs Tenable Nessus Agent.
+  company: SAP NS2
+
+  issue_tracker_url: https://gitlab.core.sapns2.us/golden-ami-dev/ansible-roles/issues
+
+  license: BSD
+
+  min_ansible_version: 2.9
+
+  galaxy_tags:
+    - tenable
+    - nessus
+    - nessus-agent
+...

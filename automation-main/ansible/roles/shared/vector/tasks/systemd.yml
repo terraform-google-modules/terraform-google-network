@@ -1,0 +1,119 @@
+---
+  - name: Create systemd override directory for vector
+    ansible.builtin.file:
+      path: /etc/systemd/system/vector.service.d/
+      state: directory
+      selevel: s0
+      seuser: system_u
+      setype: systemd_unit_file_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0755'
+    become: true
+
+  - name: Copy the always restart configuration for vector
+    ansible.builtin.copy:
+      content: |
+        [Service]
+        Restart=always
+        RestartSec=5s
+      dest: /etc/systemd/system/vector.service.d/alwaysrestart.conf
+      selevel: s0
+      seuser: system_u
+      setype: systemd_unit_file_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0644'
+    become: true
+    notify:
+      - restart vector
+    register: vector_systemd_alwaysrestart
+
+  - name: Copy the user/group configuration for vector
+    ansible.builtin.copy:
+      content: |
+        [Service]
+        # Start vector as root to allow it to read log files
+        User=root
+        Group=root
+      dest: /etc/systemd/system/vector.service.d/usergroup.conf
+      selevel: s0
+      seuser: system_u
+      setype: systemd_unit_file_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0644'
+    become: true
+    notify:
+      - restart vector
+    register: vector_systemd_usergroup
+
+  - name: Set limits for open files and sockets for vector
+    ansible.builtin.copy:
+      content: |
+        [Service]
+        # Allow vector to have 262144 open files or sockets
+        LimitNOFILE=262144:524288
+      dest: /etc/systemd/system/vector.service.d/limits.conf
+      selevel: s0
+      seuser: system_u
+      setype: systemd_unit_file_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0644'
+    become: true
+    notify:
+      - restart vector
+    register: vector_systemd_limits
+
+  # Workaround for https://github.com/vectordotdev/vector/issues/10787
+  - name: Copy the disable ExecStartPre configuration for vector
+    ansible.builtin.copy:
+      content: |
+        [Service]
+        # Temporary work-around for https://github.com/vectordotdev/vector/issues/1078
+        ExecStartPre=
+      dest: /etc/systemd/system/vector.service.d/execstartpre.conf
+      selevel: s0
+      seuser: system_u
+      setype: systemd_unit_file_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0644'
+    become: true
+    notify:
+      - restart vector
+    register: vector_systemd_execstartpre
+    when:
+      - vector_hyperscaler_aws is defined
+
+  - name: Stop, disable, and mask the firewalld service
+    service:
+      name: firewalld
+      state: stopped
+      enabled: no
+      masked: yes
+    become: true
+    when:
+      - vector_deployment_type == "aggregator"
+
+  - name: Reload systemd to reread configurations
+    systemd:
+      daemon_reload: yes
+    become: true
+    when:
+      - vector_systemd_alwaysrestart.changed or vector_systemd_usergroup.changed or vector_systemd_limits.changed or (vector_systemd_execstartpre is defined
+        and vector_systemd_execstartpre.changed)
+
+  - name: Enable vector service and start it
+    service:
+      name: vector
+      enabled: true
+      state: started
+    become: true
+...

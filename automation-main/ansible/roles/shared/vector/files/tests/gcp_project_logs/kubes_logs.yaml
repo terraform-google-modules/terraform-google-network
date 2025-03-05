@@ -1,0 +1,32 @@
+---
+tests:
+  - name: gcp:kubes_logs:1
+    inputs:
+      - insert_at: gcp_project_logs
+        type: log
+        log_fields:
+          message: '{ "insertId": "vn3k89fdsukvu", "jsonPayload": { "_p": "F", "kubernetes": { "container_hash": "us-central1-docker.pkg.dev/ariba-cre-infra-aw/docker-prod/ariba-cobalt-k8s-istio/proxyv2@sha256:30efb899fade67067621787def28ae2db8e9c7ad73528e17877bea0c2a63d2df",
+            "container_image": "us-central1-docker.pkg.dev/ariba-cre-infra-aw/docker-prod/ariba-cobalt-k8s-istio/proxyv2:v-ede8347-83", "container_name":
+            "istio-proxy", "docker_id": "8ae9e0f12c60769c4a3fd1d3a5e27ddb8d482228d1baf44ed2c5b39679c43ac2", "host": "shoot--ariba-cre--ns2-cre3-default-z2-57796-nvbrn",
+            "namespace_name": "family-forms", "pod_id": "84e336c0-31c6-40a0-826d-b341dfe85ee8", "pod_name": "rules-inspector-57b48d468b-6qd6w" }, "log":
+            "{\"user_agent\":null,\"response_flags\":\"-\",\"bytes_sent\":2946,\"requested_server_name\":\"hana.default.svc.cluster.local\",\"response_code\":0,\"path\":null,\"downstream_local_address\":\"100.118.140.73:30044\",\"method\":null,\"upstream_transport_failure_reason\":null,\"duration\":1786213,\"request_id\":null,\"response_code_details\":null,\"authority\":null,\"upstream_local_address\":\"100.96.40.92:45464\",\"start_time\":\"2024-04-03T20:56:00.670Z\",\"upstream_host\":\"10.141.15.192:30044\",\"x_forwarded_for\":null,\"upstream_cluster\":\"outbound|30044||hana.default.svc.cluster.local\",\"bytes_received\":2140,\"downstream_remote_address\":\"100.96.40.92:47898\",\"protocol\":null,\"connection_termination_details\":null,\"route_name\":null,\"upstream_service_time\":null}",
+            "log_processed": { "authority": null, "bytes_received": 2140, "bytes_sent": 2946, "connection_termination_details": null, "downstream_local_address":
+            "100.118.140.73:30044", "downstream_remote_address": "100.96.40.92:47898", "duration": 1786213, "method": null, "path": null, "protocol": null,
+            "request_id": null, "requested_server_name": "hana.default.svc.cluster.local", "response_code": 0, "response_code_details": null, "response_flags":
+            "-", "route_name": null, "start_time": "2024-04-03T20:56:00.670Z", "upstream_cluster": "outbound|30044||hana.default.svc.cluster.local", "upstream_host":
+            "10.141.15.192:30044", "upstream_local_address": "100.96.40.92:45464", "upstream_service_time": null, "upstream_transport_failure_reason": null,
+            "user_agent": null, "x_forwarded_for": null }, "time": "2024-04-03T21:25:47.356679661Z" }, "logName": "projects/ariba-cre-app-aw/logs/stdout",
+            "receiveTimestamp": "2024-04-03T21:25:48.193054606Z", "resource": { "labels": { "cluster_name": "gardener-shoot-cluster", "container_name":
+            "istio-proxy", "location": "us-central1", "namespace_name": "family-forms", "pod_name": "var.log.containers.rules-inspector-57b48d468b-6qd6w",
+            "project_id": "ariba-cre-app-aw" }, "type": "k8s_container" }, "timestamp": "2024-04-03T21:25:47.356679661Z"}'
+    outputs:
+      - extract_from: splunk_formatter
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!(.sourcetype, "kubes:application")
+              assert_eq!(.index, "test-index_app")
+              assert_eq!(.source, "123456789012:us-central1:projects/ariba-cre-app-aw/logs/stdout")
+              assert_eq!(is_timestamp(.time), true)
+              assert_eq!(.time, t'2024-04-03T21:25:47.356679661Z')
+...

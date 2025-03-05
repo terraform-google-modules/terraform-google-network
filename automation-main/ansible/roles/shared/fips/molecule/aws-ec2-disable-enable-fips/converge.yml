@@ -1,0 +1,30 @@
+---
+# Description: Molecule converge.yml playbook used to run an Ansible role in a testing scenario.
+
+  - name: Converge
+    hosts: all
+    become: true  # fips role requires playbook level 'become: true'.
+    gather_facts: true
+    vars:
+      fips_reboot_host: true
+
+    tasks:
+      - name: Include the FIPS role to disable FIPS
+        include_role:
+          name: fips
+        vars:
+          fips_mode_enabled: false
+
+      - name: Inclulde the repository-management role to configure package repositories
+        include_role:
+          name: repository-management
+        vars:
+          repo_enable: true
+          application_preset_selection: [base]
+
+      - name: Include the FIPS role to enable FIPS
+        include_role:
+          name: fips
+        vars:
+          fips_mode_enabled: true
+...

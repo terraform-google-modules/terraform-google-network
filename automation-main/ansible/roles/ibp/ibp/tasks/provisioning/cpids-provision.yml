@@ -1,0 +1,205 @@
+---
+# Synopsis: Provision CPIDS
+# Inputs:
+#   - cpids_tar_source: path to the source tar folder (version unique)
+#   - saphostagent_source: path to the SAPHOSTAGENT install files (version unique)
+# Outputs: Configured and running base CPIDS system
+# Comments: N/A
+
+- name: Get EC2 Metadata
+  ec2_metadata_facts:
+  register: ec2_metadata
+
+- name: Validate environment
+  include_tasks: general/directories-validate.yml
+  vars:
+    folder_path: "{{ item }}"
+  loop:
+  - "{{ cpids_tar_source }}"
+  - "{{ saphostagent_source }}"
+
+- name: Set the Hostname
+  hostname:
+    name: "{{ ibp_hostname }}"
+  become: true
+
+- name: Add exports to .bashrc
+  lineinfile:
+    path: ~/.bashrc
+    state: present
+    regexp: "{{ item.regex }}"
+    line: "{{ item.string }}"
+  become: yes
+  loop:
+  - regex: "^export JAVA_HOME="
+    string: 'export JAVA_HOME=/usr/sap/dsod_package/sapmachine-jdk'
+  - regex: "^export PATH="
+    string: 'export PATH=$JAVA_HOME/bin:.:$PATH'
+
+- name: Set package compat map
+  set_fact:
+    compat_package_map:
+      RedHat8: compat-sap-c++-11.x86_64
+      RedHat9: compat-sap-c++-13.x86_64
+
+- name: Get Specific compat package
+  set_fact:
+    compat_package: "{{ compat_package_map[ansible_distribution + ansible_distribution_major_version] }}"
+
+- name: Install the hana package dependencies
+  package:
+    name: '{{ item }}'
+    state: present
+  become: true
+  loop:
+    - "{{ compat_package }}"
+    - tuned-profiles-sap-hana.noarch
+    - libatomic
+    - libstdc++.so.6
+
+
+##### Using this because ansible unarchive doesn't seem to easily handle archives that span volumes.
+- name: Extract DSOD tar files
+  shell: "cat {{ item }} | tar xvfz -"
+  args:
+    chdir: '/'
+  become: yes
+  loop:
+  - "{{ cpids_tar_source }}/hana-data.tgz-*"
+  - "{{ cpids_tar_source }}/hana-log.tgz-*"
+  - "{{ cpids_tar_source }}/hana-shared.tgz-*"
+  - "{{ cpids_tar_source }}/usr-sap.tgz-*"
+
+- name: Create n01adm SAP HANA Database Administrator
+  user:
+    name: "n01adm"
+    comment: "SAP HANA Database Administrator"
+    create_home: yes
+    home: "/usr/sap/N01/home"
+    uid: 1002
+    group: 79
+    shell: /bin/sh
+    state: present
+  become: true
+
+- name: Reset n01adm password
+  user:
+    name: "n01adm"
+    update_password: always
+    password: "{{ default_password }}"
+  become: true
+
+- name: Check execute mode on saphostexec
+  file:
+    path: "{{ saphostagent_source }}/saphostexec"
+    mode: 'u+x'
+  become: true
+
+- name: Run the SAP Host Agent Setup script
+  command: "./saphostexec -install"
+  args:
+    chdir: "{{ saphostagent_source }}"
+  register: results_install_saphostagent
+  become: true
+
+- name: Display SAP Host Agent Install Results. Run at Verbose level 1 or higher to view
+  debug:
+    var: results_install_saphostagent
+    verbosity: 1
+
+- name: Reset sapadm password
+  user:
+    name: sapadm
+    update_password: always
+    password: "{{ default_password }}"
+  become: true
+
+- name: Setup Backup locations
+  file:
+      path: "{{ item }}"
+      group: 'sapsys'
+      state: directory
+      owner: 'n01adm'
+  loop:
+  - '/hana/backups/N01/HDB00/backup/data'
+  - '/hana/backups/N01/HDB00/backup/log'
+  become: true
+
+- name: Remove /usr/sap/N01/HDB00/backup
+  file:
+    path: /usr/sap/N01/HDB00/backup
+    state: absent
+  become: true
+
+- name: "Create libnsl.so.1 symlink"
+  become: true
+  file:
+    state: link
+    src: '/usr/lib64/libnsl.so.2.0.0'
+    path: '/usr/lib64/libnsl.so.1'
+  when: ansible_distribution_major_version == "8"
+
+- name: Update HDB Hosts
+  shell: "/hana/shared/N01/hdblcm/hdblcm --action=update_host -b"
+  become: yes
+  register: results_hdb_update
+
+- name: Display HDB Update Results
+  debug:
+    var: results_hdb_update
+
+- name: "Configure happic file"
+  replace:
+    path: "{{ happic_file_path }}"
+    regexp: "{{ item.regex }}"
+    replace: "{{ item.replace }}"
+    backup: yes
+  become: true
+  loop:
+    - regex: 'LOAD_BALANCER=.*$'
+      replace: "LOAD_BALANCER=https://{{ cpids_alb_cname }}/DSoD"
+    - regex: 'tomcat_port=.*$'
+      replace: 'tomcat_port=80'
+
+- name: "BLOCK: User Expiry Report"
+  block:
+  - name: "Create Directories"
+    become: true
+    file:
+      path: '/usr/sap/scripts/logs'
+      group: 'sapsys'
+      state: directory
+      mode: 0755
+      owner: 'n01adm'
+
+  - name: "Copy Local User Expiry Scripts and Files to System"
+    become: true
+    copy:
+      dest: '/usr/sap/scripts/'
+      src: "{{ item }}"
+      group: 'sapsys'
+      mode: 0755
+      owner: 'n01adm'
+    loop:
+      - 'general/password-expiry-status.sh'
+      - 'general/password-expiry-notification.sh'
+      - 'sqlcmd/user-expire.sql'
+      - 'sqlcmd/user-until.sql'
+
+  - name: "Setup Cron"
+    become: true
+    cron:
+      month: '*'
+      job: 'su - n01adm -c /usr/sap/scripts/passwd-expiry.sh >/dev/null'
+      user: 'root'
+      day: '*'
+      minute: '1'
+      name: 'User Expiry Check'
+      hour: '1'
+      state: present
+      weekday: 'MON'
+### End "BLOCK: User Expiry Report"
+
+- name: "Start CPIDS"
+  include_tasks: operations/cpids-softstart.yml
+...

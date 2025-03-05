@@ -1,0 +1,10 @@
+---
+net_ports:
+  - name: ssh
+    host: localhost
+    port: 22
+    protocol: tcp
+    application: ssh
+    service: system
+    description: ssh (22)
+...

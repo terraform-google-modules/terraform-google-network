@@ -1,0 +1,334 @@
+---
+# Playbook Name: spr-create-disks.yml
+# Description: Creates and mounts necessary EBS and EFS mounts on SPR systems.
+#     It is designed to work with the spr-ansible-inventory-template file without additional inputs.
+# Dependencies:
+# - Ansible v2.9+
+# - AWS CLI v1.16+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# - disk-management ansible role
+# Variables:
+#   - efs_staging_ip: IP Address of the staging EFS to be mounted.
+#   - spr_product : Used to create dynamic group
+#   - spr_landscape : Used to create dynamic group
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook spr-create-disks.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Louis Lee
+# Version: 2.9-000004
+# Modified: 2021-09-29 - Added usr/sap/trans EFS mount to /usr/sap/trans and /interfaces
+#           2021-05-11 - Updated dynamic group assignment
+#           2020-12-31 - Fixed tag
+#           2020-12-22 - Added Hana Volumes
+#           2020-11-25 - Created playbook
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+#   Tags:
+#   play0 always           : Prepare dynamic values
+#   play1 webdispatcher    : Webdispatcher Volumes
+#   play2 bw4hana sapapp   : BW4HANA Volumes
+#   play3 hana hanacockpit : Hana EBS Volumes
+#   play4 staging          : EFS Common Staging Mount
+#   play5 usrsaptrans      : EFS /usr/sap/trans Mount
+#   play6 interfaces       : EFS /usr/sap/trans Mount to /interfaces
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+
+#################
+##### Play1 #####
+#################
+- name: Play1 Webdispatcher Volumes
+  hosts: webdispatcher
+  tags:
+  - play1
+  - webdispatcher
+
+  tasks:
+  - name: Include disk management role to create, attach, parition, format, and mount disks
+    include_role:
+      name: disk-management
+    vars:
+      disk_create: true
+      disk_encryption: true
+      disk_encryption_key_default: ''
+      disk_preset_selection: 'custom'
+      custom:
+        usr_sap:
+          mount_point: '/usr/sap'
+          size: 50
+
+
+#################
+##### Play2 #####
+#################
+- name: Play2 BW4HANA, SapApp Volumes
+  hosts: bw4hana,sapapp
+  tags:
+  - play2
+  - bw4hana
+  - sapapp
+
+  tasks:
+  - name: "{{ inventory_hostname }} has {{ (ansible_facts.memtotal_mb/1000)|round|int }}GB of system memory"
+    set_fact:
+      ram_size: "{{ (ansible_facts.memtotal_mb/1000)|round|int }}"
+
+  - name: "Caluculate swap size"
+    set_fact:
+      swap_size: >-
+          {% if ram_size|int < 32 %} {{ ram_size|int * 2 }}
+          {% elif ram_size|int < 64 %} 64
+          {% elif ram_size|int < 128 %} 96
+          {% elif ram_size|int < 256 %} 128
+          {% elif ram_size|int < 512 %} 160
+          {% elif ram_size|int < 1024 %} 192
+          {% elif ram_size|int < 2048 %} 224
+          {% elif ram_size|int < 4096 %} 256
+          {% elif ram_size|int < 8192 %} 288
+          {% else %} 320
+          {% endif %}
+
+  - name: "Additional swap size will be {{ swap_size|int }}GB"
+    set_fact:
+      swap_size: "{{ swap_size|int }}"
+
+  - name: Include disk management role to create, attach, parition, format, and mount disks
+    include_role:
+      name: disk-management
+    vars:
+      disk_create: true
+      disk_encryption: true
+      disk_encryption_key_default: ''
+      disk_preset_selection: 'custom'
+      custom:
+        usr_sap:
+          mount_point: '/usr/sap'
+          size: 50
+        sapmnt:
+          mount_point: '/sapmnt'
+          size: 50
+        swap:
+          mount_point: '/swap'
+          size: "{{ swap_size|int }}"
+
+#################
+##### Play3 #####
+#################
+- name: Play3 Hana EBS Volumes
+  hosts: hana, hanacockpit
+  tags:
+  - play3
+  - hana
+  - hanacockpit
+
+  tasks:
+  - name: "{{ inventory_hostname }} has {{ (ansible_facts.memtotal_mb/1000)|round|int }}GB of system memory"
+    set_fact:
+      ram_size: "{{ (ansible_facts.memtotal_mb/1000)|round|int }}"
+
+  - name: "Calculate disk size"
+    set_fact:
+      hana_shared_size: >-
+          {% if ram_size|int < 1000 %} {{ ram_size|int }}
+          {% else %} 1000
+          {% endif %}
+      hana_log_size: >-
+          {% if ram_size|int < 2000 %} {{ (ram_size|int / 2)|int  }}
+          {% else %} 1000
+          {% endif %}
+
+  - name: "Hana Cockpit Shared Size"
+    when: inventory_hostname in groups.hanacockpit
+    set_fact:
+      hana_shared_size: '200'
+
+
+  - name: "Mount volumes for {{ inventory_hostname }}"
+    include_role:
+      name: disk-management
+    vars:
+      disk_create: true
+      disk_encryption: true
+      disk_encryption_key_default: ''
+      disk_preset_selection: 'custom'
+      custom:
+        hana_data:
+          mount_point: '/hana/data'
+          size: "{{ ram_size|int * 2 }}"
+        hana_log:
+          mount_point: '/hana/log'    #limit this to max of 1 terabyte
+          size: "{{ hana_log_size|int }}"
+        hana_shared:
+          mount_point: '/hana/shared'   #limit this to max of 1 terabyte
+          size: "{{ hana_shared_size|int }}"
+        hana_backups:
+          mount_point: '/hana/backups'
+          size: "{{ ram_size|int * 2 }}"
+        usr_sap:
+          mount_point: '/usr/sap'
+          size: 50
+
+
+#################
+##### Play4 #####
+#################
+- name: Play4 EFS Common Staging Mount
+  hosts: all
+  gather_facts: yes
+  tags:
+  - play4
+  - staging
+
+  vars:
+    aws_region: 'us-gov-west-1'
+    nfs_package: 'nfs-utils'
+    efs_file_system_id: ''
+    efs_ipaddress: "{{ efs_staging_ip }}"
+    efs_mount_dir: '/staging'
+
+  tasks:
+  - name: Validate inputs
+    fail:
+      msg: "Specify only one of the two - efs_ipaddress or efs_file_system_id"
+    when: ( efs_ipaddress != '') and ( efs_file_system_id != '')
+
+  - name: Ensure NFS is installed.
+    become: true
+    package: "name={{ nfs_package }} state=installed"
+
+  - name: Ensure mount directory exists.
+    become: true
+    file:
+      path: "{{ efs_mount_dir }}"
+      state: directory
+      mode: 0755
+
+  - name: Get current availability zone from AWS.
+    uri:
+      url: http://169.254.169.254/latest/meta-data/placement/availability-zone
+      return_content: yes
+    register: aws_current_az
+
+  - name: Ensure EFS volume is mounted using AWS route53
+    become: true
+    mount:
+      name: "{{ efs_mount_dir }}"
+      src: "{{ aws_current_az.content }}.{{ efs_file_system_id }}.efs.{{ aws_region }}.amazonaws.com:/"
+      fstype: nfs4
+      opts: nfsvers=4.1
+      state: mounted
+    when: efs_file_system_id != ''
+
+  - name: Ensure EFS volume is mounted using static IP address
+    become: true
+    mount:
+      name: "{{ efs_mount_dir }}"
+      src: "{{ efs_ipaddress }}:/"
+      fstype: nfs4
+      opts: nfsvers=4.1
+      state: mounted
+    when: efs_ipaddress != ''
+
+  - name: Get mount information
+    become: true
+    command: "ls -lah {{ efs_mount_dir }}"
+    register: efs_contents
+
+  - name: Display mount information
+    debug:
+      var: efs_contents
+
+#################
+##### Play5 #####
+#################
+- name: "Play5 EFS usr/sap/trans"
+  hosts: app
+  gather_facts: false
+  tags:
+  - play5
+  - usrsaptrans
+
+  vars:
+    aws_region: 'us-gov-west-1'
+    efs_file_system_id: "{{ efs_usr_sap_trans_fsid }}"
+    efs_mount_dir: "{{ spr_efs_mount|default('none',true) }}"
+
+  tasks:
+  - name: Mount EFS usr_sap_trans
+    include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        usr_sap_trans:
+          path: '/usr/sap/trans'
+          src: '{{ efs_file_system_id }}.efs.{{ aws_region }}.amazonaws.com'
+          src_root: '{{ efs_mount_dir }}'
+    when: efs_mount_dir != 'none'
+
+#################
+##### Play6 #####
+#################
+# Note: This is payroll specific
+- name: "Play6 EFS usr/sap/trans mount to /interfaces"
+  hosts: app
+  gather_facts: false
+  tags:
+  - play6
+  - interfaces
+
+  vars:
+    aws_region: 'us-gov-west-1'
+    efs_file_system_id: "{{ efs_usr_sap_trans_fsid }}"
+    efs_mount_dir: "{{ spr_interfaces_efs_mount|default('none',true) }}"
+
+  tasks:
+  - name: Mount EFS usr_sap_trans
+    include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        interfaces:
+          path: '/interfaces'
+          src: '{{ efs_file_system_id }}.efs.{{ aws_region }}.amazonaws.com'
+          src_root: '{{ efs_mount_dir }}'
+    when: efs_mount_dir != 'none'
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

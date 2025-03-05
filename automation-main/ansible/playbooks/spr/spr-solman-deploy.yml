@@ -1,0 +1,382 @@
+---
+# Playbook Name: spr-solman-deploy.yml
+# Description: UnTARs and renames SAP Solution Manager HANA database, JAVA stack application, and ABAP stack application.
+#
+#   For the purposes of this playbook, all variables should be set in the inventory file.
+# Dependencies:
+# - Ansible v2.9+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# - SPR Role
+# Variables:
+#   - Groupvars and Hostvars from inventory
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook solman-deploy.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Katja Cresanti, Dexter Le
+# Version: 2.9-000006
+# Modified:
+#
+#           2024-06-28 - Add tasks for specific compat-sap-c++- packages to install in play0
+#           2023-07-18 - enable 3 yum repos, install 4 yum package in play0
+#           2022-07-20 - fix error renaming tenant databases
+#           2022-04-28 - Bugfix to resolve tenant database rename issue
+#           2021-10-08 - Created separate taskfile for solution manager deployment
+#           2021-05-11 - Updated dynamic group assignment
+#           2021-02-22 - Created playbook
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  vars:
+    repo_enable: true
+    application_preset_selection: ['hana','epel','base']
+  tags:
+  - play0
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+
+  # enable yum repos (no new play is defined as engineers used the existing play# for their notes)
+  - name: enable yum repos
+    include_role:
+      name: repository-management
+  # set compat package versions based on OS, without these packages, the runbook will fail
+  - name: Set package compat map
+    set_fact:
+      compat_package_map:
+        RedHat8: compat-sap-c++-11.x86_64
+        RedHat9: compat-sap-c++-12.x86_64
+  - name: Get Specific compat package
+    set_fact:
+      compat_package: "{{ compat_package_map[ansible_distribution + ansible_distribution_major_version] }}"
+  - name: Install required yum packages
+    become: true
+    ansible.builtin.yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - "{{ compat_package }}"
+      - tuned-profiles-sap-hana.noarch
+      - libstdc++.so.6
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Set Hostnames and Host Files"
+  gather_facts: false
+  hosts: all
+  tags:
+  - play1
+  - hostnames
+  - hostfiles
+
+  tasks:
+  - name: "Set the host file"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/hostfile-install.yml
+
+  - name: "Set the Hostname"
+    become: true
+    hostname:
+      name: "{{ spr_hostname|lower }}"
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: SolMan_HDB Prerequisites"
+  gather_facts: false
+  hosts: solman_hdb
+  tags:
+  - play2
+  - solman_hdb
+  - prerequisites
+
+  tasks:
+  - name: "SolMan_HDB Prerequisite Check"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: prerequisites/hana-check.yml
+    vars:
+      spr_hana_check_source: "{{ spr_db_source }}"
+      spr_hana_check_file_install_rsp_xml: "{{ spr_file_install_rsp_xml }}"
+      spr_hana_check_file_install_rsp: "{{ spr_file_install_rsp }}"
+      spr_hana_check_saphostagent_source: "{{ spr_saphostagent_source }}"
+      spr_sid_adm: "{{ spr_sid|lower }}adm"
+
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: SolMan_ABAP Prerequisites"
+  gather_facts: false
+  hosts: solman_abap
+  tags:
+  - play3
+  - solman_abap
+  - prerequisites
+
+  tasks:
+  - name: "SolMan_ABAP Prerequisite Check"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: prerequisites/app-check.yml
+    vars:
+      spr_app_check_source: "{{ spr_application_source }}"
+      spr_app_check_file_ini_params: "{{ spr_file_ini_params }}"
+      spr_app_check_file_instkey: "{{ spr_file_instkey }}"
+      spr_app_check_file_swpm_sapinst: "{{ spr_file_swpm_sapinst }}"
+      spr_app_check_saphostagent_source: "{{ spr_saphostagent_source }}"
+      spr_sid_adm: "{{ spr_sid|lower }}adm"
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: SolMan_JAVA Prerequisites"
+  gather_facts: false
+  hosts: solman_java
+  tags:
+  - play4
+  - solman_java
+  - prerequisites
+
+  tasks:
+  - name: "Soljava Prerequisite Check"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: prerequisites/app-check.yml
+    vars:
+      spr_app_check_source: "{{ spr_application_source }}"
+      spr_app_check_file_ini_params: "{{ spr_file_ini_params }}"
+      spr_app_check_file_instkey: "{{ spr_file_instkey }}"
+      spr_app_check_file_swpm_sapinst: "{{ spr_file_swpm_sapinst }}"
+      spr_app_check_saphostagent_source: "{{ spr_saphostagent_source }}"
+      spr_sid_adm: "{{ spr_sid|lower }}adm"
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: SolMan_HDB Provisioning"
+  gather_facts: false
+  hosts: solman_hdb
+  tags:
+  - play5
+  - solman_hdb
+  - provision
+
+  tasks:
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+  - name: "SolMan_HDB Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/solman-install.yml
+    vars:
+      spr_hana_install_source: "{{ spr_db_source }}"
+      spr_hana_file_install_rsp_xml: "{{ spr_file_install_rsp_xml }}"
+      spr_hana_file_install_rsp: "{{ spr_file_install_rsp }}"
+      spr_hana_install_hostname: "{{ spr_hostname|lower }}"
+      spr_hana_install_sid: "{{ spr_sid|upper}}"
+      spr_hana_install_abap_tenant_sid: "{{ spr_db_first_tenant_sid|upper }}"
+      spr_hana_install_java_tenant_sid: "{{ spr_db_second_tenant_sid|upper }}"
+      spr_hana_install_domain: "{{ spr_domain }}"
+      spr_hana_product: "{{ spr_productname }}"
+
+#################
+##### Play6 #####
+#################
+- name: "Play6: SolMan_HDB Start"
+  gather_facts: false
+  hosts: solman_hdb
+  tags:
+  - play6
+  - solman_hdb
+  - start
+
+  tasks:
+  - name: "Start SolMan_HDB"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: operations/hana-start.yml
+    vars:
+      spr_hana_start_sid: "{{ spr_sid|upper}}"
+
+#################
+##### Play7 #####
+#################
+- name: "Play7: SolMan_ABAP Provisioning"
+  gather_facts: false
+  hosts: solman_abap
+  tags:
+  - play7
+  - solman_abap
+  - provision
+
+  tasks:
+  - name: "DB Connection Check"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: prerequisites/db-connection-check.yml
+    vars:
+      spr_app_db_hostname: "{{ spr_db_hostname|lower }}"
+
+  - name: "SolMan_ABAP Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/app-abap-install.yml
+    vars:
+      spr_app_install_source: "{{ spr_application_source }}"
+      spr_app_install_file_ini_params: "{{ spr_file_ini_params }}"
+      spr_app_install_file_instkey: "{{ spr_file_instkey }}"
+      spr_app_install_file_swpm_sapinst: "{{ spr_file_swpm_sapinst }}"
+      spr_app_install_hostname: "{{ spr_hostname|lower }}"
+      spr_app_install_sid: "{{ spr_sid|upper}}"
+      spr_app_install_domain: "{{ spr_domain }}"
+      spr_hana_install_abap_tenant_sid: "{{ spr_db_first_tenant_sid|upper }}"
+      spr_hana_install_java_tenant_sid: "{{ spr_db_second_tenant_sid|upper }}"
+      spr_app_install_db_hostname: "{{ spr_db_hostname|lower }}"
+      spr_app_install_db_sid: "{{ spr_db_sid|upper }}"
+      spr_app_install_product: "{{ spr_productname }}"
+
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+#################
+##### Play8 #####
+#################
+- name: "Play8: SolMan_ABAP Start"
+  gather_facts: false
+  hosts: solman_abap
+  tags:
+  - play8
+  - solman_abap
+  - start
+
+  tasks:
+  - name: "Start SolMan_ABAP"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: operations/app-abap-start.yml
+    vars:
+      spr_app_start_sid: "{{ spr_sid|upper}}"
+
+#################
+##### Play9 #####
+#################
+- name: "Play9: SolMan_JAVA Provisioning"
+  gather_facts: false
+  hosts: solman_java
+  tags:
+  - play9
+  - solman_java
+  - provision
+
+  tasks:
+  - name: "DB Connection Check"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: prerequisites/db-connection-check.yml
+    vars:
+      spr_app_db_hostname: "{{ spr_db_hostname|lower }}"
+
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+  - name: "SolMan_JAVA Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/app-java-install.yml
+    vars:
+      spr_app_install_source: "{{ spr_application_source }}"
+      spr_app_install_file_ini_params: "{{ spr_file_ini_params }}"
+      spr_app_install_file_instkey: "{{ spr_file_instkey }}"
+      spr_app_install_file_swpm_sapinst: "{{ spr_file_swpm_sapinst }}"
+      spr_app_install_hostname: "{{ spr_hostname|lower }}"
+      spr_app_install_sid: "{{ spr_sid|upper}}"
+      spr_app_install_domain: "{{ spr_domain }}"
+      spr_hana_install_abap_tenant_sid: "{{ spr_db_first_tenant_sid|upper }}"
+      spr_hana_install_java_tenant_sid: "{{ spr_db_second_tenant_sid|upper }}"
+      spr_app_install_db_hostname: "{{ spr_db_hostname|lower }}"
+      spr_app_install_db_sid: "{{ spr_db_sid|upper }}"
+      spr_app_install_product: "{{ spr_productname }}"
+
+#################
+##### Play10 #####
+#################
+- name: "Play10: SolMan_JAVA Start"
+  gather_facts: false
+  hosts: solman_java
+  tags:
+  - play10
+  - solman_java
+  - start
+
+  tasks:
+  - name: "Start SolMan_JAVA"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: operations/app-java-start.yml
+    vars:
+      spr_app_start_sid: "{{ spr_sid|upper}}"
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

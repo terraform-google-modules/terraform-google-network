@@ -1,0 +1,11 @@
+---
+# Synopsis: Sets the `ansible_python_interpreter` special Ansible variable to a custom path
+# Comments:
+#   - taskfile can be included standalone separate from role invocation in order to set the python interpreter back to what it was originally prior to invoking the `virtualenv` role
+# Inputs:
+#   wanted_ansible_python_interpreter - custom path to set the `ansible_python_interpreter` special variable to
+
+  - name: Set the ansible_python_interpreter
+    set_fact:
+      ansible_python_interpreter: '{{ wanted_ansible_python_interpreter }}'
+...

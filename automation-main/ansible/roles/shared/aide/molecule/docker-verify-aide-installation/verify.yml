@@ -1,0 +1,181 @@
+---
+#Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+  - name: Verify
+    hosts: all
+    gather_facts: yes
+    vars_files:
+      - ../../defaults/main.yml
+    tasks:
+  #Test 1
+      - name: Verify aide package is installed
+        block:
+          - name: Ensure aide package is installed
+            package_facts:
+              manager: auto
+          - name: check installation for aide
+            assert:
+              that:
+                - "'aide' in ansible_facts.packages"
+              fail_msg: aide package not found
+              success_msg: aide package found
+
+  #Test 2
+      - name: Verify aide config file exists in for Debian
+        block:
+          - name: Ensure aide config file is located in directory on Debian
+            stat:
+              path: /etc/aide/aide.conf
+            register: debian_aide_config_file_results
+          - name: Check if aide.conf is present in directory on Debian
+            assert:
+              that:
+                - debian_aide_config_file_results.stat.exists
+              fail_msg: aide config file does not exist
+              success_msg: aide config file exists
+        when: ansible_facts['os_family'] == 'Debian'
+
+      - name: Verify aide directory in /etc/ is present for RedHat
+        block:
+          - name: Ensure aide config file is located in directory on Redhat
+            stat:
+              path: /etc/aide.conf
+            register: redhat_aide_config_file_results
+          - name: Check if aide.conf is present in directory on Redhat
+            assert:
+              that:
+                - redhat_aide_config_file_results.stat.exists is defined
+              fail_msg: aide config file does not exist
+              success_msg: aide config file exists
+        when: ansible_facts['os_family'] == 'RedHat'
+
+  #Test 3
+      - name: Verify aide database has been initialized
+        block:
+          - name: Ensure aide database directory has been created
+            stat:
+              path: '{{ aide_dbdir }}'
+            register: dbdir
+          - name: aide database file exists
+            assert:
+              that:
+                - dbdir.stat.isdir is defined and dbdir.stat.isdir
+              fail_msg: aide database directory is either not a directory or is not defined
+              success_msg: aide database directory is defined and directory exists
+          - name: Ensure aide database file has been created
+            stat:
+              path: '{{ aide_dbdir }}/{{ aide_database_filename}}'
+            register: dbfile
+          - name: Check if aide database file exists
+            assert:
+              that:
+                - dbfile.stat.exists
+              fail_msg: aide database file does not exist
+              success_msg: aide database file exists
+
+  #Test 4
+      - name: Verify aide check command succeeds
+        block:
+          - name: Verify log file is created after aide check command
+            stat:
+              path: '{{ aide_logdir }}/aide.log'
+            register: aidelog
+          - name: log file exists after running aide check
+            assert:
+              that:
+                - aidelog.stat.exists
+              fail_msg: log file does not exist
+              success_msg: log file exists
+
+  #Test 5
+      - name: Verify aide cron processes have started and are active
+        block:
+          - name: Check whether or not cron process is displayed
+            shell: ps aux | grep cron
+            register: processes
+          - name: cron process NOT started debug message
+            assert:
+              that:
+                - processes.stdout != ""
+              fail_msg: cron process not started
+              success_msg: cron process has started and is active
+
+      - name: Verify aide --check job is present
+        block:
+          - name: Check whether or not cron job is displayed
+            shell: crontab -l | grep "aide --check" | grep -v "#" | wc -l
+            register: verify_check_job_exists
+          - name: Ensure aide check cron job is present
+            assert:
+              that:
+                - verify_check_job_exists.stdout|int == 1
+              fail_msg: Missing aide check cron job
+              success_msg: aide --check job is present
+
+      - name: Verify aide -u job is present
+        block:
+          - name: Check whether or not aide update cron job is displayed
+            shell: crontab -l | grep "aide -u" | grep -v "#" | wc -l
+            register: verify_update_job_exists
+          - name: Ensure aide update cron job is present
+            assert:
+              that:
+                - verify_update_job_exists.stdout|int == 1
+              fail_msg: Missing aide update cron job
+              success_msg: aide -u job is present
+
+  #Test 6
+      - name: Verify aide update command succeeds
+        block:
+          - name: Ensure new aide database file is merged
+            shell: ls {{ aide_dbdir }} | wc -l
+            register: dbfilecount
+          - name: Ensure only one database file remains after update
+            assert:
+              that:
+                - dbfilecount.stdout|int == 1
+              fail_msg: new database file is not merged with origional after update command is finished
+              success_msg: new database file is now merged with origional
+
+      - name: Run intermediate update step on Debian OS
+        block:
+          - name: Run update step manually to check if file is being created on Debian
+            become: true
+            shell: aide -u -c /etc/aide/aide.conf
+            ignore_errors: true
+          - name: Ensure new aide database file has been created on Debian
+            stat:
+              path: '{{ aide_dbdir }}/{{ aide_database_out_filename }}'
+            register: debian_newdbfile
+          - name: new aide database file exists on Debian
+            assert:
+              that:
+                - debian_newdbfile.stat.exists
+              fail_msg: new aide database file does not exist
+              success_msg: new aide databasefile file exists
+          - name: Removing update step as it was only executed to validate whether or not db file is being created on Debian
+            become: true
+            shell: rm {{ aide_dbdir }}/{{ aide_database_out_filename }}
+        when: ansible_facts['os_family'] == 'Debian'
+
+      - name: Run intermediate update step on Redhat OS
+        block:
+          - name: Run update step manually to check if file is being created on RedHat
+            become: true
+            shell: aide -u -c /etc/aide.conf
+            ignore_errors: true
+          - name: Ensure new aide database file has been created on RedHat
+            stat:
+              path: '{{ aide_dbdir }}/{{ aide_database_out_filename }}'
+            register: redhat_newdbfile
+          - name: new aide database file exists on RedHat
+            assert:
+              that:
+                - redhat_newdbfile.stat.exists
+              fail_msg: new aide database file does not exist
+              success_msg: new aide databasefile file exists
+          - name: Removing update step as it was only executed to validate whether or not db file is being created on RedHat
+            become: true
+            shell: rm {{ aide_dbdir }}/{{ aide_database_out_filename }}
+        when: ansible_facts['os_family'] == 'RedHat'
+...

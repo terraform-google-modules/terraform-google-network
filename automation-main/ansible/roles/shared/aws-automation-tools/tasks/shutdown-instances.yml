@@ -1,0 +1,44 @@
+---
+# Synopsis: This playbook will shutdown any ec2 instances named 'test-' every night
+# Inputs:
+#   - aws_automation_secret_key: The aws access key used for access
+#   - aws_automation_secret_key: The aws secret key used for access
+#   - aws_region: The default amazon region specified in the defaults file
+# Outputs: Any instance with the tag of 'test' will be shutdown every night at 0300 UTC / 2300 EST.
+
+  - name: Discover AWS EC2 instances
+    local_action:
+      module: ec2_instance_info
+      aws_access_key: '{{ aws_automation_access_key | default(omit, true) }}'
+      aws_secret_key: '{{ aws_automation_secret_key | default(omit, true) }}'
+      region: '{{ aws_region }}'
+    register: discovered_instances
+    tags:
+      - shutdown
+
+  - name: Creating a list of test instances that will be shutdown
+    set_fact:
+      instances_to_shutdown: '{{ discovered_instances | to_json | from_json | json_query(query) }}'
+    vars:
+      query: instances[?starts_with(tags.Name, `test-`)].instance_id
+    register: instances_to_shutdown
+
+  - name: Notify if there are no test instances to shutdown
+    debug:
+      msg: There are currently no instances to shutdown
+    when: instances_to_shutdown|length == 0
+
+  - name: Setting from ansible_fact to a list
+    set_fact:
+      instances_to_shutdown: '{{ instances_to_shutdown.ansible_facts.instances_to_shutdown }}'
+
+  - name: Shutting down test instances
+    local_action:
+      module: ec2
+      region: '{{ aws_region }}'
+      aws_access_key: '{{ aws_automation_access_key | default(omit, true) }}'
+      aws_secret_key: '{{ aws_automation_secret_key | default(omit, true) }}'
+      state: stopped
+      instance_ids: '{{ instances_to_shutdown }}'
+    when: instances_to_shutdown|length > 0
+...

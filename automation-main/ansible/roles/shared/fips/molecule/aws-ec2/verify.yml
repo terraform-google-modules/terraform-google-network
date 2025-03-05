@@ -1,0 +1,12 @@
+---
+# Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+  - name: Verify
+    hosts: all
+    become: true  # fips role requires playbook level 'become: true'.
+    gather_facts: true
+    tasks:
+      - name: Example assertion
+        assert:
+          that: true
+...

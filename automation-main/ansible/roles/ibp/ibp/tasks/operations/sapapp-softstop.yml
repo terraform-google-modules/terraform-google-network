@@ -1,0 +1,61 @@
+---
+# Synopsis: Does a software stop of SAPAPP
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+# Outputs: Stopped SAPAPP
+
+- name: "Get Process list"
+  shell: 'sapcontrol -nr 00 -function GetProcessList'
+  args:
+    executable: '/bin/csh'
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  failed_when: false
+  changed_when: false
+  register: sapapp_process_output
+
+- name: "Check if SAPAPP DB is already stopped"
+  assert:
+    that: "'GREEN' not in sapapp_process_output.stdout"
+    fail_msg: SAPAPP process detected. Stopping in next block
+    success_msg: "SAPAPP is already stopped. Skipping next block"
+  changed_when: false
+  failed_when: false
+
+- name: "BLOCK: Stop SAPAPP"
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  when: "'GREEN' in sapapp_process_output.stdout"
+  block:
+  - name: "Stopping SAPAPP"
+    shell: 'sapcontrol -nr 00 -function StopSystem ALL'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+
+  - name: "Wait a few seconds while SAPAPP stops"
+    pause:
+      seconds: 60
+
+  - name: "Get Process list after stop"
+    shell: 'sapcontrol -nr 00 -function GetProcessList'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+    changed_when: false
+    register: sapapp_poststop_process_output
+
+  - name: "Validate SAPAPP Stop"
+    assert:
+      that: "'GREEN' not in sapapp_poststop_process_output.stdout"
+      fail_msg: |
+        SAPAPP did not stop
+         {{ sapapp_poststop_process_output.stdout_lines }}
+      success_msg: SAPAPP Stopped
+
+  - name: "Output post-stop processes"
+    debug:
+      var: sapapp_poststop_process_output.stdout_lines
+  # End "BLOCK: Stop SAPAPP"
+
+...

@@ -1,0 +1,124 @@
+---
+# Synopsis: This task list applies tags to the instance and related disks based on a combination of user submitted tags and automatically generated tags.
+# Inputs:
+#   - All of the tags defined in defaults.yml and the readme.md are used in this task list.
+
+  - name: Apply standard tags to instances
+    ec2_tag:
+      region: '{{ aws_region }}'
+      resource: '{{ aws_instance_id }}'
+      tags:
+        Account: '{{ aws_tag_account_id | lower }}'
+        OperatingSystem: '{{ aws_tag_operating_system | lower }}'
+        Image: '{{ aws_tag_image | lower }}'
+        Environment: "{% if aws_tag_environment != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_environment | lower }}{% elif aws_tag_environment_current\
+          \ is defined and aws_tag_environment_current != '' %}{{ aws_tag_environment_current | lower }}{% else %}{{ aws_tag_environment | lower }}{% endif\
+          \ %}"
+        Domain: '{{ realm_output.stdout | lower }}'
+        Hostname: '{{ ansible_hostname | lower }}'
+        Business: "{% if aws_tag_business != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_business | lower }}{% elif aws_tag_business_current is defined\
+          \ and aws_tag_business_current != '' %}{{ aws_tag_business_current | lower }}{% else %}{{ aws_tag_business | lower }}{% endif %}"
+        Description: "{% if aws_tag_description != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_description | lower }}{% elif aws_tag_description_current\
+          \ is defined and aws_tag_description_current != '' %}{{ aws_tag_description_current | lower }}{% else %}{{ aws_tag_description | lower }}{% endif\
+          \ %}"
+        ProductName: "{% if aws_tag_product_name != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_product_name | lower }}{% elif aws_tag_product_name_current\
+          \ is defined and aws_tag_product_name_current != '' %}{{ aws_tag_product_name_current | lower }}{% else %}{{ aws_tag_product_name | lower }}{%\
+          \ endif %}"
+        Patch Group: "{% if aws_tag_patch_group != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_patch_group | lower }}{% elif aws_tag_patch_group_current\
+          \ is defined and aws_tag_patch_group_current != '' %}{{ aws_tag_patch_group_current | lower }}{% else %}{{ aws_tag_patch_group | lower }}{% endif\
+          \ %}"
+        BuildUser: "{% if aws_tag_build_user != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_build_user | lower }}{% elif aws_tag_build_user_current\
+          \ is defined and aws_tag_build_user_current != '' %}{{ aws_tag_build_user_current | lower }}{% else %}{{ aws_tag_build_user | lower }}{% endif\
+          \ %}"
+        GeneratedBy: "{% if aws_tag_generated_by != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_generated_by | lower  }}{% elif aws_tag_generated_by_current\
+          \ is defined and aws_tag_generated_by_current != '' %}{{ aws_tag_generated_by_current | lower  }}{% else %}{{ aws_tag_generated_by | lower }}{%\
+          \ endif %}"
+        ManagedBy: "{% if aws_tag_managed_by != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_managed_by | lower  }}{% elif aws_tag_managed_by_current\
+          \ is defined and aws_tag_managed_by_current != '' %}{{ aws_tag_managed_by_current | lower  }}{% else %}{{ aws_tag_managed_by | lower }}{% endif\
+          \ %}"
+        Platform: '{{ aws_tag_platform }}'
+        ProvisionDate: "{% if aws_tag_provision_date != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_provision_date }}{% elif aws_tag_provision_date_current\
+          \ is defined and aws_tag_provision_date_current != '' %}{{ aws_tag_provision_date_current }}{% else %}{{ aws_tag_provision_date }}{% endif %}"
+      state: present
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+
+# TODO: consider getting fancy with line of business specific vars files
+
+  - name: Apply single-tenant tags to instances
+    ec2_tag:
+      region: '{{ aws_region }}'
+      resource: '{{ aws_instance_id }}'
+      tags:
+        Customer: "{% if aws_tag_customer != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_customer | lower }}{% elif aws_tag_customer_current is defined\
+          \ and aws_tag_customer_current != '' %}{{ aws_tag_customer_current | lower }}{% else %} {{ aws_tag_customer }}{% endif %}"
+      state: present
+    when: >
+      aws_tag_business == "shc" or
+      aws_tag_business == "ibp"
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+
+  - name: Apply standard SAP-related tags to instances
+    ec2_tag:
+      region: '{{ aws_region }}'
+      resource: '{{ aws_instance_id }}'
+      tags:
+        SID: '{{ aws_tag_sid | default( "untagged" ) | lower  }}'
+      state: present
+    when: >
+      aws_tag_force_sap | bool or
+      aws_tag_image is search("SAP") or
+      aws_tag_image is search("HANA")
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+
+# TODO: conditional needs work as tags are still being applied for ibp
+
+  - name: Apply multi-tenant SAP-related tags to instances
+    ec2_tag:
+      region: '{{ aws_region }}'
+      resource: '{{ aws_instance_id }}'
+      tags:
+        Node: "{% if aws_tag_node != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_node | lower }}{% elif aws_tag_node_current is defined and aws_tag_node_current\
+          \ != '' %}{{ aws_tag_node | lower }}{% else %}{{ aws_tag_node_current }}{% endif %}"
+        DBType: "{% if aws_tag_db_type != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_db_type | lower }}{% elif aws_tag_db_type_current is defined\
+          \ and aws_tag_db_type_current != '' %}{{ aws_tag_db_type | lower }}{% else %}{{ aws_tag_db_type_current }}{% endif %}"
+        DBHostname: '{{ aws_tag_db_hostname }}'
+        DBSID: '{{ aws_tag_db_sid }}'
+        TenantSID: '{{ aws_tag_tenant_sid }}'
+      state: present
+    when: >
+      (
+        aws_tag_force_sap | bool or
+        aws_tag_image is search("SAP") or
+        aws_tag_image is search("HANA")
+      ) and
+      (
+        aws_tag_business != "ibp" or
+        aws_tag_business != "shc"
+      )
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+
+#TODO: need to figure out how to get the MountPoint value properly
+
+  - name: Apply standard tags to disks
+    ec2_tag:
+      region: '{{ aws_region }}'
+      resource: '{{ item.ebs.volume_id }}'
+      tags:
+        # MountPoint:
+        Hostname: '{{ ansible_hostname }}'
+        Instance: '{{ aws_instance_id }}'
+    loop: '{{ aws_instance_disk_list }}'
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+
+# TODO: consider getting fancy with conditionals for the customer tag on disks
+
+  - name: Apply single-tenant tags to disks
+    ec2_tag:
+      region: '{{ aws_region }}'
+      resource: '{{ item.ebs.volume_id }}'
+      tags:
+        Customer: "{% if aws_tag_customer != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_customer | lower }}{% elif aws_tag_customer_current is defined\
+          \ and aws_tag_customer_current != '' %}{{ aws_tag_customer_current | lower }}{% else %} {{ aws_tag_customer }}{% endif %}"
+    loop: '{{ aws_instance_disk_list }}'
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+...

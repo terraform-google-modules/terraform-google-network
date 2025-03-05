@@ -1,0 +1,301 @@
+---
+# Playbook Name: setup-hana-sync-replication.yml
+# Description: Standalone playbook that starts replication between two HANA DB Servers
+# Prerequisites:
+#   - spr Ansible Role
+#   - distributed-hana-config Ansible Role
+#   - 2 SPR Provisioned (blank) S4/HANA Servers
+#   - Ansible inventory created from template (../___inventory-template___.yml)
+#   - Ansible vars file with dbservers (./distributed-db-install.vars.template.yml)
+#   - spr_defaults (../../../roles/spr/spr/defaults/spr_defaults.yml)
+# Dependencies: N/A
+# Variables:
+#   Inventory Host Variables (See template for descriptions)
+#   - spr_nodetype
+#   - spr_landscape
+#   - spr_productname
+#   - spr_sid
+#   - spr_hostname
+#   - sap_ha_role
+#   - sap_hana_hsr_role
+#   - sap_hana_hsr_hana_sid
+#   - sap_hana_hsr_hana_db_system_password
+#   - sap_hana_hsr_oper_mode
+#   - sap_hana_hsr_alias
+#   - sap_hana_hsr_rep_mode
+# Example:
+#
+#   ansible-playbook setup-hana-sync-replication.yml -i inventory.yml -i spr_defaults.yml -i (./distributed-db-install.vars.template.yml
+# Authors: Sean-Thomas Saloom, Dexter Le
+# Version: 2.16-000001
+# Modified: 2024-08-28 - Created
+# Comments: |
+#   Tags:
+#     play0 always cloud-identify : Prepare dynamic values
+#     playc check-hsr             : Ensure that hana sync replication is not enabled before provisioning
+#     play1                       : Create DB Replication
+#     play2                       : Register dbsecondary to dbprimary
+#     playt testing               : Run distributed test suite for ensuring hsr is enabled (NOTE: Task may exceed longer than 30 minutes)
+#     playEND                     : The End
+
+- name: Play0
+  hosts: dbservers
+  tags:
+    - always
+    - play0
+  tasks:
+    - name: "Dynamic Group Assignment"
+      ansible.builtin.group_by:
+        key: "{{ item }}"
+      when: "item != 'undefined'"
+      loop:
+        - "{{ spr_nodetype|default('undefined')|lower }}"
+        - "{{ spr_landscape|default('undefined')|lower }}"
+        - "{{ spr_productname|default('undefined')|lower }}"
+        - "{{ spr_sid|default('undefined')|lower }}"
+        - "{{ sap_ha_role|default('undefined')|lower }}"
+        - "{{ sap_hana_hsr_role|default('undefined')|lower }}"
+
+    - name: "Set dynamic facts"
+      ansible.builtin.set_fact:
+        setup_hana_sync_replication_sap_hana_hsr_hana_primary_hostname: "{{ hostvars[ (groups[spr_sid]|intersect(groups['primary'])) | first ]['spr_hostname'] | lower }}"
+        setup_hana_sync_replication_sap_hana_hsr_hana_secondary_hostname: "{{ hostvars[ (groups[spr_sid]|intersect(groups['secondary'])) | first ]['spr_hostname'] | lower }}"
+        setup_hana_sync_replication_sap_hana_hsr_primary_ip: "{{ hostvars[ (groups[spr_sid]|intersect(groups['primary'])|intersect(groups['db'])) | first ].ansible_default_ipv4.address }}"
+        setup_hana_sync_replication_sap_hana_hsr_secondary_ip: "{{ hostvars[ (groups[spr_sid]|intersect(groups['secondary'])|intersect(groups['db'])) | first ].ansible_default_ipv4.address }}"
+
+- name: "PlayC Ensure Hana DB Replication is not enabled"
+  hosts: dbservers
+  gather_facts: true
+  any_errors_fatal: true
+  tags:
+    - playc
+    - check-hsr
+  tasks:
+    - name: "Check Hana DB Replication status"
+      ansible.builtin.include_role:
+        name: distributed-hana-config
+        tasks_from: prerequisites/check-hana-system-replication.yml
+      vars:
+        distributed_hana_config_sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+
+    - name: "Fail if Hana DB Replication is enabled"
+      ansible.builtin.fail:
+        msg: "Hana DB System Replication is enabled"
+      when: '"mode: none" not in distributed_hana_config_output_checksr.stdout_lines'
+
+- name: "Play1 Create DB Replication"
+  hosts: dbservers
+  gather_facts: true
+  tags: play1
+  tasks:
+
+    # verify both hana instances are running at start of playbook
+    - name: "Ensure each hana instance is started"
+      ansible.builtin.include_role:
+        name: spr
+        tasks_from: operations/hana-start.yml
+      vars:
+        spr_hana_start_sid: "{{ spr_sid | upper }}"
+
+    - name: "Config Hana instances for system replication"
+      ansible.builtin.include_role:
+        name: distributed-hana-config
+        tasks_from: "{{ task }}"
+      loop:
+        - provisioning/config-log.yml
+        - provisioning/config-host-resolve.yml
+        - provisioning/config-system-ini.yml
+      loop_control:
+        loop_var: task
+      vars:
+        distributed_hana_config_spr_hostname: "{{ spr_hostname | lower }}"
+        distributed_hana_config_sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+        distributed_hana_config_sap_hana_hsr_primary_ip: "{{ setup_hana_sync_replication_sap_hana_hsr_primary_ip }}"
+        distributed_hana_config_sap_hana_hsr_hana_primary_hostname: "{{ setup_hana_sync_replication_sap_hana_hsr_hana_primary_hostname }}"
+        distributed_hana_config_sap_hana_hsr_secondary_ip: "{{ setup_hana_sync_replication_sap_hana_hsr_secondary_ip }}"
+        distributed_hana_config_sap_hana_hsr_hana_secondary_hostname: "{{ setup_hana_sync_replication_sap_hana_hsr_hana_secondary_hostname }}"
+        distributed_hana_config_sap_hana_hsr_hana_db_system_password: "{{ sap_hana_hsr_hana_db_system_password }}"
+
+    - name: "Restart hana instance"
+      ansible.builtin.include_role:
+        name: spr
+        tasks_from: "{{ tasks }}"
+      vars:
+        spr_hana_start_sid: "{{ spr_sid | upper }}"
+      loop:
+        - operations/hana-stop.yml
+        - operations/hana-start.yml
+      loop_control:
+        loop_var: tasks
+
+    # stop secondary db to pull dat key files
+    - name: "Ensure secondary hana instance is stopped"
+      ansible.builtin.include_role:
+        name: spr
+        tasks_from: operations/hana-stop.yml
+      vars:
+        spr_hana_start_sid: "{{ spr_sid | upper }}"
+      when: sap_hana_hsr_role == 'secondary'
+      tags: stop-hana-secondary
+
+    - name: "Sync DAT and KEY files from primarydb to secondarydb"
+      block:
+      - name: "Pull DAT and KEY files from primarydb"
+        ansible.builtin.include_role:
+          name: distributed-hana-config
+          tasks_from: provisioning/pull-dat-key-files.yml
+        vars:
+          distributed_hana_config_sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+        when: sap_hana_hsr_role == 'primary'
+
+      - name: "Push DAT and KEY files to secondarydb"
+        ansible.builtin.include_role:
+          name: distributed-hana-config
+          tasks_from: provisioning/push-dat-key-files.yml
+        vars:
+          distributed_hana_config_sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+        when: sap_hana_hsr_role == 'secondary'
+      tags: sync-pkistore-primary-to-secondary
+
+    # restart hana secondary to ensure dat key file changes are seen be secondary database
+    - name: "Ensure secondarydb hana instance is started"
+      ansible.builtin.include_role:
+        name: spr
+        tasks_from: operations/hana-start.yml
+      vars:
+        spr_hana_start_sid: "{{ spr_sid | upper }}"
+      when: sap_hana_hsr_role == 'secondary'
+
+    - name: "Ensure secondary hana instance is stopped"
+      ansible.builtin.include_role:
+        name: spr
+        tasks_from: operations/hana-stop.yml
+      vars:
+        spr_hana_start_sid: "{{ spr_sid | upper }}"
+      when: sap_hana_hsr_role == 'secondary'
+
+    - name: "Backup primarydb Hana instance for system replication"
+      ansible.builtin.include_role:
+        name: distributed-hana-config
+        tasks_from: provisioning/create-hana-backup.yml
+      vars:
+        distributed_hana_config_sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+        distributed_hana_config_sap_hana_hsr_hana_db_system_password: "{{ sap_hana_hsr_hana_db_system_password }}"
+      when: sap_hana_hsr_role == 'primary'
+      tags: systemdb-backup-primary
+
+    - name: "Ensure hana system replication is enabled on dbprimary"
+      ansible.builtin.include_role:
+        name: distributed-hana-config
+        tasks_from: provisioning/enable-hana-system-replication.yml
+      vars:
+        distributed_hana_config_sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+        distributed_hana_config_sap_hana_hsr_alias: "{{ sap_hana_hsr_alias }}"
+      when: sap_hana_hsr_role == 'primary'
+      tags:
+      - check-hsr-primary-status
+      - enable-hsr-primary
+
+    - name: "Ensure secondary hana instance is stopped"
+      ansible.builtin.include_role:
+        name: spr
+        tasks_from: operations/hana-stop.yml
+      vars:
+        spr_hana_start_sid: "{{ spr_sid | upper }}"
+      when: sap_hana_hsr_role == 'secondary'
+
+# NOTE: Flag `force_full_replica` is only required for initial HANA HSR setup.
+# NOTE: Subsequent replication ocnfiguration does not require this flag.  To be updated in future automation
+- name: "Play2 Register dbsecondary with dbprimary for hana system replication"
+  hosts: dbservers
+  gather_facts: true
+  tags: play2
+  tasks:
+    - name: "Register dbsecondary with dbprimary for hana system replication"
+      ansible.builtin.include_role:
+        name: distributed-hana-config
+        tasks_from: provisioning/register-hana-system-replication.yml
+      vars:
+        distributed_hana_config_sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+        distributed_hana_config_sap_hana_hsr_alias: "{{ sap_hana_hsr_alias }}"
+        distributed_hana_config_sap_hana_hsr_hana_primary_hostname: "{{ setup_hana_sync_replication_sap_hana_hsr_hana_primary_hostname }}"
+        distributed_hana_config_sap_hana_hsr_rep_mode: "{{ sap_hana_hsr_rep_mode }}"
+        distributed_hana_config_sap_hana_hsr_oper_mode: "{{ sap_hana_hsr_oper_mode }}"
+      when: sap_hana_hsr_role == 'secondary'
+      tags: register-secondary-hsr
+
+    - name: "Ensure hana system replication on dbsecondary is registered"
+      ansible.builtin.include_role:
+        name: distributed-hana-config
+        tasks_from: prerequisites/check-hana-system-replication.yml
+      vars:
+        distributed_hana_config_sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+      when: sap_hana_hsr_role == 'secondary'
+      tags: check-hsr-secondary-status
+
+    - name: "Ensure hana instance is started on dbsecondary"
+      ansible.builtin.include_role:
+        name: spr
+        tasks_from: operations/hana-start.yml
+      vars:
+        spr_hana_start_sid: "{{ spr_sid | upper }}"
+      when: sap_hana_hsr_role == 'secondary'
+      tags: start-hana-secondary
+
+    - name: "Check if hana system replication on dbsecondry is registered on dbprimary"
+      ansible.builtin.include_role:
+        name: distributed-hana-config
+        tasks_from: prerequisites/check-hana-system-replication.yml
+      vars:
+        distributed_hana_config_sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+      when: sap_hana_hsr_role == 'primary'
+      tags:
+        - print-hsr-secondary-status
+        - print-hsr-status-2
+
+    - name: "Ensure each hana instance is started"
+      ansible.builtin.include_role:
+        name: spr
+        tasks_from: operations/hana-start.yml
+      vars:
+        spr_hana_start_sid: "{{ spr_sid | upper }}"
+
+
+#################
+##### PlayT #####
+#################
+- name: "PlayT: Test results for hana sync replication"
+  hosts: dbservers
+  tags:
+  - playt
+  - testing
+
+  tasks:
+  - name: "Run Test"
+    ansible.builtin.include_role:
+      name: distributed-hana-config
+      vars_from: test-all.yml
+    vars:
+      distributed_hana_config_sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+    when: sap_hana_hsr_role == 'primary'
+
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

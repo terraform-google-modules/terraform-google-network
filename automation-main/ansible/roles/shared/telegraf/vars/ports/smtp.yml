@@ -1,0 +1,10 @@
+---
+net_ports:
+  - name: smtp
+    host: localhost
+    port: 25
+    protocol: tcp
+    application: postfix
+    service: smtp
+    description: smtp (postfix:25)
+...

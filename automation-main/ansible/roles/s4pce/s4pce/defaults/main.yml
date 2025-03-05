@@ -1,0 +1,9 @@
+---
+# defaults file for s4pce
+# This is the default password for all new systems.  This will be changed after the handover to ops.
+default_password: QwerRewq123
+
+##### Main task defaults
+s4pce_terraform_instance_list: false
+s4pce_terraform_instance_list_location: /tmp/instances.auto.tfvars
+cloud_provider: "aws"

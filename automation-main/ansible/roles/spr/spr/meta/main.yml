@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: Louis Lee
+  description: SPR Provisioning Role
+  company: SAP NS2
+  role_name: spr  # if absent directory name hosting role is used instead
+  namespace: sapns2  # if absent, author is used instead
+
+  issue_tracker_url: https://gitlab.core.sapns2.us/golden-ami-dev/ansible-roles/issues
+
+  license: BSD
+
+  min_ansible_version: 2.9
+
+  galaxy_tags: []
+
+dependencies: []
+...

@@ -1,0 +1,9 @@
+apiVersion: v2
+name: aws-mountpoint-s3-csi-driver
+description: Helm Chart for deploying aws-mountpoint-s3-csi-driver
+type: application
+version: 1.11.0
+dependencies:
+  - name: aws-mountpoint-s3-csi-driver
+    version: 1.11.0
+    repository: https://awslabs.github.io/mountpoint-s3-csi-driver

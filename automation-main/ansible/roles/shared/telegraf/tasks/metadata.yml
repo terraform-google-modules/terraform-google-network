@@ -1,0 +1,73 @@
+---
+
+  - name: Fetch EC2 instance metadata
+    amazon.aws.ec2_metadata_facts:
+    register: telegraf_ec2_instance_metadata
+    failed_when: false
+
+  - name: Fetch Azure instance metadata
+    ansible.builtin.uri:
+      url: http://169.254.169.254/metadata/instance/?api-version=2021-05-01&format=json
+      headers:
+        Metadata: true
+      return_content: true
+    register: telegraf_azure_instance_metadata
+    failed_when: false
+    when:
+      - ansible_ec2_None is defined
+      - ansible_ec2_None == "None"
+
+  - name: Fetch GCP instance metadata
+    ansible.builtin.uri:
+      url: http://metadata.google.internal/computeMetadata/v1/?recursive=True
+      headers:
+        Metadata-Flavor: Google
+        Accept: application/json
+      return_content: true
+    register: telegraf_gcp_instance_metadata
+    failed_when: false
+    when:
+      - ansible_ec2_None is defined
+      - ansible_ec2_None == "None"
+      - telegraf_azure_instance_metadata.status != 200
+
+  - name: '[Azure] setup metadata'
+    ansible.builtin.include_tasks: meta/azure.yml
+    vars:
+      mds: '{{ telegraf_azure_instance_metadata.json }}'
+    when:
+      - ansible_ec2_None is defined
+      - ansible_ec2_None == "None"
+      - telegraf_azure_instance_metadata.status == 200
+
+  - name: '[GCP] setup metadata'
+    ansible.builtin.include_tasks: meta/gcp.yml
+    vars:
+      mds: '{{ telegraf_gcp_instance_metadata.json }}'
+    when:
+      - ansible_ec2_None is defined
+      - ansible_ec2_None == "None"
+      - telegraf_azure_instance_metadata.status != 200
+      - telegraf_gcp_instance_metadata.status == 200
+
+  - name: '[AWS] setup metadata'
+    ansible.builtin.include_tasks: meta/aws.yml
+    when:
+      - ansible_ec2_instance_id is defined
+
+  - name: '[Unknown] setup metadata and variables'
+    ansible.builtin.set_fact:
+      telegraf_additional_environment_variables:
+        NS2_VM_NAME: UNKNOWN
+        NS2_TAG_NAME: UNKNOWN
+        NS2_TAG_PRODUCT_NAME: UNKNOWN
+        NS2_TAG_IMAGE: UNKNOWN
+        NS2_TAG_DOMAIN: UNKNOWN
+        NS2_TAG_BUSINESS: UNKNOWN
+        NS2_TAG_ENVIRONMENT: UNKNOWN
+        NS2_TAG_CUSTOMER: UNKNOWN
+      telegraf_hyperscaler: unknown
+      telegraf_hyperscaler_unknown: true
+    when:
+      - telegraf_additional_environment_variables is undefined
+...

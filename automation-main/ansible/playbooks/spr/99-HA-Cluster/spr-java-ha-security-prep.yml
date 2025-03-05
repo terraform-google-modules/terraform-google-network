@@ -1,0 +1,242 @@
+---
+# Playbook Name: spr-java-ha-security-prep.yml
+# Description: This playbook can provision the following sap applications:
+#   webdispatcher:
+# Dependencies:
+# - Ansible v2.9+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# - SPR Role
+# Variables:
+#   - Groupvars and Hostvars from inventory
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook spr-sample-landscape.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Modified:
+# Authors: Sean-Thomas Saloom, Dexter Le
+
+# Version: 2.9-000002
+# Modified:
+#           2023-08-27 - Creation
+#           2024-02-23 - Enhanced dynamic grouping to key off of sap_app_role value
+
+#   This playbook is designed to work with the spr ansible-inventory template.
+#   For the purposes of this playbook, all variables should be set in the inventory file.
+#   Inventory file examples can be found under the spr ansible role vars/business/ directory.
+#
+#   Tags:
+#    "Play0: Prepare dynamic values"                                   : Dynamic group assignment
+#    "Play1: Create Directory"                                         : Copys over the security directory from the PAS
+#    "Play2: Stopping the application and Copy Security Directory"     : Stop the PAS before removing
+#    "Play3: Cleaning up directories and PAS"                          : Removing the PAS from the system (essentially PAS uninstall)
+
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+    - "{{ sap_app_role|default('undefined')|lower }}"
+
+  - name: Group hosts whose hostname contains 'app'
+    group_by:
+      key: "primary_app"
+    when:
+      - spr_nodetype is defined and spr_nodetype == "app"
+      - sap_app_role is defined and sap_app_role == "pas"
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Create Directory"
+  gather_facts: false
+  hosts: primary_app
+  tags:
+    - play1
+
+  tasks:
+    - name: Create Directory in /staging/tmp/{{ spr_sid|upper }}
+      ansible.builtin.file:
+        path: "/staging/tmp/{{ spr_sid|upper }}"
+        state: directory
+        mode: "0777"
+      become: true
+
+    - name: Pause before moving to Play2
+      ansible.builtin.pause:
+
+#################
+##### Play2 #####
+#################
+- name: "Play2 Stopping the application and Copy Security Directory"
+  gather_facts: false
+  hosts: primary_app
+  tags:
+    - play2
+  tasks:
+    - name: "BLOCK: Stop SAPAPP"
+      become: true
+      become_user: "{{ spr_sid | lower }}adm"
+      block:
+      - name: "Stopping SAPAPP"
+        shell: 'stopsap'
+        args:
+          executable: '/bin/csh'
+        failed_when: false
+
+      - name: "Wait for process to stop"
+        shell: 'sapcontrol -nr 00 -function GetProcessList ALL'
+        args:
+          executable: '/bin/csh'
+        failed_when: false
+        changed_when: false
+        register: sapapp_poststop_process_output
+        retries: 5
+        delay: 10
+        until: |
+          'GREEN' not in sapapp_poststop_process_output.stdout
+
+      - name: "Output post-stop processes"
+        debug:
+          var: sapapp_poststop_process_output.stdout_lines
+
+    - name: Copy Security Directory
+      ansible.builtin.copy:
+        src: "/sapmnt/{{ spr_sid|upper }}/global/security"
+        dest: "/staging/tmp/{{ spr_sid|upper }}"
+        remote_src: yes
+        mode: "preserve"
+      become: true
+      become_user: "{{ sap_sid|lower }}adm"
+      # become: true  # Add this line to execute with elevated privileges
+
+    - name: Pause before moving to Play3
+      ansible.builtin.pause:
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Cleaning up directories and PAS"
+  gather_facts: false
+  hosts: primary_app
+  tags:
+    - play3
+  tasks:
+    - name: "BLOCK: Stop SAPAPP"
+      block:
+      - name: "Stopping SAPAPP"
+        shell: 'stopsap'
+        args:
+          executable: '/bin/csh'
+        failed_when: false
+
+      - name: "Stopping SAPAPP"
+        become: true
+        become_user: "root"
+        shell: '/usr/sap/hostctrl/exe/saphostexec -stop'
+        failed_when: false
+
+      - name: "Wait for process to stop"
+        become: true
+        shell: 'sapcontrol -nr 00 -function GetProcessList ALL'
+        args:
+          executable: '/bin/csh'
+        failed_when: false
+        changed_when: false
+        register: sapapp_poststop_process_output
+        retries: 5
+        delay: 10
+        until: |
+          'GREEN' not in sapapp_poststop_process_output.stdout
+
+      - name: "Output post-stop processes"
+        debug:
+          var: sapapp_poststop_process_output.stdout_lines
+
+      - name: Kill User Processes
+        become: true
+        ansible.builtin.shell: pkill -u {{ item }}
+        ignore_errors: yes
+        register: kill_result
+        until: kill_result.rc == 0
+        retries: 15
+        delay: 0
+        loop:
+          - "{{ spr_sid|lower }}adm"
+          - "sapadm"
+
+      - name: Get running processes list from remote host
+        become: true
+        shell: "ps -few | grep -e 'sap\\|hdb' | awk '{print $2}'"
+        register: running_processes
+
+      - name: Stop running processes for SAP application or database
+        become: true
+        shell: "kill {{ item }}"
+        with_items: "{{ running_processes.stdout_lines }}"
+        failed_when: false
+
+      - name: Wait for running_processes to stop
+        become: true
+        wait_for:
+          path: "/proc/{{ item }}/status"
+          state: absent
+        with_items: "{{ running_processes.stdout_lines }}"
+        register: sap_processes
+        failed_when: false
+
+      - name: Force kill stuck processes
+        become: true
+        shell: "kill -9 {{ item }}"
+        with_items: "{{ sap_processes.results | select('failed') | map(attribute='item') | list }}"
+        failed_when: false
+
+      - name: Clean sidadm
+        become: true
+        user:
+          name: '{{spr_sid|lower}}adm'
+          state: absent
+          remove: yes
+
+      - name: Remove /sapmnt/ dir contents
+        become: true
+        ignore_errors: yes
+        loop:
+        file:
+          path: '/sapmnt/'
+          state: absent
+
+      - name: Remove /usr/sap/ dir contents
+        become: true
+        ignore_errors: yes
+        file:
+          path: "/usr/sap/{{ item }}"
+          state: absent
+        loop:
+          - "sapservices.1"
+          - "sapservices.2"
+          - "sapservices.3"
+          - "lib"
+          - "hdbclient"
+          - "{{ spr_sid|upper }}"
+          - "hostctrl"
+          - "sapservices"
+          - "ccms"
+          - "tmp"
+          - "trans"
+...

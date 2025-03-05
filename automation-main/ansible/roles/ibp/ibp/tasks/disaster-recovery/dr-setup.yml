@@ -1,0 +1,135 @@
+---
+# Synopsis: Completes replication between two HANA DBs and validates.
+# Inputs:
+#   - sqlcmd_folder : (provided by playbook) path to the sql command files. If missing, this role will
+#                 populate the folder with the required commands, but will not overwrite newer commands from SAP.
+#   - dr_setup_primary_ip: (provided by playbook) ip address of the primary HANA DB
+#   - dr_setup_secondary_ip: (provided by playbook) ip address of the secondart HANA DB
+# Outputs: Replication setup between two HANA DB instances
+# Comments: N/A
+
+- name: "Copy hana-backup.sql command to system"
+  template:
+    dest: "{{ sqlcmd_folder }}/ansible-hana-{{ item|lower }}-backup.sql"
+    src: 'sqlcmd/sql-hana-backup.j2'
+    force: yes
+  vars:
+    sql_sid: "{{ sid }}"
+    sql_date: "{{ ansible_date_time.year }}{{ ansible_date_time.month }}"
+    sql_comment: "Backup Primary {{ item|upper }} before Replication Setup"
+  become: true
+  run_once: true
+  loop:
+    - 'systemdb'
+    - 'tenantdb'
+
+- name: "Trigger primary Hana Backup with sql"
+  include_tasks: operations/sqlcmd-run.yml
+  args:
+    apply:
+      become: true
+      become_user: "{{ sid|lower }}adm"
+  vars:
+    sql_description: "ansible-hana-{{ item.name|lower }}-backup"
+    sql_userstorekey: "{{ item.name|upper }}-ADMIN"
+    sql_command: "{{ item.command }}"
+    sql_shell: '/bin/csh'
+  loop:
+    - name: 'systemdb'
+      command: 'ansible-hana-systemdb-backup.sql'
+    - name: 'tenantdb'
+      command: 'ansible-hana-tenantdb-backup.sql &'
+  when: dr_setup_primary_ip == inventory_hostname
+
+- name: "Remove ansible-hana-backup sql commands"
+  file:
+    path:  "{{ sqlcmd_folder }}/ansible-hana-{{ item|lower }}-backup.sql"
+    state: absent
+  become: true
+  run_once: true
+  loop:
+    - 'systemdb'
+    - 'tenantdb'
+
+- name: "Stop secondary Hana DB"
+  include_tasks: operations/hana-softstop.yml
+  when: dr_setup_secondary_ip == inventory_hostname
+
+- name: "Enable replication on primary Hana DB"
+  shell: "./exe/hdbnsutil -sr_enable --name={{ sid|upper }}-Primary"
+  args:
+    executable: /bin/csh
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  register: enable_replication_output
+  when: dr_setup_primary_ip == inventory_hostname
+  failed_when: |
+    'this site is already enabled as source site' not in enable_replication_output.stdout and
+    'successfully enabled system as system replication source site' not in enable_replication_output.stdout
+  changed_when: "'successfully enabled system as system replication source site' in enable_replication_output.stdout"
+
+- name: "Validate primary Hana is replication source"
+  shell: "./exe/hdbnsutil -sr_state"
+  args:
+    executable: /bin/csh
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  register: validate_replication_output
+  when: dr_setup_primary_ip == inventory_hostname
+  failed_when: "'is source system: true' not in validate_replication_output.stdout"
+  changed_when: false
+
+- name: "Show primary Hana replication status when verbosity >= 1"
+  debug:
+    var: validate_replication_output.stdout_lines
+    verbosity: 1
+  when: dr_setup_primary_ip == inventory_hostname
+
+- name: "Enable replication on secondary Hana DB"
+  shell: "./exe/hdbnsutil -sr_register --name={{ sid|upper }}-Secondary --remoteHost=ibpdb-{{ sid|lower }} --remoteInstance=02 --replicationMode=async --operationMode=logreplay"
+  args:
+    executable: /bin/csh
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  register: enable_replication_output
+  when: dr_setup_secondary_ip == inventory_hostname
+  failed_when: "'adding site' not in enable_replication_output.stdout"
+
+- name: "Validate replication is setup"
+  shell: "./exe/hdbnsutil -sr_state"
+  args:
+    executable: /bin/csh
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  register: validate_replication_output
+  when: dr_setup_primary_ip == inventory_hostname
+  failed_when: "'ibpdb-{{ sid|lower }} -> [{{ sid|upper }}-Secondary] ibpdr-{{ sid|lower }}' not in validate_replication_output.stdout"
+  changed_when: false
+
+- name: "Show replication configuration"
+  debug:
+    var: validate_replication_output.stdout_lines
+  when: dr_setup_primary_ip == inventory_hostname
+
+- name: "Start secondary Hana DB"
+  include_tasks: operations/hana-softstart.yml
+  when: dr_setup_secondary_ip == inventory_hostname
+
+- name: "Waiting for replication to finish"
+  shell: "hdbsql -U SYSTEMDB-ADMIN -I {{ sqlcmd_folder }}/HANA_Replication_SystemReplication_Overview.sql"
+  args:
+    executable: /bin/csh
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  register: replication_status_output
+  when: dr_setup_primary_ip == inventory_hostname
+  changed_when: false
+  retries: 14400
+  delay: 30
+  until: "'ACTIVE' in replication_status_output.stdout_lines[-1]"
+
+- name: "Display replication status"
+  debug:
+    var: replication_status_output.stdout_lines[-1]
+  when: dr_setup_primary_ip == inventory_hostname
+...

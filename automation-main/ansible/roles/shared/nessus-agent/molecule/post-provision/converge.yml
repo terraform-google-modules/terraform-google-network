@@ -1,0 +1,8 @@
+---
+  - name: Converge
+    hosts: all
+    tasks:
+      - name: Include s4pce
+        include_role:
+          name: s4pce
+...

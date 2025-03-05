@@ -1,0 +1,9 @@
+/*
+  Description: Terraform input variables; Variables that will be same across all instances
+  Comments:
+*/
+
+ # build_user    = ""
+ # git_name      = ""
+ # git_token     = ""
+ aws_region    = "us-gov-west-1"

@@ -1,0 +1,230 @@
+[global_tags]
+
+[agent]
+  ## Default data collection interval for all inputs
+  interval = "30s"
+  ## Rounds collection interval to 'interval'
+  round_interval = true
+
+  ## Telegraf will send metrics to outputs in batches of at most
+  ## metric_batch_size metrics.
+  ## This controls the size of writes that Telegraf sends to output plugins.
+  metric_batch_size = 1000
+
+  ## Maximum number of unwritten metrics per output.  Increasing this value
+  ## allows for longer periods of output downtime without dropping metrics at the
+  ## cost of higher maximum memory usage.
+  metric_buffer_limit = 10000
+
+  ## Collection jitter is used to jitter the collection by a random amount.
+  collection_jitter = "0s"
+
+  ## Default flushing interval for all outputs. Maximum flush_interval will be
+  ## flush_interval + flush_jitter
+  flush_interval = "10s"
+  ## Jitter the flush interval by a random amount.
+  flush_jitter = "0s"
+
+  ## By default or when set to "0s", precision will be set to the same
+  ## timestamp order as the collection interval, with the maximum being 1s.
+  ##   ie, when interval = "10s", precision will be "1s"
+  ##       when interval = "250ms", precision will be "1ms"
+  ## Precision will NOT be used for service inputs. It is up to each individual
+  ## service input to set the timestamp at the appropriate precision.
+  ## Valid time units are "ns", "us" (or "µs"), "ms", "s".
+  precision = ""
+
+  ## Log at debug level.
+  debug = true
+  ## Log only error level messages.
+  # quiet = false
+
+  ## Name of the file to be logged to when using the "file" logtarget.  If set to
+  ## the empty string then logs are written to stderr.
+  logfile = ""
+
+  omit_hostname = true
+
+###############################################################################
+#                            OUTPUT PLUGINS                                   #
+###############################################################################
+[[outputs.elasticsearch]]
+  ## The full HTTP endpoint URL for your Elasticsearch instance
+  ## Multiple urls can be specified as part of the same cluster,
+  ## this means that only ONE of the urls will be written to each interval.
+  urls = {{ telegraf_elastic_primary_nodes | to_json }}
+  ## Elasticsearch client timeout, defaults to "5s" if not set.
+  timeout = "100s"
+  ## Set to true to ask Elasticsearch a list of all cluster nodes,
+  ## thus it is not necessary to list all nodes in the urls config option
+  enable_sniffer = true
+  ## Set the interval to check if the Elasticsearch nodes are available
+  ## Setting to "0s" will disable the health check (not recommended in production)
+  health_check_interval = "10s"
+  ## HTTP basic authentication details.
+  username = "${ELASTIC_USERNAME}"
+  password = "${ELASTIC_PASSWORD}"
+
+  ## Index Config
+  ## The target index for metrics (Elasticsearch will create if it not exists).
+  index_name = "{{- telegraf_elastic_index_prefix -}}-%Y.%m.%d" # required.
+
+  ## Optional TLS Config
+  # tls_ca = "/etc/telegraf/ca.pem"
+  # tls_cert = "/etc/telegraf/cert.pem"
+  # tls_key = "/etc/telegraf/key.pem"
+  ## Use TLS but skip chain & host verification
+  #TODO(bert.regeer): fix this by making sure ElasticSearch has valid certificate and that certificate is trusted by the system
+  insecure_skip_verify = true
+
+  ## Template Config
+  ## Set to true if you want telegraf to manage its index template.
+  ## If enabled it will create a recommended index template for telegraf indexes
+  manage_template = false
+  ## The template name used for telegraf indexes
+  template_name = "{{- telegraf_elastic_template_name -}}"
+  ## Set to true if you want telegraf to overwrite an existing template
+  overwrite_template = true
+  ## If set to true a unique ID hash will be sent as sha256(concat(timestamp,measurement,series-hash)) string
+  ## it will enable data resend and update metric points avoiding duplicated metrics with diferent id's
+  force_document_id = true
+
+  use_pipeline="{% raw %}{{es_pipeline}}{% endraw %}"
+  default_pipeline = "{{- telegraf_elastic_default_pipeline -}}"
+
+###############################################################################
+#                            PROCESSOR PLUGINS                                #
+###############################################################################
+
+[[processors.override]]
+  ## Tags to be added (all values must be strings)
+  [processors.override.tags]
+    "cloud.provider" = "${NS2_CLOUD_PROVIDER}"
+    "host.ip" = "${NS2_IP_ADDRESSES}"
+    "labels.customer" =  "${NS2_TAG_CUSTOMER}"
+    "labels.environment" = "${NS2_TAG_ENVIRONMENT}"
+    "labels.productname" = "${NS2_TAG_PRODUCT_NAME}"
+{% if telegraf_hyperscaler_azure is defined %}
+    "host.name" = "${NS2_AZ_VM_ID}" # Using VM ID because its shorter and unique.
+    "cloud.account.id" = "${NS2_AZ_SUBSCRIPTION_ID}"
+    "cloud.account.name" = "${NS2_AZ_SUBSCRIPTION_ID}"
+    #"cloud.availability_zone" = "${NS2_AZ_ENV}"
+    "cloud.instance.id" = "${NS2_AZ_VM_ID}"
+    "cloud.instance.name" = "${NS2_VM_NAME}"
+    "cloud.machine.type" = "${NS2_AZ_VM_SIZE}"
+    "cloud.project.id" = "${NS2_AZ_RESOURCE_GROUP_NAME}"
+    "cloud.project.name" = "${NS2_AZ_RESOURCE_GROUP_NAME}"
+    "cloud.region" = "${NS2_AZ_VM_LOCATION}"
+    "cloud.service.name" = "${NS2_AZ_PROVIDER}"
+{% endif %}
+{% if telegraf_hyperscaler_gcp is defined %}
+    "host.name" = "${NS2_VM_NAME}"
+    "cloud.account.id" = "${NS2_GCP_PROJECT_ID}"
+    "cloud.account.name" = "${NS2_GCP_PROJECT}"
+    "cloud.host.id" = "${NS2_GCP_VM_ID}"
+    "cloud.host.name" = "${NS2_VM_NAME}"
+    "cloud.instance.id" = "${NS2_GCP_VM_ID}"
+    "cloud.instance.name" = "${NS2_VM_NAME}"
+    "cloud.project.id" = "${NS2_GCP_PROJECT_ID}"
+    "cloud.project.name" = "${NS2_GCP_PROJECT}"
+    "cloud.region" = "${NS2_GCP_REGION}"
+    "cloud.availability_zone" = "${NS2_GCP_ZONE}"
+    "cloud.service.name" = "${NS2_GCP_PROVIDER}"
+{% endif %}
+{% if telegraf_hyperscaler_aws is defined %}
+    "host.name" = "${NS2_AWS_VM_ID}" # Using VM ID because its shorter and unique.
+    #"cloud.account.id" = "${NS2_AZ_SUBSCRIPTION_ID}"
+    #"cloud.account.name" = "${NS2_AZ_SUBSCRIPTION_ID}"
+    "cloud.availability_zone" = "${NS2_AWS_AVAILABILITY_ZONE}"
+    "cloud.instance.id" = "${NS2_AWS_VM_ID}"
+    "cloud.instance.name" = "${NS2_VM_NAME}"
+    "cloud.machine.type" = "${NS2_AWS_VM_TYPE}"
+    #"cloud.project.id" = "${NS2_AZ_RESOURCE_GROUP_NAME}"
+    #"cloud.project.name" = "${NS2_AZ_RESOURCE_GROUP_NAME}"
+    "cloud.region" = "${NS2_AWS_REGION}"
+{% endif %}
+
+
+###############################################################################
+#                            INPUT PLUGINS                                    #
+###############################################################################
+
+# Read metrics about system load & uptime
+[[inputs.system]]
+  # no configuration
+  name_override="system_uptime"
+  fieldpass = ["uptime"]
+
+  [inputs.system.tags]
+  es_pipeline = "ns2_metrics_system_uptime"
+
+
+[[inputs.system]]
+  # no configuration
+  name_override="system_load"
+  fieldpass = ["load*"]
+
+  [inputs.system.tags]
+  es_pipeline = "ns2_metrics_system_load"
+
+# Read metrics about cpu usage
+[[inputs.cpu]]
+  ## Whether to report per-cpu stats or not
+  percpu = false
+  ## Whether to report total system cpu stats or not
+  totalcpu = true
+  ## If true, collect raw CPU time metrics
+  collect_cpu_time = false
+  ## If true, compute and report the sum of all non-idle CPU states
+  report_active = false
+  ## Drop cpu tag as we are only collecting for totalcpu
+  tagexclude = ["cpu"]
+
+  [inputs.cpu.tags]
+    ## Add tag for parsing pipeline
+    es_pipeline = "ns2_metrics_cpu"
+
+# Read metrics about memory usage
+[[inputs.mem]]
+  ## Only pass the fields we use
+  fieldpass = ["total", "used", "free", "cached", "used_percent", "swap_total", "swap_free", "huge_pages_total", "huge_pages_free", "huge_pages_size", "available_percent"]
+
+  [inputs.mem.tags]
+    ## Add tag for parsing pipeline
+    es_pipeline = "ns2_metrics_memory"
+
+
+# Get the number of processes and group them by status
+[[inputs.processes]]
+  # no configuration
+  [inputs.processes.tags]
+    es_pipeline = "ns2_metrics_processes"
+
+# Get disk metrics
+[[inputs.disk]]
+  ## By default stats will be gathered for all mount points.
+  ## Set mount_points will restrict the stats to only the specified mount points.
+  # mount_points = ["/"]
+
+  ## Ignore mount points by filesystem type.
+  ignore_fs = ["tmpfs", "devtmpfs", "devfs", "iso9660", "overlay", "aufs", "squashfs", "/dev", "/boot"]
+
+  fielddrop = ["inodes_*"]
+  tagexclude = ["mode"]
+
+  [inputs.disk.tags]
+    es_pipeline = "ns2_metrics_disk"
+
+## Network Traffic
+
+[[inputs.net]]
+  ignore_protocol_stats = true
+
+  [inputs.net.tags]
+  es_pipeline = "ns2_metrics_net"
+
+[[aggregators.basicstats]]
+  drop_original = true
+  period = "60s"
+  namepass = [ "net" ]
+  stats = ["diff"]

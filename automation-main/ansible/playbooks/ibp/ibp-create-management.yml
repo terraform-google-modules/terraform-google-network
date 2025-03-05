@@ -1,0 +1,158 @@
+---
+
+# Playbook Name: ibp-create-management.yml
+# Synopsis: Creates an IBP Management VPC and directory service with default configurations
+# Description: Creates an aws VPC and configures the following:
+#   - subnets
+#   - security groups
+#   - internet gateway
+#   - route tables
+#   - Directory service
+#   - Temporary Directory Service Admin Jumpbox (windows)
+# Prerequisites:
+#   - Anisble 2.7+
+#   - Boto
+#   - Boto3
+#   - AWS account administrator permissions
+#   - AWS EC2 IAM role allowing SSM
+# Dependencies:
+#   - ansible role: aws-automation-tools
+# Variables:
+#   - vpc_management_name: Name of the Management VPC
+#   - vpc_management_octet: First two octets of the Management VPC CIDR block
+#   - vpc_management_fqdn: FQDN of the Directory Service to be created
+#   - vpc_management_netbios_name: NetBios name of the Directory Service to be created
+#   - temp_admin_password: temporary password for the Directory Service Admin account
+#   - tenp_jumpbox_ami: AMI Id used to create the temporary Directory Service Administrator jumpbox
+#   - instance_profile_name: AWS EC2 IAM machine role (Managed Profile) to be attached to the temporary jumbox
+#
+# Example:
+#   This will create a vpc based on the settings in create-vpc-vars.yml
+#     ansible-playbook ibp-create-management-vpc.yml
+#
+# Authors: Louis Lee
+# Version: 2.7-000003
+# Modified: 2019-03-16 - Created
+#           2019-11-06 - Fixed role path, normalization of comment heading, comments, and yaml formatting
+#           2020-09-04 - Removed relative paths in include_role
+#           2024-10-29 - Updated `amazon.aws.ec2` module references to `amazon.aws.ec2_instance`
+# Comments: Please consider leveraging Terraform rather than Ansible for provisioning infrastructure
+
+- hosts: localhost
+  connection: local
+  vars:
+    vpc_management_name: ibp-management
+    vpc_management_octet: '10.60'
+    aws_region: us-gov-west-1
+    vpc_management_fqdn: directory.ibp.dev.internal
+    vpc_management_netbios_name: ibp-dev
+    temp_admin_password: ChangeMe1@3$
+    tenp_jumpbox_ami: ami-6bd2bd0a            # AWS Marketplace Windows Server 2016 Full
+    instance_profile_name: NS2EC2RoleForSSM   # Allows SSM access
+
+  tasks:
+  - name: Setup Management {{ vpc_management_name }} VPC
+    include_role:
+      name: aws-automation-tools
+    vars:
+      aws_automation_vpc_create: yes
+      vpc_vars: ibp-vpc-management-vars.yml
+      vpc_name: "{{ vpc_management_name }}"
+      vpc_octet: "{{ vpc_management_octet }}"
+
+  - name: Get Metadata for Management {{ vpc_management_name }} VPC
+    ec2_vpc_net_info:
+      region: "{{ aws_region }}"
+      filters:
+          "tag:Name": "{{ vpc_management_name }}"
+    register: get_vpc_output
+
+  - name: Save Management {{ vpc_management_name }} VPC Facts
+    set_fact:
+      vpc_management_id: "{{ get_vpc_output.vpcs[0].vpc_id }}"
+      vpc_management_dhcp_options_id: "{{ get_vpc_output.vpcs[0].dhcp_options_id }}"
+
+  - name: Get Metadata for Management {{ vpc_management_name }}/{{ vpc_management_id }} Subnets
+    ec2_vpc_subnet_info:
+      region: "{{ aws_region }}"
+      filters:
+        vpc-id: "{{ vpc_management_id }}"
+    register: get_subnet_output
+
+  - name: Save Management {{ vpc_management_name }}/{{ vpc_management_id }} Directory Service Subnet Facts
+    set_fact:
+      vpc_management_subnets_directory_service: "{{ get_subnet_output | to_json | from_json | json_query(query) }}"
+    vars:
+      query: 'subnets[?ends_with(tags.Name, `-directory`)].subnet_id'
+
+  - name: Setup Management {{ vpc_management_name }}/{{ vpc_management_id }} Directory Service
+    shell: >
+      aws ds create-microsoft-ad \
+      --name {{ vpc_management_fqdn }} \
+      --short-name {{ vpc_management_netbios_name }} \
+      --password {{ temp_admin_password }} \
+      --description {{ vpc_management_fqdn }} \
+      --vpc-settings VpcId={{ vpc_management_id }},SubnetIds={{ vpc_management_subnets_directory_service[0] }},{{ vpc_management_subnets_directory_service[1] }} \
+      --edition Standard \
+      --region {{ aws_region }}
+
+  - name: Get Metadata for Account Directory Services
+    shell: >
+      aws ds describe-directories
+    register: get_directory_output
+
+  ### This is a required step as aws/ansible don't agree on what a proper json is
+  - name: Save Directory Services list to fact
+    set_fact:
+      vpc_management_aws_directories: "{{ get_directory_output.stdout }}"
+
+  - name: Save Management {{ vpc_management_name }}/{{ vpc_management_id }} Directory Service Fact
+    set_fact:
+      vpc_management_directory: "{{ vpc_management_aws_directories | to_json | from_json | json_query(query) }}"
+    vars:
+      query: 'DirectoryDescriptions[?Name==`{{ vpc_management_fqdn }}`]'
+
+  - name: Rename Management {{ vpc_management_name }}/{{ vpc_management_id }} Default Directory Services Security Group
+    ec2_group:
+      name: "{{ vpc_management_directory[0].DirectoryId }}_controllers"
+      description: "AWS created security group for {{ vpc_management_directory[0].DirectoryId }} directory controllers"
+      purge_rules: false
+      purge_rules_egress: false
+      tags:
+        Name: "{{ vpc_management_name }}-directory-service"
+      purge_tags: false
+      state: present
+      region: "{{ aws_region }}"
+
+  - name: Setup Management {{ vpc_management_name }}/{{ vpc_management_id }} DHCP Option Set
+    ec2_vpc_dhcp_option:
+        dns_servers: "{{ vpc_management_directory[0].DnsIpAddrs + ['AmazonProvidedDNS'] }}"
+        tags:
+          Name: "{{ vpc_management_name}}-dhcpoptions"
+        region: "{{ aws_region }}"
+        domain_name: "{{ vpc_management_fqdn }}"
+        delete_old: yes
+        state: present
+        vpc_id: "{{ vpc_management_id }}"
+        inherit_existing: yes
+
+  - name: Create temporary admin jumpbox for initial domain setup
+    ec2_instance:
+      assign_public_ip: true
+      image: "{{ tenp_jumpbox_ami }}"
+      instance_type: "t2.large"
+      region: "{{ aws_region }}"
+      state: present
+      iam_instance_profile: '{{ instance_profile_name }}'
+      vpc_subnet_id: "{{ vpc_management_subnets_directory_service[0] }}"
+      wait: true
+      count: 1
+      groups:
+      - "{{ vpc_management_name }}-access-ns2"
+      - "{{ vpc_management_name }}-public-egress"
+      - "{{ vpc_management_name }}-vpc"
+      tags:
+        Name: "temporary-{{ vpc_management_name }}-admin-jumpbox"
+    register: start_instance_output
+
+...

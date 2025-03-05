@@ -1,0 +1,21 @@
+{{- $customer := trimSuffix "-sftp" .Values.sftpgo.fullnameOverride }}
+kind: Secret
+apiVersion: v1
+metadata:
+  name: aws-config
+  annotations:
+    {{- if not .Values.sftpgo.s3BucketAuto }}
+    avp.kubernetes.io/path: "{{ default (printf "%s/%s/sftp" .Values.vaultBasePath $customer) .Values.vaultPath }}/aws"
+    {{- end }}
+type: Opaque
+stringData:
+  config: |
+    [profile default]
+    {{- if .Values.sftpgo.s3BucketAuto }}
+      role_arn = "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:role/{{ $customer }}-sftpgo-bucket-role
+      credential_source = Ec2InstanceMetadata
+      region = {{ .Values.awsRegion }}
+    {{- else }}
+      <config>
+    {{- end -}}
+

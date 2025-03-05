@@ -1,0 +1,36 @@
+---
+# Synopsis: Default main task list
+# Inputs:
+#   inventory variables: See inventory files for defined groups, group vars, and host vars
+# Outputs:
+# Comments:
+
+
+- name: "BLOCK: Generate Terraform Instance List"
+  when: (s4pce_terraform_instance_list) | bool
+  delegate_to: localhost
+  block:
+    - name: "Generate Product Component"
+      include_tasks: general/variables-create.yml
+      vars:
+        s4pce_variables_create_nodetype: "{{ spr_nodetype|default(omit) }}"
+        s4pce_variables_create_productname: "{{ spr_productname|default(omit) }}"
+
+    - name: "Generate file"
+      run_once: true
+      template:
+        dest: "{{ s4pce_terraform_instance_list_location }}"
+        src: 'terraform_inventory.j2'
+
+    - name: "Terraform fmt"
+      run_once: true
+      command: "terraform fmt {{ s4pce_terraform_instance_list_location }}"
+      register: output_terraform_fmt
+      changed_when: false
+
+    - name: "Show output of terraform fmt"
+      run_once: true
+      debug: var=output_terraform_fmt.stdout_lines
+# End "BLOCK: Generate Terraform Instance List"
+
+...

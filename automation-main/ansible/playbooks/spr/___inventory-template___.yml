@@ -1,0 +1,91 @@
+---
+# Synopsis: EXAMPLE Inventory
+# Inputs: N/A
+# Outputs: N/A
+# Comments:
+#   - Be sure to include the defaults.yml as an additional inventory.
+#   Nomenclature:
+#     Inventory Hostnames:
+#       Inventory Hostnames will be the unique identifier used in the backend.  It will be registered to backend DNS and used by all automation.  This may be different from the application/OS hostname.
+#       Inventory Hostnames use the following structure:
+#         ccccTTTnnSSS
+#           cccc - The first four characters are reserved for the (security boundary) unique customer identifier
+#           TTT - The next 3 characters will be either `db` (database type) or `app` (application type)
+#           nn - If type `app` the next 2 characters will be the node number starting from 01
+#           SSS - The final 3 characters are reserved for the SID
+#       SPR Hostnames:
+#         SPR Hostnames are the internal os/application aware hostnames and follow Ops teams syntax. It is not used by automation.
+#         SPR Hostnames should follow operational guidelines for naming schema. There has been precedence for being overwritten by Customer naming. Current precedence is as follows:
+#           oooSSStttNNN
+#             ooo - Organization Identifier
+#             SSS - Sid
+#             ttt - Type `db` (database type) or `app` (application type)
+#             NNN - Node number
+
+all:
+  hosts:
+  vars:
+    spr_domain: sap.internal.com      # Fill in with customer decided internal FQDN
+    spr_custom_hostfile_entries:      # List, to add custom entries into host files.
+      - 999.0.0.3   example.host.entry    example
+
+    # AWS Storage Variables
+    efs_staging_ip: 999.0.0.1         # IP Address of the Staging NFS
+    efs_usr_sap_trans_fsid: fs-id999  # AWS FS-ID of the Customer's EFS
+    # End AWS Storage Variables
+
+    # Azure Storage Variables. Leave blank when not in use.
+    spr_azure_resource_group: ""
+    spr_azure_staging_storage_account: ""
+    spr_azure_staging_file_share: ""
+    spr_azure_customer_storage_account: ""
+    spr_azure_customer_file_share: ""
+    spr_azure_backup_storage_account: ""
+    spr_azure_backup_container: ""
+    # End Azure Storage Variables
+
+    # AWS Monitoring Variables
+    aws_sns_topic_name:
+    # End AWS Monitoring Variables
+
+    # Azure Monitoring and Logging Variables
+    telegraf_elastic_primary_nodes:
+    telegraf_elastic_user: ""
+    telegraf_elastic_password: ""
+    telegraf_elastic_index_prefix: ""
+    vector_azure_blob_storage_container_name: ""
+    vault_address: ""
+    vault_secrets:
+  ## Monitoring Blob storage connection string for ns2-cre-s4-pce-logs
+
+  ## End Monitoring Blob storage connection string for ns2-cre-s4-pce-logs
+  # End Azure Monitoring and Logging Variables
+
+  children:
+    group1_product_name:     # This Grouping and Naming is for human readability only.
+      vars:
+        spr_productgroup: aws_tagging_value_only  # This product name is for tagging purposes only.
+        spr_landscape: prd            # Should be prd, qas, or dev
+      hosts:
+        e001dbhp4:      # Internal Inventory Name.  Will be registered to the backend DNS. See COMMENTS for nomenclature.
+          spr_hostname: scshp4db      # Application/OS aware hostname.  See COMMENTS for nomenclature.
+          spr_sid: hp4      # SID
+          spr_nodetype: db      # type `db` or `app`
+          spr_db_first_tenant_sid: pfs      # primary DB SID. For DB Servers with more than one db
+          spr_db_second_tenant_sid: pfj       # secondary DB SID. For DB Servers with more than one db
+          spr_size: r5.8xlarge        # VM or Instance sizing
+          spr_productname: s4hana       # SPR Product to install. Must exist in the SPR defaults Definitions
+
+        e001app01ps4:       # Internal Inventory Name.  Will be registered to the backend DNS. See COMMENTS for nomenclature.
+          spr_hostname: scsps4app      # Application/OS aware hostname.  See COMMENTS for nomenclature.
+          spr_sid: ps4  # sid will match the application sid.
+          spr_nodetype: app      # type `db` or `app`
+          spr_size: m5.large        # VM or Instance sizing
+          spr_db_hostname: scshp4db      # spr_hostname of the Database
+          spr_db_sid: hp4         # sid of the Database
+          spr_db_first_tenant_sid: pfs      # primary DB SID. For DB Servers with more than one db
+          spr_db_second_tenant_sid: pfj     # secondary DB SID. For DB Servers with more than one db
+          spr_productname: s4hana       # SPR Product to install. Must exist in the SPR defaults Definitions
+          spr_efs_mount: "trans-ds4"      # Name of the NFS Subfolder to mount as /usr/sap/trans.
+          spr_nlb_ports: "{{ default_ports_abap }}"       # List of Ports to expose to the Customer.  See spr_defaults for predefined ports.
+...

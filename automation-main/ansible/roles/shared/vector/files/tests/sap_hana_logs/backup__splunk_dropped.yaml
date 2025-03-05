@@ -1,0 +1,50 @@
+---
+########################################################################################################################
+########################################################################################################################
+# Description: Vector config file for:
+#  - /usr/sap/*/*/*/trace/backup.log
+#
+# Vector Output Name: sap_trace_backup__out
+#
+# Last Updated & Tested: 2022/02/03
+########################################################################################################################
+########################################################################################################################
+tests:
+  - name: sap.hana.trace.backup::1:splunk_dropped
+    inputs:
+      - insert_at: backup__sap_hana_metadata
+        type: log
+        log_fields:
+          file: hana.log
+          message: |
+            2021-03-24T02:1z:54+00:00  P0123235      17862042eaa INFO    BACKUP   progress of service: nameserver, s001dbhrd:30001, volume: 1, 82% 2147483648/2617245696
+    outputs:
+      - extract_from: event_router.bad
+        conditions:
+          - type: vrl
+            source: |
+              r=.
+              del(r.time)
+              del(r.partition_key)
+              assert_eq!( encode_json({
+                    "event": "2021-03-24T02:1z:54+00:00  P0123235      17862042eaa INFO    BACKUP   progress of service: nameserver, s001dbhrd:30001, volume: 1, 82% 2147483648/2617245696\n",
+                    "fields": {
+                      "cloud.account.id": "123456789012",
+                      "cloud.project.id": "123456789012",
+                      "cloud.project.name": "test-project",
+                      "custom.gcp.log_name": "hana%2Elog",
+                      "custom.log_group": "/usr/sap/trace/backup.log",
+                      "custom.vector_group": "sap_hana_logs",
+                      "file.path": "hana.log",
+                      "vector.errors.dropped.component_id": "backup__sap_hana_logs_parsed",
+                      "vector.errors.dropped.component_kind": "transform",
+                      "vector.errors.dropped.component_type": "remap",
+                      "vector.errors.dropped.message": "error parsing log: function call error for \"parse_syslog\" at (16:38): unable to parse input as valid syslog message",
+                      "vector.errors.dropped.reason": "abort",
+                      "vector.errors.note": "This log was dropped due to an error in processing. Check the included errors for more details."
+                    },
+                    "index": "test-index_app",
+                    "source": "hana.log",
+                    "sourcetype": "app:sap:hana:backup",
+                  }), encode_json(r), "wrong output")
+...

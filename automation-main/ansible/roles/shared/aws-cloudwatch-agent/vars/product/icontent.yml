@@ -1,0 +1,25 @@
+---
+# List of icontent log groups we want to capture
+# When 'icontent' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_icontent:
+  - file_path: /local/customers/plateau/*/BCKO/*/icontent.log
+    log_group_name: /local/customers/plateau/BCKO/icontent
+  - file_path: /local/customers/plateau/*/BCKO/*/logs/backoffice/*
+    log_group_name: /local/customers/plateau/BCKO/logs/backoffice
+  - file_path: /local/customers/plateau/*/BCKO/*/logs/catalina.out
+    log_group_name: /local/customers/plateau/BCKO/logs/catalina
+  - file_path: /local/customers/plateau/*/BCKO/*/logs/tomcat.*.log
+    log_group_name: /local/customers/plateau/BCKO/logs/tomcat
+  - file_path: /local/customers/plateau/*/BCKO/*/tomcat-access.*.log
+    log_group_name: /local/customers/plateau/BCKO/tomcat-access
+  - file_path: /local/customers/plateau/*/ENT/*/ENT_Sessions.log
+    log_group_name: /local/customers/plateau/ENT/ENT_Sessions
+  - file_path: /local/customers/plateau/*/ENT/*/icontent.log
+    log_group_name: /local/customers/plateau/ENT/icontent
+  - file_path: /local/customers/plateau/*/ENT/*/logs/catalina.out
+    log_group_name: /local/customers/plateau/ENT/logs/catalina
+  - file_path: /local/customers/plateau/*/ENT/*/logs/tomcat.*.log
+    log_group_name: /local/customers/plateau/ENT/logs/tomcat
+  - file_path: /local/customers/plateau/*/ENT/*/logs/tomcat-access.*.log
+    log_group_name: /local/customers/plateau/ENT/logs/tomcat-access
+...

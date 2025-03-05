@@ -1,0 +1,355 @@
+---
+# Playbook Name: distributed-nw-disks-create.yml
+# Description: Creates and mounts necessary EBS and EFS mounts for a distributed system in AWS
+# Dependencies:
+# - Ansible v2.16+
+# - AWS CLI v1.16+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# - disk-management ansible role
+# - nfs ansible role
+# - distributed ansible role
+# Variables:
+#   - efs_staging_ip: IP Address of the staging EFS to be mounted. (Inventory GroupVar)
+#   - nfs_usr_sap_trans_ip: IP Address of the usr_sap_trans GCP Filestore instance (Inventory GroupVar)
+#   - efs_usr_sap_trans_fsid: AWS EFS ID of the Customer's EFS Volume (Inventory GroupVar)
+#   - aws_efs_ip_address: IP address of the file system. When defined will use this var instead of the efs_usr_sap_trans_fsid (Inventory GroupVar)
+#   - spr_productname: Used to create dynamic group (Inventory HostVar)
+#   - non_spr_productname: Used to create dynamic group (Inventory HostVar)
+#   - spr_landscape: Used to create dynamic group (Inventory HostVar)
+#   - spr_nodetype: Used to create dynamic group (Inventory HostVar)
+#   - spr_usr_sap_mount_size: Customer's `/usr/sap` mount size (Inventory HostVar)
+#   - efs_ha_app_fsid - AWS FSID of the EFS HA Volume
+# Example:
+#   Execution on remote systems
+#     ansible-playbook distributed-nw-disks-create.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Sean-Thomas Saloom, Dexter Le
+# Version: 2.16-000001
+# Modified: 2024-08-23 - Created playbook
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template for s4pce deployments.
+#   AWS has a maxiumum limit of 16TB.  Future iterations to add multi-disk support
+#   Tags:
+#     play0 always cloud-identify : Prepare dynamic values
+#     playr repo-man              : Enable Base Repositories
+#     play1 app                   : Swap Files
+#     play2 usrsaptrans           : EFS usr/sap/trans Mount
+#     play3 haefs                 : EFS for HA
+#     play4 staging               : Common Staging Mount
+#     playt testing               : Run distributed test suite for disks and mounts
+#     playEND                     : The End
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - cloud-identify
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    ansible.builtin.group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+
+  # Notes: outputs: cloud_provider, machine_id
+  - name: "Detect Cloud Provider"
+    ansible.builtin.include_role:
+      name: cloud-identify
+
+  - name: "Group by Cloud Provider"
+    ansible.builtin.group_by:
+      key: "cloud_{{ cloud_provider }}"
+
+
+#################
+##### PlayR #####
+#################
+- name: "PlayR: Run repository management"
+  gather_facts: true
+  hosts: all
+  tags:
+  - playr
+  - repo-man
+
+  tasks:
+  - name: "Configure Base Repositories from S3"
+    ansible.builtin.include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: 'base'
+
+
+#################
+##### Play1 #####
+#################
+- name: "Play1 Swap Files"
+  hosts: app
+  tags:
+  - play1
+  - app
+
+  tasks:
+  - name: "Calculate swap size"
+    ansible.builtin.include_role:
+      name: distributed-calculate-disks
+      tasks_from: app-ha-or-sddr-nodes.yml
+
+  - name: "Include disk management role to create, attach, partition, format, and mount disks"
+    ansible.builtin.include_role:
+      name: disk-management
+    vars:
+      azure_resource_group: "{{ play_azure_resource_group | default('',true) }}"
+      azure_disk_type: 'Standard_LRS'
+      disk_create: true
+      disk_encryption: true
+      disk_encryption_key_default: ''
+      disk_preset_selection: 'custom'
+      custom: "{{ distributed_calculate_disks_output_custom_volume_map }}"
+
+
+#################
+##### Play2 #####
+#################
+- name: "Play2 Central Services /usr/sap/trans"
+  hosts: app
+  tags:
+  - play2
+  - usrsaptrans
+
+  tasks:
+  - name: "Retrieve ec2 metadata facts"
+    amazon.aws.ec2_metadata_facts:
+    when: cloud_provider == "aws"
+
+  - name: "Mount Temporary EFS"
+    ansible.builtin.include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        temp:
+          path: '/mnt/temp'
+          src: '{{ aws_efs_ip_address | default(efs_usr_sap_trans_fsid + ".efs." + ansible_ec2_placement_region + ".amazonaws.com",true) }}'
+
+  - name: "Create /usr/sap/trans SPR EFS mount paths"
+    run_once: true
+    ansible.builtin.include_role:
+      name: distributed-nfs-mounts
+      tasks_from: create-mount-subdir.yml
+    vars:
+      distributed_nfs_mounts_subdir: "{{ hostvars | to_json | from_json | json_query('*.spr_efs_mount') | sort | unique }}"
+
+  - name: "Unmount Temporary EFS"
+    ansible.builtin.include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        temp:
+          path: '/mnt/temp'
+          state: absent
+
+  - name: "Mount /usr/sap/trans"
+    ansible.builtin.include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        temp:
+          path: '/usr/sap/trans'
+          src: '{{ aws_efs_ip_address | default(efs_usr_sap_trans_fsid + ".efs." + ansible_ec2_placement_region + ".amazonaws.com",true) }}'
+          src_root: "/{{ spr_efs_mount|default('none',true) }}"
+
+
+#################
+##### Play3 #####
+#################
+- name: "Play3 Central Services /ha-efs"
+  hosts: app
+  tags:
+  - play3
+  - haefs
+
+  tasks:
+  - name: "Retrieve ec2 metadata facts"
+    amazon.aws.ec2_metadata_facts:
+    when: cloud_provider == "aws"
+
+  - name: "Get SPR_SIDs to create subdir paths"
+    ansible.builtin.set_fact:
+      distributed_nw_disks_create_subdir: "{{ hostvars | to_json | from_json | json_query('*.spr_sid') | sort | unique | upper }}"
+      # Deconstructing what just happened:
+      # json_query('*.spr_sid') - get sids for all hosts
+      # sort - sorts in alphabetical/numerical
+      # unique - remove duplicates
+      # upper - force uppercase
+      # Result: List of all SIDS uppercase (i.e. ["PS4", "PEP"])
+
+  - name: "Mount Temporary EFS"
+    ansible.builtin.include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        temp:
+          path: '/mnt/temp'
+          src: '{{ aws_efs_ip_address | default(efs_ha_app_fsid + ".efs." + ansible_ec2_placement_region + ".amazonaws.com",true) }}'
+
+  - name: "Create /efs/ha-app SPR_SID mount paths"
+    run_once: true
+    ansible.builtin.include_role:
+      name: distributed-nfs-mounts
+      tasks_from: create-mount-subdir.yml
+    vars:
+      # Append "/ha-app" for all SID entries (i.e. ["PS4/ha-app", "PEP/ha-app"])
+      distributed_nfs_mounts_subdir: "{{ distributed_nw_disks_create_subdir | product(['/ha-app']) | map('join') | list }}"
+
+  - name: "Unmount Temporary EFS"
+    ansible.builtin.include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        temp:
+          path: '/mnt/temp'
+          state: absent
+
+  - name: "Mount EFS-ID{{ src_root }} as {{ nfs_mount_path }}"
+    ansible.builtin.include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        temp:
+          path: '/efs/ha-app'
+          src: '{{ aws_efs_ip_address | default(efs_ha_app_fsid + ".efs." + ansible_ec2_placement_region + ".amazonaws.com",true) }}'
+          src_root: '/{{ spr_sid | upper }}/ha-app'
+
+#################
+##### Play4 #####
+#################
+- name: "Play4 Create DB Disks"
+  hosts: db
+  tags:
+  - play4
+  - db
+
+  tasks:
+  - name: "Calculate HANA DB Disk Sizes"
+    ansible.builtin.include_role:
+      name: distributed-calculate-disks
+      tasks_from: db-nodes.yml
+
+  - name: "Include disk management role to create, attach, partition, format, and mount disks"
+    ansible.builtin.include_role:
+      name: disk-management
+    vars:
+      azure_resource_group: "{{ play_azure_resource_group | default('',true) }}"
+      azure_disk_type: 'Standard_LRS'
+      disk_create: true
+      disk_encryption: true
+      disk_encryption_key_default: ''
+      disk_preset_selection: 'custom'
+      custom: "{{ distributed_calculate_disks_output_custom_volume_map }}"
+
+
+#################
+##### Play5 #####
+#################
+- name: "Play5 EFS Common Staging Mount"
+  hosts: cloud_aws:cloud_azure
+  gather_facts: false
+  tags:
+  - play5
+  - staging
+
+  tasks:
+  - name: "Mount /staging"
+    ansible.builtin.include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        temp:
+          path: '/staging'
+          src: >-
+                {%- if cloud_provider == "aws" -%}      {{ efs_staging_ip }}
+                {%- elif cloud_provider == "azure" and cloud_partition == "usgovernment" -%}  {{ azure_nfs_storage_account }}.file.core.usgovcloudapi.net
+                {%- elif cloud_provider == "azure" and cloud_partition == "public" -%}  {{ azure_nfs_storage_account }}.file.core.windows.net
+                {%- endif -%}
+          src_root: >-
+                {%- if cloud_provider == "aws" -%}
+                {%- elif cloud_provider == "azure" -%}    /{{ azure_nfs_storage_account }}/{{ azure_nfs_name }}
+                {%- endif -%}
+
+
+#################
+##### PlayT #####
+#################
+- name: "PlayT Test results for app disk creation"
+  hosts: app
+  tags:
+  - playt
+  - testing
+
+  tasks:
+  - name: "Run Test"
+    block:
+    - name: Test nfs mounts
+      ansible.builtin.include_role:
+        name: distributed-nfs-mounts
+        vars_from: test-all.yml
+
+    - name: Test disk creation and path existence
+      ansible.builtin.include_role:
+        name: distributed-calculate-disks
+        vars_from: test-app-ha-or-sddr.yml
+
+- name: "PlayT Test results for db disk creation"
+  hosts: db
+  tags:
+  - playt
+  - testing
+
+  tasks:
+    - name: Test disk creation and path existence
+      ansible.builtin.include_role:
+        name: distributed-calculate-disks
+        vars_from: test-db-ha-or-sddr.yml
+
+- name: "PlayT Test results for all hosts"
+  hosts: cloud_aws:cloud_azure
+  tags:
+  - playt
+  - testing
+
+  tasks:
+  - name: "Run Test"
+    ansible.builtin.include_role:
+      name: distributed-nfs-mounts
+    vars:
+      distributed_nfs_mounts_test_app_mounts_efs: false
+      distributed_nfs_mounts_test_staging_mount_efs: true
+
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

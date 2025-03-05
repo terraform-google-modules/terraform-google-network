@@ -1,0 +1,263 @@
+---
+aide_pkg: aide                                             #override with a specific version if required
+aide_dynamic_pkg: aide-dynamic                             #override with a specific version if required
+aide_dbdir: /var/lib/aide                                  #aide database directory
+aide_logdir: /var/log/aide                                 #aide logs directory
+aide_conf_path: /etc/aide.conf                             #aide configuration location
+aide_update_db: false                                      #boolean of whether or not to update the aide database this run if it exists
+aide_check_db: false                                       #boolean for ad-hoc database check
+aide_async_update: false                                   #boolean for async-update
+aide_macros: false
+aide_database_filename: aide.db.gz                         #filename for the aide database
+aide_database_out_filename: aide.db.new.gz                 #filename for the updated aide database
+aide_gzip_dbout: true                                      #yes|no|true|false|True|False
+aide_verbose: 5                                            #level of verbosity 0-255
+aide_log_level: info                                       # Default value for log level
+aide_report_level: changed_attributes                      # Default value for report level
+aide_report_url:                                           #location of aide log output following a check
+  - file:{{aide_logdir}}/aide.log
+  - stdout
+aide_acl_no_symlink_follow: true                           #yes|true|True|no|false|False
+aide_warn_dead_symlinks: false                             #yes|true|True|no|false|False
+aide_summarize_changes: false                              #yes|true|no|false
+#aide_report_attributes: []                                #list of default rules to report: p,i,n,u,g,s,b,m,a,c,S,acl,selinux,xattrs,md5,sha1,sha256,sha512,rmd160,tiger,haval,gost,crc32,whirlpool
+aide_ignore_list: []                                       #list of default rules to ignore in reports ^
+aide_grouped: false
+aide_config_version: '1'                                   #optional for information only
+aide_cron_schedule_check: true                             #booeln value for whether or not to add a scheduled aide --check to cron
+aide_cron_email_notify_recipients: []                      #Who to email aide report to after aide --check. Can be comma-separated list
+aide_stig_compatibility: true                              #Whether to have this Ansible role maintain compatibility with the DISA STIG Ansible roles
+
+#The following matches the aide cron name used by the STIGs. Do not change lightly!
+aide_cronjob_name: run AIDE check                          #will put a comment in crontab for this scheduled job
+aide_cron_sched_min: '0'                                   #cron setting for minute
+aide_cron_sched_hr: '1'                                    #cron setting for hour
+aide_cron_sched_day: '*'                                   #cron setting for day
+aide_cron_sched_mon: '*'                                   #cron setting for month
+aide_cron_sched_wkd: '*'                                   #cron setting for weekday
+aide_cron_schedule_update: true                            #When true, sets the cron job to update the aide database weekly
+aide_update_cronjob_name: run AIDE update                  #Name of the cron job that updates the database
+aide_update_cron_sched_min: '0'                            #cron job for database update setting for minute
+aide_update_cron_sched_hr: '6'                             #cron job for database update setting for hour
+aide_update_cron_sched_day: '*'                            #cron job for database update setting for day
+aide_update_cron_sched_mon: '*'                            #cron job for database update setting for month
+aide_update_cron_sched_wkd: '1'                            #cron job for database update setting for weekday
+aide_rules:                                                #aide configuration rules with the rule name, attributes, and path(s)
+  - name: STIG Default Rule      # NOTE: The 'STIG_DEFAULT' rule must always be the first rule listed in the 'aide_rules' variable if 'aide_stig_compatibility' is set to 'true'.
+    rule: STIG_DEFAULT
+    attributes: [acl, sha512, xattrs]
+  - name: NORMAL Rule
+    rule: NORMAL
+    attributes: [STIG_DEFAULT, L]
+    paths:
+      - /etc/nscd.conf$
+      - /etc/centrifydc/ssh
+  - rule: PERMS
+    attributes: [p, i, u, g, acl, selinux, xattrs]
+    paths:
+      - /root/\..*
+      - /var/log/faillog$
+      - /var/log/lastlog$
+      - /var/run/faillock/
+      - /etc/
+  - name: LOG Rule
+    rule: LOG
+    attributes: '>'
+    paths:
+      - /var/run/utmp
+  - name: LOG PLUS Rule
+    rule: LOG_PLUS
+    attributes: [LOG, ANF, ARF]
+    paths:
+      - /var/log/
+  - name: LSPP Rule
+    rule: LSPP
+    attributes: [STIG_DEFAULT, L, s, m]
+    paths:
+      - /etc/grub/
+      - /etc/inittab
+  - name: DATAONLY Rule
+    rule: DATAONLY
+    attributes: [STIG_DEFAULT, p, n, u, g, s, selinux]
+    paths:
+      - /etc/resolv.conf$
+  - name: AUDIT TOOLS
+    rule: AUDIT_TOOL
+    comment: Audit Tools
+    attributes: [p, i, n, u, g, s, b, acl, xattrs, sha512]
+    paths:
+      - /usr/sbin/auditctl
+      - /usr/sbin/auditd
+      - /usr/sbin/audispd
+      - /usr/sbin/audisp-remote
+      - /usr/sbin/audisp-syslog
+      - /usr/sbin/augenrules
+      - /usr/sbin/ausearch
+      - /usr/sbin/aureport
+      - /usr/sbin/autrace
+      - /usr/sbin/rsyslogd
+      - /sbin/audispd
+      - /sbin/auditctl
+      - /sbin/auditd
+      - /sbin/augenrules
+      - /sbin/ausearch
+      - /sbin/aureport
+      - /sbin/autrace
+  - name: CONTENT Rule
+    rule: CONTENT
+    attributes: [acl, sha512]
+    paths:
+      - /opt/
+      - /var/spool/at/
+      - /etc/at.allow$
+      - /etc/at.deny$
+      - /var/spool/cron/root/
+      - /etc/vsftpd.conf$
+      - /etc/vsftpd/
+  - name: CONTENT_EX Rule
+    rule: CONTENT_EX
+    attributes: [STIG_DEFAULT, p, u, g, n, acl, selinux]
+    paths:
+      - /boot
+      - /bin
+      - /sbin
+      - /lib
+      - /lib64
+      - /root/
+      - /usr/
+      - /etc/hosts$
+      - /etc/host.conf$
+      - /etc/hostname$
+      - /etc/issue$
+      - /etc/issue.net$
+      - /etc/protocols$
+      - /etc/services$
+      - /etc/localtime$
+      - /etc/alternatives/
+      - /etc/mime.types$
+      - /etc/terminfo/
+      - /etc/exports$
+      - /etc/fstab$
+      - /etc/passwd$
+      - /etc/group$
+      - /etc/gshadow$
+      - /etc/shadow$
+      - /etc/security/opasswd$
+      - /etc/skel/
+      - /etc/hosts.allow$
+      - /etc/hosts.deny$
+      - /etc/firewalld/
+      - /etc/NetworkManager/
+      - /etc/networks$
+      - /etc/dhcp/
+      - /etc/wpa_supplicant/
+      - /etc/login.defs$
+      - /etc/libuser.conf$
+      - /etc/pam.d/
+      - /etc/security$
+      - /etc/securetty
+      - /etc/polkit-1/
+      - /etc/sudo.conf$
+      - /etc/sudoers$
+      - /etc/sudoers.d/
+      - /etc/profile$
+      - /etc/profile.d/
+      - /etc/bashrc$
+      - /etc/bash_completion.d/
+      - /etc/zprofile$
+      - /etc/zshrc$
+      - /etc/zlogin$
+      - /etc/zlogout$
+      - /etc/X11/
+      - /etc/shells$
+      - /etc/yum.conf$
+      - /etc/yumex.conf$
+      - /etc/yumex.profiles.conf$
+      - /etc/yum/
+      - /etc/yum.repos.d/
+      - /etc/audit/
+      - /etc/audisp/
+      - /etc/libaudit.conf$
+      - '{{ aide_conf_path }}$'
+      - /etc/rsyslog.conf$
+      - /etc/rsyslog.d/
+      - /etc/logrotate.conf
+      - /etc/logrotate.d/
+      - /etc/pkcs11/
+      - /etc/pki/
+      - /etc/ssl/
+      - /etc/certmonger/
+      - /etc/systemd/
+      - /etc/sysconfig/
+      - /etc/rc.d/
+      - /etc/tmpfiles.d/
+      - /etc/machine-id$
+      - /etc/grub.d/
+      - /etc/grub2.cfg$
+      - /etc/dracut.conf$
+      - /etc/dracut.conf.d/
+      - /etc/ld.so.cache$
+      - /etc/ld.so.conf$
+      - /etc/ld.so.conf.d/
+      - /etc/sysctl.conf$
+      - /etc/sysctl.d/
+      - /etc/modprobe.d/
+      - /etc/modules-load.d/
+      - /etc/depmod.d/
+      - /etc/udev/
+      - /etc/crypttab$
+      - /etc/cron.allow$
+      - /etc/cron.deny$
+      - /etc/cron.d/
+      - /etc/cron.daily/
+      - /etc/cron.hourly/
+      - /etc/cron.monthly/
+      - /etc/cron.weekly/
+      - /etc/crontab$
+      - /etc/anacrontab$
+      - /etc/ntp.conf$
+      - /etc/ntp/
+      - /etc/chrony.conf$
+      - /etc/chrony.keys$
+      - /etc/aliases$
+      - /etc/aliases.db$
+      - /etc/postfix/
+      - /etc/mail.rc$
+      - /etc/mailcap$
+      - /etc/ssh/sshd_config$
+      - /etc/ssh/ssh_config$
+      - /etc/stunnel$
+      - /etc/cups/
+      - /etc/cupshelpers/
+      - /etc/avahi/
+      - /etc/httpd/
+      - /etc/named/
+      - /etc/named.conf$
+      - /etc/named.iscdlv.key$
+      - /etc/named.rfc1912.zones$
+      - /etc/named.root.key$
+      - /etc/xinetd.d/
+      - /etc/nsswitch.conf
+      - /etc/selinux/config
+      - /etc/systemd/system/
+#Special rule for ignoring paths. This will add '!' to the beginning of the path for you in the config.
+  - name: Special Negative/Ignore Path rule
+    rule: negative
+    paths:
+      - /usr/src
+      - /usr/tmp
+      - /etc/mtab
+      - /etc/.*~
+      - /var/log/sa
+      - /var/log/aide.log
+      - /var/log/httpd/
+      - /var/log/audit/
+      - /opt/aws/amazon-cloudwatch-agent/logs/
+      - /opt/aws/amazon-cloudwatch-agent/var/amazon-cloudwatch-agent.pid
+      - /opt/concourse/worker
+      - /opt/splunk/var/lib/splunk
+      - /opt/splunk/gravity
+      - /opt/splunk/data
+      - /root/.azcopy/
+      - /usr/sap/
+...

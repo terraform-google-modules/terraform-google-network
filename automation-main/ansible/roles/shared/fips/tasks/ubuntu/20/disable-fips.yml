@@ -1,0 +1,45 @@
+---
+# Synopsis: Disables FIPS on Ubuntu 20
+
+  - name: Remove fips packages
+    apt:
+      name:
+        - '{{ fips_package_name }}'
+      state: absent
+    become: true
+    vars:
+      fips_package_name: "{{ 'ubuntu-azure-fips' if ansible_system_vendor | lower == 'microsoft corporation' else 'ubuntu-fips' }}"
+
+  - name: Remove FIPS cfg files
+    file:
+      state: absent
+      path: '{{item}}'
+    loop:
+      - /etc/default/grub.d/99-fips.cfg
+      - /etc/default/grub.d/99-ubuntu-fips.cfg
+    become: true
+
+  - name: Get the non-FIPS kernel version
+    shell: cat /boot/grub/grub.cfg | grep -E '\s+menuentry ' | sed -E "s|^\s*menuentry 'Ubuntu, with Linux ||g" | sed -E "s|' .*$||g" | grep -v 'recovery
+      mode' | grep '\{{ kernel_version_suffix }}$' | head -n 1 | grep '\{{ kernel_version_suffix }}$'
+    register: kernel_version_results
+    become: true
+    vars:
+      kernel_version_suffix: "{{ '-azure' if ansible_system_vendor | lower == 'microsoft corporation' else '-generic' }}"
+
+  - name: Edit the grub default
+    lineinfile:
+      path: /etc/default/grub
+      regexp: ^GRUB_DEFAULT=
+      line: GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux {{ kernel_version_results.stdout }}"
+    become: true
+
+  - name: grub update
+    shell:
+      cmd: update-grub
+    become: true
+
+  - name: Pause for 15 seconds to allow grub to update
+    pause:
+      seconds: 15
+...

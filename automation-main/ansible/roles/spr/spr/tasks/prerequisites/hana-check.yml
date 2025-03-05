@@ -1,0 +1,63 @@
+---
+# Synopsis: Validates s4hana Prerequisites
+# Inputs:
+#   spr_hana_check_source : Source folder for the Application install binaries
+#   spr_hana_check_file_install_rsp_xml : Location of the install.rsp.xml file
+#   spr_hana_check_file_install_rsp : Location of the install.rsp file
+#   spr_hana_check_saphostagent_source : Location of the SAPHOSTAgent source
+#   spr_sid_adm : sid adm user name
+# Outputs:
+# Comments:
+
+
+- name: Validate paths
+  include_tasks: general/mount-check.yml
+  vars:
+    spr_mount_check_path: "{{ item.path }}"
+    spr_mount_check_size: "{{ item.size|default('0',true) }}"
+  loop:
+  - path: "/usr/sap"
+    size: "50"
+  - path: "/hana/data"
+  - path: "/hana/log"
+  - path: "/hana/shared"
+  - path: "/hana/backups"
+  - path: "{{ spr_hana_check_source }}"
+  - path: "{{ spr_hana_check_file_install_rsp_xml }}"
+  - path: "{{ spr_hana_check_file_install_rsp }}"
+  - path: "{{ spr_hana_check_saphostagent_source }}"
+
+- name: Path should be empty
+  block:
+    - name: Check if the folders are empty before proceeding
+      find:
+        paths: "{{ item }}"
+        file_type: any
+      register: filesFound
+      loop:
+        - "/hana/data"
+        - "/hana/log"
+        - "/hana/shared"
+        - "/hana/backups"
+        - "/usr/sap"
+        #- "/tmp" #tmp dir is not empty for ns2 images
+    - set_fact:
+        folders_empty: true
+    - set_fact:
+        folders_empty: false
+      when: item.matched > 0
+      with_items:
+        - "{{ filesFound.results }}"
+    - fail:
+        msg: "Folder emptiness check failed."
+      when: folders_empty == false
+- name: sidadm user exists?
+  block:
+    - getent:
+        database: passwd
+    - set_fact:
+        users_present: "{{ getent_passwd.keys()|list }}"
+    - fail:
+        msg: "user {{ spr_sid_adm }} exists."
+      when: spr_sid_adm in users_present
+...

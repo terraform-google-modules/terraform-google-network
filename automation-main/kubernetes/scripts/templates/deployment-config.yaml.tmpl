@@ -1,0 +1,211 @@
+deploymentConfig:
+{{ $customerConfig := (datasource "customerConfig") }}
+{{ $envConfig := (datasource "envConfig") }}
+{{ $envBaseDomain := $envConfig.envBaseDomain }}
+{{ $envVaultBasePath := $envConfig.vaultBasePath }}
+{{- range $customerConfig.customerConfig}}
+{{ if .sftpgo.enabled }}
+  - customer: {{ .customerName }}
+    appName: sftp
+    deploymentName: sftpgo
+    namespace: sftp-{{ .customerName }}
+    values:
+    {{- if .sftpgo.vaultPathOverride }}
+      vaultPath: {{ .sftpgo.vaultPathOverride }}
+    {{- end }}
+    {{- if .sftpgo.dbNameOverride }}
+      dbName: {{ .sftpgo.dbNameOverride }}
+    {{- end }}
+      sftpgo:
+        storage:
+          className: {{ .customerName }}-cephfs-sc
+          uploadFsSize: 100Gi
+        fullnameOverride: {{ .customerName }}-sftp
+        nameOverride: {{ .customerName }}-sftp
+        {{- if .sftpgo.s3BucketOverride }}
+        s3BucketAuto: false
+        {{- end }}
+        services:
+          public:
+            annotations:
+              dns.gardener.cloud/dnsnames: {{ default (printf "%s-%s" "sftp" .customerName) .sftpgo.hostnameOverride }}.{{ $envBaseDomain }}
+        ui:
+          ingress:
+            annotations:
+              dns.gardener.cloud/dnsnames: {{ default (printf "%s-%s" "sftp" .customerName) .sftpgo.hostnameOverride }}-ui.{{ $envBaseDomain }}
+            hosts:
+              - host: {{ default (printf "%s-%s" "sftp" .customerName) .sftpgo.hostnameOverride }}-ui.{{ $envBaseDomain }}
+                paths:
+                  - path: /
+                    pathType: ImplementationSpecific
+            tls:
+              - secretName: sftpgo-ui-tls
+                hosts:
+                  - {{ default (printf "%s-%s" "sftp" .customerName) .sftpgo.hostnameOverride }}-ui.{{ $envBaseDomain }}
+      {{- if .sftpgo.oidc.enabled }}
+        config:
+          httpd:
+            bindings:
+              oidc:
+                client_id: {{ .sftpgo.oidc.client_id }}
+                config_url: {{ .sftpgo.oidc.config_url }}
+                redirect_base_url: https://{{ default (printf "%s-%s" "sftp" .customerName) .sftpgo.hostnameOverride }}-ui.{{ $envBaseDomain }}
+                scopes:
+                  - openid
+                  - profile
+                  - email
+                  - groups
+                  - profile
+                username_field: preferred_username
+                role_field: sftpgo_role
+                implicit_roles: true
+                debug: true
+                custom_fields:
+                  - preferred_username
+                  - sub
+                  - user_uuid
+                  - email
+                  - sftpgo_status
+                  - sftpgo_admin_status
+      {{- end }}
+{{- end }}
+{{- if .rookStorage.enabled }}
+  - customer: {{ .customerName }}
+    appName: rook
+    deploymentName: rook-cephfs
+    namespace: rook-ceph
+    values:
+      cephFileSystems:
+        - name: {{ .customerName }}-ceph-fs
+          spec:
+            metadataPool:
+              replicated:
+                size: 3
+            dataPools:
+              - failureDomain: host
+                replicated:
+                  size: 3
+                name: {{ .customerName }}-data0
+            metadataServer:
+              activeCount: 1
+              activeStandby: true
+              resources:
+                limits:
+                  memory: 2Gi
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+              priorityClassName: system-cluster-critical
+          storageClass:
+            enabled: true
+            isDefault: false
+            name: {{ .customerName }}-cephfs-sc
+            pool: {{ .customerName }}-data-pool
+            reclaimPolicy: Delete
+            allowVolumeExpansion: true
+            volumeBindingMode: Immediate
+            mountOptions: []
+            parameters:
+              clusterID: rook-ceph
+              csi.storage.k8s.io/provisioner-secret-name: rook-csi-cephfs-provisioner
+              csi.storage.k8s.io/provisioner-secret-namespace: rook-ceph
+              csi.storage.k8s.io/controller-expand-secret-name: rook-csi-cephfs-provisioner
+              csi.storage.k8s.io/controller-expand-secret-namespace: rook-ceph
+              csi.storage.k8s.io/node-stage-secret-name: rook-csi-cephfs-node
+              csi.storage.k8s.io/node-stage-secret-namespace: rook-ceph
+              csi.storage.k8s.io/fstype: ext4
+              fsName: {{ .customerName }}-ceph-fs
+              pool: {{ .customerName }}-ceph-fs-{{ .customerName }}-data0
+{{- end }}
+{{- if .etdApp.enabled }}
+  - customer: {{ .customerName }}
+    appName: ecs-etd
+    deploymentName: ecs-etd
+    namespace: ecs-etd-{{ .customerName }}
+    values:
+      customer: {{ .customerName }}
+      ecs-etds:
+        sid: {{ .etdApp.sid }}
+        etdStage: prd
+        backupSecrets: true
+        hanaEndpoints:
+          xsClassic:
+            tenantFqdn: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#HANA_HOSTNAME>
+            port: 43{{ .etdApp.hanaInstanceNum }}
+            keystore:
+              password: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#HANA_P12_PASS>
+          jdbc:
+            fqdn: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#HANA_HOSTNAME>
+            port: 3{{ .etdApp.hanaInstanceNum }}41
+            keystore:
+              password: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#HANA_P12_PASS>
+        coldStorage:
+          enabled: true
+          credentials: 
+            password: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#CS_PASS>
+        logCollector:
+          logCollectorAlias: {{ .customerName }}-lc.cs.{{ .etdApp.baseDomain }}
+          keystore:
+            password: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#LC_P12_PASS>
+          credentials:
+            shaHash: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#LC_PASS>
+        hanaWriter:
+          credentials:
+            password: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#HW_PASS>
+        logLearner:
+          credentials:
+            password: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#LL_PASS>
+        normalizer:
+          credentials:
+            password: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#NM_PASS>
+        kafka:
+          etdProdSid: {{ .etdApp.sid }}
+          serviceFqdn: etd-kf-kafka-bootstrap.etd-kafka-prd-{{ .etdApp.sid }}.svc.cluster.local
+      etd-logcollector:
+        enabled: {{ .etdApp.logcollectorOutbound.enabled }}
+        sid: "{{ .etdApp.sid }} "
+        outBound:
+          truststore:
+            cert: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#LC_OB_P12>
+            password: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#LC_OB_PASS | base64encode>
+            password_dec: <path:{{ $envVaultBasePath }}/{{ .customerName }}/ecs-etd/config#LC_OB_PASS>
+          odataS4:
+            {{ .etdApp.logcollectorOutbound.odataS4 }}
+          odataC4C:
+            {{ .etdApp.logcollectorOutbound.odataC4C }}
+          btp:
+            {{ .etdApp.logcollectorOutbound.btp }}
+          db:
+            {{ if .etdApp.logcollectorOutbound.db }}
+            {{ $etdCustomerName := .customerName }}
+            {{ range .etdApp.logcollectorOutbound.db }}
+            - hostname: {{ .hostname }}
+              port: {{ .port }}
+              username: {{ .username }}
+              sid: {{ .sid | strings.ToUpper }}
+              selectstatement: "{{ .selectstatement }}"
+              password: <path:{{ $envVaultBasePath }}/{{ $etdCustomerName }}/ecs-etd/config#{{ .sid | strings.ToUpper }}_PASS>
+              ipaddr: <path:{{ $envVaultBasePath }}/{{ $etdCustomerName }}/ecs-etd/config#{{ .sid | strings.ToUpper }}_IP>
+              createdns: {{ .createdns }}
+            {{ end }}
+            {{ end}}
+        kafka:
+          serviceFqdn: etd-kf-kafka-bootstrap.etd-kafka-prd-{{ .etdApp.sid }}.svc.cluster.local
+  - customer: {{ .customerName }}
+    appName: kafka
+    deploymentName: kafka
+    namespace: etd-kafka-prd-{{ .etdApp.sid | strings.ToLower }}
+    values:
+      kafka:
+        serviceFqdn: etd-kf-kafka-bootstrap.etd-kafka-prd-{{ .etdApp.sid }}.svc.cluster.local
+        etdProdSid: {{ .etdApp.sid }}
+{{- end }}
+{{- if .vpcPeering.enabled }}
+  - customer: {{ .customerName }}
+    appName: vpcpeering
+    deploymentName: vpcpeering
+    namespace: vpcpeering-{{ .customerName | strings.ToLower }}
+    values:
+      customerName: {{ .customerName }}
+{{- end }}
+{{ end }}

@@ -1,0 +1,77 @@
+---
+# Synopsis: Generates variables used by IBP Provisioning.
+# Inputs:
+#   - groups/group_names: (provided by ansible inventory hostfile) The landscapes groups that each instance belongs to.
+#   - sid : (provided by playbook) SAP ID of the system
+# Outputs:
+#   - system_usage: Used by the db_rebuild script
+#   - application_preset_selection: Used by the cloudwatch and repository management roles
+#   - cw_preset_selection: Used by cloudwatch role
+#   - product_set: Used to derive firewall_preset_selection and aws_tag_product_name
+#   - firewall_preset_selection: Used by iptables role
+#   - aws_tag_product_name: Used by tag management  role
+#   - ibp_hostname: Used to set the IBP hostname
+# Comments: N/A
+
+- name: "Generate dynamic variables from hostvars"
+  set_fact:
+    system_usage: >-
+        {% if 'production' in group_names %} production
+        {% elif 'disaster_recovery' in group_names %} production
+        {% elif 'staging' in group_names %} development
+        {% elif 'test' in group_names %} test
+        {% elif 'dataservices' in group_names %} development
+        {% else %} error
+        {% endif %}
+    ibp_application_preset_selection: >-
+        {% if 'ibpdb' in group_names %} hana
+        {% elif 'ibpapp' in group_names %} sap
+        {% elif 'webdispatcher' in group_names %} sap
+        {% elif 'cpids' in group_names %} hana
+        {% else %} error
+        {% endif %}
+    cw_preset_selection: >-
+        {% if 'ibpdb' in group_names %} ibp_hana
+        {% elif 'ibpapp' in group_names %} sap
+        {% elif 'webdispatcher' in group_names %} webdispatcher
+        {% elif 'cpids' in group_names %} cpids
+        {% else %} error
+        {% endif %}
+    product_set: >-
+        {% if 'ibpdb' in group_names %} hana
+        {% elif 'ibpapp' in group_names %} ibpapp
+        {% elif 'webdispatcher' in group_names %} webdispatcher
+        {% elif 'cpids' in group_names %} cpids
+        {% else %} error
+        {% endif %}
+    ibp_hostname: >-
+        {% if (('ibpdb' in group_names) and ('disaster_recovery' in group_names))  %} ibpdr-{{ sid|lower }}
+        {% elif ('ibpdb' in group_names) %} ibpdb-{{ sid|lower }}
+        {% elif ('ibpapp' in group_names) %} ibpapp01-{{ sid|lower }}
+        {% elif 'webdispatcher' in group_names %} ibpwdisp-n02
+        {% elif 'cpids' in group_names %} ns2cpids
+        {% endif %}
+
+- name: "Sanitize variables"
+  set_fact:
+    system_usage: "{{ system_usage | replace(' ','') }}"
+    ibp_application_preset_selection: "{{ ibp_application_preset_selection | replace(' ','') }}"
+    cw_preset_selection: "{{ cw_preset_selection | replace(' ','') }}"
+    product_set: "{{ product_set | replace(' ','') }}"
+    firewall_preset_selection: "{{ product_set | replace(' ','') }}"
+    aws_tag_product_name: "{{ product_set | replace(' ','') }}"
+    ibp_hostname: "{{ ibp_hostname | replace(' ','') }}"
+
+- name: "Fail if variables are undetermined"
+  fail:
+    msg: |
+      Host {{ inventory_hostname }}
+      System Usage is {{ system_usage }}
+      Application Preset is {{ ibp_application_preset_selection }}
+      CloudWatch Preset is {{ cw_preset_selection }}
+      Product Set is {{ product_set }}
+  when: system_usage == 'error' or
+        ibp_application_preset_selection == 'error' or
+        cw_preset_selection == 'error' or
+        product_set == 'error'
+...

@@ -1,0 +1,90 @@
+---
+# Synopsis: Migrate local files from source host to target host
+# Inputs:
+#   - ibp_local_gzip_files: List of GZIP file paths that are migrated
+#   - ibp_source_hostname: Name of host to move files from
+#   - ibp_target_hostname: Name of host to move files to
+#
+# Outputs: N/A
+#
+# Comments: Permissions and ownership are preserved with TAR archive. The task: general/folder-tar.yml creates a TAR file, and compresses a GZIP file. The GZIP file is expected as input for ibp_local_gzip_files.
+#
+# The follow procedure is accomplished:
+#   * Copy GZIP file to localhost from source host
+#   * Delete GZIP file on source host (Cleanup)
+#   * Copy GZIP file to target host from localhost
+#   * Extract GZIP and unarchive TAR files based on ibp_local_gzip_files
+#   * Delete GZIP and TAR files on target host, and localhost (Cleanup)
+#
+
+- name: "Copy local GZIP files from source host"
+  when: inventory_hostname == ibp_source_hostname
+  become: true
+  block:
+    - name: "BLOCK - Copy gzip file from source host to localhost"
+      ansible.builtin.fetch:
+        src: '{{ file | basename | regex_replace("\.(.*)$", "") }}'
+        dest: "/tmp"
+      loop_control:
+        loop_var: file
+      loop: "{{ ibp_local_gzip_files }}"
+
+    - name: "BLOCK - Delete gzip file on source host"
+      ansible.builtin.file:
+        path: '{{ file | basename | regex_replace("\.(.*)$", "") }}'
+        state: absent
+      loop_control:
+        loop_var: file
+      loop: "{{ ibp_local_gzip_files }}"
+
+- name: "Copy and extract files to target host from localhost"
+  when: inventory_hostname == ibp_target_hostname
+  become: true
+  block:
+    - name: "Copy local files to target host"
+      ansible.builtin.copy:
+        src: '/tmp/{{ ibp_source_hostname }}/{{ file | basename | regex_replace("\.(.*)$", "") }}'
+        dest: "/tmp"
+      loop_control:
+        loop_var: file
+      loop: "{{ ibp_local_gzip_files }}"
+
+    - name: "BLOCK - Unzip the local files"
+      ansible.builtin.unarchive:
+        src: '/tmp/{{ file | basename | regex_replace("\.(.*)$", "") }}'
+        dest: '/tmp'
+        remote_src: true
+      loop_control:
+        loop_var: file
+      loop: "{{ ibp_local_gzip_files }}"
+
+    - name: "BLOCK - Untar the local files"
+      failed_when: false
+      ansible.builtin.shell:
+        cmd: 'cat /tmp/{{ file | basename | regex_replace("\.(.*)$", "") }} | tar -zpkxvf - -C /'
+        chdir: "{{ file | dirname }}"
+      loop_control:
+        loop_var: file
+      loop: "{{ ibp_local_gzip_files }}"
+
+    - name: "BLOCK - Restart polkit service"
+      ansible.builtin.service:
+        name: polkit
+        state: restarted
+
+    - name: "BLOCK - Delete local files on target host"
+      ansible.builtin.file:
+        path: '/tmp/{{ file.split("/")[1] }}'
+        state: absent
+      loop_control:
+        loop_var: file
+      loop: "{{ ibp_local_gzip_files }}"
+
+- name: "Cleanup local files for localhost"
+  delegate_to: localhost
+  ansible.builtin.file:
+    path: '/tmp/{{ ibp_source_hostname }}/{{ file | basename | regex_replace("\.(.*)$", "") }}'
+    state: absent
+  loop_control:
+    loop_var: file
+  loop: "{{ ibp_local_gzip_files }}"

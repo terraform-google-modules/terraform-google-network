@@ -1,0 +1,134 @@
+---
+
+# Playbook Name: s4pce-git-clone-ansible-roles.yml
+# Synopsis: Clone NS2 shared and s4pce ansible repos
+# Description:  The playbook will clone the git repositories using a read only deploy token and move the contents of the repository into /etc/ansible/
+# Prerequisites:
+#   - Anisble 2.9+
+#   - Git
+#   - Valid Git Access Token
+#   - Credentials stored in Hashicorp Vault
+#   - rsync tool on target host
+# Variables:
+#   - git_repos: A dictionary of git repo names and urls to pull
+#   - git_version: Git branch or tag to clone; defaults to production
+#   - git_user_name: Git username to use to access the repository
+#   - git_token: Git access token or password used to access the repository; default read only token expires 2020-12-01
+#   - git_tmp_dir: Temporary directory to clone git repos to
+#   - vault_token: The token used to authenticate with Vault. If the 'vault_token' Ansible variable is not provided, then the 'VAULT_TOKEN' environment variable
+#                  will be checked for a value, followed by the '~/.vault-token' file on the localhost.
+#   - vault_address: The address of the Vault server (Include https:// in the value).
+#   - vault_address: The address of the Vault server (Include https:// in the value).
+#   - vault_secrets: A list of dictionaries defining each secret to pull from Vault.
+#       - secret_path: path to the secret within vault beginning with the engine name
+#         secret_version - (optional) only applies to versioned (v2) key-value engines, the specific version of the secret to retrieve
+#         secret_key: (otional) specific key within the secret to pull the value from, otherwise the whole blob is retured
+#         ansible_fact_name: (optional) when specified, an ansible variable will be created with this name and the secret's value stored in it
+# Usage: Run as an Ansible Playbook either locally or remotely
+# Examples:
+#   Clone down the master development branch
+#   ansible-playbook /etc/ansible/playbooks/s4pce-git-clone-ansible-roles.yml -e git_version=release
+#   Specify custom git repos to clone
+#   ansible-playbook /etc/ansible/playbooks/s4pce-git-clone-ansible-roles.yml -e git=repo='{ "name": "project_roles", "directory": "/etc/ansible/playbooks", "repo": "gitlab.core.sapns2.us/project/ansible/roles.git" }'
+#
+# Authors: Curtis Hoffman
+# Version: 2.9-000002
+# Modified: 2023-04-19 - Created new s4pce playbook using git-clone-ansible-roles.yml as template
+#           2023-05-12 - Add SPR repos and add option to specify directory to add additional structure
+# Comments:
+#
+
+- hosts: all
+  vars:
+    git_version: 'main'  # This will be changed to release once implemented
+    git_user_name: 'svc-scs-readonly'
+    git_repos:
+      - { name: 'scs_shared_playbooks', directory: '/etc/ansible/playbooks', repo: 'gitlab.core.sapns2.us/scs/shared/ansible/playbooks.git' }
+      - { name: 'scs_shared_roles', directory: '/etc/ansible/roles', repo: 'gitlab.core.sapns2.us/scs/shared/ansible/roles.git' }
+      - { name: 'scs_s4pce_playbooks', directory: '/etc/ansible/playbooks/s4pce', repo: 'gitlab.core.sapns2.us/scs/s4pce/ansible/playbooks.git' }
+      - { name: 'scs_s4pce_roles', directory: '/etc/ansible/roles', repo: 'gitlab.core.sapns2.us/scs/s4pce/ansible/roles.git' }
+      - { name: 'scs_spr_playbooks', directory: '/etc/ansible/playbooks/spr', repo: 'gitlab.core.sapns2.us/scs/spr/ansible/playbooks.git' }
+      - { name: 'scs_spr_roles', directory: '/etc/ansible/roles', repo: 'gitlab.core.sapns2.us/scs/spr/ansible/roles.git' }
+    vault_address: 'https://vault.core.sapns2.us'
+    vault_secrets:
+      - secret_path: 'kv_core_secrets/products/shared/core/commercial/gitlab/access-tokens/svc-scs-readonly'
+        secret_key: 'token'
+        ansible_fact_name: 'git_token'
+
+  pre_tasks:
+    - name: Create random git_tmp_dir fact
+      ansible.builtin.set_fact:
+        git_tmp_dir: "{{ lookup('ansible.builtin.password', '/dev/null chars=ascii_lowercase length=12') }}"
+
+    - name: Use the 'vault-auth' role to obtain Git credentials
+      ansible.builtin.include_role:
+        name: vault-auth
+      no_log: true
+      when: git_token is not defined or git_token == ''
+
+  tasks:
+    - name: Clone Ansible-Roles git repository to temporary location /tmp/{{ git_tmp_dir }}
+      become: true
+      ansible.builtin.git:
+        repo: "https://{{ git_user_name }}:{{ git_token }}@{{ item.repo }}"
+        version: "{{ git_version }}"
+        dest: "/tmp/{{ git_tmp_dir }}/{{ item.name }}"
+        depth: 1
+        force: true
+      no_log: true
+      loop: "{{ git_repos }}"
+
+    - name: Remove old /etc/ansible directories
+      ansible.builtin.file:
+        path: "{{ item.directory }}"
+        state: absent
+      become: true
+      loop: "{{ git_repos }}"
+
+    - name: Create new /etc/ansible directories
+      ansible.builtin.file:
+        path: "{{ item.directory }}"
+        state: directory
+        mode: '0755'
+      become: true
+      loop: "{{ git_repos }}"
+
+    - name: Copy cloned playbooks repository from /tmp/{{ git_tmp_dir }} to /etc/ansible/playbooks/
+      synchronize:
+        src: "/tmp/{{ git_tmp_dir }}/{{ item.name }}/"
+        dest: "{{ item.directory }}"
+        recursive: true
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=.gitignore"
+          - "--exclude=.gitlab-ci.yml"
+          - "--exclude=.pre-commit-config.yaml"
+          - "--exclude=.pre-commit-config-lint.yaml"
+      delegate_to: "{{ inventory_hostname }}"
+      become: true
+      loop: "{{ git_repos }}"
+      when: "'playbooks' in item.name"
+
+    - name: Copy cloned roles repository from /tmp/{{ git_tmp_dir }} to /etc/ansible/roles/
+      synchronize:
+        src: "/tmp/{{ git_tmp_dir }}/{{ item.name }}/"
+        dest: "{{ item.directory }}"
+        recursive: true
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=.gitignore"
+          - "--exclude=.gitlab-ci.yml"
+          - "--exclude=.pre-commit-config.yaml"
+          - "--exclude=.pre-commit-config-lint.yaml"
+      delegate_to: "{{ inventory_hostname }}"
+      become: true
+      loop: "{{ git_repos }}"
+      when: "'roles' in item.name"
+
+    - name: Remove /tmp/{{ git_tmp_dir }} directory
+      become: true
+      ansible.builtin.file:
+        state: absent
+        path: /tmp/{{ git_tmp_dir }}
+
+...

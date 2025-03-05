@@ -1,0 +1,11 @@
+---
+# Synopsis: Configures iptables with the rules based on the provided ports for Debian systems
+
+  - name: Configure iptables rules
+    ansible.builtin.include_tasks: common/configure-common.yml
+
+  - name: Save persistent iptables rules
+    ansible.builtin.include_tasks: common/save-rules-common.yml
+    vars:
+      iptables_persistent_save_file: /etc/iptables/rules.v4
+...

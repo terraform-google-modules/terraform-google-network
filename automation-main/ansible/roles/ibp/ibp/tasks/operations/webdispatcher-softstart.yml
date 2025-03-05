@@ -1,0 +1,65 @@
+---
+# Synopsis: Does a software start of Web Dispatcher
+# Inputs:
+# Outputs: Started Web Dispatcher
+
+- name: "Get Process list"
+  shell: 'sapcontrol -nr 01 -function GetProcessList'
+  args:
+    executable: '/bin/csh'
+  become: true
+  become_user: "n02adm"
+  failed_when: false
+  changed_when: false
+  register: webdispatcher_process_output
+
+- name: "Check if Web Dispatcher is already stopped"
+  assert:
+    that: |
+        'GREEN' not in webdispatcher_process_output.stdout
+    success_msg: Web Dispatcher process not detected. Starting in next block
+    fail_msg: Web Dispatcher is already started. Skipping next block
+  changed_when: false
+  failed_when: false
+
+- name: "BLOCK: Start Web Dispatcher"
+  when: "'GREEN' not in webdispatcher_process_output.stdout"
+  become: true
+  become_user: "n02adm"
+  block:
+  - name: "Starting Web Dispatcher"
+    shell: 'sapcontrol -nr 01 -function StartSystem ALL'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+
+  - name: "Wait for process to start"
+    shell: 'sapcontrol -nr 01 -function GetProcessList'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+    changed_when: false
+    register: webdispatcher_poststart_process_output
+    retries: 10
+    delay: 10
+    until: |
+      'GRAY' not in webdispatcher_poststart_process_output.stdout and
+      'YELLOW' not in webdispatcher_poststart_process_output.stdout
+
+  - name: "Output post-start processes"
+    debug:
+      var: webdispatcher_poststart_process_output.stdout_lines
+  # End "BLOCK: Start Web Dispatcher"
+
+- name: Validate Web Dispatcher URI https://127.0.0.1:44301/sap/wdisp/admin/default.html
+  uri:
+    url: "https://127.0.0.1:44301/sap/wdisp/admin/default.html"
+    return_content: yes
+    validate_certs: no
+    status_code: 401
+  register: results_cpids_uri
+  retries: 6
+  delay: 5
+  until: results_cpids_uri.status == 401
+
+...

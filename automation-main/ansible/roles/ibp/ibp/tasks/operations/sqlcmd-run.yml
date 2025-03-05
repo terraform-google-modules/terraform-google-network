@@ -1,0 +1,29 @@
+---
+# Synopsis: Runs HANA sql command files
+# Inputs:
+#   - sql_userstorekey : (Required) HANA DB userstorekey that serves as authentication to run the command
+#   - sqlcmd_folder : (Required) location of the sql commands
+#   - sql_command : (Required) the sql command file to run
+#   - sql_description : (Optional) Brief description for the task names.
+#   - sql_results : (Optional) Defaults to false, pass in as true to display the execution results
+#   - sql_shell : (Optional) Defaults to /bin/sh. The shell to the command under
+# Outputs:
+#   - sqlcmd_run_output : Contains the output of the executed sql command
+# Comments:
+#   - To display the sql command results, pass in sql_results as true
+#   - This task will likely need to be triggered with become_user defined and the shell set to csh.
+#       I have not hardcoded it like this to maintain flexibility and portability.
+
+  - name: "Run sql command {{ sql_description }}"
+    shell: "hdbsql -U {{ sql_userstorekey }} -I {{ sqlcmd_folder }}/{{ sql_command}}"
+    args:
+      executable: "{{ sql_shell|default('/bin/sh')  }}"
+    register: sqlcmd_run_output
+
+  - name: "Display results of sql command {{ sql_description }} when sql_results == true"
+    debug:
+      msg: |
+        Results of {{ sqlcmd_run_output.cmd }} is:
+        {{ sqlcmd_run_output.stdout_lines }}
+    when: sql_results|default(false)|bool
+...

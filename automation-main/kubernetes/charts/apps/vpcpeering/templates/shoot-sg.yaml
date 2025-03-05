@@ -1,0 +1,22 @@
+---
+apiVersion: ec2.aws.upbound.io/v1beta1
+kind: SecurityGroupRule
+metadata:
+  annotations:
+    meta.upbound.io/{{ .Values.customerName }}: ec2/v1beta1/shoot-securitygrouprule
+  labels:
+    resource.upbound.io/{{ .Values.customerName }}: shoot-securitygrouprule
+  name: shoot-{{ .Values.customerName }}-securitygrouprule
+spec:
+  forProvider:
+    description: Allow all traffic from customer VPC to shoot
+    cidrBlocks:
+      - {{ .Values.customerCidrBlock }}
+    fromPort: 0
+    toPort: 65535
+    region: {{ .Values.region }}
+    securityGroupId: {{ .Values.shootNodeSgId }}
+    type: ingress
+    protocol: all
+  providerConfigRef:
+    name: aws-provider-config

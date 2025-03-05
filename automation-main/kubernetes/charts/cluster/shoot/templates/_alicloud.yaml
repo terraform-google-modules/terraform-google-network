@@ -1,0 +1,33 @@
+
+{{ define "cloudp_alicloud" -}}
+alicloud
+{{- end }}
+
+{{ define "net_alicloud" }}
+{{ .Values.provider.alicloud.networks | toYaml }}
+{{ end }}
+
+{{ define "infracfg_alicloud" }}
+apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
+kind: InfrastructureConfig
+networks:
+  vpc:
+    cidr: {{ .Values.cidr }}
+  zones:
+  {{- range $index ,$zonename:= .Values.zones }}
+    - name: {{ $zonename }}
+      {{-  index $.Values.provider.alicloud.zonenet $index | toYaml | nindent 6 }}
+      {{- if $.Values.provider.alicloud.eips  }}
+        {{- if index $.Values.provider.alicloud.eips $index }}
+      natGateway:
+        eipAllocationID: {{ index $.Values.provider.alicloud.eips $index }}
+        {{- end }}  
+      {{- end }}  
+  {{- end }}
+{{ end }}
+
+{{ define "controlPlane_alicloud" }}
+controlPlaneConfig:
+  apiVersion: alicloud.provider.extensions.gardener.cloud/v1alpha1
+  kind: ControlPlaneConfig
+{{ end }}

@@ -1,0 +1,30 @@
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: Role
+metadata:
+  annotations:
+    meta.upbound.io/s3-csi-driver-sa: iam/v1beta1/role
+  labels:
+    role.upbound.io/{{ .Values.gardener.project }}-{{ .Values.gardener.shootName }}-mountpoint-admin: s3-csi-driver-sa-role
+  name: {{ .Values.gardener.project }}-{{ .Values.gardener.shootName }}-mountpoint-admin
+spec:
+  forProvider:
+    assumeRolePolicy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Principal": {
+              "Federated": "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:oidc-provider/api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.internal.{{ .Values.gardener.baseDomain }}"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+              "StringLike": {
+                "api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.internal.{{ .Values.gardener.baseDomain }}:sub": "system:serviceaccount:aws-mountpoint-s3-csi-driver:*"
+              }
+            }
+          }
+        ]
+      }
+  providerConfigRef:
+    name: {{ .Values.providerConfigRef.name }}

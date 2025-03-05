@@ -1,0 +1,120 @@
+---
+# Synopsis: Calls other disk-management tasks, based on certain conditionals.
+# Inputs:
+#   - disk_create: Boolean variable to determine if the role will create any additional disks, default is False
+#   - disk_resize: Boolean variable that will determine if the disk will be resized or not, default is False
+#   - task_delegation: Inventory host to delegate Azure/AWS cli tasks to. Default to `localhost`. Set to `none` if not delegating, which installs dependencies to target host.
+#   - disk_preset: Either a custom defined dictionary or prexisting variables defined in defaults.yml  which includes relevant information to resize disk and volumes
+#   - disk_preset_selection: Enables selection of either a custom set of volume variables or existing volume variables for certain system types e.g., sap_hana, sap_ci, etc
+#   - disk_encryption: Whether to enable encryption of volumes
+#   - disk_encryption_key: Key to use if encryption is enabled
+#   - azure_resource_group: String variable to specify which Azure resource group we're using and indicate that we're running this playbook against an Instance in Azure as opposed to AWS.
+#   - azure_disk_type: String variable to specify the disk type for Azure disks e.g., Standard_LRS, StandardSSD_LRS, Premium_LRS, UltraSSD_LRS
+# Outputs:
+#   - preconfigure-aws.yml: installs dependencies for aws
+#   - preconfigure-azure.yml: installs dependencies for Azure
+#   - aws-create.yml : creates/resizes volumes and configures LVM in AWS
+#   - azure-create.yml: creates/resizes volumes and configures LVM in Azure
+#   - create-loop.yml : helps serialize runs of create.yml to avoid unpredictable ansible scheduling behaviour
+
+  - name: Set filesystem default to 'ext4' for RHEL6
+    set_fact:
+      disk_filesystem: ext4
+    when:
+      - disk_filesystem == ''
+      - ansible_distribution == 'RedHat' and ansible_distribution_major_version == '6'
+
+  - name: Set filesystem default to 'xfs' for RHEL7/Ubuntu
+    set_fact:
+      disk_filesystem: xfs
+    when: >
+      disk_filesystem == '' and
+      (
+        (ansible_distribution == 'RedHat' and (ansible_distribution_major_version is version('7', '>='))) or
+        (ansible_distribution == 'Ubuntu' and (ansible_distribution_version == '16.04' or ansible_distribution_version == '18.04' or ansible_distribution_version
+      == '20.04'))
+      )
+  - debug:
+      msg: '{{ansible_system_vendor}}'
+  - name: Ensure that the provided credentials allow authentication to AWS.
+    when: (azure_resource_group == '') and (ansible_system_vendor != "Google")
+    delegate_to: '{{ task_delegation | default(omit, true) }}'
+    block:
+      - name: Get AWS account information
+        command: aws sts get-caller-identity
+        register: output
+        ignore_errors: true
+
+      - name: Validate AWS Settings
+        assert:
+          that: output.rc == 0
+          fail_msg: >-
+            There appears to be an issue with the AWS CLI.
+            Please ensure there is a valid AWS region set in your environment variables or a credentials file created.
+            This may be tested by running "aws sts get-caller-identity" on the command line.
+          success_msg: AWS Account Validated
+# End block "AWS"
+
+  - name: Ensure that the provided credentials allow authentication to Azure.
+    when: (azure_resource_group is defined) and (azure_resource_group != '') and (ansible_system_vendor != "Google")
+    delegate_to: '{{ task_delegation | default(omit, true) }}'
+    block:
+      - name: Get Azure account information
+        command: az account show
+        register: output
+        ignore_errors: true
+
+      - name: Validate Azure Settings
+        assert:
+          that: output.rc == 0
+          fail_msg: >-
+            There appears to be an issue with the Azure CLI.
+            Please ensure you have selected an appropriate cloud and logged into asure.
+            The cloud may be set with "az cloud set --name AzureUSGovernment"
+            And the login may be tested by running "az account show" on the command line.
+          success_msg: Azure Account Validated
+# End block "Azure"
+
+  - name: Ensure that the provided credentials allow authentication to GCP.
+    when: ansible_system_vendor == "Google" #gcp_service_account_file | length > 0
+    delegate_to: '{{ task_delegation | default(omit, true) }}'
+    block:
+      - name: Get GCP account information
+        command: gcloud auth list
+        register: output
+        ignore_errors: true
+
+      - name: Validate GCP Settings
+        assert:
+          that: output.rc == 0
+          fail_msg: >-
+            There appears to be an issue with the GCP CLI.
+            Please ensure you are logged into GCP.
+            This may be tested by running "gcloud access-approval settings get" on the command line.
+          success_msg: GCP Account Validated
+# End block "GCP"
+
+# Loop over mount list for each host and create/resize mounts
+
+  - name: Set new fact with content of preset variable group and determine randomization string
+    set_fact:
+      volume_name_randomization_string: "{{ 999999999 | random | to_uuid | lower | replace('-','') if (volume_name_randomization_method == 'uuid') else\
+        \ ansible_ec2_instance_id | regex_replace ('^i-', '') | lower }}"
+      disk_preset: "{{ lookup('vars', disk_preset_selection) }}"
+
+  - name: Set new fact to sort aws disk variables for nvme
+    set_fact:
+      disk_preset_list: "{{ disk_preset | dict2items | sort(attribute='value.mount_point') }}"
+
+  - name: Create disks and configure volumes (AWS)
+    include_tasks: aws-create.yml
+    when: (azure_resource_group == '') and  (ansible_system_vendor != "Google")
+
+  - name: Create disks and configure volumes (GCP)
+    include_tasks: gcp-create.yml
+    when: ansible_system_vendor == "Google"
+
+  - name: Create disks and configure volumes (Azure)
+    include_tasks: azure-create.yml
+    when: azure_resource_group != ''
+...

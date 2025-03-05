@@ -1,0 +1,42 @@
+---
+# Synopsis: Wait for replication to sync on the primary HANA DB
+# Inputs:
+#   - sid : SAP ID of the system
+#   - sqlcmd_folder : Location of the sql commands
+# Outputs: Results of the replication status
+# Comments:
+#   - Requires hdbuserstore keys have been setup
+#   - Requires replication has already been setup
+#   - This should be run on the primary HANA DB in the replication site
+
+- name: "Make sure the sql command folder exists"
+  file:
+    path: "{{ sqlcmd_folder }}"
+    state: directory
+
+# Force is set to 'no' so if the commands are updated from SAP Parent, they won't be overwritten.
+- name: "Ensure sql commands exist"
+  copy:
+    dest: "{{ sqlcmd_folder }}/HANA_Replication_SystemReplication_Overview.sql"
+    src: "sqlcmd/HANA_Replication_SystemReplication_Overview.sql"
+    force: no
+  become: true
+
+- name: "Waiting for replication to finish"
+  shell: "hdbsql -U SYSTEMDB-ADMIN -I {{ sqlcmd_folder }}/HANA_Replication_SystemReplication_Overview.sql"
+  args:
+    executable: /bin/csh
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  register: replication_status_output
+  changed_when: false
+  retries: 14400
+  delay: 30
+  until: "',\"ACTIVE\",' in replication_status_output.stdout_lines[-1]"
+
+- name: "Display replication status"
+  debug:
+    var: replication_status_output.stdout_lines[-2:]
+  when: "',\"ACTIVE\",' in replication_status_output.stdout_lines[-1]"
+
+...

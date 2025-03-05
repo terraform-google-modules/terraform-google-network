@@ -1,0 +1,122 @@
+---
+# Playbook Name: ibp-operations-hardstop.yml
+# Synopsis: stops the ibp environment
+# Description: This playbook consists of several plays which will stop the IBP environment.
+#     It is designed to work with the ibp-ansible-inventory-template file
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS CLI v1.16+
+#   - sudo capability or root privileges on target machine
+# Dependencies:
+#   - ibp ansible role
+# Variables:
+#   - sid (provided by ansible inventory hostfile)
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-operations-hardstop.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>'
+#
+# Example
+#   Execution on a single instance with ip address of 192.168.1.1
+#     ansible-playbook ibp-operations-hardstop.yml -k -i /tmp/hosts -l 192.168.1.1
+#
+# Example
+#   Execution on a single landscape 'production'
+#     ansible-playbook ibp-operations-hardstop.yml -k -i /tmp/hosts -l production
+
+# Example
+#   Execution of a specific play 'stop-hana'.  This will automatically include 'stop-sapapp' as a pre-requisite
+#     ansible-playbook ibp-operations-hardstop.yml -k -i /tmp/hosts --tags 'stop-hana'
+#
+# Authors: Vighnesh Sivakumar
+# Version: 2.9-000004
+# Modified: 2020-06-10 - Created playbook
+#           2020-06-18 - Added webdispatcher
+#           2020-06-23 - Merged ibp-provision and ibp-operations roles to ibp role
+#           2020-07-22 - Added cpids stop
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Some plays are prerequisites for other plays and are tagged accordingly.
+#
+#   Play Tags:
+#     play1 stop-sapapp stop-hana stop-all: Stops Sap Application systems. Prerequisite for stopping HANA
+#     play2 stop-hana stop-all: Stops Hana systems
+#     play3 stop-webdispatcher stop-all: Stops web dispatcher
+#     play4 stop-cpids stop-all: Stops cpids
+
+#################
+##### Play1 #####
+#################
+- name: "Play1:  Stop SapApp"
+  hosts: ibpapp
+  gather_facts: false
+  tags:
+  - play1
+  - stop-sapapp
+  - stop-hana
+  - stop-all
+  any_errors_fatal: true
+  tasks:
+  - name: "Call sapapp-hardstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-hardstop.yml
+
+#################
+##### Play2 #####
+#################
+- name: "Play2:  Stop Hana"
+  hosts: ibpdb
+  gather_facts: false
+  tags:
+  - play2
+  - stop-hana
+  - stop-all
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Call hana-hardstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-hardstop.yml
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Stop Web Dispatcher"
+  hosts: webdispatcher
+  gather_facts: false
+  tags:
+  - play3
+  - stop-webdispatcher
+  - stop-all
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Call webdispatcher-hardstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/webdispatcher-hardstop.yml
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: stop CPIDS"
+  hosts: cpids
+  gather_facts: false
+  tags:
+  - play4
+  - stop-cpids
+  - stop-all
+  any_errors_fatal: true
+
+  # CPIDS hard and soft stop are functionally identical
+  tasks:
+  - name: "Call cpids-softstop task"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/cpids-softstop.yml
+...

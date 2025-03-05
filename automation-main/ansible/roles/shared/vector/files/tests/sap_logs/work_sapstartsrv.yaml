@@ -1,0 +1,47 @@
+---
+########################################################################################################################
+########################################################################################################################
+# Description: Vector config file for:
+#  - /usr/sap/*/sapstartsrv.log
+#
+# Vector Output Name: `sap_work_sapstartsvc__out`
+#
+# Last Updated & Tested: 2022/01/31
+########################################################################################################################
+tests:
+  - name: sap.work.sapstartsvc::1
+    inputs:
+      - insert_at: work_sapstartsrv_metadata
+        type: log
+        log_fields:
+          file: /usr/sap/hostctrl/work/sapstartsrv.log
+          message: |
+            [Thr 139857192834304] Fri Sep  3 21:30:13 2021
+            [Thr 139857192834304] MtxInit: -2 0 0
+            Initializing SAPHostControl Webservice
+            CCMS agent initialization for instance type HOST: return code 0.
+            [Thr 139857192834304] CCMS: SemInit: Semaphore 1004 initialized by AlCreateAttachShm_Host.
+            [Thr 139857192834304] CCMS: Initialized monitoring segment of size 40000000.
+            [Thr 139857192834304] CCMS: Initialized CCMS Headers in the shared monitoring segment.
+            [Thr 139857192834304] CCMS: Checking Downtime Configuration of Monitoring Segment.
+            [Thr 139857192834304] CCMS: AlMsUpload called by wp 1998.
+            [Thr 139857192834304] CCMS: AlMsUpload successful for /usr/sap/hostctrl/work/ALMTTREE (326 MTEs).
+            CCMS agent start: return code 0.
+            [Thr 139857192834304] =================================================
+            [Thr 139857192834304] = SSL Initialization    platform tag=(linuxx86_64_gcc41)
+            [Thr 139857192834304] =   (721_REL,Feb 20 2021,mt,ascii,SAP_UC/size_t/void* = 8/64/64)
+            [Thr 139857134679808] CCMS: SemInit: Semaphore 1004 initialized by AlCreateAttachShm_Host.
+            [Thr 139857192834304] =       resulting Filename = "/usr/sap/hostctrl/exe/libsapcrypto.so"
+            [Thr 139857134679808] CCMS: Initialized monitoring segment of size 40000000.
+            [Thr 139857134679808] CCMS: Initialized CCMS Headers in the shared monitoring segment.
+            [Thr 139857134679808] CCMS: Checking Downtime Configuration of Monitoring Segment.
+            [Thr 139857134679808] CCMS: AlMsUpload called by wp 1998.
+            [Thr 139857134679808] CCMS: AlMsUpload successful for /usr/sap/hostctrl/work/ALMTTREE (326 MTEs).
+    outputs:
+      - extract_from: sap_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!(parse_timestamp!("2021-09-03T21:30:13", "%Y-%m-%dT%H:%M:%S"), .timestamp, "timestamp parsing incorrect")
+...

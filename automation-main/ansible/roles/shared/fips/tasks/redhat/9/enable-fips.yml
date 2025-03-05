@@ -1,0 +1,22 @@
+---
+# Synopsis: Enables FIPS on RHEL 9
+
+  - name: Enable FIPS for Red Hat 9
+    command: /usr/bin/fips-mode-setup --enable
+    become: true
+
+  - name: Check if system is running UEFI or BIOS.
+    shell: |
+      [ -d /sys/firmware/efi ] && echo UEFI || echo BIOS
+    register: system_boot_type
+
+  - name: Rebuild grub to include fips
+    shell: grub2-mkconfig -o /boot/grub2/grub.cfg
+    become: true
+    when: system_boot_type.stdout == "BIOS"
+
+  - name: Rebuild grub to include fips
+    shell: grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
+    become: true
+    when: system_boot_type.stdout == "UEFI"
+...

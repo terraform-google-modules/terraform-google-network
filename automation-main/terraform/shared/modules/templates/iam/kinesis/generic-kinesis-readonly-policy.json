@@ -1,0 +1,32 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "AllowListAllStreams",
+          "Effect": "Allow",
+          "Action": [
+              "kinesis:ListStreams",
+              "kinesis:ListShards"
+          ],
+          "Resource": "*"
+      },
+      {
+          "Sid": "AllowStreamRead",
+          "Effect": "Allow",
+          "Action": [
+              "kinesis:Get*",
+              "kinesis:DescribeStream"
+          ],
+          "Resource": "${ arn }"
+      },
+      {
+          "Sid": "AllowReadMultiAZ",
+          "Effect": "Allow",
+          "Action": [
+              "kinesis:GetShardIterator",
+              "kinesis:GetRecords"
+          ],
+          "Resource": "${ replace(arn, region, "*") }"
+      }
+  ]
+}

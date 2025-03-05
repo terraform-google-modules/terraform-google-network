@@ -1,0 +1,32 @@
+---
+# Description: Disables the selected Apt repositories.
+# Inputs:
+#   - repository_server_address: (string) The repository server to disable Apt repositories for.
+#   - repository_list_selected: (list) A list of repositories to disable.
+# Outputs:
+#   - Disables each repository that is listed in 'repository_list_selected' via Apt.
+
+  - name: '[Ubuntu] - List the repositories to be disabled'
+    debug:
+      msg: '{{ repository_list_selected }}'
+
+  - name: '[Ubuntu] - Ensure that there is at least one repository to disable'
+    fail:
+      msg: There must be at least one repository listed in the 'repository_list_selected' variable.
+    when: repository_list_selected | length == 0
+
+  - name: '[Ubuntu] - Disable the selected repositories'
+    apt_repository:
+      state: absent
+      repo: deb {{ repository_server_address }}/ubuntu{{ ansible_distribution_major_version }}/{{ item }}
+      filename: ansible-managed-repository-management
+    become: true
+    loop: '{{ repository_list_selected }}'
+
+  - name: '[Ubuntu] - Update the apt cache'
+    apt:
+      state: present
+      update_cache: true
+    changed_when: false
+    become: true
+...

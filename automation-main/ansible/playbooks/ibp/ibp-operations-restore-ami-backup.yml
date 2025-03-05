@@ -1,0 +1,148 @@
+---
+# Playbook Name: ibp-operations-restore-ami-backup.yml
+# Synopsis: Perform an in-place restore of an image recovery point from the AWS Backup Service Vault.
+# Description: Prompts users for recovery point information before launching an in-place restore of an EC2 instance.
+# Prerequisites:
+#   - Ansible v2.9
+# Dependencies: AWS Backup Service and Tag permissions
+# Variables:
+#   - instance_ip: IP address of the EC2 instance that needs to be restored
+#   - backup_vault_name: The name of the backup vault where the recovery point resides
+#   - recovery_point_arn: ARN of the recovery point to use for the restore
+# Example:
+#   ansible-playbook ibp-operations-restore-ami-backup.yml -i localhost, -c local
+# Authors: Katja Cresanti
+# Version: 2.9-000002
+# Modified: 2021-07-22 - Including task to notify Build Engineering when the playbook is run
+#           2021-06-10 - Created
+# Comments: None
+
+- hosts: all
+  gather_facts: false
+  vars:
+    aws_region: "us-gov-west-1"
+  vars_prompt:
+    - name: instance_ip
+      prompt: "What is the ip address of the instance to restore?"
+      private: no
+    - name: backup_vault_name
+      prompt: "What is the name of the backup vault where the recovery point lives?"
+      private: no
+    - name: recovery_point_arn
+      prompt: "What is the arn of the recovery point to use in the restore?"
+      private: no
+
+  tasks:
+  - name: 'Gather EC2 instance metadata'
+    ec2_instance_info:
+      region: "{{ aws_region }}"
+      filters:
+        network-interface.addresses.private-ip-address: "{{ instance_ip }}"
+    register: ec2_instance_output
+    delegate_to: localhost
+
+  - name: 'Set the IAM role of the original EC2 instance'
+    set_fact:
+      ec2_instance_ami_role: "{{ ec2_instance_output.instances[0].iam_instance_profile.arn }}"
+
+  - name: 'Gather EC2 tags for instance'
+    ec2_tag:
+      region: "{{ aws_region }}"
+      resource: "{{ ec2_instance_output.instances[0].instance_id }}"
+      state: list
+    register: ec2_tag_list_output
+    delegate_to: localhost
+
+  - name: 'Get metadata of the EC2 instance to restore'
+    register: ec2_metadata_output
+    shell: |
+      aws backup get-recovery-point-restore-metadata --backup-vault-name {{ backup_vault_name }} --recovery-point-arn {{ recovery_point_arn }}
+
+  - name: 'Set fact for EC2 instance metadata'
+    set_fact:
+      original_ec2_instance_metadata: "{{ ec2_metadata_output.stdout }}"
+
+  - name: 'Create /tmp/ec2-restore-metadata.json'
+    copy:
+      dest: '/tmp/ec2-restore-metadata.json'
+      content: |
+        {
+        "VpcId": "{{ original_ec2_instance_metadata.RestoreMetadata.VpcId }}",
+        "Monitoring": {{ original_ec2_instance_metadata.RestoreMetadata.Monitoring | to_json }},
+        "CapacityReservationSpecification": {{ original_ec2_instance_metadata.RestoreMetadata.CapacityReservationSpecification | to_json }},
+        "InstanceInitiatedShutdownBehavior": {{ original_ec2_instance_metadata.RestoreMetadata.InstanceInitiatedShutdownBehavior | to_json }},
+        "DisableApiTermination": {{ original_ec2_instance_metadata.RestoreMetadata.DisableApiTermination | to_json }},
+        "KeyName": {{ original_ec2_instance_metadata.RestoreMetadata.KeyName | to_json }},
+        "HibernationOptions": {{ original_ec2_instance_metadata.RestoreMetadata.HibernationOptions | to_json }},
+        "EbsOptimized": {{ original_ec2_instance_metadata.RestoreMetadata.EbsOptimized | to_json }},
+        "InstanceType": {{ original_ec2_instance_metadata.RestoreMetadata.InstanceType | to_json }},
+        "NetworkInterfaces": "[{ {{ original_ec2_instance_metadata.RestoreMetadata.NetworkInterfaces.split(',')[1] | to_json }},{{ original_ec2_instance_metadata.RestoreMetadata.NetworkInterfaces.split(',')[3] | to_json }},{{ original_ec2_instance_metadata.RestoreMetadata.NetworkInterfaces.split(',')[4] | to_json }},{{ original_ec2_instance_metadata.RestoreMetadata.NetworkInterfaces.split(',')[5] | to_json }},{{ original_ec2_instance_metadata.RestoreMetadata.NetworkInterfaces.split(',')[6] | to_json }},{{ original_ec2_instance_metadata.RestoreMetadata.NetworkInterfaces.split(',')[7] | to_json }},{{ original_ec2_instance_metadata.RestoreMetadata.NetworkInterfaces.split(',')[8] | to_json }},{{ original_ec2_instance_metadata.RestoreMetadata.NetworkInterfaces.split(',')[10] | to_json }},{{ original_ec2_instance_metadata.RestoreMetadata.NetworkInterfaces.split(',')[14] | to_json }},{{ original_ec2_instance_metadata.RestoreMetadata.NetworkInterfaces.split(',')[-1] | to_json }}
+        }
+
+  - name: "Template quotation marks in metadata file"
+    ansible.builtin.replace:
+      path: /tmp/ec2-restore-metadata.json
+      regexp: '\"\\'
+      replace: '\\'
+
+  - name: "Template commas in metadata file"
+    ansible.builtin.replace:
+      path: /tmp/ec2-restore-metadata.json
+      regexp: '\",\\'
+      replace: ',\\'
+
+  - name: 'Confirm termination of original EC2 instance with "Y"'
+    pause:
+      prompt: |
+        The ec2 instance with ip address and instance id will be TERMINATED.
+        Confirm with 'Y'.
+        Enter 'N' to cancel.
+    register: confirm_input
+
+  - name: "Fail if not confirmed"
+    fail:
+      msg: 'Input not confirmed.  Quitting now.'
+    when:
+    - confirm_input.user_input != 'Y'
+    - confirm_input.user_input != 'y'
+
+  - name: 'Terminate the original EC2 instance so that the restore process can use the original IP address'
+    shell: aws ec2 terminate-instances --instance-ids {{ ec2_instance_output.instances[0].instance_id }}
+
+  - name: 'Start restore process'
+    args:
+      chdir: '/tmp/'
+    shell: |
+      aws backup start-restore-job --region "{{ aws_region }}" --recovery-point-arn "{{ recovery_point_arn }}" --iam-role-arn "arn:aws-us-gov:iam::{{ ec2_tag_list_output.tags.Account }}:role/service-role/AWSBackupDefaultServiceRole"  --metadata file://ec2-restore-metadata.json
+
+  - name: 'Wait for instance to finish creating'
+    pause:
+      minutes: 10
+
+  - name: 'Output metadata for newly created instance'
+    register: instance_metadata
+    shell: aws backup list-restore-jobs --max-results 1
+
+  - name: Set fact
+    set_fact:
+      restored_instance_metadata: "{{ instance_metadata.stdout }}"
+
+  - name: 'Save the instance id of the restored EC2 instance'
+    set_fact:
+      restored_instance_id: "{{ restored_instance_metadata.RestoreJobs[0].CreatedResourceArn.split('/')[-1] }}"
+
+  - name: 'Attach the original IAM role to the restored EC2 instance'
+    shell: aws ec2 associate-iam-instance-profile --instance-id {{ restored_instance_id }} --iam-instance-profile Name={{ ec2_instance_ami_role.split('/')[-1] }}
+
+  - name: 'Tag the restored EC2 instance'
+    shell: aws backup tag-resource --resource-arn {{ restored_instance_id }} --tags Account={{ ec2_tag_list_output.tags.Account }},BuildUser="{{ ec2_tag_list_output.tags.BuildUser }}",Business={{ ec2_tag_list_output.tags.Business }},Customer="{{ ec2_tag_list_output.tags.Customer}}",Description="{{ ec2_tag_list_output.tags.Description }}",Domain="{{ ec2_tag_list_output.tags.Domain}}",Hostname="{{ ec2_tag_list_output.tags.Hostname }}",Image="{{ ec2_tag_list_output.tags.Image }}",OperatingSystem="{{ ec2_tag_list_output.tags.OperatingSystem }}",Platform="{{ ec2_tag_list_output.tags.Platform }}",ProductName="{{ ec2_tag_list_output.tags.ProductName }}",SID="{{ ec2_tag_list_output.tags.SID }}",ScanGroup="{{ ec2_tag_list_output.tags.ScanGroup }}"
+
+  - name: 'Notify the Build Engineering team that the playbook was run'
+    sns:
+      aws_region: "{{ aws_region }}"
+      msg: |
+        The ec2 instance {{ restored_instance_id }} has undergone an in-place ami restore by ibp operations using the ibp-operations-restore-ami-backup.yml playbook. Please update the terraform state file to reflect this change.
+      subject: "action required | ibp terraform state file update"
+      topic: "ami-restore"
+    delegate_to: localhost
+...

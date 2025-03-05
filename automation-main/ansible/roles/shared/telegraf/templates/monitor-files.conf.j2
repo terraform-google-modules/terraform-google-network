@@ -1,0 +1,12 @@
+#jinja2: trim_blocks:False
+{% for monitor in monitor_files %}
+[[inputs.tail]]
+    files = {{ monitor.files | to_json }}
+    data_format = "value"
+    data_type = "string"
+
+    [inputs.tail.tags]
+        es_pipeline = "ns2_metrics_tail"
+        {% if monitor.tail_name is defined %}tail_name = "{{ monitor.tail_name }}"{% endif %}
+
+{% endfor %}

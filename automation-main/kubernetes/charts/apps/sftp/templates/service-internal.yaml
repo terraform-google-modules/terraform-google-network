@@ -1,0 +1,48 @@
+{{- if .Values.services.internal.enabled }}
+{{- $customer := trimSuffix "-sftp" .Values.sftpgo.fullnameOverride }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $customer }}-sftp-internal
+  labels:
+    {{- include "sftpgo_override.labels" . | nindent 4 }}
+{{- range $name, $service := .Values.services }}
+  {{- with $service.annotations }}
+  annotations:
+    dns.gardener.cloud/dnsnames: sftp-{{ $customer }}.internal.{{ $.Values.envBaseDomain }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ required (printf "Service type is required for service %q" $name) $service.type }}
+  {{- with $service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ . }}
+  {{- end }}
+  {{- if eq $service.type "LoadBalancer" }}
+  {{- with $service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  {{- with $service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $service.sessionAffinity }}
+  sessionAffinity: {{ . }}
+  {{- end }}
+  {{- end }}
+  ports:
+    {{- if $service.ports.sftp }}
+    - name: sftp
+      port: {{ required (printf "HTTP service port is required for service %q" $name) $service.ports.sftp.port }}
+      {{- if and (or (eq $service.type "NodePort") (eq $service.type "LoadBalancer")) $service.ports.sftp.nodePort }}
+      nodePort: {{ $service.ports.sftp.nodePort }}
+      {{- end }}
+      targetPort: sftp
+      protocol: TCP
+      {{- if semverCompare ">=1.20-0" $.Capabilities.KubeVersion.GitVersion }}
+      appProtocol: sftp-ssh
+      {{- end }}
+    {{- end }}
+  selector:
+    {{- include "sftpgo_override.selectorLabels" $ | nindent 4 }}
+{{- end }}
+{{- end }}

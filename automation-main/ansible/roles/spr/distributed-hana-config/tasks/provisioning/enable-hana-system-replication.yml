@@ -1,0 +1,18 @@
+- name: "Enable hana system replication on db"
+  ansible.builtin.shell: |
+    source /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+    /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/HDB{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}/exe/hdbnsutil \
+    -sr_enable --name="{{ distributed_hana_config_sap_hana_hsr_alias }}"
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  register: distributed_hana_config_enablesr
+  changed_when: "'successfully enabled system as system replication source site' in distributed_hana_config_enablesr.stdout"
+  when:
+    - "'online: true' in distributed_hana_config_output_checksr.stdout_lines"
+    - "'mode: primary' not in distributed_hana_config_output_checksr.stdout_lines"
+
+- name: "Unset distributed_hana_config_output_checksr for safety"
+  ansible.builtin.set_fact:
+    distributed_hana_config_output_checksr: ""

@@ -1,0 +1,139 @@
+---
+########################################################################################################################
+########################################################################################################################
+# Description: Vector config file for:
+# - /usr/sap/*/*/*/trace/compileserver_alert*.trc*
+# - /usr/sap/*/*/*/trace/nameserver_alert*.trc
+# - /usr/sap/*/*/*/trace/preprocessor_alert*.trc
+# - /usr/sap/*/*/*/trace/webdispatcher_alert*.trc
+#
+# Vector Output Name: sap_hana_trace_alerts__out
+#
+# Last Updated & Tested: 2022/02/03
+########################################################################################################################
+########################################################################################################################
+tests:
+  - name: sap.hana.trace_alerts.compileserver_alert::1
+    inputs:
+      - insert_at: trace_alerts__sap_hana_metadata
+        type: log
+        log_fields:
+          message: |
+            [25115]{-1}[-1/-1] 2021-11-25 10:32:46.198073 e TNS              TNSClient.cpp(05997) : Volumes node:
+            volumes
+              1
+                active=yes
+                servicetype=nameserver
+                location=s001dbhbd:30001
+                path=mnt00001/hdb00001
+                catalog=yes
+                database=1
+              3:2
+                active=yes
+                servicetype=xsengine
+                location=s001dbhbd:30007
+                path=mnt00001/hdb00002.00003
+                database=3
+              3:3
+                active=yes
+                servicetype=indexserver
+                location=s001dbhbd:30003
+                path=mnt00001/hdb00003.00003
+                catalog=yes
+                database=3
+    outputs:
+      - extract_from: sap_hana_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2021-11-25T18:32:46.198073Z", to_string!(.timestamp), "timestamp parsing incorrect")
+
+  - name: sap.hana.trace_alerts.nameserver_alert::2
+    inputs:
+      - insert_at: trace_alerts__sap_hana_metadata
+        type: log
+        log_fields:
+          message: '[22244]{100124}[18/7386585] 2021-09-22 10:01:29.031145 e EmbeddedAPI      Connection.cc(01920) : fatal error in a nested statement'
+    outputs:
+      - extract_from: sap_hana_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2021-09-22T17:01:29.031145Z", to_string!(.timestamp), "timestamp parsing incorrect")
+
+  - name: sap.hana.trace_alerts.nameserver_alert::3
+    inputs:
+      - insert_at: trace_alerts__sap_hana_metadata
+        type: log
+        log_fields:
+          message: '[22244]{-1}[-1/-1] 2021-09-22 10:01:29.031145 e EmbeddedAPI      Connection.cc(01920) : fatal error in a nested statement'
+    outputs:
+      - extract_from: sap_hana_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2021-09-22T17:01:29.031145Z", to_string!(.timestamp), "timestamp parsing incorrect")
+
+  - name: sap.hana.trace_alerts.preprocessor_alert::4
+    inputs:
+      - insert_at: trace_alerts__sap_hana_metadata
+        type: log
+        log_fields:
+          message: |
+            [23639]{-1}[-1/-1] 2021-11-28 21:55:36.206860 e TNS              TNSClient.cpp(06001) : Database node:
+            databases
+              3
+                name=HBD
+                status=yes
+                timestamp=1604575128757
+                description=HBD-00
+                status_details
+                restartmode=DEFAULT
+              1
+                name=SYSTEMDB
+                status=yes
+                timestamp=1604575119142
+                singleTenant=yes
+                description=SystemDB-HBD-00
+                restartmode=DEFAULT
+    outputs:
+      - extract_from: sap_hana_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2021-11-29T05:55:36.206860Z", to_string!(.timestamp), "timestamp parsing incorrect")
+
+  - name: sap.hana.trace_alerts.webdispatcher_alert::5
+    inputs:
+      - insert_at: trace_alerts__sap_hana_metadata
+        type: log
+        log_fields:
+          message: |
+            [29474]{-1}[-1/-1] 2021-11-25 14:44:09.827873 e TNS              TNSClient.cpp(06001) : Database node:
+            databases
+              3
+                name=HBD
+                status=yes
+                timestamp=1604575128757
+                description=HBD-00
+                status_details
+                restartmode=DEFAULT
+              1
+                name=SYSTEMDB
+                status=yes
+                timestamp=1604575119142
+                singleTenant=yes
+                description=SystemDB-HBD-00
+                restartmode=DEFAULT
+    outputs:
+      - extract_from: sap_hana_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2021-11-25T22:44:09.827873Z", to_string!(.timestamp), "timestamp parsing incorrect")
+...

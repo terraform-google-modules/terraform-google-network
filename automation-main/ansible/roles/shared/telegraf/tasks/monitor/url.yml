@@ -1,0 +1,32 @@
+---
+  - name: '[URL Monitor] - Include the vars file for the requested profile: {{ profile | replace("_", "-") }}'
+    ansible.builtin.include_vars:
+      file: "{{lookup('first_found', params)}}"
+    vars:
+      params:
+        files:
+          - '{{ profile | replace("_", "-") }}.yml'
+          - notfound.yml
+        paths:
+          - vars/url
+
+  - name: BLOCK - Only write file to disk if variable monitor_urls has items
+    when:
+      - monitor_urls is defined
+      - monitor_urls | length > 0
+    become: true
+    block:
+      - name: '[URL Monitor] - Write the URL monitoring rules to disk for {{ profile | replace("_", "-") }}'
+        ansible.builtin.template:
+          src: monitor-url.conf.j2
+          dest: /etc/telegraf/telegraf.d/monitor-url-{{ profile | replace("_", "-") }}.conf
+          selevel: s0
+          seuser: system_u
+          setype: etc_t
+          serole: object_r
+          owner: root
+          group: root
+          mode: '0644'
+        notify:
+          - restart telegraf
+...

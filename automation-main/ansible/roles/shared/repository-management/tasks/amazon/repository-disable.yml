@@ -1,0 +1,35 @@
+---
+# Description: Disables repositories via yum-config-manager
+# Inputs:
+#   - repository_list_selected: (list) A list of repositories to disable.
+# Outputs:
+#   - Disables each repository that is listed in 'repository_list_selected' via yum-config-manager.
+
+  - name: '[Amazon Linux] - List the repositories to be disabled'
+    debug:
+      msg: '{{ repository_list_selected }}'
+
+  - name: '[Amazon Linux] - Ensure that there is at least one repository to disable'
+    fail:
+      msg: There must be at least one repository listed in the 'repository_list_selected' variable.
+    when: repository_list_selected | length == 0
+
+  - name: '[Amazon Linux] - Disable the selected repositories via yum-config-manager'
+    shell: yum-config-manager --disable {{ repository_list_selected | join(' --disable ') }}
+    become: true
+  # Repositories listed in rhel_X_repo_list may not exist for a particular minor version. For example,
+  # rhel-8-for-x86_64-appstream-e4s-rpms DNE in 8.0 and rhel-ha-for-rhel-7-server-eus-rpms DNE in 7.8.
+  # As a stopgap to a more robust solution, ignore errors if we try and add a repository that doesn't
+  # exist in a particular OS version's repository list.
+    ignore_errors: true
+
+  - name: '[Amazon Linux] - Update the yum cache'
+    yum:
+      state: present
+      update_cache: true
+    register: yum_makecache_results
+    failed_when:
+      - yum_makecache_results.rc != 0
+      - yum_makecache_results.results[0] | regex_search('^There are no enabled repos') | length == 0
+    become: true
+...

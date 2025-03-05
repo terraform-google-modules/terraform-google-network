@@ -1,0 +1,59 @@
+# There may be a way to validate the storage size but will need to account for filesystem overhead... Currently assumes if path exists then it's fine
+- name: "Run Test Suite"
+  block:
+  - name: "Check APP Swap device exists"
+    ansible.builtin.include_tasks: tests/storage-device-exists.yml
+    vars:
+      distributed_calculate_disks_test_devices: ["swap"]
+    when: distributed_calculate_disks_test_app_swap
+
+  - name: "Check APP sapmnt Storage"
+    block:
+    - name: "sapmnt device exists"
+      ansible.builtin.include_tasks: tests/storage-device-exists.yml
+      vars:
+        distributed_calculate_disks_test_devices: ["sapmnt"]
+
+    - name: "sapmnt device mount exists and proper permissions are set"
+      ansible.builtin.include_tasks: "{{ item }}"
+      loop:
+        - tests/path-exists.yml
+        - tests/path-perm.yml
+      vars:
+        distributed_calculate_disks_test_paths: ["/sapmnt"]
+        distributed_calculate_disks_test_permission: "755"
+    when: distributed_calculate_disks_test_app_sapmnt
+
+  - name: "Check HANA Storage"
+    block:
+    - name: "HANA device exists"
+      ansible.builtin.include_tasks: tests/storage-device-exists.yml
+      vars:
+        distributed_calculate_disks_test_devices: ["hana_data", "hana_log", "hana_shared", "hana_backups"]
+
+    - name: "HANA device mount exists and proper permissions are set"
+      ansible.builtin.include_tasks: "{{ item }}"
+      loop:
+        - tests/path-exists.yml
+        - tests/path-perm.yml
+      vars:
+        distributed_calculate_disks_test_paths: ["/hana/data", "/hana/log", "/hana/shared", "/hana/backups"]
+        distributed_calculate_disks_test_permission: "755"
+    when: distributed_calculate_disks_test_db_hana
+
+  - name: "Check /usr/sap Storage"
+    block:
+    - name: "usr_sap device exists"
+      ansible.builtin.include_tasks: tests/storage-device-exists.yml
+      vars:
+        distributed_calculate_disks_test_devices: ["usr_sap"]
+
+    - name: "usr_sap device mount exists and proper permissions are set"
+      ansible.builtin.include_tasks: "{{ item }}"
+      loop:
+        - tests/path-exists.yml
+        - tests/path-perm.yml
+      vars:
+        distributed_calculate_disks_test_paths: ["/usr/sap"]
+        distributed_calculate_disks_test_permission: "755"
+    when: distributed_calculate_disks_test_usr_sap

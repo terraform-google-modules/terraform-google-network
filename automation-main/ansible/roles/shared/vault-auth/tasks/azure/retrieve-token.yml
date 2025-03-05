@@ -1,0 +1,59 @@
+---
+# Synopsis: This playbook will retrieve a temporary Hashicorp Vault token used for authentication, it will first check if the local system has any vault credentials before retrieving the token from Vault.
+# Inputs:
+#   - vault_address: This is the IP address of the vault server
+#   - vault_azure_auth_role: The name of the Vault Azure authentication method role that is being authenticated to
+#   - vault_engine_azure: the name of the Azure Auth Method to leverage in Vault
+#   - vault_ssl_verify: (bool) Whether to validate the ssl certificate of the Vault server
+# Outputs: A valid temporary vault token that can be used to retrieve secrets.
+
+  - name: Determine whether source host is in Azure
+    uri:
+      url: http://169.254.169.254/metadata/instance?api-version=2021-02-01
+      timeout: 2
+      use_proxy: false
+      headers:
+        Metadata: true
+    register: azure_check_output
+    failed_when: false
+
+  - name: Fail check that instance is in fact in Azure when attempting to leverage VM authentication
+    fail:
+      msg: '[ERROR]: No vault-token passed. Source host is also not in Azure to attempt to leverage Azure VM authentication.'
+    when: azure_check_output.status | int != 200
+
+  - name: Set Azure Metadata Service Endpoint Fact
+    set_fact:
+      metadata_endpoint: >-
+        {% if "AzureUSGovernmentCloud" == azure_check_output.json.compute.azEnvironment -%} management.core.usgovcloudapi.net
+        {%- elif "AzurePublicCloud" == azure_check_output.json.compute.azEnvironment -%} management.core.windows.net
+        {%- endif %}
+
+  - name: Get Json Web Token from Metadata Endpoint
+    uri:
+      url: http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2F{{ metadata_endpoint }}%2F
+      timeout: 5
+      headers:
+        Metadata: true
+    register: metadata_output
+
+  - name: Set VM facts for Vault Token Request
+    set_fact:
+      json_web_token: '{{ metadata_output.json.access_token }}'
+      resource_group: '{{ azure_check_output.json.compute.resourceGroupName }}'
+      subscription_id: '{{ azure_check_output.json.compute.subscriptionId }}'
+      vm_name: '{{ azure_check_output.json.compute.name }}'
+
+  - name: Obtain vault token for current service principal
+    shell: |
+      curl -s {{ '-k' if (vault_ssl_verify | bool == false) else '' }} -X POST -d '{"role":"{{ vault_azure_auth_role }}","subscription_id":"{{ subscription_id }}","resource_group_name":"{{ resource_group }}","vm_name":"{{ vm_name }}","jwt":"{{ json_web_token }}"}' {{ vault_address }}/v1/auth/{{ vault_engine_azure }}/login | \
+      grep -Po '"client_token": *\K"[^"]*"' | tr -d \"
+    register: vault_token_output
+    no_log: true
+
+  - name: Set vault token fact
+    set_fact:
+      vault_token: '{{ vault_token_output.stdout }}'
+    no_log: true
+    when: vault_token_output is changed
+...

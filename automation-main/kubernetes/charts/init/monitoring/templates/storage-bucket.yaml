@@ -1,0 +1,82 @@
+{{ $loki := ( index .Values "loki") }}
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: {{ $loki.global.bucketName }}-chunks
+  annotations:
+    meta.upbound.io/loki: s3/v1beta1/bucketversioning
+  labels:
+    resource.upbound.io/loki: loki-bucket
+spec:
+  forProvider:
+    region: {{ $loki.global.region }}
+  providerConfigRef:
+    name: {{ .Values.providerConfigRef.name }}
+---
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: BucketVersioning
+metadata:
+  name: {{ $loki.global.bucketName }}-bucketversioning
+  annotations:
+    meta.upbound.io/loki: s3/v1beta1/bucketversioning
+  labels:
+    resource.upbound.io/loki: loki-bucketversioning
+spec:
+  forProvider:
+    bucketSelector:
+      matchLabels:
+        resource.upbound.io/loki: loki-bucket
+    region: {{ $loki.global.region }}
+    versioningConfiguration:
+      - status: Enabled
+  providerConfigRef:
+    name: {{ .Values.providerConfigRef.name }}
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: Role
+metadata:
+    name: {{ $loki.global.bucketName }}-role
+spec:
+    forProvider:
+        assumeRolePolicy: |
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Federated": "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:oidc-provider/{{ .Values.oidcProvider }}"
+                        },
+                        "Action": "sts:AssumeRoleWithWebIdentity",
+                        "Condition": {
+                            "StringEquals": {
+                                "{{ .Values.oidcProvider }}:sub": "system:serviceaccount:{{ .Release.Namespace }}:{{ $loki.global.bucketName }}-sa",
+                                "{{ .Values.oidcProvider }}:aud": "sts.amazonaws.com"
+                            }
+                        }
+                    }
+                ]
+            }
+        inlinePolicy:
+          - name: {{ $loki.global.bucketName }}-policy
+            policy: |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "s3:ListBucket",
+                                "s3:PutObject",
+                                "s3:GetObject",
+                                "s3:DeleteObject"
+                            ],
+                            "Resource": [
+                                "arn:{{ .Values.awsPartition }}:s3:::{{ $loki.global.bucketName }}-chunks",
+                                "arn:{{ .Values.awsPartition }}:s3:::{{ $loki.global.bucketName }}-chunks/*"
+                            ]
+                        }
+                    ]
+                }
+    providerConfigRef:
+        name: {{ .Values.providerConfigRef.name }}

@@ -1,0 +1,53 @@
+---
+# Synopsis: Does a hard start of SAPAPP
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+# Outputs: Started SAPAPP
+# Comments: N/A
+
+- name: "Run sapstartsrv"
+  shell: "{{ item }}"
+  become: true
+  args:
+    executable: '/bin/bash'
+  register: sapstartsrv_output
+  loop:
+    - export LD_LIBRARY_PATH=/usr/sap/{{ spr_sid|upper }}/ASCS01/exe; /usr/sap/{{ spr_sid|upper }}/ASCS01/exe/sapstartsrv pf=/usr/sap/{{ spr_sid|upper }}/SYS/profile/{{ spr_sid|upper }}_ASCS01_{{ spr_hostname }} -reg
+    - export LD_LIBRARY_PATH=/usr/sap/{{ spr_sid|upper }}/D00/exe; /usr/sap/{{ spr_sid|upper }}/D00/exe/sapstartsrv pf=/usr/sap/{{ spr_sid|upper }}/SYS/profile/{{ spr_sid|upper }}_D00_{{ spr_hostname }} -reg
+
+- debug:
+    var: sapstartsrv_output
+
+- name: "Get saphostagent status"
+  command: "/usr/sap/hostctrl/exe/saphostexec -status"
+  become: true
+  register: saphostagent_status
+  failed_when: "'FAILED' in saphostagent_status.stderr"
+  changed_when: false
+
+- name: "Display saphostagent status"
+  debug:
+    var: saphostagent_status.stderr_lines
+
+- name: "BLOCK - Start saphostagent"
+  when: saphostagent_status.stderr == 'saphostexec stopped'
+  block:
+  - name: "Start saphostagent as root"
+    command: "/usr/sap/hostctrl/exe/saphostexec -restart"
+    become: true
+
+  - name: "Get saphostagent status"
+    command: "/usr/sap/hostctrl/exe/saphostexec -status"
+    become: true
+    register: saphostagent_statusblock
+    failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+    changed_when: false
+
+  - name: "Display saphostagent status"
+    debug:
+      var: saphostagent_statusblock.stderr_lines
+  #End "BLOCK - Start saphostagent"
+
+- name: Start SAPAPP
+  include_tasks: operations/sapapp-softstart.yml
+...

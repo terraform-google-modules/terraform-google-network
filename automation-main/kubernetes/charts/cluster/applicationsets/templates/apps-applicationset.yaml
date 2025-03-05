@@ -1,0 +1,97 @@
+{{- range .Values.appsApplicationset.appsets }}
+{{- if .enabled }}
+{{- $appset := . }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ $appset.name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: '{{ $.Values.gitlabRepoUrl }}'
+              revision: '{{ $.Values.targetBranchName }}'
+              files:
+                - path: '{{ $appset.repoPath }}'
+          - list:
+              elementsYaml: "{{ $appset.listElement }}"
+            selector:
+              matchExpressions:
+                - key: appName
+                  operator: In
+                  values:
+                    {{- if $appset.vaultPlugin }}
+                    {{- range $.Values.appsApplicationset.avpDeployments }}
+                    - {{ . }}
+                    {{- end }}
+                    {{- else }}
+                    {{- range $.Values.appsApplicationset.deploymentsEnabled }}
+                    - {{ . }}
+                    {{- end }}
+                    {{- end }}
+  syncPolicy:
+    applicationsSync: {{ if eq $appset.appName "ecs-etd" -}}sync{{ else -}}create-update{{ end }}
+    preserveResourcesOnDeletion: {{ if eq $appset.appName "ecs-etd" -}}false{{ else -}}true{{ end }}
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/syncPolicy
+  template:
+    metadata:
+      name: '{{ $appset.argoAppName }}'
+      labels:
+        appsetType: app
+        customerName: '{{ $appset.customerName }}'
+      annotations:
+        argocd.argoproj.io/compare-options: IncludeMutationWebhook=true
+        argocd.argoproj.io/manifest-generate-paths: .
+    spec:
+      project: default
+      source:
+        repoURL: '{{ $.Values.gitlabRepoUrl }}'
+        targetRevision: '{{ $.Values.targetBranchName }}'
+        path: 'charts/apps/{{ $appset.appName }}'
+        {{- if $appset.vaultPlugin }}
+        plugin:
+          name: argocd-vault-plugin-overlay
+          env:
+            - name: HELM_VALUE_FILE
+              value: 'values.yaml'
+            - name: HELM_VALUES
+              value: |
+                {{ $appset.overlayValues }}
+        {{- else }}
+        helm:
+          valueFiles:
+            - values.yaml
+        {{- end }}
+      destination:
+        server: 'https://kubernetes.default.svc'
+        namespace: '{{ $appset.nameSpace }}'
+      syncPolicy:
+        automated:
+          prune: false
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+        syncOptions:
+          {{- if $appset.syncOptions.CreateNamespace }}
+          - CreateNamespace={{ $appset.syncOptions.CreateNamespace }}
+          {{- end }}
+          {{- if $appset.syncOptions.ServerSideApply }}
+          - ServerSideApply={{ $appset.syncOptions.ServerSideApply }}
+          {{- end }}
+          {{- if $appset.syncOptions.ApplyOutOfSyncOnly }}
+          - ApplyOutOfSyncOnly='{{ $appset.syncOptions.ApplyOutOfSyncOnly }}'
+          {{- end }}
+{{- end }}
+{{- end }}

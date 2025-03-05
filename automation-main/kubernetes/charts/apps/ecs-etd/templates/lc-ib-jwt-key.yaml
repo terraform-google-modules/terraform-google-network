@@ -1,0 +1,12 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: logcollector-jwt-token-prd
+  annotations:
+    avp.kubernetes.io/path: "{{ default (printf "%s/%s/ecs-etd" .Values.vaultBasePath .Values.customer) .Values.vaultPath }}/jwt_key"
+  labels:
+    {{- include ".helpers_override.labels" $ | nindent 4 }}
+type: Opaque
+stringData:
+  jwt-key.txt: |
+    <JWT_KEY>

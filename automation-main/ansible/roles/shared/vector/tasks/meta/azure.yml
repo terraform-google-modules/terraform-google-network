@@ -1,0 +1,49 @@
+---
+  - name: Compute the tags list as a dictionary
+    set_fact:
+      vector_azure_tags: "{{ mds['compute']['tagsList'] | items2dict(key_name='name') }}"
+
+  - name: Compute the IP addresses for the VM from the metadata
+    set_fact:
+      vector_vm_ipv4_addresses: "{{ mds['network']['interface'] | map(attribute='ipv4.ipAddress', default=[]) | flatten | map('dict2items') | flatten |\
+        \ map(attribute='value') | flatten }}"
+      vector_vm_ipv6_addresses: "{{ mds['network']['interface'] | map(attribute='ipv6.ipAddress', default=[]) | flatten | map('dict2items') | flatten |\
+        \ map(attribute='value') | flatten }}"
+
+  - name: Combine the list of IPv4 and IPv6 addresses
+    set_fact:
+      vector_vm_ip_adddresses: '{{ (vector_vm_ipv4_addresses + vector_vm_ipv6_addresses) | unique }}'
+
+  - name: Additional environment variables
+    set_fact:
+      vector_additional_environment_variables:
+        NS2_VM_NAME: "{{ mds['compute']['name'] }}"
+        NS2_AZ_ENV: "{{ mds['compute']['azEnvironment'] }}"
+        NS2_AZ_VM_LOCATION: "{{ mds['compute']['location'] }}"
+        NS2_AZ_OS_TYPE: "{{ mds['compute']['osType'] }}"
+        NS2_AZ_PROVIDER: "{{ mds['compute']['provider'] }}"
+        NS2_AZ_RESOURCE_GROUP_NAME: "{{ mds['compute'].get('resourceGroupName', 'NO-RESOURCE-GROUP-NAME') }}"
+        NS2_AZ_RESOURCE_ID: "{{ mds['compute']['resourceId'] }}"
+        NS2_AZ_SUBSCRIPTION_ID: "{{ mds['compute']['subscriptionId'] }}"
+        NS2_AZ_TAGS: "{{ mds['compute']['tags'] }}"
+        NS2_AZ_TAGS_LIST: '{{ vector_azure_tags | to_json }}'
+        NS2_AZ_VM_ID: "{{ mds['compute']['vmId'] }}"
+        NS2_AZ_VM_SIZE: "{{ mds['compute']['vmSize'] }}"
+        NS2_AZ_IMAGE_ID: "{{ mds['compute']['storageProfile']['imageReference']['id'] }}"
+
+        NS2_IP_ADDRESSES: "{{ vector_vm_ip_adddresses | join(',') }}"
+        NS2_CLOUD_PROVIDER: azure
+        NS2_TAG_NAME: "{{ vector_azure_tags.get('Name', '') }}"
+        NS2_TAG_PRODUCT_NAME: "{{ vector_azure_tags.get('ProductName', '') }}"
+        NS2_TAG_CNAMES: "{{ vector_azure_tags.get('cnames', '') }}"
+        NS2_TAG_IMAGE: "{{ vector_azure_tags.get('Image', '') }}"
+        NS2_TAG_DOMAIN: "{{ vector_azure_tags.get('Domain', '') }}"
+        NS2_TAG_BUSINESS: "{{ vector_azure_tags.get('Business', '') }}"
+        NS2_TAG_ENVIRONMENT: "{{ vector_azure_tags.get('Environment', '') }}"
+        NS2_TAG_CUSTOMER: "{{ vector_azure_tags.get('Customer', '') }}"
+
+  - name: Set some variables for templating use
+    set_fact:
+      vector_hyperscaler: azure
+      vector_hyperscaler_azure: true
+...

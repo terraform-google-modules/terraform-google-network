@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "AllowAWSPCAS3BucketAccess",
+          "Effect": "Allow",
+          "Principal": {
+              "Service": "acm-pca.amazonaws.com"
+          },
+          "Action": [
+              "s3:PutObject",
+              "s3:PutObjectAcl",
+              "s3:GetBucketAcl",
+              "s3:GetBucketLocation"
+          ],
+          "Resource": [
+              "${ s3_bucket_arn }/*",
+              "${ s3_bucket_arn }"
+          ]
+      }
+  ]
+}

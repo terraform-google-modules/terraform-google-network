@@ -1,0 +1,212 @@
+---
+# Description: Main task for role
+# Inputs:
+#   - bastion_ansible_logging: (Default:True) Enable ansible logging
+#   - bastion_ansible_logging_config_folder: Location of the ansible logging config file.
+#   - bastion_ansible_logging_path: File to write ansible logs to.
+#
+#   - bastion_terraform_setup: (Default:True) Setup terraform on host
+#   - bastion_terraform_setup_version: Version of terraform to install.  Required if not using tfenv
+#   - bastion_terraform_setup_tfenv: (Default:False) Use tfenv to manage terraform versions
+#
+#   - bastion_jinja2_update: (Default:False) Update Jinja2 using pip
+#
+#   - bastion_setup_s3_bucket_name: Aws s3 bucket name (if not empty will download the binaries from s3)
+#   - bastion_aws_ca_bundle_path: cert path to ensure Bastion can interact with S3 (required if non-login accounts and bastion_setup_s3_bucket_name is set)
+#   - bastion_setup_s3_bucket_region: AWS region where bastion has been deployed. Required if bastion_setup_s3_bucket_name is set and the ec2_metadata_facts (ansible_ec2_placement_region) is different from the aws_regions
+#   - bastion_setup_ec2_placement_region: Region used to ensure Bastion can interact with ec2. Required if the ec2_metadata_facts (ansible_ec2_placement_region) is different from the aws_regions
+#
+#   - bastion_saml2aws_setup: (Default:False) Install saml2aws
+#   - bastion_saml2aws_version: Version of saml2aws to install
+#   - bastion_fly_cli_version: Version of fly cli to install
+#
+#   - bastion_cron_jobs: (Default: []) List of dictionaries.  Specify custom cron jobs here.  See Defaults for examples.
+#
+#   - bastion_additional_packages: (Default: []) List of additional packages to install
+#
+# Outputs: Host provisioned to be a bastion
+# Comments:
+#     ec2_instance_info required proper IAM permissions
+#     jinja2 requires access to proper repositories
+
+
+  - name: Check if inside AWS
+    uri:
+      url: http://169.254.169.254/latest/meta-data/ami-id
+      timeout: 2
+    register: aws_uri_check
+    failed_when: false
+
+  - name: 'BLOCK: AWS Specific Metadata and Values'
+    when: aws_uri_check.status == 200
+    block:
+      - name: Set environment
+        set_fact:
+          bastion_environment: aws
+
+      - name: Retrieve ec2 metadata
+        ec2_metadata_facts:
+
+      - name: Retrieve the more ec2 metadata and tags
+        delegate_to: localhost
+        ec2_instance_info:
+          region: '{{ bastion_setup_ec2_placement_region | default(ansible_ec2_placement_region,true) }}'
+          instance_ids: '{{ ansible_ec2_instance_id }}'
+          aws_ca_bundle: '{{ bastion_setup_aws_ca_bundle_path | default(omit, true) }}'
+        register: ec2_instance_output
+
+      - name: Set local hostname to match AWS tag
+        hostname:
+          name: "{{ ec2_instance_output.instances[0].tags.Name | default('bastion',true) | replace('/','-') }}"
+        become: true
+
+      - name: Set AWS Region to {{ ansible_ec2_placement_region }}
+        become: true
+        shell: aws configure set region {{ ansible_ec2_placement_region }}
+### End "BLOCK: AWS Specific Metadata and Values"
+
+
+  - name: 'BLOCK: Mandatory Settings'
+    block:
+      - name: Turn on full date time in shell history
+        become: true
+        copy:
+          dest: /etc/profile.d/history.sh
+          content: HISTTIMEFORMAT="%F %T%z "
+
+      - name: Ensure path /usr/local/bin in sudo
+        include_tasks: sudo-secure-path.yml
+        vars:
+          sudo_secure_path_target: /usr/local/bin
+##### End "BLOCK: Mandatory Settings"
+
+
+  - name: Provision Ansible Logging
+    when: (bastion_ansible_logging)|bool
+    include_tasks: ansible-logging.yml
+    vars:
+      ansible_logging_config_folder: '{{ bastion_ansible_logging_config_folder }}'
+      ansible_logging_path: '{{ bastion_ansible_logging_path }}'
+
+
+  - name: Provision Terraform
+    when: (bastion_terraform_setup)|bool
+    include_tasks: terraform-setup.yml
+    vars:
+      terraform_setup_version: '{{ bastion_terraform_setup_version }}'
+      terraform_setup_tfenv: '{{ bastion_terraform_setup_tfenv }}'
+
+
+  - name: Update Jinja2
+    when: (bastion_jinja2_update)|bool
+    include_tasks: jinja2-update.yml
+
+  - name: Install Boto
+    when: (bastion_boto_install)|bool
+    include_tasks: boto-install.yml
+
+  - name: Save the saml2aws and concourse Fly CLI files as a fact
+    set_fact:
+      zip_files:
+        - install: '{{ bastion_saml2aws_setup }}'
+          filename: saml2aws_{{ bastion_saml2aws_version }}_linux_amd64.tar.gz
+          link: https://github.com/Versent/saml2aws/releases/download/v{{ bastion_saml2aws_version }}/saml2aws_{{ bastion_saml2aws_version }}_linux_amd64.tar.gz
+        - install: '{{ bastion_fly_cli_setup }}'
+          filename: fly-{{ bastion_fly_cli_version }}-linux-amd64.tgz
+          link: https://github.com/concourse/concourse/releases/download/v{{ bastion_fly_cli_version }}/fly-{{ bastion_fly_cli_version }}-linux-amd64.tgz
+
+  - name: Copy config files from S3
+    aws_s3:
+      bucket: '{{ bastion_setup_s3_bucket_name }}'
+      region: '{{ bastion_setup_s3_bucket_region | default(ansible_ec2_placement_region,true) }}'
+      aws_ca_bundle: '{{ bastion_setup_aws_ca_bundle_path | default(omit, true) }}'
+      object: /{{ item.filename }}
+      dest: /tmp/{{ item.filename }}
+      mode: get
+    when: >
+      bastion_setup_s3_bucket_name is defined and
+      bastion_setup_s3_bucket_name is not none and
+      bastion_setup_s3_bucket_name | length > 0 and
+      item.install | bool
+    with_items:
+      - '{{ zip_files }}'
+
+  - name: Download saml2aws and concourse Fly CLI rpm from urls
+    get_url:
+      url: '{{ item.link }}'
+      dest: /tmp/
+    when: >
+      (item.install | bool) and
+      (
+        bastion_setup_s3_bucket_name is not defined or
+        bastion_setup_s3_bucket_name is none or
+        bastion_setup_s3_bucket_name | length < 1
+      )
+    with_items: '{{ zip_files }}'
+
+  - name: Install saml2aws and Concourse Fly CLI
+    when: item.install | bool
+    become: true
+    unarchive:
+      src: /tmp/{{ item.filename }}
+      dest: /usr/bin
+      mode: u+x
+      owner: root
+      group: root
+      remote_src: true
+    with_items: '{{ zip_files }}'
+
+  - name: Install yq
+    when: bastion_yq_setup | bool
+    become: true
+    unarchive:
+      src: https://github.com/mikefarah/yq/releases/download/v{{ bastion_yq_version }}/yq_linux_amd64.tar.gz
+      dest: /usr/bin
+      mode: u+x
+      owner: root
+      group: root
+      remote_src: true
+
+  - name: Rename yq executable
+    when: bastion_yq_setup | bool
+    become: true
+    shell: mv /usr/bin/yq_linux_amd64 /usr/bin/yq
+
+  - name: 'BLOCK: Cronjobs'
+    when: bastion_cron_jobs | count > 0
+    become: true
+    block:
+      - name: Get environment path
+        command: echo $PATH
+        register: path_output
+
+      - name: Setup Custom Root Cron Jobs
+        cron:
+          month: '{{ cron_job.month | default(omit) }}'
+          job: '{{ cron_job.job }}'
+          user: root
+          day: '{{ cron_job.month | default(omit) }}'
+          minute: '{{ cron_job.minute | default(omit) }}'
+          name: '{{ cron_job.name }}'
+          hour: '{{ cron_job.hour | default(omit) }}'
+          state: present
+          weekday: '{{ cron_job.weekday | default(omit) }}'
+        loop_control:
+          label: 'Applying cron job : {{ cron_job.name }}'
+          loop_var: cron_job
+        loop: '{{ bastion_cron_jobs }}'
+
+      - name: Setup Cron Environment Path
+        cron:
+          name: PATH
+          env: yes
+          job: '{{ path_output.stdout }}'
+##### End "BLOCK: Cronjobs"
+
+  - name: Install additional packages
+    when: bastion_additional_packages | count > 0
+    become: true
+    package:
+      name: '{{ bastion_additional_packages }}'
+      state: present
+...

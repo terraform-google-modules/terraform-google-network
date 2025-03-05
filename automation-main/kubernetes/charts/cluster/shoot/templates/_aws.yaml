@@ -1,0 +1,52 @@
+
+{{ define "cloudp_aws" -}}
+aws
+{{- end }}
+
+{{ define "net_aws" }}
+{{ .Values.provider.aws.networks | toYaml }}
+{{end }}
+
+{{ define "infracfg_aws" }}
+apiVersion: aws.provider.extensions.gardener.cloud/v1alpha1
+kind: InfrastructureConfig
+networks:
+    vpc:
+    {{- if .Values.vpc_id }}
+      id: {{ .Values.vpc_id }}
+      {{- end }}
+      {{- if and .Values.cidr}}
+      cidr: {{ .Values.cidr }}
+      {{- end }}
+      {{- if .Values.network_enable_endpoints }}
+      gatewayEndpoints:
+        {{- range .Values.network_enable_endpoints }}
+        - {{ . | lower | quote }}
+        {{- end }}
+      {{- end }}
+    zones:
+    {{- range $index ,$zonename:= .Values.zones }}
+      - name: {{ $zonename }}
+        {{-  index $.Values.provider.aws.zonenet $index | toYaml | nindent 8 }}
+        {{- if $.Values.provider.aws.eips }}
+        elasticIPAllocationID: {{ index $.Values.provider.aws.eips $index }}
+        {{- end }}
+    {{- end }}
+{{ end }}
+
+{{ define "controlPlane_aws" }}
+{{ end }}
+
+{{ define "worker_provider_kind_aws" -}}
+apiVersion: aws.provider.extensions.gardener.cloud/v1alpha1
+kind: WorkerConfig
+{{- end }}
+
+{{ define "workerConfig_aws" }}
+providerConfig:
+  apiVersion: aws.provider.extensions.gardener.cloud/v1alpha1
+  kind: WorkerConfig
+  instanceMetadataOptions:
+    httpTokens: required
+    httpPutResponseHopLimit: 2
+{{- end }}

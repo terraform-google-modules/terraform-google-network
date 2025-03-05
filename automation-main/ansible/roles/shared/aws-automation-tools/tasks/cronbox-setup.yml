@@ -1,0 +1,76 @@
+---
+# Synopsis: Provisions a cron box
+# Inputs: N/A
+# Outputs:
+#   - Ansible logging enabled to /var/log/ansible.log
+#   - Logrotation enabled with etc/logrotate.d/ansible
+#   - cron.d/clean-instances file added to system
+
+
+  - name: Enable Ansible logging
+    ini_file:
+      section: defaults
+      path: /etc/ansible/ansible.cfg
+      option: log_path
+      value: /var/log/ansible.log
+      state: present
+      create: yes
+    become: yes
+
+  - name: Setup Ansible Log Rotate
+    copy:
+      src: ansible.logrotate
+      dest: /etc/logrotate.d/ansible
+      owner: root
+      group: root
+      mode: 0644
+    become: yes
+
+  - name: Setup Cron tasks
+    cron:
+      name: clean-instances
+      minute: '0'
+      hour: '6'
+      weekday: '5'
+      job: ansible-playbook -i localhost, -c local /etc/ansible/playbooks/aws/aws-management.yml -e "aws_automation_instance_cleanup=true"
+      user: root
+    become: true
+
+  - name: Add additional Cron task to rename ec2 instances
+    cron:
+      name: rename-instances
+      minute: '10'
+      hour: '3'
+      job: ansible-playbook -i localhost, -c local /etc/ansible/playbooks/aws/aws-management.yml -e "aws_automation_instance_rename=true"
+      user: root
+    become: true
+
+  - name: Add additional Cron task to shutdown test instances
+    cron:
+      name: shutdown-instances
+      minute: '0'
+      hour: '3'
+      job: ansible-playbook -i localhost, -c local /etc/ansible/playbooks/aws/aws-management.yml -e "aws_automation_instance_shutdown=true"
+      user: root
+    become: true
+
+  - name: Add additional Cron task to shutdown spr instances
+    cron:
+      name: shutdown-spr-instances
+      minute: '0'
+      hour: '2'
+      weekday: '6'
+      job: ansible-playbook -i localhost, -c local /etc/ansible/playbooks/aws/aws-management.yml -e "aws_automation_shutdown_spr=true"
+      user: root
+    become: true
+
+  - name: Add additional Cron task to start spr instances
+    cron:
+      name: start-spr-instances
+      minute: '0'
+      hour: '11'
+      weekday: '1'
+      job: ansible-playbook -i localhost, -c local /etc/ansible/playbooks/aws/aws-management.yml -e "aws_automation_start_spr=true"
+      user: root
+    become: true
+...

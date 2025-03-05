@@ -1,0 +1,40 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "AllowEC2TransitGatewayWriteOnlyRights",
+          "Effect": "Allow",
+          "Action": [
+              "ec2:AcceptTransitGatewayVpcAttachment",
+              "ec2:AssociateTransitGatewayRouteTable",
+              "ec2:CreateTransitGatewayRoute",
+              "ec2:CreateTransitGatewayRouteTable",
+              "ec2:CreateTransitGatewayVpcAttachment",
+              "ec2:DescribeTransitGatewayAttachments",
+              "ec2:DescribeTransitGatewayRouteTables",
+              "ec2:DescribeVpcs",
+              "ec2:CreateRoute",
+              "ec2:CreateTags",
+              "ec2:DeleteTags",
+              "ec2:DescribeTransitGateways",
+              "ec2:DescribeTransitGatewayVpcAttachments",
+              "ec2:DescribeSubnets",
+              "ec2:DescribeRouteTables",
+              "ram:AcceptResourceShareInvitation",
+              "ram:GetResourcePolicies",
+              "ram:GetResourceShareAssociations",
+              "ram:GetResourceShareInvitations",
+              "ram:GetResourceShares",
+              "ram:ListPendingInvitationResources",
+              "ram:ListPrincipals",
+              "ram:ListResources",
+              "ram:TagResource",
+              "ram:UntagResource",
+              "iam:CreateServiceLinkedRole",
+              "iam:AttachRolePolicy",
+              "iam:PutRolePolicy"
+          ],
+          "Resource": "*"
+      }
+  ]
+}

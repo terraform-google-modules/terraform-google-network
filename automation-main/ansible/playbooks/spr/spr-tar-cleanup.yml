@@ -1,0 +1,97 @@
+---
+# Playbook Name: spr-tar-cleanup.yml
+# Synopsis: Cleanup tars for App and Hana.
+# Description: Cleans up tars
+# Prerequisites:
+#   - Ansible v2.9+
+#   - Sudo access to Spr App and DB instances
+# Dependencies: N/A
+# Variables:
+#   - instance_type : type of instance, one of app or db
+#   - db_sid : The user and group SID for db instance, defaults to g01
+#   - app_sid : The user and group SID for app instance, defaults to g00
+# Example:
+#   How to start with remote execution using ssh key
+#    ansible-playbook -u ec2-user --private-key myprivatekey.pem -c ssh spr-tar-cleanup.yml
+#
+#   How to start with remote execution using username/password
+#   - Requires sshpass installed
+#   - Requires ssh fingerprints of remote systems installed
+#      ansible-playbook -u i123456 -k spr-tar-cleanup.yml
+#
+# Authors: Abdulla Rubaid
+# Version: 2.9-000001
+# Modified: 2022-03-30 - Created
+
+# Comments: N/A
+  - name: 'Play1: Cleanup Tars'
+    gather_facts: true
+    hosts: all
+    tags:
+      - play1
+      - always
+
+    vars_prompt:
+      - name: db_sid
+        prompt: What is the db SID?
+        default: g01
+        private: no
+      - name: app_sid
+        prompt: What is the app SID?
+        default: g00
+        private: no
+      - name: instance_type
+        prompt: What is the instance_type of the tar (app or db)?
+        private: no
+    tasks:
+      - name: Clean Hana Data
+        shell: rm -rf  {{ item }}
+        become: true
+        loop:
+          - /hana/data/*
+          - /hana/log/*
+          - /hana/shared/*
+          - /hana/backups/*
+          - /usr/sap/*
+          - /tmp/*
+        when: instance_type == "db"
+
+      - name: Clean Hana User and Group
+        become: true
+        user:
+          name: '{{db_sid}}adm'
+          state: absent
+          remove: yes
+        when: instance_type == "db"
+
+      - name: Clean Hana Group
+        become: true
+        group:
+          name: '{{db_sid}}adm'
+          state: absent
+        when: instance_type == "db"
+
+      - name: Clean APP Data
+        shell: rm -rf  {{ item }}
+        become: true
+        loop:
+          - /sapmnt/*
+          - /usr/sap/*
+          - /tmp/*
+        when: instance_type == "app"
+
+      - name: Clean APP User and Group
+        become: true
+        user:
+          name: '{{app_sid}}adm'
+          state: absent
+          remove: yes
+        when: instance_type == "app"
+
+      - name: Clean APP Group
+        become: true
+        group:
+          name: '{{app_sid}}adm'
+          state: absent
+        when: instance_type == "app"
+...

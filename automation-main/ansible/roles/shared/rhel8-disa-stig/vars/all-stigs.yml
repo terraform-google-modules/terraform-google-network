@@ -1,0 +1,371 @@
+---
+# This file contains a list of all the DISA STIG configuration variables that will harden a RHEL 8 system to
+# the maximum amount of STIGs possible with no guarantee of functionality.
+
+# This file is automatically included by the role when the 'application_preset_selection' variable is set to 'all' as
+# per the mapping in the 'main.yml' variables file.
+
+# The following are DISA STIGs that are not normally ran and therefore are listed as exemptions in the EXEMPTIONS.md document.
+DISA_STIG_RHEL_08_010170: true # RHEL 8 must use a Linux Security Module configured to enforce limits on system services.
+DISA_STIG_RHEL_08_010240: true # The RHEL 8 /var/log directory must have mode 0755 or less permissive.
+# TODO: Add the '/var/tmp' logical volume to the images: DISA_STIG_RHEL_08_010544: true # RHEL 8 must use a separate file system for /var/tmp.
+DISA_STIG_RHEL_08_010590: true # The "noexec" mount option causes the system not to execute binary files.
+DISA_STIG_RHEL_08_020200: true # RHEL 8 user account passwords must have a 60_day maximum password lifetime restriction.
+DISA_STIG_RHEL_08_020210: true # RHEL 8 user account passwords must be configured so that existing passwords are restricted to a 60-day maximum lifetime.
+DISA_STIG_RHEL_08_020070: true # RHEL 8 must automatically log out command line user sessions after 15 minutes of inactivity.
+DISA_STIG_RHEL_08_030740: true # RHEL 8 must compare internal information system clocks at least every 24 hours with a server synchronized to an authoritative time source, such as the United States Naval Observatory (USNO) time servers, or a time server designated for the appropriate DoD network (NIPRNet/SIPRNet), and/or the Global Positioning System (GPS).
+DISA_STIG_RHEL_08_040125: true # RHEL 8 must mount /tmp with the noexec option.
+DISA_STIG_RHEL_08_040040: true # RHEL 8 must prevent shell access for the root account.
+
+# List of commonly applied STIGs. Most of these are toggled to true in the 'primary.yml' or 'secondary.yml' variable files.
+DISA_STIG_RHEL_08_010010: true # RHEL 8 vendor packaged system security patches and updates must be installed and up to date.
+DISA_STIG_RHEL_08_010019: true # RHEL 8 must ensure cryptographic verification of vendor software packages.
+DISA_STIG_RHEL_08_010020: true # RHEL 8 must implement NIST FIPS-validated cryptography for the following: to provision digital signatures, to generate cryptographic hashes, and to protect data requiring data-at-rest protections in accordance with applicable federal laws, Executive Orders, directives, policies, regulations, and standards.
+DISA_STIG_RHEL_08_010040: true # RHEL 8 must display the Standard Mandatory DoD Notice and Consent Banner before granting local or remote access to the system via a ssh logon.
+DISA_STIG_RHEL_08_010050: true # RHEL 8 must display the Standard Mandatory DoD Notice and Consent Banner before granting local or remote access to the system via a graphical user logon.
+DISA_STIG_RHEL_08_010060: true # RHEL 8 must display the Standard Mandatory DoD Notice and Consent Banner before granting local or remote access to the system via a command line user logon.
+DISA_STIG_RHEL_08_010070: true # All RHEL 8 remote access methods must be monitored.
+DISA_STIG_RHEL_08_010080: true # RHEL 8 must implement DoD_approved encryption to protect the confidentiality of SSH connections.
+DISA_STIG_RHEL_08_010110: true # RHEL 8 must encrypt all stored passwords with a FIPS 140-2 approved cryptographic hashing algorithm.
+DISA_STIG_RHEL_08_010120: true # RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms for all stored passwords.
+DISA_STIG_RHEL_08_010130: true # The RHEL 8 password-auth file must be configured to use a sufficient number of hashing rounds.
+DISA_STIG_RHEL_08_010151: true # RHEL 8 operating systems must require authentication upon booting into rescue mode.
+DISA_STIG_RHEL_08_010160: true # The RHEL 8 pam_unix.so module must be configured in the password-auth file to use a FIPS 140-2 approved cryptographic hashing algorithm for system authentication.
+DISA_STIG_RHEL_08_010161: true # RHEL 8 must prevent system daemons from using Kerberos for authentication.
+DISA_STIG_RHEL_08_010162: true # The krb5-workstation package must not be installed on RHEL 8.
+DISA_STIG_RHEL_08_010171: true # RHEL 8 must have policycoreutils package installed.
+DISA_STIG_RHEL_08_010180: true # All RHEL 8 public directories must be owned by root or a system account to prevent unauthorized and unintended information transferred via shared system resources.
+DISA_STIG_RHEL_08_010190: true # A sticky bit must be set on all RHEL 8 public directories to prevent unauthorized and unintended information transferred via shared system resources.
+DISA_STIG_RHEL_08_010200: true # RHEL 8 must be configured so that all network connections associated with SSH traffic are terminated at the end of the session or after 10 minutes of inactivity, except to fulfill documented and validated mission requirements.
+DISA_STIG_RHEL_08_010210: true # The RHEL 8 /var/log/messages file must have mode 0640 or less permissive.
+DISA_STIG_RHEL_08_010220: true # The RHEL 8 /var/log/messages file must be owned by root.
+DISA_STIG_RHEL_08_010230: true # The RHEL 8 /var/log/messages file must be group-owned by root.
+DISA_STIG_RHEL_08_010250: true # The RHEL 8 /var/log directory must be owned by root.
+DISA_STIG_RHEL_08_010260: true # The RHEL 8 /var/log directory must be group_owned by root.
+DISA_STIG_RHEL_08_010270: true # The audit log files in RHEL 8 must have mode 0600 or less permissive.
+DISA_STIG_RHEL_08_010280: true # RHEL 8 audit log files must be owned by root.
+DISA_STIG_RHEL_08_010290: true # The RHEL 8 SSH server must be configured to use only Message Authentication Codes (MACs) employing FIPS 140-2 validated cryptographic hash algorithms.
+DISA_STIG_RHEL_08_010291: true # The RHEL 8 operating system must implement DoD-approved encryption to protect the confidentiality of SSH server connections.
+DISA_STIG_RHEL_08_010292: true # RHEL 8 must ensure the SSH server uses strong entropy.
+DISA_STIG_RHEL_08_010293: true # The RHEL 8 operating system must implement DoD-approved encryption in the OpenSSL package.
+DISA_STIG_RHEL_08_010294: true # The RHEL 8 operating system must implement DoD-approved TLS encryption in the OpenSSL package.
+DISA_STIG_RHEL_08_010295: true # The RHEL 8 operating system must implement DoD-approved TLS encryption in the GnuTLS package.
+DISA_STIG_RHEL_08_010300: true # RHEL 8 system commands must have mode 0755 or less permissive.
+DISA_STIG_RHEL_08_010310: true # RHEL 8 system commands must be owned by root.
+DISA_STIG_RHEL_08_010320: true # RHEL 8 system commands must be group_owned by root.
+DISA_STIG_RHEL_08_010330: true # RHEL 8 library files must have mode 0755 or less permissive.
+DISA_STIG_RHEL_08_010340: true # RHEL 8 library files must be owned by root.
+DISA_STIG_RHEL_08_010350: true # RHEL 8 library files must be group_owned by root.
+DISA_STIG_RHEL_08_010360: true # The RHEL 8 file integrity tool must notify the system administrator when changes to the baseline configuration or anomalies in the operation of any security functions are discovered within an organizationally defined frequency.
+DISA_STIG_RHEL_08_010370: true # RHEL 8 must prevent the installation of software, patches, service packs, device drivers, or operating system components from a repository without verification they have been digitally signed using a certificate that is issued by a Certificate Authority (CA) that is recognized and approved by the organization.
+DISA_STIG_RHEL_08_010371: true # RHEL 8 must prevent the installation of software, patches, service packs, device drivers, or operating system components of local packages without verification they have been digitally signed using a certificate that is issued by a Certificate Authority (CA) that is recognized and approved by the organization.
+DISA_STIG_RHEL_08_010372: true # RHEL 8 must prevent the loading of a new kernel for later execution.
+DISA_STIG_RHEL_08_010373: true # RHEL 8 must enable kernel parameters to enforce discretionary access control on symlinks.
+DISA_STIG_RHEL_08_010374: true # RHEL 8 must enable kernel parameters to enforce discretionary access control on hardlinks.
+DISA_STIG_RHEL_08_010375: true # RHEL 8 must restrict access to the kernel message buffer.
+DISA_STIG_RHEL_08_010376: true # RHEL 8 must prevent kernel profiling by unprivileged users.
+DISA_STIG_RHEL_08_010381: true # RHEL 8 must require users to reauthenticate for privilege escalation.
+DISA_STIG_RHEL_08_010382: true # RHEL 8 must restrict privilege elevation to authorized personnel.
+DISA_STIG_RHEL_08_010383: true # RHEL 8 must use the invoking user's password for privilege escalation when using "sudo".
+DISA_STIG_RHEL_08_010384: true # RHEL 8 must require re-authentication when using the "sudo" command.
+DISA_STIG_RHEL_08_010390: true # RHEL 8 must have the packages required for multifactor authentication installed.
+DISA_STIG_RHEL_08_010400: true # RHEL 8 must implement certificate status checking for multifactor authentication.
+DISA_STIG_RHEL_08_010410: true # RHEL 8 must accept Personal Identity Verification (PIV) credentials.
+DISA_STIG_RHEL_08_010420: true # RHEL 8 must implement non_executable data to protect its memory from unauthorized code execution.
+DISA_STIG_RHEL_08_010421: true # RHEL 8 must clear the page allocator to prevent use-after-free attacks.
+DISA_STIG_RHEL_08_010422: true # RHEL 8 must disable virtual syscalls.
+DISA_STIG_RHEL_08_010423: true # RHEL 8 must clear SLUB/SLAB objects to prevent use-after-free attacks.
+DISA_STIG_RHEL_08_010430: true # RHEL 8 must implement address space layout randomization (ASLR) to protect its memory from unauthorized code execution.
+DISA_STIG_RHEL_08_010440: true # YUM must remove all software components after updated versions have been installed on RHEL 8.
+DISA_STIG_RHEL_08_010450: true # RHEL 8 must enable the SELinux targeted policy.
+DISA_STIG_RHEL_08_010460: true # There must be no shosts.equiv files on the RHEL 8 operating system.
+DISA_STIG_RHEL_08_010470: true # There must be no .shosts files on the RHEL 8 operating system.
+DISA_STIG_RHEL_08_010471: true # RHEL 8 must enable the hardware random number generator entropy gatherer service.
+DISA_STIG_RHEL_08_010472: true # RHEL 8 must have the packages required to use the hardware random number generator entropy gatherer service.
+DISA_STIG_RHEL_08_010480: true # The RHEL 8 SSH public host key files must have mode 0644 or less permissive.
+DISA_STIG_RHEL_08_010490: true # The RHEL 8 SSH private host key files must have mode 0600 or less permissive.
+DISA_STIG_RHEL_08_010500: true # The RHEL 8 SSH daemon must perform strict mode checking of home directory configuration files.
+DISA_STIG_RHEL_08_010520: true # The RHEL 8 SSH daemon must not allow authentication using known host\xe2\x80\x99s authentication.
+DISA_STIG_RHEL_08_010521: true # The RHEL 8 SSH daemon must not allow unused methods of authentication.
+DISA_STIG_RHEL_08_010522: true # The RHEL 8 SSH daemon must not allow GSSAPI authentication, except to fulfill documented and validated mission requirements.
+DISA_STIG_RHEL_08_010540: true # RHEL 8 must use a separate file system for /var.
+DISA_STIG_RHEL_08_010541: true # RHEL 8 must use a separate file system for /var/log.
+DISA_STIG_RHEL_08_010542: true # RHEL 8 must use a separate file system for the system audit data path.
+DISA_STIG_RHEL_08_010543: true # A separate RHEL 8 filesystem must be used for the /tmp directory.
+DISA_STIG_RHEL_08_010550: true # The RHEL 8 must not permit direct logons to the root account using remote access via SSH.
+DISA_STIG_RHEL_08_010560: true # The auditd service must be running in RHEL 8.
+DISA_STIG_RHEL_08_010561: true # The rsyslog service must be running in RHEL 8.
+DISA_STIG_RHEL_08_010570: true # RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that contain user home directories.
+DISA_STIG_RHEL_08_010571: true # RHEL 8 must prevent files with the setuid and setgid bit set from being executed on the /boot directory.
+DISA_STIG_RHEL_08_010572: true # RHEL 8 must prevent files with the setuid and setgid bit set from being executed on the /boot/efi directory.
+DISA_STIG_RHEL_08_010580: true # The "nodev" mount option causes the system to not interpret character of block special devices.
+DISA_STIG_RHEL_08_010600: true # RHEL 8 must prevent special devices on file systems that are used with removable media.
+DISA_STIG_RHEL_08_010610: true # RHEL 8 must prevent code from being executed on file systems that are used with removable media.
+DISA_STIG_RHEL_08_010620: true # RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that are used with removable media.
+DISA_STIG_RHEL_08_010630: true # RHEL 8 must prevent code from being executed on file systems that are imported via Network File System (NFS).
+DISA_STIG_RHEL_08_010640: true # RHEL 8 must prevent special devices on file systems that are imported via Network File System (NFS).
+DISA_STIG_RHEL_08_010650: true # RHEL 8 must prevent files with the setuid and setgid bit set from being executed on file systems that are imported via Network File System (NFS).
+DISA_STIG_RHEL_08_010660: true # Local RHEL 8 initialization files must not execute world-writable programs.
+DISA_STIG_RHEL_08_010670: true # RHEL 8 must disable kernel dumps unless needed.
+DISA_STIG_RHEL_08_010671: true # RHEL 8 must disable the kernel.core_pattern.
+DISA_STIG_RHEL_08_010672: true # RHEL 8 must disable acquiring, saving, and processing core dumps.
+DISA_STIG_RHEL_08_010673: true # RHEL 8 must disable core dumps for all users.
+DISA_STIG_RHEL_08_010674: true # RHEL 8 must disable storing core dumps.
+DISA_STIG_RHEL_08_010675: true # RHEL 8 must disable core dump backtraces.
+DISA_STIG_RHEL_08_010690: true # Executable search paths within the initialization files of all local interactive RHEL 8 users must only contain paths that resolve to the system default or the users home directory.
+DISA_STIG_RHEL_08_010700: true # All RHEL 8 world_writable directories must be owned by root, sys, bin, or an application group.
+DISA_STIG_RHEL_08_010710: true # All RHEL 8 world_writable directories must be group_owned by root, sys, bin, or an application group.
+DISA_STIG_RHEL_08_010731: true # All RHEL 8 local interactive user home directories must have mode 0750 or less permissive.
+DISA_STIG_RHEL_08_010760: true # All RHEL 8 local interactive user accounts must be assigned a home directory upon creation.
+DISA_STIG_RHEL_08_010770: true # All RHEL 8 local initialization files must have mode 0740 or less permissive.
+DISA_STIG_RHEL_08_010780: true # All RHEL 8 files and directories must have a valid owner.
+DISA_STIG_RHEL_08_010790: true # All RHEL 8 files and directories must have a valid group owner.
+DISA_STIG_RHEL_08_010800: true # A separate RHEL 8 filesystem must be used for user home directories (such as /home or an equivalent).
+DISA_STIG_RHEL_08_010820: true # Unattended or automatic logon via the RHEL 8 graphical user interface must not be allowed.
+DISA_STIG_RHEL_08_010830: true # Unattended or automatic logon to RHEL 8 via ssh must not be allowed.
+DISA_STIG_RHEL_08_020010: true # RHEL 8 must automatically lock an account when three unsuccessful logon attempts occur.
+DISA_STIG_RHEL_08_020011: true # RHEL 8 must automatically lock an account when three unsuccessful logon attempts occur.
+DISA_STIG_RHEL_08_020012: true # RHEL 8 must automatically lock an account when three unsuccessful logon attempts occur during a 15-minute time period.
+DISA_STIG_RHEL_08_020013: true # RHEL 8 must automatically lock an account when three unsuccessful logon attempts occur during a 15-minute time period.
+DISA_STIG_RHEL_08_020014: true # RHEL 8 must automatically lock an account until the locked account is released by an administrator when three unsuccessful logon attempts occur during a 15-minute time period.
+DISA_STIG_RHEL_08_020015: true # RHEL 8 must automatically lock an account until the locked account is released by an administrator when three unsuccessful logon attempts occur during a 15-minute time period.
+DISA_STIG_RHEL_08_020016: true # RHEL 8 must ensure account lockouts persist.
+DISA_STIG_RHEL_08_020017: true # RHEL 8 must ensure account lockouts persist.
+DISA_STIG_RHEL_08_020018: true # RHEL 8 must prevent system messages from being presented when three unsuccessful logon attempts occur.
+DISA_STIG_RHEL_08_020019: true # RHEL 8 must prevent system messages from being presented when three unsuccessful logon attempts occur.
+DISA_STIG_RHEL_08_020020: true # RHEL 8 must limit the number of concurrent sessions to ten for all accounts and/or account types.
+DISA_STIG_RHEL_08_020021: true # RHEL 8 must log user name information when unsuccessful logon attempts occur.
+DISA_STIG_RHEL_08_020022: true # RHEL 8 must include root when automatically locking an account until the locked account is released by an administrator when three unsuccessful logon attempts occur during a 15-minute time period.
+DISA_STIG_RHEL_08_020023: true # RHEL 8 must include root when automatically locking an account until the locked account is released by an administrator when three unsuccessful logon attempts occur during a 15-minute time period.
+DISA_STIG_RHEL_08_020024: true # RHEL 8 must limit the number of concurrent sessions to ten for all accounts and/or account types.
+DISA_STIG_RHEL_08_020025: true # RHEL 8 must configure the use of the pam_faillock.so module in the /etc/pam.d/system-auth file.
+DISA_STIG_RHEL_08_020026: true # RHEL 8 must configure the use of the pam_faillock.so module in the /etc/pam.d/password-auth file.
+DISA_STIG_RHEL_08_020030: true # RHEL 8 must enable a user session lock until that user re_establishes access using established identification and authentication procedures for graphical user sessions.
+DISA_STIG_RHEL_08_020031: true # RHEL 8 must initiate a session lock for graphical user interfaces when the screensaver is activated.
+DISA_STIG_RHEL_08_020032: true # RHEL 8 must disable the user list at logon for graphical user interfaces.
+DISA_STIG_RHEL_08_020039: true # RHEL 8 must have the tmux package installed.
+DISA_STIG_RHEL_08_020040: true # RHEL 8 must enable a user session lock until that user re-establishes access using established identification and authentication procedures for command line sessions.
+DISA_STIG_RHEL_08_020042: true # RHEL 8 must prevent users from disabling session control mechanisms.
+DISA_STIG_RHEL_08_020050: true # RHEL 8 must be able to initiate directly a session lock for all connection types using smartcard when the smartcard is removed.
+DISA_STIG_RHEL_08_020060: true # RHEL 8 must automatically log out graphical user sessions after 15 minutes of inactivity.
+DISA_STIG_RHEL_08_020080: true # RHEL 8 must prevent a user from overriding the session lock-delay setting for the graphical user interface.
+DISA_STIG_RHEL_08_020081: true # Verify the operating system prevents a user from overriding settings for graphical user interfaces.
+DISA_STIG_RHEL_08_020082: true # Verify the operating system prevents a user from overriding settings for graphical user interfaces.
+DISA_STIG_RHEL_08_020100: true # RHEL 8 must ensure a password complexity module is enabled.
+DISA_STIG_RHEL_08_020110: true # RHEL 8 must enforce password complexity by requiring that at least one upper_case character be used.
+DISA_STIG_RHEL_08_020120: true # RHEL 8 must enforce password complexity by requiring that at least one lower_case character be used.
+DISA_STIG_RHEL_08_020130: true # RHEL 8 must enforce password complexity by requiring that at least one numeric character be used.
+DISA_STIG_RHEL_08_020140: true # RHEL 8 must require the maximum number of repeating characters of the same character class be limited to four when passwords are changed.
+DISA_STIG_RHEL_08_020150: true # RHEL 8 must require the maximum number of repeating characters be limited to three when passwords are changed.
+DISA_STIG_RHEL_08_020160: true # RHEL 8 must require the change of at least four character classes when passwords are changed.
+DISA_STIG_RHEL_08_020170: true # RHEL 8 must require the change of at least 8 characters when passwords are changed.
+DISA_STIG_RHEL_08_020180: true # RHEL 8 passwords for new users or password changes must have a 24 hours/1 day minimum password lifetime restriction in /etc/shadow.
+DISA_STIG_RHEL_08_020190: true # RHEL 8 passwords for new users or password changes must have a 24 hours/1 day minimum password lifetime restriction in /etc/logins.def.
+DISA_STIG_RHEL_08_020220: true # RHEL 8 passwords must be prohibited from reuse for a minimum of five generations.
+DISA_STIG_RHEL_08_020230: true # RHEL 8 passwords must have a minimum of 15 characters.
+DISA_STIG_RHEL_08_020231: true # RHEL 8 passwords for new users must have a minimum of 15 characters.
+DISA_STIG_RHEL_08_020240: true # RHEL 8 duplicate User IDs (UIDs) must not exist for interactive users.
+DISA_STIG_RHEL_08_020260: true # RHEL 8 account identifiers (individuals, groups, roles, and devices) must disabled after 35 days of inactivity.
+DISA_STIG_RHEL_08_020280: true # All RHEL 8 passwords must contain at least one special character.
+DISA_STIG_RHEL_08_020290: true # The RHEL 8 must prohibit the use of cached authentications after one day.
+DISA_STIG_RHEL_08_020300: true # RHEL 8 must prevent the use of dictionary words for passwords.
+DISA_STIG_RHEL_08_020310: true # RHEL 8 must enforce a delay of at least four seconds between logon prompts following a failed logon attempt.
+DISA_STIG_RHEL_08_020320: true # RHEL 8 must not have unnecessary accounts.
+DISA_STIG_RHEL_08_020330: true # RHEL 8 must not have accounts configured with blank or null passwords.
+DISA_STIG_RHEL_08_020331: true # RHEL 8 must not allow blank or null passwords in the system-auth file.
+DISA_STIG_RHEL_08_020332: true # RHEL 8 must not allow blank or null passwords in the password-auth file.
+DISA_STIG_RHEL_08_020340: true # RHEL 8 must display the date and time of the last successful account logon upon logon.
+DISA_STIG_RHEL_08_020350: true # RHEL 8 must display the date and time of the last successful account logon upon an SSH logon.
+DISA_STIG_RHEL_08_020351: true # RHEL 8 must set the umask value to 077 for all local interactive user accounts.
+DISA_STIG_RHEL_08_030000: true # The RHEL 8 audit system must be configured to audit the execution of privileged functions and prevent all software from executing at higher privilege levels than users executing the software.
+DISA_STIG_RHEL_08_030010: true # Cron logging must be implemented in RHEL 8.
+DISA_STIG_RHEL_08_030020: true # The RHEL 8 System Administrator (SA) and Information System Security Officer (ISSO) (at a minimum) must be alerted of an audit processing failure event.
+DISA_STIG_RHEL_08_030030: true # The RHEL 8 Information System Security Officer (ISSO) and System Administrator (SA) (at a minimum) must have mail aliases to be notified of an audit processing failure.
+DISA_STIG_RHEL_08_030040: true # The RHEL 8 System must take appropriate action when an audit processing failure occurs.
+DISA_STIG_RHEL_08_030050: true # The RHEL 8 System Administrator (SA) and Information System Security Officer (ISSO) (at a minimum) must be alerted when the audit storage volume is full.
+DISA_STIG_RHEL_08_030060: true # The RHEL 8 audit system must take appropriate action when the audit storage volume is full.
+DISA_STIG_RHEL_08_030061: true # The RHEL 8 audit system must audit local events.
+DISA_STIG_RHEL_08_030062: true # RHEL 8 must label all off-loaded audit logs before sending them to the central log server.
+DISA_STIG_RHEL_08_030063: true # RHEL 8 must resolve audit information before writing to disk.
+DISA_STIG_RHEL_08_030070: true # RHEL 8 audit logs must have a mode of 0600 or less permissive to prevent unauthorized read access.
+DISA_STIG_RHEL_08_030080: true # RHEL 8 audit logs must be owned by root to prevent unauthorized read access.
+DISA_STIG_RHEL_08_030090: true # RHEL 8 audit logs must be group_owned by root to prevent unauthorized read access.
+DISA_STIG_RHEL_08_030100: true # RHEL 8 audit log directory must be owned by root to prevent unauthorized read access.
+DISA_STIG_RHEL_08_030110: true # RHEL 8 audit log directory must be group_owned by root to prevent unauthorized read access.
+DISA_STIG_RHEL_08_030120: true # RHEL 8 audit log directories must have a mode of 0600 or less permissive to prevent unauthorized read access.
+DISA_STIG_RHEL_08_030121: true # RHEL 8 audit system must protect auditing rules from unauthorized change.
+DISA_STIG_RHEL_08_030122: true # RHEL 8 audit system must protect logon UIDs from unauthorized change.
+DISA_STIG_RHEL_08_030130: true # RHEL 8 must generate audit records for all account creations, modifications, disabling, and termination events that affect /etc/shadow.
+DISA_STIG_RHEL_08_030140: true # RHEL 8 must generate audit records for all account creations, modifications, disabling, and termination events that affect /etc/security/opasswd.
+DISA_STIG_RHEL_08_030150: true # RHEL 8 must generate audit records for all account creations, modifications, disabling, and termination events that affect /etc/passwd.
+DISA_STIG_RHEL_08_030160: true # RHEL 8 must generate audit records for all account creations, modifications, disabling, and termination events that affect /etc/gshadow.
+DISA_STIG_RHEL_08_030170: true # RHEL 8 must generate audit records for all account creations, modifications, disabling, and termination events that affect /etc/group.
+DISA_STIG_RHEL_08_030171: true # RHEL 8 must generate audit records for all account creations, modifications, disabling, and termination events that affect /etc/sudoers.
+DISA_STIG_RHEL_08_030172: true # RHEL 8 must generate audit records for all account creations, modifications, disabling, and termination events that affect /etc/sudoers.d/.
+DISA_STIG_RHEL_08_030180: true # RHEL 8 audit records must contain information to establish what type of events occurred, the source of events, where events occurred, and the outcome of events.
+DISA_STIG_RHEL_08_030181: true # RHEL 8 audit records must contain information to establish what type of events occurred, the source of events, where events occurred, and the outcome of events.
+DISA_STIG_RHEL_08_030190: true # Successful/unsuccessful uses of the su command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030200: true # The RHEL 8 audit system must be configured to audit any usage of the lremovexattr system call.
+DISA_STIG_RHEL_08_030210: true # The RHEL 8 audit system must be configured to audit any usage of the removexattr system call.
+DISA_STIG_RHEL_08_030220: true # The RHEL 8 audit system must be configured to audit any usage of the lsetxattr system call.
+DISA_STIG_RHEL_08_030230: true # The RHEL 8 audit system must be configured to audit any usage of the fsetxattr system call.
+DISA_STIG_RHEL_08_030240: true # The RHEL 8 audit system must be configured to audit any usage of the fremovexattr system call.
+DISA_STIG_RHEL_08_030250: true # Successful/unsuccessful uses of the chage command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030260: true # Successful/unsuccessful uses of the chcon command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030270: true # The RHEL 8 audit system must be configured to audit any usage of the setxattr system call.
+DISA_STIG_RHEL_08_030280: true # Successful/unsuccessful uses of the ssh_agent in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030290: true # Successful/unsuccessful uses of the passwd command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030300: true # Successful/unsuccessful uses of the mount command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030301: true # Successful/unsuccessful uses of the umount command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030302: true # Successful/unsuccessful uses of the mount syscall in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030310: true # Successful/unsuccessful uses of the unix_update in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030311: true # Successful/unsuccessful uses of postdrop in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030312: true # Successful/unsuccessful uses of postqueue in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030313: true # Successful/unsuccessful uses of semanage in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030314: true # Successful/unsuccessful uses of userhelper in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030315: true # Successful/unsuccessful uses of userhelper in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030316: true # Successful/unsuccessful uses of setsebool in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030317: true # Successful/unsuccessful uses of unix_chkpwd in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030320: true # Successful/unsuccessful uses of the ssh_keysign in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030330: true # Successful/unsuccessful uses of the setfacl command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030340: true # Successful/unsuccessful uses of the pam_timestamp_check command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030350: true # Successful/unsuccessful uses of the newgrp command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030360: true # Successful/unsuccessful uses of the init_module command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030361: true # Successful/unsuccessful uses of the rename command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030362: true # Successful/unsuccessful uses of the renameat command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030363: true # Successful/unsuccessful uses of the rmdir command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030364: true # Successful/unsuccessful uses of the unlink command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030365: true # Successful/unsuccessful uses of the unlinkat command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030370: true # Successful/unsuccessful uses of the gpasswd command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030380: true # Successful/unsuccessful uses of the finit_module command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030390: true # Successful/unsuccessful uses of the delete_module command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030400: true # Successful/unsuccessful uses of the crontab command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030410: true # Successful/unsuccessful uses of the chsh command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030420: true # Successful/unsuccessful uses of the truncate command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030430: true # Successful/unsuccessful uses of the openat system call in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030440: true # Successful/unsuccessful uses of the open system call in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030450: true # Successful/unsuccessful uses of the open_by_handle_at system call in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030460: true # Successful/unsuccessful uses of the ftruncate command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030470: true # Successful/unsuccessful uses of the creat system call in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030480: true # Successful/unsuccessful uses of the chown command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030490: true # Successful/unsuccessful uses of the chmod command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030500: true # Successful/unsuccessful uses of the lchown system call in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030510: true # Successful/unsuccessful uses of the fchownat system call in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030520: true # Successful/unsuccessful uses of the fchown system call in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030530: true # Successful/unsuccessful uses of the fchmodat system call in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030540: true # Successful/unsuccessful uses of the fchmod system call in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030550: true # Successful/unsuccessful uses of the sudo command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030560: true # Successful/unsuccessful uses of the usermod command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030570: true # Successful/unsuccessful uses of the chacl command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030580: true # Successful/unsuccessful uses of the kmod command in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030590: true # Successful/unsuccessful modifications to the faillock log file in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030600: true # Successful/unsuccessful modifications to the lastlog file in RHEL 8 must generate an audit record.
+DISA_STIG_RHEL_08_030601: true # RHEL 8 must enable auditing of processes that start prior to the audit daemon.
+DISA_STIG_RHEL_08_030602: true # RHEL 8 must allocate an audit_backlog_limit of sufficient size to capture processes that start prior to the audit daemon.
+DISA_STIG_RHEL_08_030603: true # RHEL 8 must enable Linux audit logging for the USBGuard daemon.
+DISA_STIG_RHEL_08_030610: true # RHEL 8 must allow only the Information System Security Manager (ISSM) (or individuals or roles appointed by the ISSM) to select which auditable events are to be audited.
+DISA_STIG_RHEL_08_030620: true # RHEL 8 audit tools must have a mode of 0755 or less permissive.
+DISA_STIG_RHEL_08_030630: true # RHEL 8 audit tools must be owned by root.
+DISA_STIG_RHEL_08_030640: true # RHEL 8 audit tools must be group_owned by root.
+DISA_STIG_RHEL_08_030650: true # RHEL 8 must use cryptographic mechanisms to protect the integrity of audit tools.
+DISA_STIG_RHEL_08_030660: true # RHEL 8 must allocate audit record storage capacity to store at least one week of audit records, when audit records are not immediately sent to a central audit record storage facility.
+DISA_STIG_RHEL_08_030670: true # The RHEL 8 remote audit system must take appropriate action when audit storage is full.
+DISA_STIG_RHEL_08_030680: true # RHEL 8 must have the packages required for encrypting offloaded audit logs installed.
+DISA_STIG_RHEL_08_030700: true # RHEL 8 must take appropriate action when the internal event queue is full.
+DISA_STIG_RHEL_08_030710: true # RHEL 8 must encrypt the transfer of audit records off-loaded onto a different system or media from the system being audited.
+DISA_STIG_RHEL_08_030720: true # RHEL 8 must authenticate the remote logging server for off-loading audit logs.
+DISA_STIG_RHEL_08_030730: true # RHEL 8 must notify the System Administrator (SA) and Information System Security Officer (ISSO) (at a minimum) when allocated audit record storage volume reaches 75 percent of the repository maximum audit record storage capacity.
+DISA_STIG_RHEL_08_030731: true # RHEL 8 must notify the System Administrator (SA) and Information System Security Officer (ISSO) (at a minimum) when allocated audit record storage volume 75 percent utilization.
+DISA_STIG_RHEL_08_030741: true # RHEL 8 must disable the chrony daemon from acting as a server.
+DISA_STIG_RHEL_08_030742: true # RHEL 8 must disable network management of the chrony daemon.
+DISA_STIG_RHEL_08_040000: true # RHEL 8 must not have the telnet_server package installed.
+DISA_STIG_RHEL_08_040001: true # RHEL 8 must not have any automated bug reporting tools installed.
+DISA_STIG_RHEL_08_040002: true # RHEL 8 must not have the sendmail package installed.
+DISA_STIG_RHEL_08_040004: true # RHEL 8 must enable mitigations against processor-based vulnerabilities.
+DISA_STIG_RHEL_08_040010: true # RHEL 8 must not have the rsh_server package installed.
+DISA_STIG_RHEL_08_040021: true # RHEL 8 must disable the asynchronous transfer mode (ATM) protocol.
+DISA_STIG_RHEL_08_040022: true # RHEL 8 must disable the controller area network (CAN) protocol.
+DISA_STIG_RHEL_08_040023: true # RHEL 8 must disable the stream control transmission protocol (SCTP).
+DISA_STIG_RHEL_08_040024: true # RHEL 8 must disable the transparent inter-process communication (TIPC) protocol.
+DISA_STIG_RHEL_08_040025: true # RHEL 8 must disable mounting of cramfs.
+DISA_STIG_RHEL_08_040026: true # RHEL 8 must disable IEEE 1394 (FireWire) Support.
+DISA_STIG_RHEL_08_040050: true # RHEL 8 must prevent direct logon into the root account.
+DISA_STIG_RHEL_08_040060: true # RHEL 8 must enforce SSHv2 for network access to all accounts.
+DISA_STIG_RHEL_08_040070: true # The RHEL 8 file system automounter must be disabled unless required.
+DISA_STIG_RHEL_08_040080: true # RHEL 8 must be configured to disable USB mass storage.
+DISA_STIG_RHEL_08_040090: true # A RHEL 8 firewall must employ a deny-all, allow-by-exception policy for allowing connections to other systems.
+DISA_STIG_RHEL_08_040100: true # A firewall must be installed on RHEL 8.
+DISA_STIG_RHEL_08_040101: true # A firewall must be active on RHEL 8.
+DISA_STIG_RHEL_08_040110: true # RHEL 8 wireless network adapters must be disabled.
+DISA_STIG_RHEL_08_040111: true # RHEL 8 Bluetooth must be disabled.
+DISA_STIG_RHEL_08_040120: true # RHEL 8 must mount /dev/shm with secure options.
+DISA_STIG_RHEL_08_040121: true # RHEL 8 must mount /dev/shm with the nosuid option.
+DISA_STIG_RHEL_08_040122: true # RHEL 8 must mount /dev/shm with the noexec option.
+DISA_STIG_RHEL_08_040123: true # RHEL 8 must mount /tmp with the nodev option.
+DISA_STIG_RHEL_08_040124: true # RHEL 8 must mount /tmp with the nosuid option.
+DISA_STIG_RHEL_08_040126: true # RHEL 8 must mount /var/log with the nodev option.
+DISA_STIG_RHEL_08_040127: true # RHEL 8 must mount /var/log with the nosuid option.
+DISA_STIG_RHEL_08_040128: true # RHEL 8 must mount /var/log with the noexec option.
+DISA_STIG_RHEL_08_040129: true # RHEL 8 must mount /var/log/audit with the nodev option.
+DISA_STIG_RHEL_08_040130: true # RHEL 8 must mount /var/log/audit with the nosuid option.
+DISA_STIG_RHEL_08_040131: true # RHEL 8 must mount /var/log/audit with the noexec option.
+DISA_STIG_RHEL_08_040132: true # RHEL 8 must mount /var/tmp with the nodev option.
+DISA_STIG_RHEL_08_040133: true # RHEL 8 must mount /var/tmp with the nosuid option.
+DISA_STIG_RHEL_08_040134: true # RHEL 8 must mount /var/tmp with the noexec option.
+DISA_STIG_RHEL_08_040135: true # The RHEL 8 fapolicy module must be installed.
+DISA_STIG_RHEL_08_040136: true # The RHEL 8 fapolicy module must be configured to employ a deny-all, permit-by-exception policy to allow the execution of authorized software programs.
+DISA_STIG_RHEL_08_040137: true # The RHEL 8 fapolicy module must be configured to employ a deny-all, permit-by-exception policy to allow the execution of authorized software programs.
+DISA_STIG_RHEL_08_040139: true # RHEL 8 must have the USBGuard installed.
+DISA_STIG_RHEL_08_040140: true # RHEL 8 must block unauthorized peripherals before establishing a connection.
+DISA_STIG_RHEL_08_040141: true # RHEL 8 must enable the USBGuard.
+DISA_STIG_RHEL_08_040150: true # A firewall must be able to protect against or limit the effects of Denial of Service (DoS) attacks by ensuring RHEL 8 can implement rate_limiting measures on impacted network interfaces.
+DISA_STIG_RHEL_08_040159: true # All RHEL 8 networked systems must have SSH installed.
+DISA_STIG_RHEL_08_040160: true # All RHEL 8 networked systems must have and implement SSH to protect the confidentiality and integrity of transmitted and received information, as well as information during preparation for transmission.
+DISA_STIG_RHEL_08_040161: true # RHEL 8 must force a frequent session key renegotiation for SSH connections to the server.
+DISA_STIG_RHEL_08_040162: true # RHEL 8 must force a frequent session key renegotiation for SSH connections by the client.
+DISA_STIG_RHEL_08_040170: true # The x86 Ctrl_Alt_Delete key sequence must be disabled on RHEL 8.
+DISA_STIG_RHEL_08_040171: true # The x86 Ctrl-Alt-Delete key sequence in RHEL 8 must be disabled if a graphical user interface is installed.
+DISA_STIG_RHEL_08_040172: true # The systemd Ctrl-Alt-Delete burst key sequence in RHEL 8 must be disabled.
+DISA_STIG_RHEL_08_040180: true # The debug-shell systemd service must be disabled on RHEL 8.
+DISA_STIG_RHEL_08_040190: true # The Trivial File Transfer Protocol (TFTP) server package must not be installed if not required for RHEL 8 operational support.
+DISA_STIG_RHEL_08_040200: true # The root account must be the only account having unrestricted access to the RHEL 8 system.
+DISA_STIG_RHEL_08_040209: true # RHEL 8 must prevent IPv4 Internet Control Message Protocol (ICMP) redirect messages from being accepted.
+DISA_STIG_RHEL_08_040210: true # RHEL 8 must prevent IPv6 Internet Control Message Protocol (ICMP) redirect messages from being accepted.
+DISA_STIG_RHEL_08_040220: true # The RHEL 8 must not send Internet Control Message Protocol (ICMP) redirects.
+DISA_STIG_RHEL_08_040230: true # The RHEL 8 must not respond to Internet Control Message Protocol (ICMP) echoes sent to a broadcast address.
+DISA_STIG_RHEL_08_040239: true # RHEL 8 must not forward IPv4 source-routed packets.
+DISA_STIG_RHEL_08_040240: true # The RHEL 8 must not forward source_routed packets.
+DISA_STIG_RHEL_08_040249: true # RHEL 8 must not forward IPv4 source-routed packets by default.
+DISA_STIG_RHEL_08_040250: true # The RHEL 8 must not forward source_routed packets by default.
+DISA_STIG_RHEL_08_040260: true # The RHEL 8 must not be performing packet forwarding unless the system is a router.
+DISA_STIG_RHEL_08_040261: true # RHEL 8 must not accept router advertisements on all IPv6 interfaces.
+DISA_STIG_RHEL_08_040262: true # RHEL 8 must not accept router advertisements on all IPv6 interfaces by default.
+DISA_STIG_RHEL_08_040270: true # The RHEL 8 must not allow interfaces to perform Internet Control Message Protocol (ICMP) redirects by default.
+DISA_STIG_RHEL_08_040279: true # RHEL 8 must ignore IPv4 Internet Control Message Protocol (ICMP) redirect messages.
+DISA_STIG_RHEL_08_040280: true # The RHEL 8 must ignore Internet Control Message Protocol (ICMP) redirect messages.
+DISA_STIG_RHEL_08_040281: true # RHEL 8 must disable access to network bpf syscall from unprivileged processes.
+DISA_STIG_RHEL_08_040282: true # RHEL 8 must restrict usage of ptrace to descendant processes.
+DISA_STIG_RHEL_08_040283: true # RHEL 8 must restrict exposed kernel pointer addresses access.
+DISA_STIG_RHEL_08_040284: true # RHEL 8 must disable the use of user namespaces.
+DISA_STIG_RHEL_08_040285: true # RHEL 8 must use reverse path filtering on all IPv4 interfaces.
+DISA_STIG_RHEL_08_040286: true # RHEL 8 must enable hardening for the Berkeley Packet Filter Just-in-time compiler.
+DISA_STIG_RHEL_08_040290: true # The RHEL 8 must be configured to prevent unrestricted mail relaying.
+DISA_STIG_RHEL_08_040300: true # The RHEL 8 file integrity tool must be configured to verify extended attributes.
+DISA_STIG_RHEL_08_040310: true # The RHEL 8 file integrity tool must be configured to verify Access Control Lists (ACLs).
+DISA_STIG_RHEL_08_040320: true # The graphical display manager must not be installed on RHEL 8 unless approved.
+DISA_STIG_RHEL_08_040330: true # RHEL 8 network interfaces must not be in promiscuous mode.
+DISA_STIG_RHEL_08_040340: true # RHEL 8 remote X connections for interactive users must be disabled unless to fulfill documented and validated mission requirements.
+DISA_STIG_RHEL_08_040341: true # The RHEL 8 SSH daemon must prevent remote hosts from connecting to the proxy display.
+DISA_STIG_RHEL_08_040342: true # RHEL 8 SSH server must be configured to use only FIPS-validated key exchange algorithms.
+DISA_STIG_RHEL_08_040350: true # If the Trivial File Transfer Protocol (TFTP) server is required, the RHEL 8 TFTP daemon must be configured to operate in secure mode.
+DISA_STIG_RHEL_08_040360: true # A File Transfer Protocol (FTP) server package must not be installed unless mission essential on RHEL 8.
+DISA_STIG_RHEL_08_040370: true # The gssproxy package must not be installed unless mission essential on RHEL 8.
+DISA_STIG_RHEL_08_040380: true # The iprutils package must not be installed unless mission essential on RHEL 8.
+DISA_STIG_RHEL_08_040390: true # The tuned package must not be installed unless mission essential on RHEL 8.
+
+# List of custom NS2 "STIGs" that apply additional configurations that the DISA STIGs do not cover.
+NS2_STIG_RHEL_08_001020: true # Ensure OpenSSL uses strong entropy
+NS2_STIG_RHEL_08_001030: true # Ensure that the SSHD config setting LoginGraceTime is set
+NS2_STIG_RHEL_08_001040: true # Ensure local user accounts have random passwords set
+NS2_STIG_RHEL_08_001050: true # Ensure ssh_deletekeys in /etc/cloud/cloud.cfg is set to 1
+...

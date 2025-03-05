@@ -1,0 +1,186 @@
+---
+  - name: Set the AIDE configuration file path
+    ansible.builtin.set_fact:
+      aide_conf_path: '{{ configuration_file_path[ansible_os_family | lower] }}'
+    vars:
+      configuration_file_path:
+        redhat: /etc/aide.conf
+        suse: /etc/aide.conf
+        debian: /etc/aide/aide.conf
+
+  - name: Ensure aide is installed
+    ansible.builtin.package:
+      name: '{{ aide_pkg }}'
+      state: present
+    retries: '3'
+    register: aide_installed
+    until: aide_installed is succeeded
+    become: true
+    when: ansible_distribution_version is not version('20.04', '>=')
+
+  - name: Ensure aide-dynamic is installed on Ubuntu version >= 20.04
+    ansible.builtin.package:
+      name: '{{ aide_dynamic_pkg }}'
+      state: present
+    retries: '3'
+    register: aide_installed
+    until: aide_installed is succeeded
+    become: true
+    when: ansible_distribution_version is version('20.04', '>=')
+
+  - name: Ensure aide directories exists
+    ansible.builtin.file:
+      path: '{{ item }}'
+      state: directory
+      owner: root
+      group: root
+      mode: '0700'
+    loop:
+      - '{{ aide_logdir }}'
+      - '{{ aide_dbdir }}'
+    become: true
+
+  #use shell here so it gets full environment
+  - name: Capture aide binary path
+    ansible.builtin.command: which aide
+    register: aide_path
+    changed_when: false
+    check_mode: false
+    become: true
+
+  - name: Check for existing aide database #If compression is not available, aide drops the .gz from filename.
+    ansible.builtin.shell: FNAME={{ aide_database_filename }}; find {{ aide_dbdir }}/${FNAME%.*}* -maxdepth 1 -type f -size +1M | wc -l
+    register: aide_db_check
+    changed_when: aide_db_check.stdout|int == 0
+    notify:
+      - Initialize aide database
+      - Move new aide database into place
+    become: true
+
+  - name: Set aide_verbose for RedHat 7/8 and Ubuntu 18.04/20.04
+    ansible.builtin.set_fact:
+      aide_verbose: yes
+      aide_log_level: ''
+      aide_report_level: ''
+      when: >
+        (ansible_distribution == "Ubuntu" and (ansible_distribution_version == "18.04" or ansible_distribution_version == "20.04"))
+        or
+        (ansible_distribution == "RedHat" and (ansible_distribution_major_version is version("7", "=") or ansible_distribution_major_version is version("8",
+        "=")))
+
+  - name: Set aide_log_level and aide_report_level for Ubuntu 22.04
+    ansible.builtin.set_fact:
+      aide_verbose: ''
+      aide_log_level: info
+      aide_report_level: changed_attributes
+    when: (ansible_distribution == 'Ubuntu' and ansible_distribution_version == '22.04')
+
+
+  - name: Configure aide
+    ansible.builtin.template:
+      src: aide.conf.j2
+      dest: '{{ aide_conf_path }}'
+      validate: '{{ aide_path.stdout }} -D -c %s'
+    become: true
+
+  - name: Remove cron.d jobs in favor of ansible managed cron jobs
+    become: true
+    ansible.builtin.file:
+      state: absent
+      path: /etc/cron.d/{{ item }}
+    loop_control:
+      label: Removing {{ item }}
+    loop:
+      - aide_check
+      - aide_check_email
+      - aide_update
+
+  - name: Remove legacy aide entries from cron
+    become: true
+    ansible.builtin.cron:
+      name: '{{ item }}'
+      state: absent
+    loop:
+      - aide scheduled database checkup
+      - aide scheduled database update
+
+  - name: 'BLOCK: Cron Scheduling'
+    become: true
+    block:
+      - name: Setup cron schedule for 'aide check - no email report'
+        ansible.builtin.cron:
+          name: '{{ aide_cronjob_name }}'
+          user: root
+          state: "{{ 'present' if aide_cron_schedule_check | bool else 'absent' }}"
+          minute: '{{ aide_cron_sched_min }}'
+          hour: '{{ aide_cron_sched_hr }}'
+          day: '{{ aide_cron_sched_day }}'
+          month: '{{ aide_cron_sched_mon }}'
+          weekday: '{{ aide_cron_sched_wkd }}'
+          job: '{{ aide_path.stdout }} --check -c {{ aide_conf_path }}'
+        when:
+          - aide_cron_email_notify_recipients | length < 1
+
+      - name: Setup cron schedule for 'aide check - with email report'
+        ansible.builtin.cron:
+          name: '{{ aide_cronjob_name }}'
+          user: root
+          state: "{{ 'present' if aide_cron_schedule_check | bool else 'absent' }}"
+          minute: '{{ aide_cron_sched_min }}'
+          hour: '{{ aide_cron_sched_hr }}'
+          day: '{{ aide_cron_sched_day }}'
+          month: '{{ aide_cron_sched_mon }}'
+          weekday: '{{ aide_cron_sched_wkd }}'
+          job: "{{ aide_path.stdout }} --check -c {{ aide_conf_path }} | /usr/bin/mail -s 'AIDE Report - $HOSTNAME' {{ aide_cron_email_notify_recipients\
+            \ | join(',') }}"
+        when:
+          - aide_cron_email_notify_recipients | length >= 1
+
+      - name: Setup cron schedule for 'aide update'
+        ansible.builtin.cron:
+          name: '{{ aide_update_cronjob_name }}'
+          user: root
+          state: "{{ 'present' if aide_cron_schedule_update | bool else 'absent' }}"
+          minute: '{{ aide_update_cron_sched_min }}'
+          hour: '{{ aide_update_cron_sched_hr }}'
+          day: '{{ aide_update_cron_sched_day }}'
+          month: '{{ aide_update_cron_sched_mon }}'
+          weekday: '{{ aide_update_cron_sched_wkd }}'
+          job: '{{ aide_path.stdout }} -u -c {{ aide_conf_path }} ; sleep 3 ; mv {{ aide_dbdir }}/{{ aide_database_out_filename }} {{ aide_dbdir }}/{{ aide_database_filename
+            }} -f'
+  #End "BLOCK: Cron Scheduling"
+
+  - name: Update aide database
+    become: true
+    ansible.builtin.command: '{{ aide_path.stdout }} -u -c {{ aide_conf_path }}'
+    register: aide_update
+    failed_when: aide_update.rc > 7
+    when:
+      - aide_db_check.stdout|int > 0
+      - aide_update_db|bool
+      - not aide_async_update|bool
+    notify:
+      - Move new aide database into place
+
+  - name: Update aide database async
+    become: true
+    ansible.builtin.command: '{{ aide_path.stdout }} -u -c {{ aide_conf_path }}'
+    register: aide_update
+    async: 45
+    poll: 0
+    when:
+      - aide_db_check.stdout|int > 0
+      - aide_update_db|bool
+      - aide_async_update|bool
+    notify:
+      - Move new aide database into place
+
+  - name: Perform ad-hoc AIDE database check
+    ansible.builtin.command: '{{ aide_path.stdout }} --check -c {{ aide_conf_path }}'
+    register: aide_check_results
+    failed_when: aide_check_results.rc not in [0,1,2,4,5]
+    when:
+      - aide_db_check.stdout|int > 0
+      - aide_check_db|bool
+    become: true
+...

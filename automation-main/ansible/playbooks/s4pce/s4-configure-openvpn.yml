@@ -1,0 +1,125 @@
+---
+# Playbook Name: s4-configure-openvpn.yml
+# Synopsis: Quick configuration of openvpn for use with Concourse pipeline in Azure
+# Description: Configures an OpenVPN UserAuth AMI to be used with a Concourse pipeline in Azure
+# Prerequisites:
+# - Ansible v2.9+
+# - VM deployed with OpenVPN-UserAuth Image
+# Dependencies:
+# Variables:
+#   - save_location : OpenVPN profiles will be saved to this location on the box executing the playbook
+#   - username : VPN User to create
+#   - password : VPN Credentials to create
+#   - vnet_mask : OpenVPN Clients will route this network to the VPN
+#   - allow_reboot : Reboots the OpenVPN box if needed to set IPv4 Forwarding
+# Example:
+#  Configures OpenVPN Remotely
+#    ansible-playbook -i 192.168.0.1, s4-configure-openvpn.yml -e username=vpnuser -e password=mybadpassword -e vnet_mask="10.0.0.0 255.0.0.0"
+# Authors: Louis Lee, Matt Bittner
+# Version: 2.9-000001
+# Modified: 2020-02-27
+# Comments: N/A
+
+- hosts: all
+  vars:
+    save_location: "/tmp/"
+    username: "exampleuser"
+    password: "password12345"
+    vnet_mask: "172.16.0.0 255.255.0.0"
+    allow_reboot: true
+
+  tasks:
+  - name: "Clean out Cron"
+    cron:
+      name: "{{ item }}"
+      state: absent
+    become: yes
+    loop:
+    - "Enforce OpenVPN Public IP Profile"
+    - "Enforce OpenVPN Users"
+
+  - name: "Get My Public IP"
+    uri:
+      url: "http://icanhazip.com"
+      return_content: yes
+    register: mypublicip_output
+
+  - name: "Save Public IP as fact"
+    set_fact:
+      mypublicip: "{{ mypublicip_output.content|trim }}"
+
+  - name: "My Public IP is {{ mypublicip }}"
+    debug:
+      var: mypublicip
+
+  - name: Find OpenVPN Profile files in folder
+    find:
+      paths: "/etc/openvpn/client/"
+      patterns: '*.ovpn'
+    become: yes
+    register: find_results
+
+  - name: Update Public IP in Client Profile Files
+    lineinfile:
+      path: "{{ item.path }}"
+      state: present
+      line: "remote {{ mypublicip }} 1194"
+      regexp: '^remote\s'
+      create: no
+    become: yes
+    loop: "{{ find_results.files }}"
+
+  - name: Fetch Client Profile Files to tmp folder
+    fetch:
+      dest: "{{ save_location }}"
+      src: "{{ item.path }}"
+      validate_checksum: yes
+      fail_on_missing: yes
+      flat: yes
+    become: yes
+    loop: "{{ find_results.files }}"
+
+  - name: "Add vpn user"
+    user:
+      name: "{{ username }}"
+      update_password: always
+      create_home: no
+      groups: "vpn-users"
+      password: "{{ password | password_hash('sha512') }}"
+      shell: /usr/bin/false
+      state: present
+    become: yes
+
+  - name: "Fix Default Route"
+    lineinfile:
+      path: "/etc/openvpn/server/openvpn_udp_1194.conf"
+      create: no
+      state: present
+      regexp: "^push \"redirect-gateway.*"
+      line: 'push "route {{ vnet_mask }}"'
+    become: yes
+
+  - name: "Fix SysCtl Forwarding"
+    sysctl:
+      name: 'net.ipv4.ip_forward'
+      sysctl_set: yes
+      value: '1'
+    register: ip_forwarding_results
+    become: yes
+
+  - name: "Open Firewall for VPN"
+    firewalld:
+      state: enabled
+      zone: public
+      immediate: yes
+      permanent: yes
+      port: 1194/udp
+    become: yes
+
+  - name: "Reboot OpenVPN"
+    reboot:
+      post_reboot_delay: 30
+      msg: Reboot initiated by Ansible
+    when: ip_forwarding_results.changed and allow_reboot | bool
+    become: yes
+...

@@ -1,0 +1,210 @@
+---
+# Playbook Name: sp4-validate-disks.yml
+# Description: Validates the expected volumes are equal or greater than the size specified
+# Dependencies:
+# - Ansible v2.9+
+# Variables: N/A
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook sp4-validate-disks.yml -i /<PATH-TO>/defaults.yml -i /<PATH-TO>/<SPR-INVENTORY-FILE> -k
+# Authors: Louis Lee
+# Version: 2.9-000002
+# Modified: 2021-07-29 - Created playbook
+#           2022-07-01 - Exclude non_spr products
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+#   Tags:
+#     play0 always           : Prepare dynamic values
+#     play1 webdispatcher    : Webdispatcher and App Volumes
+#     play2 app-lite         : App-lite EBS Volumes
+#     play3 db hanacockpit   : Hana EBS Volumes
+#     play4 one-offs         : One-Off Products (Content Server, Convergent Charging, Convergent Mediation, Apache/FTP)
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+    - play0
+    - always
+
+  tasks:
+    - name: "Dynamic Group Assignment"
+      group_by:
+        key: "{{ item }}"
+      when: "item != 'undefined'"
+      loop:
+        - "{{ spr_productname|default('undefined')|lower }}"
+        - "{{ spr_landscape|default('undefined')|lower }}"
+        - "{{ spr_nodetype|default('undefined')|lower }}"
+
+#################
+##### Play1 #####
+#################
+- name: Play1 Webdispatcher and App Volumes
+  gather_facts: false
+  hosts: app:webdispatcher:!apache_ftp:!bobj:!cloudconnector:!convergent_charging:!convergent_mediation:!cpids_agent:!data_services:!dpagent:!information_steward:!lumira:!optimizer:!sac_agent:!non_spr
+  tags:
+    - play1
+    - webdispatcher
+
+  tasks:
+    - name: "Validate Webdispatcher Volumes"
+      ansible.builtin.assert:
+        that: ((ansible_mounts | selectattr('mount','equalto',item.mount) | map(attribute='size_total'))[0]  / 1000000000 | round) | int >= item.size|int
+      loop_control:
+        label: "Checking {{ item.mount }} to be {{ item.size }} or larger"
+      loop:
+        - mount: '/usr/sap'
+          size: 50
+        - mount: '/sapmnt'
+          size: 50
+
+
+
+#################
+##### Play2 #####
+#################
+- name: Play1 App-lite Volumes
+  gather_facts: false
+  hosts: bobj:cloudconnector:cpids_agent:data_services:dpagent:information_steward:lumira:optimizer:sac_agent:&app
+  tags:
+    - play2
+    - app-lite
+
+  tasks:
+    - name: "Validate App-lite Volumes"
+      ansible.builtin.assert:
+        that: ((ansible_mounts | selectattr('mount','equalto',item.mount) | map(attribute='size_total'))[0]  / 1000000000 | round) | int >= item.size|int
+      loop_control:
+        label: "Checking {{ item.mount }} to be {{ item.size }} or larger"
+      loop:
+        - mount: '/usr/sap'
+          size: 50
+
+
+#################
+##### Play3 #####
+#################
+- name: Play3 Hana EBS Volumes
+  gather_facts: false
+  hosts: db:hanacockpit:!contentserver:!non_spr
+  tags:
+    - play3
+    - db
+    - hanacockpit
+
+  tasks:
+    - name: "{{ inventory_hostname }} has {{ (ansible_facts.memtotal_mb/1000)|round|int }}GB of system memory"
+      set_fact:
+        ram_size: "{{ (ansible_facts.memtotal_mb/1000)|round|int }}"
+
+    - name: "Calculate disk size"
+      set_fact:
+        hana_shared_size: >-
+            {% if ram_size|int < 1000 %} {{ ram_size|int }}
+            {% else %} 1000
+            {% endif %}
+        hana_log_size: >-
+            {% if ram_size|int < 2000 %} {{ (ram_size|int / 2)|int  }}
+            {% else %} 1000
+            {% endif %}
+
+    - name: "Hana Cockpit Shared Size"
+      when: inventory_hostname in groups.hanacockpit
+      set_fact:
+        hana_shared_size: '200'
+
+    - name: "Validate Hana Volumes"
+      ansible.builtin.assert:
+        that: ((ansible_mounts | selectattr('mount','equalto',item.mount) | map(attribute='size_total'))[0]  / 1000000000 | round) | int >= item.size|int
+      loop_control:
+        label: "Checking {{ item.mount }} to be {{ item.size }} or larger"
+      loop:
+        - mount: '/hana/data'
+          size: "{{ (ram_size|int * 2) }}"
+        - mount: '/hana/log'
+          size: "{{ hana_log_size|int }}"
+        - mount: '/hana/shared'
+          size: "{{ hana_shared_size|int }}"
+        - mount: '/hana/backups'
+          size: "{{ (ram_size|int * 2) }}"
+        - mount: '/usr/sap'
+          size: 50
+
+
+#################
+##### Play4 #####
+#################
+- name: Play4 One-Off Products (Content Server, Convergent Charging, Convergent Mediation, Apache/FTP)
+  gather_facts: false
+  hosts: contentserver:convergent_charging:convergent_mediation:apache_ftp
+  tags:
+    - play4
+    - one_offs_ebs
+
+  pre_tasks:
+    - name: "Set volumes for Content Server"
+      when: inventory_hostname in groups.contentserver
+      set_fact:
+        custom_volumes:
+          - mount: '/usr/sap'
+            size: 50
+          - mount: '/sapdb/sapdata'
+            size: 100
+          - mount: '/sapdb/saplog'
+            size: 10
+
+    - name: "Set volumes for Convergent Charging App Server"
+      when: inventory_hostname in groups.convergent_charging
+      set_fact:
+        custom_volumes:
+          - mount: '/usr/sap'
+            size: 100
+          - mount: '/sapmnt'
+            size: 50
+
+    - name: "Set volumes for Convergent Mediation Platform Server"
+      when: inventory_hostname in groups.convergent_mediation
+      set_fact:
+        custom_volumes:
+          - mount: '/opt/mz'
+            size: 50
+
+    - name: "Set volumes for Convergent Mediation EC Server"
+      when: inventory_hostname in groups.apache_ftp
+      set_fact:
+        custom_volumes:
+          - mount: '/opt/mzec1'
+            size: 50
+
+  tasks:
+    - name: "Validate Hana Volumes"
+      ansible.builtin.assert:
+        that: ((ansible_mounts | selectattr('mount','equalto',item.mount) | map(attribute='size_total'))[0]  / 1000000000 | round) | int >= item.size|int
+      loop_control:
+        label: "Checking {{ item.mount }} to be {{ item.size }} or larger"
+      loop: "{{ custom_volumes }}"
+
+##################
+#### PlayEND #####
+##################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

@@ -1,0 +1,21 @@
+---
+# Place any DISA STIG configuration variables in this file that differ from what the 'primary.yml' variables file has.
+# This file takes precedence over 'primary.yml'.
+
+# This file is automatically included by the role when the 'application_preset_selection' variable is set to 'openvpn' as
+# per the mapping in the 'main.yml' variables file.
+
+DISA_STIG_RHEL_08_040260: false # The RHEL 8 must not be performing packet forwarding unless the system is a router.
+
+DISA_STIG_RHEL_08_020260: true # RHEL 8 account identifiers (individuals, groups, roles, and devices) must disabled after 35 days of inactivity.
+
+# FIPS mode
+DISA_STIG_RHEL_08_010020: false # FIPS - RHEL 8 must implement NIST FIPS-validated cryptography for the following: to provision digital signatures, to generate cryptographic hashes, and to protect data requiring data-at-rest protections in accordance with applicable federal laws, Executive Orders, directives, policies, regulations, and standards.
+DISA_STIG_RHEL_08_010110: false # RHEL 8 must encrypt all stored passwords with a FIPS 140-2 approved cryptographic hashing algorithm.
+DISA_STIG_RHEL_08_010120: false # RHEL 8 must employ FIPS 140-2 approved cryptographic hashing algorithms for all stored passwords.
+DISA_STIG_RHEL_08_010130: false # The RHEL 8 password-auth file must be configured to use a sufficient number of hashing rounds.
+DISA_STIG_RHEL_08_010160: false # The RHEL 8 pam_unix.so module must be configured in the password-auth file to use a FIPS 140-2 approved cryptographic hashing algorithm for system authentication.
+DISA_STIG_RHEL_08_010290: false # The RHEL 8 SSH server must be configured to use only Message Authentication Codes (MACs) employing FIPS 140-2 validated cryptographic hash algorithms.
+DISA_STIG_RHEL_08_010293: false # The RHEL 8 operating system must implement DoD-approved encryption in the OpenSSL package.
+
+...

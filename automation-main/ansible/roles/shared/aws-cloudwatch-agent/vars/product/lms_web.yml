@@ -1,0 +1,13 @@
+---
+# List of lms_web log groups we want to capture
+# When 'lms_web' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_lms_web:
+  - file_path: /var/log/apache2/*access*log
+    log_group_name: /var/log/apache2/access
+  - file_path: /var/log/apache2/*error*log
+    log_group_name: /var/log/apache2/error
+  - file_path: /var/log/httpd/access.log
+    log_group_name: /var/log/httpd/access
+  - file_path: /var/log/httpd/error.log
+    log_group_name: /var/log/httpd/error
+...

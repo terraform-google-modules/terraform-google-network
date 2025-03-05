@@ -1,0 +1,128 @@
+#
+# Authors: Marc Heuse,
+#          Volker Kuhlmann <kuhlmav@elec.canterbury.ac.nz>
+#
+# /etc/sysconfig/scripts/SuSEfirewall2-custom
+#
+# ------------------------------------------------------------------------
+#
+# This is file is for SuSEfirewall2 and is an example for using
+# the hooks which are supplied to load customized iptables rules.
+#
+# THERE IS NO HELP FOR USING HOOKS EXCEPT THIS FILE ! SO READ CAREFULLY !
+# IT IS USEFUL TO CROSS-READ /sbin/SuSEfirewall2 TO SEE HOW HOOKS WORK !
+#
+# ------------------------------------------------------------------------
+#
+# Note: always use iptables resp ip6tables without path. You are not actually
+# calling the binary here. SuSEfirewall2 internally defines an alias to
+# collect all rules and apply them in batch later. Set
+# FW_USE_IPTABLES_BATCH="no" if you need the rules to be applied
+# immediately.
+
+fw_custom_after_chain_creation() {
+    # these rules will be loaded after the various input_* and forward_* chains
+    # are created.
+    # You can use this hook to allow/deny certain IP protocols or TCP/UDP
+    # ports before the SuSEfirewall2 generated rules are hit.
+
+#example: always filter backorifice/netbus trojan connect requests and log them.
+#for target in LOG DROP; do
+#    for chain in input_ext input_dmz input_int forward_int forward_ext forward_dmz; do
+#        iptables -A $chain -j $target -p tcp --dport 31337
+#        iptables -A $chain -j $target -p udp --dport 31337
+#        iptables -A $chain -j $target -p tcp --dport 12345:12346
+#        iptables -A $chain -j $target -p udp --dport 12345:12346
+#    done
+#done
+
+    true
+}
+
+fw_custom_before_port_handling() {
+    # these rules will be loaded after the anti-spoofing and icmp handling
+    # and after the input has been redirected to the input_XXX and
+    # forward_XXX chains and some basic chain-specific anti-circumvention
+    # rules have been set,
+    # but before any IP protocol or TCP/UDP port allow/protection rules
+    # will be set.
+    # You can use this hook to allow/deny certain IP protocols or TCP/UDP
+    # ports before the SuSEfirewall2 generated rules are hit.
+
+    true
+}
+
+fw_custom_before_masq() { # could also be named "after_port_handling()"
+    # these rules will be loaded after the IP protocol and TCP/UDP port
+    # handling, but before any IP forwarding (routing), masquerading
+    # will be done.
+    # NOTE: reverse masquerading is before directly after
+    #       fw_custom_before_port_handling !!!!
+    # You can use this hook to ... hmmm ... I'm sure you'll find a use for
+    # this ...
+
+    true
+}
+
+fw_custom_before_denyall() { # could also be named "after_forwardmasq()"
+    # these are the rules to be loaded after IP forwarding and masquerading
+    # but before the logging and deny all section is set by SuSEfirewall2.
+    # You can use this hook to prevent the logging of annoying packets.
+
+#example: prevent logging of talk requests from anywhere
+#for chain in input_ext input_dmz input_int forward_int forward_ext forward_dmz; do
+#    iptables -A $chain -j DROP -p udp --dport 517:518
+#done
+
+    true
+}
+
+fw_custom_after_finished() {
+    # these are the rules to be loaded after the firewall is fully configured
+
+    iptables --policy INPUT {{ iptables_default_input_chain_behavior }}
+    iptables --policy FORWARD ACCEPT
+    iptables --policy OUTPUT ACCEPT
+    iptables -F
+    iptables -N ANSIBLE_MANAGED
+
+    # NOTE: Adding multiple rules for localhost traffic that we don't want to log.
+
+    iptables -I ANSIBLE_MANAGED -p all -i lo -j {{ iptables_default_ansible_managed_chain_behavior }}
+    iptables -I ANSIBLE_MANAGED -p all --source {{ ansible_default_ipv4.address }} --destination {{ ansible_default_ipv4.address }} -j {{ iptables_default_ansible_managed_chain_behavior }}
+    iptables -I ANSIBLE_MANAGED -p tcp --source 169.254.169.254 --destination {{ ansible_default_ipv4.address }} --sport 80 -j {{ iptables_default_ansible_managed_chain_behavior }}
+    iptables -I ANSIBLE_MANAGED -p udp --sport 53 -j {{ iptables_default_ansible_managed_chain_behavior }}
+    # NOTE: Loops through the list of TCP source ports. For any source port that has 'nn' in the port number, replace that with the system's instance number.
+    #       If the instance number is not defined or it's empty, default to the SAP defined default of '00'. If the port number has 'nx' in it, replace that
+    #       with the system's instance number incremented by one. If the instance number is not defined or it's empty, default to the SAP defined default of '01'.
+
+    {% if iptables_tcp_source_ports | length > 0 %}
+      {% for item in iptables_tcp_source_ports %}
+    iptables -I ANSIBLE_MANAGED -p tcp --sport {{ item | string | lower | replace('nn', system_instance_number | default ('00', true)) | replace('nx', '%02d' | format(system_instance_number | default ('01', true) | int + 1 ) | string) }} -j {{ iptables_default_ansible_managed_chain_behavior }}
+      {% endfor %}
+    {% endif %}
+
+    {% if iptables_tcp_destination_ports | length > 0 %}
+      {% for item in iptables_tcp_destination_ports %}
+    iptables -I ANSIBLE_MANAGED -p tcp --dport {{ item | string | lower | replace('nn', system_instance_number | default ('00', true)) | replace('nx', '%02d' | format(system_instance_number | default ('01', true) | int + 1 ) | string) }} -j {{ iptables_default_ansible_managed_chain_behavior }}
+      {% endfor %}
+    {% endif %}
+
+    {% if iptables_udp_source_ports | length > 0 %}
+      {% for item in iptables_udp_source_ports %}
+    iptables -I ANSIBLE_MANAGED -p udp --sport {{ item | string | lower | replace('nn', system_instance_number | default ('00', true)) | replace('nx', '%02d' | format(system_instance_number | default ('01', true) | int + 1 ) | string) }} -j {{ iptables_default_ansible_managed_chain_behavior }}
+      {% endfor %}
+    {% endif %}
+
+    {% if iptables_udp_destination_ports | length > 0 %}
+      {% for item in iptables_udp_destination_ports %}
+    iptables -I ANSIBLE_MANAGED -p udp --sport {{ item | string | lower | replace('nn', system_instance_number | default ('00', true)) | replace('nx', '%02d' | format(system_instance_number | default ('01', true) | int + 1 ) | string) }} -j {{ iptables_default_ansible_managed_chain_behavior }}
+      {% endfor %}
+    {% endif %}
+
+    iptables -A ANSIBLE_MANAGED -p all -j LOG -m state --state NEW -m limit --limit {{ iptables_log_limit }} --limit-burst {{ iptables_log_limit_burst }}
+    iptables -A ANSIBLE_MANAGED -p all -j RETURN
+    iptables -I INPUT -p all -j ANSIBLE_MANAGED
+
+    true
+}

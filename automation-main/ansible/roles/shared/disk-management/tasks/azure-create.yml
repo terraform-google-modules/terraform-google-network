@@ -1,0 +1,291 @@
+---
+# Synopsis: Creates Azure disks and configures LVM
+# Inputs:
+#    - disk_preset_list: Either a custom defined dictionary or prexisting variables defined in defaults.yml which includes relevant information to create/resize disk and volumes
+#    - azure_resource_group: The resource group within the subscription that we're working in
+# Outputs: Azure disks tagged with the instance id as well as the mount point along with volume group names with epoch time appended
+# Comments: Resizing does not currently function properly.
+
+  - name: Construct block device names
+    block:
+      - name: Get temporary device information
+        shell: lsblk -rno name,mountpoint,pkname | grep -e '/mnt' | awk '{print $3}'
+        register: temporary_device
+        changed_when: false
+
+      - name: Get boot device information
+        shell: lsblk -rno name,mountpoint,pkname | grep -e 'boot' | awk '{print $3}'
+        register: boot_device
+        changed_when: false
+
+      - name: Get pvs Block Device Names
+        shell: lsblk | grep -o -E -e '^xvd[a-z]' -e '^nvme[0-9][0-9]?n1' -e '^sd[a-z]'
+        register: current_block_device_names
+        changed_when: false
+
+      - name: Get current mount points
+        shell: lsblk | grep -Ev "nvme0|sda|xvda|vg_root|/mnt" | awk '{print $7}' | sed 's/MOUNTPOINT//;/^#/d;/^[[:space:]]*$/d'
+        register: current_mount_points
+        changed_when: false
+# End block "Construct block device names"
+
+  - name: Get the Azure VM metadata
+    uri:
+      url: http://169.254.169.254/metadata/instance?api-version=2017-04-02
+      headers:
+        Metadata: 'true'
+    register: azure_metadata
+
+  - name: Get Azure Volume info
+    azure_rm_manageddisk_info:
+    delegate_to: '{{ task_delegation | default(omit, true) }}'
+    run_once: true
+    register: volume_info_list
+
+  - name: Determine volume sizes and mount existence
+    set_fact:
+      mount_exists: '{{ mount_exists + [(item.value.mount_point if (item.value.mount_point != "/swap") else "[SWAP]") in current_mount_points.stdout_lines]
+        }}'
+      volume_size: '{{ volume_size + [volume_info_list.ansible_info.azure_managed_disk | to_json | from_json | json_query(query_mount_exists) ] }}'
+    loop: '{{ disk_preset_list }}'
+    vars:
+      query_mount_exists: "[?name=='{{ azure_metadata.json.compute.name }}_{{ item.key }}'].disk_size_gb | [0]"
+
+  - name: Get Azure Disk Zone from root device
+    set_fact:
+      azure_disk_zone: '{{ volume_info_list.ansible_info.azure_managed_disk | to_json | from_json | json_query(query_azure_disk_zone) }}'
+    vars:
+      query_azure_disk_zone: "[?contains(id,'{{ azure_metadata.json.compute.name  }}_disk1_')].zone | [0]"
+
+  - name: Determine if a resize is needed
+    set_fact:
+      resize_needed: '{{ resize_needed + [item | default(disk_preset_list[index].value.size) | int != disk_preset_list[index].value.size | int] }}'
+    loop: '{{ volume_size }}'
+    loop_control:
+      index_var: index
+
+  - name: Verbosity 1 Disk information
+    debug:
+      msg:
+        - 'Mount Key:             {{item.key}}'
+        - 'Mount Point:           {{item.value.mount_point}}'
+        - 'Size:                  {{item.value.size}}'
+        - 'Create requested:      {{disk_create}}'
+        - 'Volume exists already: {{mount_exists[index]}}'
+        - 'Resize requested:      {{disk_resize}}'
+        - "Resize Needed:         {{resize_needed[index] | default('False')}}"
+      verbosity: 1
+    loop: '{{ disk_preset_list }}'
+    loop_control:
+      index_var: index
+
+  - name: 'BLOCK: Create volumes and mounts only if needed'
+    when: disk_create | bool
+    block:
+      - name: Set the Azure VM's location and name
+        set_fact:
+          azure_location: '{{ azure_metadata.json.compute.location }}'
+          azure_vm_name: '{{ azure_metadata.json.compute.name }}'
+
+      - name: Create, tag, and attach additonal volumes on Azure
+        when: not mount_exists[index] | bool
+        azure_rm_manageddisk:
+          client_id: "{{ lookup('env','AZURE_CLIENT_ID') | default(omit, true)  }}"
+          secret: "{{ lookup('env','AZURE_SECRET') | default(omit, true)  }}"
+          subscription_id: "{{ lookup('env','AZURE_SUBSCRIPTION_ID') | default(omit, true)  }}"
+          tenant: "{{ lookup('env','AZURE_TENANT') | default(omit, true)  }}"
+          name: '{{ azure_vm_name }}_{{ item.key }}'
+          location: '{{ azure_location }}'
+          resource_group: '{{ azure_resource_group }}'
+          disk_size_gb: '{{ item.value.size }}'
+          storage_account_type: '{{ item.value.azure_disk_type | default(azure_disk_type) }}'
+          managed_by: '{{ azure_vm_name }}'
+          attach_caching: "{{ 'read_write' if (item.value.size | int < 4095) else '' }}"
+          zone: '{{ azure_disk_zone | default(omit, true) }}'
+          tags:
+            Name: '{{ azure_vm_name }}_{{ item.key }}'
+            Hostname: '{{ ansible_hostname }}'
+            MountPoint: '{{ item.value.mount_point }}'
+            Instance: '{{ azure_vm_name }}'
+        register: azure_volume
+        delegate_to: '{{ task_delegation | default(omit, true) }}'
+    # async: 1000
+    # poll: 0
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+
+# Notes: Disabling Async on Azure until api collisions can be figured out.
+  # - name: Wait for Azure disk creation task finished
+  #   when: item.skipped is not defined and item.finished == false
+  #   async_status:
+  #     jid: "{{ item.ansible_job_id }}"
+  #   delegate_to: "{{ task_delegation | default(omit, true) }}"
+  #   register: volume_create_status
+  #   until: volume_create_status.finished
+  #   retries: 100
+  #   delay: 10
+  #   loop: "{{ azure_volume.results }}"
+# End BLOCK: Create volumes and mounts only if needed
+
+### Configure new volumes
+  - name: Get instance disk info
+    shell: az vm show -g "{{ azure_resource_group }}" -n "{{ azure_metadata.json.compute.name }}" --query "storageProfile.dataDisks"
+    delegate_to: '{{ task_delegation | default(omit, true) }}'
+    register: disk_info
+
+  - name: Get LUN value for each disk
+    set_fact:
+      disk_lun: '{{ disk_lun | default([]) + [ disk_info.stdout | from_json | json_query(query_one) ] }}'
+    loop: '{{ disk_preset_list }}'
+    vars:
+      query_one: "[?name=='{{ azure_metadata.json.compute.name }}_{{ item.key }}'].lun | [0]"
+
+  - name: Map LUN values to device names
+    shell: ls -l /sys/block/*/device | grep ".:0:0:{{ item }}" | grep -ve sr. -e "{{ temporary_device.stdout | default("non_matching_search_value",true)
+      }}" -e "{{ boot_device.stdout }}" | cut -d"/" -f 4
+    loop: '{{ disk_lun }}'
+    register: device_names
+    changed_when: false
+
+  - name: Set partition names
+    set_fact:
+      partition_names: "{{ partition_names + [ item.stdout ~ ('p1' if ('nvme' in item.stdout) else '1')] }}"
+    loop: '{{ device_names.results }}'
+    loop_control:
+      label: Save Partition name for {{ item.stdout }}
+
+# Required to allow the kernel to recognize that a drive exists
+  - name: Wait for drive to become available
+    wait_for:
+      path: /dev/{{ item.stdout }}
+      delay: 1
+    loop: '{{ device_names.results }}'
+
+  - name: Partition new disk
+    parted:
+      device: /dev/{{ item.stdout }}
+      number: 1
+      label: gpt
+      part_type: primary
+      state: present
+    register: partition_disk
+    become: true
+    failed_when: false
+    loop: '{{ device_names.results }}'
+
+# Required to allow the kernel to re-read the partition table before attempting to resize a partition
+  - name: Wait for partition to become available
+    wait_for:
+      path: /dev/{{ item }}
+      delay: 1
+    loop: '{{ partition_names }}'
+
+  - name: Get existing physical volumes
+    shell: /sbin/pvs | $(which awk) 'FNR == 1 {next}{print $1}'
+    register: physical_volumes_fact
+    become: true
+    changed_when: false
+
+  ### Configure LVM for volumes
+
+  - name: Set Volume Group name
+    set_fact:
+      volume_group: "{{ volume_group + ['vg_' ~ (item.key)] }}"
+      volume_group_name: "{{ volume_group_name + ['vg_' ~ (item.key) ~ '_' ~ (volume_name_randomization_string)] }}"
+    loop: '{{ disk_preset_list }}'
+
+  - name: Get existing volume groups
+    shell: /sbin/vgs | $(which awk) 'FNR == 1 {next}{print $1}'
+    register: volume_groups_fact
+    become: true
+
+  - name: Search for existing volume group matching targeted mount
+    set_fact:
+      existing_volume_groups: "{{ existing_volume_groups + [volume_groups_fact.stdout | regex_search( '(' + item + '_.*)', multiline=True)] }}"
+    loop: '{{ volume_group }}'
+
+  - name: Create volume groups through LVM
+    lvg:
+      vg: '{{ volume_group_name[index] }}'
+      pvs: /dev/{{ item }}
+    when:
+      - ('/dev/' + item) not in physical_volumes_fact.stdout_lines
+      - existing_volume_groups[index] is not defined or existing_volume_groups[index] == "" or existing_volume_groups | length > 0
+    loop: '{{ partition_names }}'
+    loop_control:
+      index_var: index
+    become: true
+
+  - name: Resize physical volumes through pvresize
+    command: pvresize "/dev/{{ item }}"
+    loop: '{{ partition_names }}'
+    become: true
+
+  - name: Create/resize a logical volume the size of all remaining space in the pv through LVM
+    lvol:
+      vg: '{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}'
+      lv: lv_{{ item.key }}
+      size: 100%PVS
+      resizefs: true
+      force: yes
+      state: present
+    loop: '{{ disk_preset_list }}'
+    loop_control:
+      index_var: index
+    become: true
+
+  - name: Create filesystem on each logical volume (except swap)
+    filesystem:
+      fstype: '{{ item.value.filesystem | default( disk_filesystem ) }}'
+      dev: /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }}
+    when: item.value.mount_point != '/swap'
+    loop: '{{ disk_preset_list }}'
+    loop_control:
+      index_var: index
+    become: true
+
+  - name: Mount volumes and update fstab
+    mount:
+      path: '{{ item.value.mount_point }}'
+      src: /dev/mapper/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}-lv_{{ item.key }}
+      fstype: '{{ item.value.filesystem | default( disk_filesystem ) }}'
+      state: mounted
+    when: item.value.mount_point != '/swap'
+    loop: '{{ disk_preset_list }}'
+    loop_control:
+      index_var: index
+    become: true
+
+  ### SWAP ONLY
+  - name: Configure Swap
+    become: true
+    block:
+      - name: Create swap filesystem and enable swap for swap volume
+        shell: |
+          mkswap /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }}
+          swapon -v /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }}
+        register: create_swap
+        become: true
+        ignore_errors: true
+        when:
+          - item.value.mount_point == '/swap'
+          - existing_volume_groups[index] is not defined or existing_volume_groups[index] == "" or existing_volume_groups | length > 0
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+
+  # NOTE: the create swap filesystem will fail if the play has failed since the resource is busy, adding ignore errors for now
+      - name: Update fstab with swap volume
+        lineinfile:
+          path: /etc/fstab
+          line: /dev/{{ existing_volume_groups[index] | default(volume_group_name[index], true) }}/lv_{{ item.key }} swap swap defaults 0 0
+          state: present
+        when:
+          - item.value.mount_point == '/swap'
+          - existing_volume_groups[index] is not defined or existing_volume_groups[index] == "" or existing_volume_groups | length > 0
+        loop: '{{ disk_preset_list }}'
+        loop_control:
+          index_var: index
+  # End block "Configure Swap"
+...

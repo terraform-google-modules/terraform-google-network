@@ -1,0 +1,22 @@
+---
+# Synopsis: Decrypts default IBP values and populates ibp_defaults with them.
+# Inputs:
+#   - file: ibp_defaults contains the encrypted IBP default values
+#   - file: unlock_ibp_defaults contains the decryption key for ibp_defaults
+# Outputs:
+#   - ibp_defaults: variable containing decrypted values.
+# Comments: N/A
+
+- name: "Decrypt IBP defaults"
+  command: ansible-vault view {{ role_path }}/files/general/ibp-defaults --vault-password-file {{ role_path }}/files/general/unlock_ibp_defaults
+  delegate_to: localhost
+  run_once: true
+  register: decrypted_output
+  changed_when: false
+  no_log: true
+
+- name: "Save IBP defaults"
+  set_fact:
+    ibp_defaults: "{{ decrypted_output.stdout }}"
+  no_log: true
+...

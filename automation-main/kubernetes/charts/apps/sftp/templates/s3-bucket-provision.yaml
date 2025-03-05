@@ -1,0 +1,80 @@
+{{- $customer := trimSuffix "-sftp" .Values.sftpgo.fullnameOverride }}
+{{- if .Values.sftpgo.s3BucketAuto }}
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: {{ $customer }}-sftpgo-storage
+spec:
+  forProvider:
+    region: {{ .Values.awsRegion }}
+  providerConfigRef:
+    name: {{ .Values.providerConfigRef.name }}
+  deletionPolicy: Orphan
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: Role
+metadata:
+    name: {{ $customer }}-sftpgo-bucket-role
+spec:
+    forProvider:
+        assumeRolePolicy: |
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "AWS": "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:role/shoot--{{ .Values.gardener.project }}--{{ .Values.gardener.shootName }}-nodes"
+                  },
+                  "Action": "sts:AssumeRole"
+                }
+              ]
+            }
+        inlinePolicy:
+          - name: {{ $customer }}-sftpgo-bucket-policy
+            policy: |
+              {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "ec2:DescribeVolumes",
+                      "ec2:DescribeSnapshots",
+                      "ec2:CreateTags",
+                      "ec2:CreateVolume",
+                      "ec2:CreateSnapshot",
+                      "ec2:DeleteSnapshot"
+                    ],
+                    "Resource": "*"
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:GetObject",
+                      "s3:DeleteObject",
+                      "s3:PutObject",
+                      "s3:PutObjectTagging",
+                      "s3:AbortMultipartUpload",
+                      "s3:ListMultipartUploadParts",
+                      "s3:ListBucket",
+                      "s3:ListTagsForResource"
+                    ],
+                    "Resource": [
+                      "arn:{{ .Values.awsPartition }}:s3:::{{ $customer }}-sftpgo-storage/*"
+                    ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:ListBucket"
+                    ],
+                    "Resource": [
+                      "arn:{{ .Values.awsPartition }}:s3:::{{ $customer }}-sftpgo-storage"
+                    ]
+                  }
+                ]
+              }
+    providerConfigRef:
+      name: {{ .Values.providerConfigRef.name }}
+{{- end }}

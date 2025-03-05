@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "AllowListAllBuckets",
+          "Effect": "Allow",
+          "Action": [
+              "s3:GetBucketLocation",
+              "s3:ListAllMyBuckets"
+          ],
+          "Resource": "*"
+      },
+      {
+          "Sid": "AllowListBucket",
+          "Effect": "Allow",
+          "Action": [
+              "s3:ListBucket"
+          ],
+          "Resource": [
+              "${ s3_backups_bucket_arn }",
+              "${ s3_binaries_bucket_arn }"
+          ]
+      },
+      {
+          "Sid": "AllowGetObject",
+          "Effect": "Allow",
+          "Action": [
+              "s3:GetObject"
+          ],
+          "Resource": [
+              "${ s3_backups_bucket_arn }/*",
+              "${ s3_binaries_bucket_arn }/*"
+          ]
+      }
+  ]
+}

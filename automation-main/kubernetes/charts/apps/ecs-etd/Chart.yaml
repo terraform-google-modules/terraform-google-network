@@ -1,0 +1,14 @@
+apiVersion: v2
+name: ecs-etd
+description: Helm Chart for deploying ecs-etd
+type: application
+version: 2.13.0
+appVersion: 2.13.15
+dependencies: 
+  - name: ecs-etds
+    version: 2.13.0
+    repository: oci://harbor.dev.ste.dev.scs.sap/helm-chart-museum
+  - name: etd-logcollector
+    version: 1.0.12
+    repository: oci://harbor.dev.ste.dev.scs.sap/helm-chart-museum
+    condition: etd-logcollector.enabled

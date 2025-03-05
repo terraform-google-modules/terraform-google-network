@@ -1,0 +1,29 @@
+# Synopsis: Installs SAP Host Agent
+# Inputs:
+#   spr_saphostagent_install_saphostagent_source : Location of the saphost agent source files
+# Outputs:
+# Comments:
+
+- name: "BLOCK: SAPHOSTAgent"
+  become: true
+  block:
+      - name: "Ensure saphostexec is executable"
+        file:
+          path: "{{ spr_saphostagent_install_saphostagent_source }}/saphostexec"
+          mode: 'u+x'
+
+      - name: Run the SAP Host Agent Setup script
+        command: "./saphostexec -install"
+        args:
+          chdir: "{{ spr_saphostagent_install_saphostagent_source }}"
+
+      - name: Restart SAP Host Agent
+        command: "./saphostexec -restart"
+        args:
+          chdir: "/usr/sap/hostctrl/exe"
+        register: results_restart_saphostagent
+
+      - name: Show SAP Host Agent Status
+        debug:
+          var: results_restart_saphostagent.stderr_lines
+###End "BLOCK: SAPHOSTAgent"

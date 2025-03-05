@@ -1,0 +1,72 @@
+---
+# Setup GCP Cross Project Logging for all cross project collectors
+# This takes a list of dictonaries of configs for each GCP project we want to deploy logging for
+#
+# Example:
+#  vars:
+#    vector_gcp_cross_project_logging:
+#      - project_id: "1"
+#        project_name: "Project1"
+#        project_splunk_index_prefix: "gcp-project-1"
+#        project_default_splunk_index: "gcp_hec_unknown"
+#        project_logs_pubsub_subscription: "subscription_project_1"
+
+  - name: Create GCP Cross Project Logging Vector Directory
+    file:
+      state: directory
+      path: /etc/vector/ns2/{{item}}
+    loop:
+      - gcp_cross_project_logging
+      - gcp_cross_project_logging/sources
+      - gcp_cross_project_logging/transforms
+    when:
+      - vector_gcp_cross_project_logging  | length > 0
+    become: yes
+
+  - name: Generate GCP Cross Logging Sources
+    template:
+      src: gcp_cross_project_logs/sources/gcp_cross_project_logs.j2
+      dest: /etc/vector/ns2/gcp_cross_project_logging/sources/gcp_cross_project_logs_{{item.project_id}}.yaml
+      selevel: s0
+      seuser: system_u
+      setype: etc_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0600'
+    vars:
+      - project_name: '{{ item.project_name }}'
+      - project_id: '{{ item.project_id }}'
+      - project_logs_pubsub_subscription: '{{ item.project_logs_pubsub_subscription }}'
+    with_items:
+      - '{{ vector_gcp_cross_project_logging }}'
+    when:
+      - vector_gcp_cross_project_logging  | length > 0
+    become: yes
+    notify:
+      - restart vector
+
+  - name: Generate GCP Cross Logging Transforms
+    template:
+      src: gcp_cross_project_logs/transforms/gcp_cross_project_logs_metadata.j2
+      dest: /etc/vector/ns2/gcp_cross_project_logging/transforms/gcp_{{item.project_id}}_project_logs_metadata.yaml
+      selevel: s0
+      seuser: system_u
+      setype: etc_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0600'
+    vars:
+      - project_name: '{{ item.project_name }}'
+      - project_id: '{{ item.project_id }}'
+      - project_splunk_index_prefix: '{{ item.project_splunk_index_prefix }}'
+      - project_default_splunk_index: '{{ item.project_default_splunk_index }}'
+    with_items:
+      - '{{ vector_gcp_cross_project_logging }}'
+    when:
+      - vector_gcp_cross_project_logging  | length > 0
+    become: yes
+    notify:
+      - restart vector
+...

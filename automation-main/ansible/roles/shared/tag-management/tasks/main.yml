@@ -1,0 +1,21 @@
+---
+# Synopsis: This task list servs as the main task list to call other task lists that
+# have similarly groups tasks defined within them.
+# inputs:
+#   - All of the variables defined in defaults.yml and the readme.md
+# are used in this task list via the included task lists.
+
+  - name: Gathering Information and Setting Facts for Instance
+    include_tasks:
+      file: gather-information.yml
+
+  - name: Applying Tags based on Collected Information
+    when: aws_tag_null_context_control|bool == false
+    include_tasks:
+      file: apply-tags.yml
+
+  - name: Applying Tags outside of Terraform Null Context
+    when: aws_tag_null_context_control|bool
+    include_tasks:
+      file: apply-tags-context.yml
+...

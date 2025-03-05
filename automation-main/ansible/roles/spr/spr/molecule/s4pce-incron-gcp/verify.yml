@@ -1,0 +1,54 @@
+---
+# This file contains validation tests for various tasks from roles/spr/tasks/main.yml.
+
+  - name: Validation tests for the SPR ansible role
+    hosts: all
+    gather_facts: false
+    become: true
+    tasks:
+      - name: check backup folders systemdb are available
+        stat:
+          path: /hana/backups/HDD/HDB00/backup/data/SYSTEMDB
+        register: systemdb
+
+      - name: check backup folders db_hdd are available
+        stat:
+          path: /hana/backups/HDD/HDB00/backup/data/DB_HDD
+        register: HDD
+
+      - name: check backup folders log_systemdb are available
+        stat:
+          path: /hana/backups/HDD/HDB00/backup/log/SYSTEMDB
+        register: log_systemdb
+
+      - name: check backup folders log_hdd are available
+        stat:
+          path: /hana/backups/HDD/HDB00/backup/log/DB_HDD
+        register: log_hdd
+
+      - name: check GCP sdk is available
+        stat:
+          path: '{{ item }}'
+        loop:
+          - /usr/bin/gcloud
+          - /usr/bin/gsutil
+        register: gcloud
+
+      - name: verify backup folder exists
+        assert:
+          that:
+            - systemdb.stat.exists == true
+            - systemdb.stat.gr_name == "sapsys"
+            - systemdb.stat.pw_name == "hddadm"
+            - log_hdd.stat.exists == true
+            - log_hdd.stat.gr_name == "sapsys"
+            - log_hdd.stat.pw_name == "hddadm"
+            - log_systemdb.stat.exists == true
+            - log_systemdb.stat.gr_name == "sapsys"
+            - log_systemdb.stat.pw_name == "hddadm"
+            - HDD.stat.exists == true
+            - HDD.stat.gr_name == "sapsys"
+            - HDD.stat.pw_name == "hddadm"
+            - gcloud.results[0].stat.exists == true
+            - gcloud.results[1].stat.exists == true
+...

@@ -1,0 +1,30 @@
+127.0.0.1       localhost.localdomain   localhost
+::1        localhost6.localdomain6   localhost6
+#=========================================================================================
+# IBP Customer{{ customer_number }} DISASTER RECOVERY host file created by Ansible
+#=========================================================================================
+# CPIDS
+{{ hostvars[cpids_ipaddress].ansible_default_ipv4.address }}    ns2cpids.{{ hostfile_fqdn|lower }}    ns2cpids    ns2cpids.ibp.sapns2.us    c{{ customer_number|lower }}-cpids.{{ hostfile_fqdn|lower }}    c{{ customer_number|lower }}-cpids
+#-----------------------------------------------------------------------------------------
+# Webdispatcher
+{{ hostvars[webdispatcher_ipaddress].ansible_default_ipv4.address webdispatcher_ipaddress }}    ibpwdisp-n02.{{ hostfile_fqdn|lower }}    ibpwdisp-n02 {% for backend in sidlist %}    wdisp-{{ backend|lower }}.{{ hostfile_fqdn|lower }} {% endfor %}    c{{ customer_number|lower }}-wdisp.{{ hostfile_fqdn|lower }}    c{{ customer_number|lower }}-wdisp
+#-----------------------------------------------------------------------------------------
+# Landscape Production
+#=========================================================================================
+{% for server in groups.production %}
+{% if server in groups.ibpdb %}
+{{ hostvars[server].ansible_default_ipv4.address }}    ibpdb-{{ production_sid|lower  }}.{{ hostfile_fqdn|lower }}    ibpdb-{{ production_sid|lower  }}    tenant-{{ production_sid|lower }}.{{ hostfile_fqdn|lower }}    tenant-{{ production_sid|lower }}    c{{ customer_number|lower }}-ibpdb-{{ production_suffix|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endfor %}
+# Landscape Disaster Recovery
+#=========================================================================================
+{% for server in groups.disaster_recovery %}
+{% if server in groups.ibpdb %}
+{{ hostvars[server].ansible_default_ipv4.address }}    ibpdr-{{ production_sid|lower  }}.{{ hostfile_fqdn|lower }}    ibpdr-{{ production_sid|lower  }}    tenant-{{ production_sid|lower }}.{{ hostfile_fqdn|lower }}    tenant-{{ production_sid|lower }}    c{{ customer_number|lower }}-ibpdb-{{ production_suffix|lower }}
+#-----------------------------------------------------------------------------------------
+{% elif server in groups.ibpapp %}
+{{ hostvars[server].ansible_default_ipv4.address }}    ibpapp01-{{ production_sid|lower }}.{{ hostfile_fqdn|lower }}    ibpapp01-{{ production_sid|lower }}   c{{ customer_number|lower }}-ibpapp-{{ production_suffix|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endfor %}

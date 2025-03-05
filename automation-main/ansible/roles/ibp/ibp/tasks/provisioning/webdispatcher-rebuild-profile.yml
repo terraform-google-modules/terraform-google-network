@@ -1,0 +1,104 @@
+---
+# Synopsis: Provision Webdispatcher
+# Inputs:
+#   - webdispatcher_rebuild_profile_tars : path to the webdispatcher source folder (version unique)
+#   - webdispatcher_rebuild_profile_saphostagent_source - path to the SAPHOSTAGENT install files (version unique)
+#   - webdispatcher_rebuild_profile_hostname:
+#   - webdispatcher_rebuild_profile_sidadm:
+# Outputs: Configured and running base IBP Webdispatcher system
+# Comments: N/A
+
+- name: Get EC2 Metadata
+  ec2_metadata_facts:
+  register: ec2_metadata
+
+- name: Validate environment
+  include_tasks: general/directories-validate.yml
+  vars:
+    folder_path: "{{ item }}"
+  loop: "{{ webdispatcher_rebuild_profile_tars + [webdispatcher_rebuild_profile_saphostagent_source] | list}}"
+
+- name: Set the Hostname
+  hostname:
+    name: '{{ webdispatcher_rebuild_profile_hostname }}'
+  become: true
+
+- name: Ensure Sapsys group has GID of 79
+  group:
+    name: sapsys
+    state: present
+    gid: 79
+    local: yes
+  become: true
+
+- name: Create n02adm SAP System Administrator
+  user:
+    name: "n02adm"
+    comment: "SAP System Administrator"
+    create_home: yes
+    home: "/home/n02adm"
+    uid: 1004
+    group: 79
+    shell: /bin/csh
+    state: present
+  become: true
+
+- name: Extract Webdispatcher tars
+  become: true
+  ignore_errors: true
+  unarchive:
+    src: "{{ item }}"
+    dest: "/"
+    remote_src: yes
+    list_files: no
+  loop: "{{ webdispatcher_rebuild_profile_tars }}"
+
+- name: Check execute mode on saphostexec
+  become: true
+  file:
+    path: "{{ webdispatcher_rebuild_profile_saphostagent_source }}/saphostexec"
+    mode: 'u+x'
+
+- name: Run the SAP Host Agent Setup script
+  become: true
+  command: "./saphostexec -install"
+  args:
+    chdir: "{{ webdispatcher_rebuild_profile_saphostagent_source }}"
+
+- name: Restart SAP Host Agent
+  become: true
+  command: "./saphostexec -restart"
+  args:
+    chdir: "/usr/sap/hostctrl/exe"
+  register: results_restart_saphostagent
+
+- name: Show SAP Host Agent Status
+  debug:
+    var: results_restart_saphostagent.stderr_lines
+
+- name: Reset sapadm password
+  become: true
+  user:
+    name: sapadm
+    update_password: always
+    password: "{{ default_password }}"
+
+- name: Reset n02adm password
+  become: true
+  user:
+    name: "n02adm"
+    update_password: always
+    password: "{{ default_password }}"
+
+- name: Get n02adm environment
+  shell: env
+  become: yes
+  become_user: "n02adm"
+  become_flags: '-i'
+  register: results_environment
+
+- name: Display n02adm environment when verbosity >= 1
+  debug:
+    var: results_environment.stdout_lines
+    verbosity: 1
+...

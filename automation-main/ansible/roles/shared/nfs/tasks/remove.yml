@@ -1,0 +1,78 @@
+---
+# Synopsis: Removes a single network file share from a linux machine
+# Inputs:
+#   item - (from parent taskfile) a single element of the `nfs_dictionary`
+#   nfs_change_cache - (from parent taskfile) internal variable for storing cache nfs changes
+
+  - name: Remove /etc/hosts entry for EFS mount target when necessary
+    lineinfile:
+      path: /etc/hosts
+      regexp: ^(.*) {{ item.value.src }}
+      state: absent
+    become: true
+    when:
+      - item.value.src is defined
+      - item.value.src is not none
+      - item.value.src | length > 0
+
+  - name: Detect stale file handle prior to attempting to remove file system
+    stat:
+      path: '{{ item.value.path }}'
+    register: nfs_stale_file_handle_check
+    become: true
+    failed_when: false
+
+  - name: Fix stale file handle artifact prior to attempting to remove file system
+    shell: |
+      umount -lf {{ item.value.path }};
+      rm -rf {{ item.value.path }};
+    when:
+      - nfs_stale_file_handle_check.msg is defined
+      - nfs_stale_file_handle_check.msg == "Stale file handle"
+    become: true
+
+  - name: Get shared file system mount information
+    shell: if mount -l | grep {{ item.value.path }}; then ls -lah {{ item.value.path }}; fi
+    become: true
+    register: nfs_content_output
+    no_log: true
+    failed_when: false
+
+  - name: Unmount shared file system
+    mount:
+      path: '{{ item.value.path }}'
+      state: absent
+    become: true
+    register: nfs_removal_status
+
+  - name: Detect stale file handle after attempting to remove file system
+    stat:
+      path: '{{ item.value.path }}'
+    register: nfs_stale_file_handle_check
+    become: true
+    failed_when: false
+
+  - name: Fix stale file handle artifact after attemping to remove file system
+    shell: |
+      umount -lf {{ item.value.path }};
+      rm -rf {{ item.value.path }};
+    when:
+      - nfs_stale_file_handle_check.msg is defined
+      - nfs_stale_file_handle_check.msg == "Stale file handle"
+    become: true
+
+  - name: Add removed shared file system to nfs change cache
+    set_fact:
+      nfs_change_cache: >-
+        {{
+          nfs_change_cache | default({}, true) | combine({
+            item.key : {
+              'status' : 'REMOVED',
+              'path' : item.value.path,
+              'src' : item.value.src | default('NULL'),
+              'content' : nfs_content_output.stdout_lines | default('NULL')
+            }
+          })
+        }}
+    when: nfs_removal_status.changed
+...

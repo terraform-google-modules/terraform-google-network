@@ -1,0 +1,39 @@
+{{ $envConfig := (datasource "envConfig") }}
+gardener:
+  project: {{ .Env.projectName }}
+  shootName: {{ $envConfig.shootName }}
+  baseDomain: {{ .Env.gardenerBaseDomain }}
+providerConfigRef:
+  name: aws-provider-config
+awsAccountID: "{{ .Env.accountID }}"
+awsPartition: {{ .Env.awsPartition }}
+awsRegion: {{ $envConfig.region }}
+
+aws-mountpoint-s3-csi-driver:
+  node:
+    nodeSelector:
+      topology.kubernetes.io/region: {{ $envConfig.region }}
+    resources:
+      requests:
+        cpu: 10m
+        memory: 40Mi
+      limits:
+        memory: 256Mi
+    serviceAccount:
+      create: true
+      name: s3-csi-driver-sa
+      annotations:
+        eks.amazonaws.com/role-arn: "arn:{{ .Env.awsPartition }}:iam::{{ .Env.accountID }}:role/{{ .Env.projectName }}-{{ $envConfig.shootName }}-mountpoint-admin"
+    tolerateAllTaints: false
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: topology.kubernetes.io/region
+                  operator: In
+                  values:
+                    - {{ $envConfig.region }}
+    podInfoOnMountCompat:
+      enable: true
+  awsAccessSecret: ""

@@ -1,0 +1,32 @@
+{{ $ecs_etd := ( index .Values "ecs-etds") }}
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: update-init-job-container
+  annotations:
+    policies.kyverno.io/title: ETD Job Container Update
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Container
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-15"
+spec:
+  webhookTimeoutSeconds: 5
+  rules:
+  - name: update-init-job-container
+    skipBackgroundRequests: false
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+          namespaces:
+          - ecs-etd-{{ .Values.customer }}
+          names:
+          - "*-ecs-etd-lc-ob-config-*"
+          - "*-ecs-etd-restart-job-*"
+    mutate:
+      patchStrategicMerge:
+        spec:
+          containers:
+          - name: kubectl
+            image: {{ $ecs_etd.image.repository }}/bitnami-kubectl:{{ $ecs_etd.initContainerVersions.bitnamiKubectl }}

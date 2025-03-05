@@ -1,0 +1,38 @@
+[
+  {
+    "Id": "e1",
+    "Expression": "IF(curlStatusCode!=200, 1, 0)",
+    "Label": "Curl-expression",
+    "ReturnData": true
+  },
+  {
+    "Id": "curlStatusCode",
+    "MetricStat": {
+      "Metric": {
+        "Namespace": "CWAgent",
+        "MetricName": "collectd_curl_value",
+        "Dimensions": [
+          {
+            "Name": "instance",
+            {% if cw_preset_selection == "cpids" %}
+            "Value": "DSoD"
+            {% else %}
+            "Value": "FioriLaunchpad"
+            {% endif %}
+          },
+          {
+            "Name": "InstanceId",
+            "Value": "{{ ansible_ec2_instance_id }}"
+          },
+          {
+            "Name": "type",
+            "Value": "response_code"
+          }
+        ]
+      },
+      "Period": 300,
+      "Stat": "Average"
+    },
+    "ReturnData": false
+  }
+]

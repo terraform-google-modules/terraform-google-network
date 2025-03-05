@@ -1,0 +1,126 @@
+---
+# Synopsis: Main set of tasks for installing and configuring disk metrics for cloudwatch on ec2 instances.
+# Inputs:
+#   - aws_topic_name: Name of SNS topic used for email alerts.
+#   - aws_cloudwatch_alarm_throttle : Throttles alarm creation. Defaults to 0 (no throttle)
+#   - aws_sns_subscription_email: Email to send alerts to.
+#   - cw_preset_selection: Preset selection used when installing SNS. Default to a blank value, if left
+#     blank, this role will automatically try to determine which preset selection to use.
+#   - cw_alert_threshold_disk_space: Threshold on which alerts will start being sent.
+#   - ignore_disks: List of mount points to ignore.
+#   - cw_install_metrics: Flag to enable/disable custom metric gathering, used to not set Alarms if false
+# Outputs:
+#   - ec2_tag_list: tags of this EC2 instance.
+#   - node_value: Value of the Node tag on this ec2 instance.
+
+
+# Collecting data on the instance.
+  - name: Gather Current EC2 instance metadata
+    ec2_metadata_facts:
+
+
+# Collecting AWS Tags for this instance.
+  - name: Obtain EC2 tags for this instance
+    ec2_tag_info:
+      region: '{{ ansible_ec2_placement_region }}'
+      resource: '{{ ansible_ec2_instance_id }}'
+    register: ec2_tag_list
+    delegate_to: localhost
+
+
+# The Node value is used with aws-cloudwatch-agent role for configuring which logs are collected by cloudwatch.
+# It's also used by this role to determine what name to use for creating alarm names.
+  - name: Getting Business Tag for Instance
+    set_fact:
+      business_value: "{{ ec2_tag_list.tags.Business | default('default') }}"
+
+
+# This is for auto-determining cloudwatch agent preset selection for IBP.
+# If the business_value does not equal IBP, than we'll use the cw_preset_selection passed as an extra variable.
+# Also ignores if the cw_preset_selection is something other than default.
+# NOTE 2021.03.05: Pretty sure we can get rid of this. -Louis
+  - name: CloudWatch Preset Selection Value [from AWS ProductName Tag]
+    set_fact:
+      cw_preset_selection: "{{ ec2_tag_list.tags.ProductName | default (cw_preset_selection) | replace('ibpapp','sap') }}"
+    when:
+      - business_value == 'ibp'
+      - cw_preset_selection == "default"
+
+# Fix until we refactor and stop calling roles from roles.
+  - name: Set variable for cw_preset_selection
+    set_fact:
+      cloudwatch_alarm_application_preset_selection: '{{ application_preset_selection|default(cw_preset_selection,true) }}'
+
+# This installs and configures the cloudwatch agent using a separate role.
+# The preset value determines which log files are used, and is required when configuring Cloudwatch.
+  - name: Configuring Cloudwatch Agent with Custom Application Preset
+    include_role:
+      name: aws-cloudwatch-agent
+      apply:
+        become: true
+    vars:
+      application_preset_selection: '{{ cloudwatch_alarm_application_preset_selection }}'
+      cwa_install_metrics: '{{ cw_install_metrics }}'
+
+
+# This is for determining how to name the alarm that's created when in IBP.
+  - name: Alarm Name Value [from AWS Name Tag]
+    set_fact:
+      alarm_name: '{{ ec2_tag_list.tags.Name }}'
+    when: (business_value == 'ibp') or (business_value == 's4')
+
+
+# This is for determining how to name the alarm that's created when for non-IBP systems.
+  - name: Alarm Name Value [from hostname]
+    set_fact:
+      alarm_name: "{{ ansible_hostname + '/' + ansible_ec2_instance_id | regex_replace ('^i-', '') }}"
+    when: (business_value != 'ibp') and (business_value != 's4')
+
+
+# Create an alerts SNS topic and subscribe the provided email to it
+  - name: Split out inputs lists for notification emails and phone numbers
+    set_fact:
+      aws_sns_text_numbers_list: "{{ aws_sns_text_numbers.split(',') }}"
+      aws_sns_subscription_emails_list: "{{ aws_sns_subscription_email.split(',') }}"
+
+  - name: Construct dictionary of SMS notification recipients
+    set_fact:
+      notifications: "{{ notifications | default({},true) | combine({ item : { 'endpoint' : item, 'protocol' : 'sms' } }) }}"
+    loop: '{{ aws_sns_text_numbers_list|default(omit,true) }}'
+    when: aws_sns_text_numbers|length>0
+
+  - name: Construct dictionary of Email notification recipients
+    set_fact:
+      notifications: "{{ notifications | default({},true) | combine({ item : { 'endpoint' : item, 'protocol' : 'email' } }) }}"
+    loop: '{{ aws_sns_subscription_emails_list|default(omit,true) }}'
+    when: aws_sns_subscription_email|length>0
+
+  - name: Subscribing notification recipients to {{ aws_topic_name }} Topic
+    sns_topic:
+      name: '{{ aws_topic_name }}'
+      subscriptions: '{{ notifications.values() | list }}'
+    delegate_to: localhost
+    run_once: true
+    when:
+      - notifications is defined
+      - notifications.values()|list|length>0
+
+# Looping through the list of alarms so we can check to see if they should be ignored.
+# This also allows us to just loop through the ansible_mounts fact instead of requiring
+# users to provide a list of disks they want to monitor, we just monitor all disks that
+# aren't tmpfs file system and aren't in the ignore list.
+# You may notice that the this_disk_device variable that's being defined strips out the
+# leading '/dev/' from the device value in the ansible_mounts variable. This is because
+# cloudwatch shows this value without the leading '/dev/'.
+  - name: 'BLOCK: Alarm Creation'
+    throttle: '{{ aws_cloudwatch_alarm_throttle }}'
+    block:
+      - name: Configuring Volume Alarms
+        include_tasks:
+          file: configure-volume-alarms.yml
+
+      - name: Configure Default Instance Alarms
+        include_tasks:
+          file: configure-default-alarms.yml
+# End "BLOCK: Alarm Creation"
+...

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: namespace-init-cm
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-2"
+    helm.sh/hook: pre-install
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+data:
+  vault-write-back.sh: |
+{{ .Files.Get "files/vault_write_back.sh" | indent 4}}

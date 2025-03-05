@@ -1,0 +1,15 @@
+[Unit]
+Description=Clam AntiVirus userspace daemon
+Documentation=man:clamd(8) man:clamd.conf(5) https://www.clamav.net/documents/
+Requires=clamd@scan.socket
+ConditionPathExistsGlob=/var/lib/clamav/main.{c[vl]d,inc}
+ConditionPathExistsGlob=/var/lib/clamav/daily.{c[vl]d,inc}
+After=network.target
+
+[Service]
+Type=oneshot
+User=clamscan
+Group=virusgroup
+WorkingDirectory=/var/run/clamav/
+ExecStart=/usr/sbin/clamd -c /etc/clamd.d/scan.conf
+TimeoutStartSec=420

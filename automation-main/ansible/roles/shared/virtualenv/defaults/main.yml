@@ -1,0 +1,13 @@
+---
+# defaults file for virtualenv
+
+virtualenv: /usr/local/ansible
+virtualenv_command: python3 -m venv
+virtualenv_install_pip_bool: true
+
+virtualenv_set_python_interpreter: false
+virtualenv_ansible_symlink: true
+virtualenv_pip_package_list:
+  - boto3
+  - botocore
+...

@@ -1,0 +1,6 @@
+---
+# This preset is for any system running Docker/containerized applications.
+
+# TODO: No changes from default for now, add appropriate entries for docker
+logs_docker: []
+...

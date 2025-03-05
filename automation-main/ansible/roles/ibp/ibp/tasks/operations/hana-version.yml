@@ -1,0 +1,20 @@
+---
+# Synopsis: Gets the hana version levels
+# Inputs:
+#   - sid : SAP ID of the system
+# Outputs:
+#   - hana_version_xml: XML of Hana stats
+# Comments:
+
+- name: "Get DB stats using hdblcm"
+  shell: "./hdblcm --action=print_component_list"
+  args:
+    chdir: "/hana/shared/{{ sid|upper }}/hdblcm"
+  become: true
+  changed_when: false
+  register: hdblcm_stats_output
+
+- name: "Sanitize XML output"
+  set_fact:
+    hana_version_xml: "{{ hdblcm_stats_output.stdout|trim }}"
+...

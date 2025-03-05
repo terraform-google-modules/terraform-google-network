@@ -1,0 +1,15 @@
+---
+# Synopsis: Checks for FIPS status on Ubuntu 20
+# Outputs:
+#   - fips_state
+
+  - name: Determine if FIPS is enabled
+    shell: sysctl crypto.fips_enabled | tail -c 2
+    become: true
+    register: fips_state_output
+    changed_when: false
+
+  - name: Set Fact fips_state
+    set_fact:
+      fips_state: '{{fips_state_output.stdout|bool}}'
+...

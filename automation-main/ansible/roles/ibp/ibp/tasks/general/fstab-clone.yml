@@ -1,0 +1,62 @@
+---
+# Description: Clones fstab entries between two instances
+# Inputs:
+#   - fstab_clone_mount_targets: List of mounts to look for in the fstab
+# Outputs:
+#   - Target Instance has attached EBS volumes cloned from source
+#   - Creates a shared_vars in inventory to share data across all hosts.
+# Comments:
+#  - Requires the ansible inventory to be divided up into `target_hosts` and `source_hosts` groups.
+
+
+- name: "BLOCK: Get mounts from source"
+  when: "'source_hosts' in group_names"
+  block:
+      - name: "Get mount points from /etc/fstab"
+        shell: "grep '\\s{{ item }}\\s' /etc/fstab | grep -v root"
+        register: mountpoint_outputs
+        loop: "{{ fstab_clone_mount_targets }}"
+
+      - name: "Save mount point information"
+        set_fact:
+          fstab_mounts: "{{ mountpoint_outputs| json_query('results[*].stdout') }}"
+
+      - name: "Share mount data"
+        add_host:
+          name: shared_vars
+          fstab_mounts: "{{ fstab_mounts }}"
+
+      - name: "Display mounts when verbosity >= 1"
+        debug:
+          var: fstab_mounts
+          verbosity: 1
+### END "BLOCK: Get mounts from source"
+
+- name: "BLOCK: Add mounts to target"
+  when: "'target_hosts' in group_names"
+  become: true
+  block:
+    - name: "Modify fstab"
+      lineinfile:
+        path: '/etc/fstab'
+        state: present
+        line: "{{ item }}"
+      loop: "{{ hostvars['shared_vars'].fstab_mounts }}"
+
+    - name: "Ensure NFS is installed."
+      package:
+        state: installed
+        name: 'nfs-utils'
+
+    - name: "Ensure mount folders exists."
+      file:
+        path: "{{ item|trim }}"
+        state: directory
+        mode: 0755
+      loop: "{{ fstab_clone_mount_targets }}"
+      when: item != 'swap'
+
+    - name: "Remount fstab"
+      command: "mount -a"
+### END "BLOCK: Add mounts to target"
+...

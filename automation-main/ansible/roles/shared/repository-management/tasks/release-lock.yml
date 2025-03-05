@@ -1,0 +1,46 @@
+---
+# Description: Handles setting release lock for package repositories
+# Inputs:
+#   - repo_release_lock: override the `ansible_distribution_version` to explicit release lock version
+#   - repo_release_lock_from_ec2_tag: whether or not to pull the release lock version from EC2 tag `ReleaseLock`
+#   - repo_release_lock_from_ec2_tag_delegate_local: whether to delegate tasks to get EC2 instance tags to localhost or run from remote
+# Outputs:
+#   - ansible_distribution_version: (optional) whether or not to override package repositories at a target OS minor version
+
+  - name: Get ReleaseLock tag from EC2 instance
+    block:
+
+      - name: Retrieve ec2 metadata
+        ec2_metadata_facts:
+
+      - name: Obtain EC2 tags for the instance
+        ec2_tag_info:
+          region: '{{ ansible_ec2_placement_region }}'
+          resource: '{{ ansible_ec2_instance_id }}'
+        register: ec2_tag_list
+        delegate_to: >-
+          {{
+            'localhost' if (
+              repo_release_lock_from_ec2_tag_delegate_local
+            ) else omit
+          }}
+
+      - name: Set repository release lock based on ReleaseLock tag value
+        set_fact:
+          repo_release_lock: '{{ ec2_tag_list.tags.ReleaseLock }}'
+        when:
+          - ec2_tag_list.tags.ReleaseLock is defined
+          - ec2_tag_list.tags.ReleaseLock is not none
+          - ec2_tag_list.tags.ReleaseLock | length > 0
+
+    when:
+      - repo_release_lock_from_ec2_tag | bool
+
+  - name: Override ansible_distribution_version with set repo_release_lock
+    set_fact:
+      ansible_distribution_version: '{{ repo_release_lock }}'
+    when:
+      - repo_release_lock is defined
+      - repo_release_lock is not none
+      - repo_release_lock | length > 0
+...

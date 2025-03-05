@@ -1,0 +1,18 @@
+---
+# Synopsis: Runs tasks for SELinux/AppArmor.
+# Inputs:
+#   - apparmor_configure : Whether to modify the AppArmor configurations.
+#   - selinux_configure : Whether to modify the SELinux confingurations.
+#   - reboot_if_needed : Whether to reboot the system if required by the role.
+#
+# Outputs:
+#   - Enables or disables SELinux or AppArmor and reboots the system if permitted and necessary.
+
+  - name: Configure SELinux for Amazon Linux 2 systems
+    ansible.builtin.include_tasks: configure-amazon-linux.yml
+    when: selinux_configure | bool and (ansible_os_family | lower) + ansible_distribution_major_version == "redhat2"
+
+  - name: Configure SELinux/AppArmor for {{ ansible_os_family | lower }} systems
+    ansible.builtin.include_tasks: configure-{{ ansible_os_family | lower }}.yml
+    when: (selinux_configure | bool or apparmor_configure | bool) and (ansible_os_family | lower) + ansible_distribution_major_version != "redhat2"
+...

@@ -1,0 +1,576 @@
+---
+# Playbook Name: spr-solman_hana_replication.yml
+# Description: Standalone playbook that starts replication between two HANA DB Servers
+# Prerequisites:
+#   - 2 SPR Provisioned (blank) S4/HANA Servers
+#   - Database Ansible Inventory created from template (./solman-db-install.vars.template.yml)
+# Dependencies: N/A
+# Variables:
+#   Inventory Host Variables (See template for descriptions)
+#   -  spr_sid
+#   -  sap_hana_hsr_role
+#   - sap_hana_hsr_hana_instance_number
+#   - spr_hostname
+#   - sap_hana_hsr_hana_db_system_password
+#   - sap_hana_hsr_oper_mode
+#   - sap_hana_hsr_alias
+#   - sap_hana_hsr_rep_mode
+
+# Example:
+#
+#   ansible-playbook spr-solman_hana_replication.yml -defaults.yml -inventory.yml -i solman-db-install.vars.yml -k
+# Authors: Sean-Thomas Saloom
+# Version: 2.9-000002
+# Modified: 2023-07-10 - Created
+#           2023-07-31 - Drop Table for JAVA requirements on Clustering
+# Comments: N/A
+# play0     Dynamic Variables
+# Play1     Configure HANA Replication
+
+- name: Play0
+  hosts: dbservers
+  tags:
+    - always
+    - play0
+  tasks:
+    - name: "Dynamic Group Assignment"
+      group_by:
+        key: "{{ item }}"
+      when: "item != 'undefined'"
+      loop:
+      - "{{ spr_nodetype|default('undefined')|lower }}"
+      - "{{ spr_landscape|default('undefined')|lower }}"
+      - "{{ spr_productname|default('undefined')|lower }}"
+      - "{{ spr_sid|default('undefined')|lower }}"
+      - "{{ sap_ha_role|default('undefined')|lower }}"
+      - "{{ sap_hana_hsr_role|default('undefined')|lower }}"
+
+    - name: Set dynamic facts
+      set_fact:
+        sap_hana_hsr_hana_primary_hostname: "{{ hostvars[ (groups[spr_sid]|intersect(groups['primary'])) | first ]['spr_hostname'] }}"
+        sap_hana_hsr_hana_secondary_hostname: "{{ hostvars[ (groups[spr_sid]|intersect(groups['secondary'])) | first ]['spr_hostname'] }}"
+        sap_hana_hsr_hana_sid: "{{ spr_sid | upper }}"
+        sap_hana_hsr_primary_ip: "{{ hostvars[ (groups[spr_sid]|intersect(groups['primary'])|intersect(groups['db'])) | first ].ansible_default_ipv4.address }}"
+        sap_hana_hsr_secondary_ip: "{{ hostvars[ (groups[spr_sid]|intersect(groups['secondary'])|intersect(groups['db'])) | first ].ansible_default_ipv4.address }}"
+
+
+- name: "Play1: Configure HANA System Replication from Primary to Secondary"
+  hosts: dbservers
+  gather_facts: true
+  tags:
+    - play1
+  tasks:
+    - name: ensure each hana instance is started
+      shell: |
+          /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/HDB start
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: startinstance
+      changed_when: "'StartSystem' in startinstance.stdout"
+
+    - name: "Wait for DB to start"
+      become: true
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      shell: |
+          /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/sapcontrol \
+          -nr {{ sap_hana_hsr_hana_instance_number }} -function GetProcessList
+      failed_when: false
+      environment:
+        LD_LIBRARY_PATH: "/usr/sap/{{ sap_hana_hsr_hana_sid|upper }}/SYS/exe/uc/linuxx86_64"
+      changed_when: false
+      register: sap_db_status
+      retries: 30
+      delay: 15
+      until: |
+        'GREY' not in sap_db_status.stdout and
+        'YELLOW' not in sap_db_status.stdout
+
+    - name: Drop existing JAVA schema "{{ spr_db_second_tenant_sid | upper }}"
+      shell: >-
+        hdbsql -i 00
+        -n localhost -d {{ spr_db_second_tenant_sid | upper }} -u SYSTEM -p QwerRewq123
+        "DROP USER SAPJAVA1 CASCADE;"
+      args:
+        executable: '/bin/csh'
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      ignore_errors: yes
+
+    - name: Ensure log_mode is set to normal for SYSTEMDB
+      shell: >-
+        hdbsql -i 00
+        -d SYSTEMDB -u SYSTEM -p QwerRewq123
+        "
+        ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM')
+        SET ('{{ item.section }}', '{{ item.option }}') = '{{ item.value }}'
+        WITH RECONFIGURE;
+        "
+      args:
+        executable: '/bin/csh'
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid|lower }}adm"
+      with_items:
+        - section: persistence
+          option: log_mode
+          value: normal
+
+    - name: Ensure log_mode is set to normal for {{ spr_db_first_tenant_sid }}DB
+      shell: >-
+        hdbsql -i 00
+        -d {{ spr_db_first_tenant_sid }} -u SYSTEM -p QwerRewq123
+        "
+        ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM')
+        SET ('{{ item.section }}', '{{ item.option }}') = '{{ item.value }}'
+        WITH RECONFIGURE;
+        "
+      args:
+        executable: '/bin/csh'
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid|lower }}adm"
+      with_items:
+        - section: persistence
+          option: log_mode
+          value: normal
+
+    - name: Ensure log_mode is set to normal for {{ spr_db_second_tenant_sid }}DB
+      shell: >-
+        hdbsql -i 00
+        -d {{ spr_db_second_tenant_sid }} -u SYSTEM -p QwerRewq123
+        "
+        ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM')
+        SET ('{{ item.section }}', '{{ item.option }}') = '{{ item.value }}'
+        WITH RECONFIGURE;
+        "
+      args:
+        executable: '/bin/csh'
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid|lower }}adm"
+      with_items:
+        - section: persistence
+          option: log_mode
+          value: normal
+
+    - name: Unset host log_mode logconfiguration
+      shell: >-
+        hdbsql -i 00
+        -d SYSTEMDB -u SYSTEM -p QwerRewq123
+        "
+        ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'HOST', '{{ spr_hostname }}')
+        UNSET ('persistence','log_mode')
+        WITH RECONFIGURE;
+        "
+      args:
+        executable: '/bin/csh'
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid|lower }}adm"
+
+    - name: Set system_replication_hostname_resolution
+      shell: >-
+        hdbsql -i 00
+        -d SYSTEMDB -u SYSTEM -p QwerRewq123
+        "
+        ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM')
+        SET ('{{ item.section }}', '{{ item.option }}') = '{{ item.value }}'
+        WITH RECONFIGURE;
+        "
+      args:
+        executable: '/bin/csh'
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid|lower }}adm"
+      with_items:
+        - section: system_replication_hostname_resolution
+          option: "{{ sap_hana_hsr_primary_ip }}"
+          value: "{{ sap_hana_hsr_hana_primary_hostname }}"
+        - section: system_replication_hostname_resolution
+          option: "{{ sap_hana_hsr_secondary_ip }}"
+          value: "{{ sap_hana_hsr_hana_secondary_hostname }}"
+
+    - name: System Configuration Stuff global.ini
+      shell: >-
+        hdbsql -i 00
+        -d SYSTEMDB -u SYSTEM -p QwerRewq123
+        "
+        ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM')
+        SET ('{{ item.section }}', '{{ item.option }}') = '{{ item.value }}'
+        WITH RECONFIGURE;
+        "
+      args:
+        executable: '/bin/csh'
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid|lower }}adm"
+      with_items:
+        - section: inifile_checker
+          option: replicate
+          value: true
+        - section: system_replication
+          option: logshipping_max_retention_size
+          value: 204800
+        - section: system_replication
+          option: datashipping_snapshot_max_retention_time
+          value: 60
+        - section: system_replication
+          option: logshipping_async_wait_on_buffer_full
+          value: false
+        - section: communication
+          option: tcp_backlog
+          value: 2048
+        - section: system_replication_communication
+          option: enable_ssl
+          value: on
+
+    - name: System Configuration Stuff indexserver.ini
+      shell: >-
+        hdbsql -i 00
+        -d SYSTEMDB -u SYSTEM -p QwerRewq123
+        "
+        ALTER SYSTEM ALTER CONFIGURATION ('indexserver.ini', 'SYSTEM')
+        SET ('{{ item.section }}', '{{ item.option }}') = '{{ item.value }}'
+        WITH RECONFIGURE;
+        "
+      args:
+        executable: '/bin/csh'
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid|lower }}adm"
+      with_items:
+        - section: system_replication
+          option: logshipping_replay_push_persistent_segment_count
+          value: 64
+        - section: system_replication
+          option: logshipping_replay_logbuffer_cache_size
+          value: 21474836480
+        - section: pitrestart
+          option: replay_step_size
+          value: 1073741824
+
+    - name: ensure each hana instance is stopped
+      shell: |
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/HDB stop
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: stopinstance
+      changed_when: "'StopSystem' in stopinstance.stdout"
+
+    - name: ensure each hana instance is started
+      shell: |
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/HDB start
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: startinstance
+      changed_when: "'StartSystem' in startinstance.stdout"
+
+    - name: ensure hana instance is stopped on the dbsecondary
+      shell: |
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/HDB stop
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: stopinstance
+      changed_when: "'StopSystem' in stopinstance.stdout"
+      when:
+        - sap_hana_hsr_role == 'secondary'
+      tags:
+        - stop-hana-secondary
+
+    - name: pull DAT and KEY files from primaryb database to local anisble host in /tmp
+      become: true
+      ansible.builtin.fetch:
+        src: "{{ item }}"
+        dest: /tmp/hsr-test/
+        flat: yes
+      loop:
+        - /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/SYS/global/security/rsecssfs/data/SSFS_{{ sap_hana_hsr_hana_sid | upper }}.DAT
+        - /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/SYS/global/security/rsecssfs/key/SSFS_{{ sap_hana_hsr_hana_sid | upper }}.KEY
+      when:
+        - sap_hana_hsr_role == 'primary'
+      tags:
+        - pull-pkistore-primary
+
+    - name: push system pki ssfs store dat and key files to the secondary db (to match with the primary db)
+      become: true
+      copy:
+        src: "/tmp/hsr-test/{{ item.file }}"
+        dest: "{{ item.path }}{{ item.file }}"
+        owner: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+        group: sapsys
+        mode: '{{ item.mode }}'
+        backup: yes
+      loop:
+      - {
+          path: "/usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/SYS/global/security/rsecssfs/data/",
+          file: "SSFS_{{ sap_hana_hsr_hana_sid | upper }}.DAT",
+          mode: "0600",
+        }
+      - {
+          path: "/usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/SYS/global/security/rsecssfs/key/",
+          file: "SSFS_{{ sap_hana_hsr_hana_sid | upper }}.KEY",
+          mode: "0640",
+        }
+      when:
+        - sap_hana_hsr_role == 'secondary'
+      tags:
+        - push-pkistore-secondary
+
+    - name: ensure secondary hana instance is started
+      shell: |
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/HDB start
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: startinstance
+      changed_when: "'StartSystem' in startinstance.stdout"
+      when:
+        - sap_hana_hsr_role == 'secondary'
+
+    - name: ensure secondary hana instance is stopped
+      shell: |
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/HDB stop
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: stopinstance
+      changed_when: "'StopSystem' in stopinstance.stdout"
+      when:
+        - sap_hana_hsr_role == 'secondary'
+
+    - name: perform systemdb backup on dbprimary
+      shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/hdbsql \
+        -i {{ sap_hana_hsr_hana_instance_number }} -u SYSTEM -p {{ sap_hana_hsr_hana_db_system_password }} -d SYSTEMDB -m <<EOF
+        BACKUP DATA USING FILE ('primary_systemdb_bck');
+        EOF
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: systembackup
+      changed_when: "'0 rows affected' in systembackup.stdout"
+      when:
+        - sap_hana_hsr_role == 'primary'
+      tags:
+        - systemdb-backup-primary
+
+    - name: perform tenantdb backup for {{ spr_db_first_tenant_sid | upper }} on dbprimary
+      shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/hdbsql \
+        -i {{ sap_hana_hsr_hana_instance_number }} -u SYSTEM -p {{ sap_hana_hsr_hana_db_system_password }} -d SYSTEMDB -m <<EOF
+        BACKUP DATA FOR {{ spr_db_first_tenant_sid | upper }} USING FILE ('primary_tenantdb_bck');
+        EOF
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: databackup
+      changed_when: "'0 rows affected' in databackup.stdout"
+      when:
+        - sap_hana_hsr_role == 'primary'
+      tags:
+        - tenantdb-backup-primary
+
+    - name: perform tenantdb backup for {{ spr_db_second_tenant_sid | upper }} on dbprimary
+      shell: |
+          source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+          /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/hdbsql \
+          -i {{ sap_hana_hsr_hana_instance_number }} -u SYSTEM -p {{ sap_hana_hsr_hana_db_system_password }} -d SYSTEMDB -m <<EOF
+          BACKUP DATA FOR {{ spr_db_second_tenant_sid | upper }} USING FILE ('primary_tenantdb_bck');
+          EOF
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: databackup
+      changed_when: "'0 rows affected' in databackup.stdout"
+      when:
+        - sap_hana_hsr_role == 'primary'
+      tags:
+        - tenantdb-backup-primary
+
+    - name: check if hana system replication on dbprimary is enabled
+      shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/hdbnsutil \
+        -sr_state
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: checksr
+      when:
+        - sap_hana_hsr_role == 'primary'
+      tags:
+        - check-hsr-primary-status
+
+    - name: Print system replication status on dbprimary
+      debug:
+        var: checksr.stdout_lines
+      when:
+        - sap_hana_hsr_role == 'primary'
+      tags:
+        - print-hsr-status-1
+
+    - name: enable hana system replication on dbprimary
+      shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/hdbnsutil \
+        -sr_enable --name="{{ sap_hana_hsr_alias }}"
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: enablesr
+      changed_when: "'successfully enabled system as system replication source site' in enablesr.stdout"
+      when:
+        - sap_hana_hsr_role == 'primary'
+        - "'online: true' in checksr.stdout_lines"
+        - "'mode: primary' not in checksr.stdout_lines"
+      tags:
+        - enable-hsr-primary
+
+# NOTE: Flag `force_full_replica` is only required for initial HANA HSR setup.
+# NOTE: Subsequent replication ocnfiguration does not require this flag.  To be updated in future automation
+
+- name: "Play2: Register dbsecondary with dbprimary for hana system replication"
+  hosts: dbservers
+  gather_facts: true
+  tags:
+    - play2
+  tasks:
+    - name: register dbsecondary with dbprimary for hana system replication # append to the end of shell script: --force_full_replica --sapcontrol=1, this was required
+      shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/hdbnsutil \
+        -sr_register --name={{ sap_hana_hsr_alias }} \
+        --remoteHost={{ sap_hana_hsr_hana_primary_hostname }} --remoteInstance={{ sap_hana_hsr_hana_instance_number }} \
+        --replicationMode={{ sap_hana_hsr_rep_mode }} --operationMode={{ sap_hana_hsr_oper_mode }} --force_full_replica --sapcontrol=1
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: registersr
+      changed_when: "'adding site' in registersr.stdout"
+      when:
+        - sap_hana_hsr_role == 'secondary'
+      tags:
+        - register-secondary-hsr
+
+    - name: check if hana system replication on dbsecondry is registered
+      shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/hdbnsutil \
+        -sr_state
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: checkseoncdarysr
+      when:
+        - sap_hana_hsr_role == 'primary'
+      tags:
+        - check-hsr-secondary-status
+
+    - name: Pause for 15 seconds
+      ansible.builtin.pause:
+        seconds: 15
+
+    - name: ensure hana instance is started on dbsecondary
+      shell: |
+          /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/sapcontrol \
+          -nr {{ sap_hana_hsr_hana_instance_number }} -function StartSystem
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: startinstance
+      changed_when: "'StartSystem' in startinstance.stdout"
+      when:
+        - sap_hana_hsr_role == 'secondary'
+      tags:
+        - start-hana-secondary
+
+    - name: "Wait for secondary DB to start"
+      become: true
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      shell: |
+          /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/sapcontrol \
+          -nr {{ sap_hana_hsr_hana_instance_number }} -function GetProcessList
+      failed_when: false
+      environment:
+        LD_LIBRARY_PATH: "/usr/sap/{{ sap_hana_hsr_hana_sid|upper }}/SYS/exe/uc/linuxx86_64"
+      changed_when: false
+      register: sap_db_status
+      retries: 30
+      delay: 15
+      until: |
+        'GREY' not in sap_db_status.stdout and
+        'YELLOW' not in sap_db_status.stdout
+      when:
+        - sap_hana_hsr_role == 'secondary'
+      tags:
+        - start-hana-secondary
+
+    - name: Wait until HANA SYNC is active
+      shell: |
+          source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+          python /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/python_support/systemReplicationStatus.py
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: verifysyncstatus
+      changed_when: false
+      failed_when: false
+      retries: 1000
+      delay: 10
+      until: |
+        'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+      when:
+        - sap_hana_hsr_role == 'primary'
+
+    - name: Verify HANA sync status
+      assert:
+        that: |
+          'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+        fail_msg: "Syncing error"
+        success_msg: "Syncing completed"
+      when:
+        - sap_hana_hsr_role == 'primary'
+
+    - name: print system replication status
+      debug:
+        var: checkseoncdarysr.stdout_lines
+      when:
+        - sap_hana_hsr_role == 'primary'
+      tags:
+        - print-hsr-status-2
+
+    - name: ensure hana instance is started on dbsecondary
+      shell: |
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/sapcontrol \
+        -nr {{ sap_hana_hsr_hana_instance_number }} -function StartSystem
+      args:
+        executable: /bin/bash
+      become: yes
+      become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+      register: startinstance
+      changed_when: "'StartSystem' in startinstance.stdout"
+      when:
+        - sap_hana_hsr_role == 'secondary'
+      tags:
+        - start-hana-secondary
+
+    - name: print hana system  status of dbsecondary
+      debug:
+        var: startinstance.stdout_lines
+      when:
+        - sap_hana_hsr_role == 'secondary'
+      tags:
+        - print-hsr-db-status
+...

@@ -1,0 +1,22 @@
+---
+#Description: Molecule converge.yml playbook used to run an Ansible role in a testing scenario.
+
+  - name: Converge
+    hosts: all
+    gather_facts: true
+    tasks:
+
+      - name: Run the 'repository-management' role with the 'base' preset for RHEL systems
+        include_role:
+          name: repository-management
+        vars:
+          application_preset_selection: [base]
+          repo_enable: true
+        when: ansible_os_family | lower == 'redhat'
+
+      - name: Install the 'cronie' package for RHEL systems
+        package:
+          name: cronie
+        become: true
+        when: ansible_os_family | lower == 'redhat'
+...

@@ -1,0 +1,13 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: "rt53-credentials"
+  annotations:
+    avp.kubernetes.io/path: "{{ default (printf "%s/%s/ecs-etd" .Values.vaultBasePath .Values.customer) .Values.vaultPath }}/route53"
+  labels:
+    {{- include ".helpers_override.labels" $ | nindent 4 }}
+type: Opaque
+stringData:
+  AWS_ACCESS_KEY_ID: <AWS_ACCESS_KEY_ID>
+  AWS_SECRET_ACCESS_KEY: <AWS_SECRET_ACCESS_KEY>
+  AWS_REGION: <AWS_REGION>

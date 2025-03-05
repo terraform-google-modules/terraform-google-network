@@ -1,0 +1,17 @@
+---
+  - name: Converge
+    hosts: all
+    become: true
+    pre_tasks:
+      - name: Include inventory variable file
+        include_vars:
+          file: ../../vars/business/s4pce/cre-support0001.yml
+      - name: Include spr
+        include_role:
+          name: spr
+          tasks_from: provisioning/incron-setup-gcp.yml
+        vars:
+          spr_hana_install_sid: HDD
+          spr_hana_landscape: dev
+          spr_hana_incron_gcs_bucket: intron-test
+...

@@ -1,0 +1,9 @@
+---
+# handlers file for clamav role
+# handlers are run in the order defined in this file
+  - name: reload clamav-freshclam service
+    service:
+      name: clamav-freshclam
+      state: restarted
+    become: true
+...

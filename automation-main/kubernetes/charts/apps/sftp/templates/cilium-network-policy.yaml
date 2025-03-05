@@ -1,0 +1,86 @@
+{{- $customer := trimSuffix "-sftp" .Values.sftpgo.fullnameOverride }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: sftp-{{ $customer }}-network-policy
+  namespace: sftp-{{ $customer }}
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: monitoring
+      toPorts:
+        - ports:
+            - port: "10000"
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: nginx
+      toPorts:
+        - ports:
+            - port: "8080"
+    - fromEntities:
+        - cluster
+      toPorts:
+        - ports:
+            - port: "15008"
+        - ports:
+            - port: "15053"
+        - ports:
+            - port: "15020"
+        - ports:
+            - port: "15012"
+        - ports:
+            - port: "4317"
+        - ports:
+            - port: "4318"
+    - fromEntities:
+        - world
+    - fromEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "2022"
+    - fromEndpoints:
+        - {}
+  egress:
+    - toEntities:
+        - cluster
+      toPorts:
+        - ports:
+            - port: "15008"
+        - ports:
+            - port: "15053"
+        - ports:
+            - port: "15020"
+        - ports:
+            - port: "15012"
+        - ports:
+            - port: "4317"
+        - ports:
+            - port: "4318"
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+          rules:
+            dns:
+              - matchPattern: "*"
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+    - toEndpoints:
+        - {}
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "5432"
+        - ports:
+            - port: "443"
+        - ports:
+            - port: "80"

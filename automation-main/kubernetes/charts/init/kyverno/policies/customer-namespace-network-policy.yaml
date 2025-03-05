@@ -1,0 +1,67 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: customer-namespace-network-policy
+  annotations:
+    policies.kyverno.io/title: Add Customer Namespace Network Policy
+    policies.kyverno.io/subject: NetworkPolicy
+    argocd.argoproj.io/sync-options: Force=true,Replace=true
+    policies.kyverno.io/description: >-
+      Adds network policy to customer namespaces required to allow network connectivity to customer app deployments.
+spec:
+  generateExisting: true
+  webhookTimeoutSeconds: 5
+  rules:
+  - name: customer-namespace-network-policy
+    match:
+      any:
+      - resources:
+          kinds:
+          - Namespace
+          selector:
+            matchExpressions:
+              - {key: customerNamespace, operator: Exists}
+    exclude:
+      any:
+        - resources:
+            namespaces:
+            - kube-system
+            - argocd
+            - monitoring
+            - rook-ceph
+            - kube-public
+            - kube-node-lease
+            - nginx
+            - rook-ceph
+            - velero
+    generate:
+      synchronize: true
+      apiVersion: networking.k8s.io/v1
+      kind: NetworkPolicy
+      name: "{{`{{request.object.metadata.name}}`}}-network-policy"
+      namespace: "{{`{{request.object.metadata.name}}`}}"
+      data:
+        metadata:
+          labels:
+            created-by: kyverno
+        spec:
+          podSelector: {}
+          policyTypes:
+          - Ingress
+          - Egress
+          ingress:
+          - from:
+            - namespaceSelector:
+                matchLabels:
+                  sftpApp: allowed
+            - namespaceSelector:
+                matchLabels:
+                  customerNamespace: "{{`{{request.object.metadata.name}}`}}"
+          egress:
+          - to:
+            - namespaceSelector:
+                matchLabels:
+                  customerNamespace: "{{`{{request.object.metadata.name}}`}}"
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: rook-ceph

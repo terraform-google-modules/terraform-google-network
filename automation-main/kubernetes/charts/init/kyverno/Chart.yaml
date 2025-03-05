@@ -1,0 +1,9 @@
+apiVersion: v2
+name: kyverno
+description: Helm Chart for deploying kyverno with custom values
+type: application
+version: 3.3.4
+dependencies:
+  - name: kyverno
+    version: 3.3.4
+    repository: https://kyverno.github.io/kyverno/

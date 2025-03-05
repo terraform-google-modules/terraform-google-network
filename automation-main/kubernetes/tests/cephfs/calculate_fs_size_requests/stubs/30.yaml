@@ -1,0 +1,13 @@
+customerConfig:
+  - customerName: customer1
+    sftpgo:
+      enabled: true
+      uploadFsSize: 8Gi
+  - customerName: customer2
+    sftpgo:
+      enabled: true
+      uploadFsSize: 12Gi
+  - customerName: customer3
+    sftpgo:
+      enabled: true
+      uploadFsSize: 10Gi

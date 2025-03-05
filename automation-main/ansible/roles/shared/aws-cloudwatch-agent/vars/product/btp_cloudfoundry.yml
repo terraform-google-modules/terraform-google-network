@@ -1,0 +1,57 @@
+---
+# List of btp_cloudfoundry log groups we want to capture
+logs_btp_cloudfoundry:
+  - file_path: /var/log/consul/consul-*.log
+    log_group_name: /var/log/consul
+  - file_path: /var/log/messages
+    log_group_name: /var/log/messages
+    # timestamp: 2020-11-14T02:11:45.830443+00:00 .... (UBUNTU)
+    timestamp_format: '%Y-%d-%mT%H:%M:%S.%f'
+  - file_path: /var/log/syslog
+    log_group_name: /var/log/syslog
+    # timestamp: 2020-11-14T02:11:45.830443+00:00 .... (UBUNTU)
+    timestamp_format: '%Y-%d-%mT%H:%M:%S.%f'
+  - file_path: /var/log/secure
+    log_group_name: /var/log/secure
+    # timestamp: 2020-11-14T02:11:45.830443+00:00 .... (UBUNTU)
+    timestamp_format: '%Y-%d-%mT%H:%M:%S.%f'
+  - file_path: /var/log/clamscan.log
+    log_group_name: /var/log/clamscan
+    multi_line_start_pattern: '^INFO: Initializing virus scan'
+  - file_path: /var/log/aide/aide.log
+    log_group_name: /var/log/aide
+    multi_line_start_pattern: ^aide run on
+  - file_path: /var/log/audit/audit.log*
+    log_group_name: /var/log/audit
+    # timestamp: type=PROCTITLE msg=audit(1605319769.345:1847568) | Cant parse epoch
+  - file_path: /var/log/tuned/tuned.log
+    log_group_name: /var/log/tuned
+    # timestamp: 2020-11-18 19:51:44
+    timestamp_format: '%Y-%m-%d %H:%M:%S'
+  - file_path: /var/log/vault/vault_audit.log
+    log_group_name: /var/log/vault
+  - file_path: /var/log/ansible.log
+    log_group_name: /var/log/ansible
+    timestamp_format: '%Y-%m-%d %H:%M:%S'
+  - file_path: /var/log/cron.log
+    log_group_name: /var/log/cron
+    # timestamp: Sep 27 10:03:01
+    timestamp_format: '%b %d %H:%M:%S'
+  - file_path: /var/log/auth.log*
+    log_group_name: /var/log/auth
+    # timestamp: Nov 14 09:17:01
+    timestamp_format: '%b %d %H:%M:%S'
+  - file_path: /var/log/kern.log
+    log_group_name: /var/log/kern
+    # timestamp: Nov 28 02:01:48
+    timestamp_format: '%b %d %H:%M:%S'
+  - file_path: /var/log/mail.log
+    log_group_name: /var/log/mail
+    # timestamp: Nov 28 02:01:48
+    timestamp_format: '%b %d %H:%M:%S'
+  - file_path: /opt/nessus_agent/var/nessus/logs/nessusd.messages
+    log_group_name: /opt/nessus_agent/nessusd
+    timestamp_format: '[%a %b %d %H:%M:%S %Y]'
+  - file_path: /opt/nessus_agent/var/nessus/logs/backend.log
+    log_group_name: /opt/nessus_agent/backend
+...

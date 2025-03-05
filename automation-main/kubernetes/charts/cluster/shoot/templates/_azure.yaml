@@ -1,0 +1,57 @@
+
+{{ define "cloudp_azure" -}}
+az
+{{- end }}
+
+{{ define "net_azure" }}
+{{ .Values.provider.azure.networks | toYaml }}
+{{end }}
+
+{{ define "infracfg_azure" }}
+apiVersion: azure.provider.extensions.gardener.cloud/v1alpha1
+kind: InfrastructureConfig
+networks:
+  vnet:
+    cidr: {{ .Values.cidr }}
+  zones:
+    - cidr: 10.250.128.0/17
+      name: 1
+      natGateway:
+        enabled: true
+        idleConnectionTimeoutMinutes: {{ .Values.provider.azure.IdleConnectionTimeoutMinutes }}
+        {{- if .Values.ipnatzone1 }}
+        ipAddresses:
+          - name: {{ .Values.ipnatzone1 }}
+            resourceGroup: {{ .Values.ipnatresourcegroup }}
+        {{- end }}
+      serviceEndpoints:
+        - Microsoft.Storage
+    - cidr: 10.250.64.0/18
+      name: 2
+      natGateway:
+        enabled: true
+        idleConnectionTimeoutMinutes: {{ .Values.provider.azure.IdleConnectionTimeoutMinutes }}
+        {{- if .Values.ipnatzone2 }}
+        ipAddresses:
+          - name: {{ .Values.ipnatzone2 }}
+            resourceGroup: {{ .Values.ipnatresourcegroup }}
+        {{- end }}
+      serviceEndpoints:
+        - Microsoft.Storage
+    - cidr: 10.250.32.0/19
+      name: 3
+      natGateway:
+        enabled: true
+        idleConnectionTimeoutMinutes: {{ .Values.provider.azure.IdleConnectionTimeoutMinutes }}
+        {{- if .Values.ipnatzone3 }}
+        ipAddresses:
+          - name: {{ .Values.ipnatzone3 }}
+            resourceGroup: {{ .Values.ipnatresourcegroup }}
+        {{- end }}
+      serviceEndpoints:
+        - Microsoft.Storage
+zoned: true
+{{ end }}
+
+{{ define "controlPlane_azure" }}
+{{ end }}

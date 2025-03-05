@@ -1,0 +1,169 @@
+initApplicationset:
+  avpDeployments:
+    - crossplane
+    - monitoring
+    - istio-system
+  appsets:
+    - name: init-applicationset
+      enabled: true
+      repoPath: 'charts/init'
+      vaultPlugin: false
+      appsetGroup: 'basic'
+      baseName: '{{ .path.basename }}'
+      sourcePath: '{{ .path.path }}'
+      nameSpace: '{{ .path.basename }}'
+      syncOptions:
+        CreateNamespace: true
+        ServerSideApply: '{{- if or (eq .path.basename "kyverno") (eq .path.basename "monitoring") -}}true{{- else -}}false{{- end }}'
+        ApplyOutOfSyncOnly: '{{- if eq .path.basename "monitoring" -}}false{{- else -}}true{{- end }}'
+    - name: init-applicationset-avp
+      enabled: true
+      repoPath: 'charts/init'
+      vaultPlugin: true
+      appsetGroup: 'avp'
+      baseName: '{{ .path.basename }}'
+      sourcePath: '{{ .path.path }}'
+      nameSpace: '{{ .path.basename }}'
+      syncOptions:
+        CreateNamespace: true
+        ServerSideApply: true
+        ApplyOutOfSyncOnly: true
+
+systemApplicationset:
+  avpDeployments:
+    - velero
+  appsets:
+    - name: system-applicationset
+      enabled: true
+      repoPath: 'charts/system'
+      vaultPlugin: false
+      appsetGroup: 'basic'
+      baseName: '{{ .path.basename }}'
+      sourcePath: '{{ .path.path }}'
+      nameSpace: '{{- if eq .path.basename "rook" -}}rook-ceph{{- else -}}{{ .path.basename }}{{- end }}'
+      syncOptions:
+        CreateNamespace: true
+        ServerSideApply: '{{- if eq .path.basename "rook" -}}true{{- else -}}false{{- end }}'
+        ApplyOutOfSyncOnly: true
+    - name: system-applicationset-avp
+      enabled: true
+      repoPath: 'charts/system'
+      vaultPlugin: true
+      appsetGroup: 'avp'
+      baseName: '{{ .path.basename }}'
+      sourcePath: '{{ .path.path }}'
+      nameSpace: '{{ .path.basename }}'
+      syncOptions:
+        CreateNamespace: true
+        ServerSideApply: false
+        ApplyOutOfSyncOnly: true
+
+appPreApplicationset:
+  avpDeployments: []
+  deploymentsEnabled:
+    - kafka
+  appsets:
+    - name: app-pre-applicationset
+      enabled: true
+      repoPath: 'config/deployment-config.yaml'
+      listElement: '{{ .deploymentConfig | toJson }}'
+      vaultPlugin: false
+      appsetGroup: 'basic'
+      customerName: '{{ .customer }}'
+      argoAppName: '{{ .customer }}-{{ lower .appName }}'
+      appName: '{{ .appName }}'
+      vaulesFile: '{{- if eq $appset.baseName "kafka" -}}../ecs-etd/values.yaml{{- else -}}values.yaml{{- end -}}'
+      overlayValues: '{{- toYaml .values }}'
+      namespace: '{{ .namespace }}'
+      baseName: '{{ .path.basename }}'
+      sourcePath: '{{ .path.path }}'
+      nameSpace: '{{ .namespace }}'
+      syncOptions: 
+        CreateNamespace: true
+        ServerSideApply: '{{- if eq .path.basename "kafka" -}}false{{- else -}}true{{- end }}'
+        ApplyOutOfSyncOnly: false
+    - name: app-pre-applicationset-avp
+      enabled: false
+      repoPath: 'config/deployment-config.yaml'
+      listElement: '{{ .deploymentConfig | toJson }}'
+      vaultPlugin: true
+      appsetGroup: 'avp'
+      customerName: '{{ .customer }}'
+      argoAppName: '{{ .customer }}-{{ lower .appName }}'
+      appName: '{{ .appName }}'
+      vaulesFile: '{{- if eq .path.basename "kafka" -}}../ecs-etd/values.yaml{{- else -}}values.yaml{{- end }}'
+      overlayValues: '{{- toYaml .values }}'
+      namespace: '{{ default (printf "sftp-%s" .customer) .namespace }}'
+      baseName: '{{ .path.basename }}'
+      sourcePath: '{{ .path.path }}'
+      nameSpace: '{{ .namespace }}'
+      syncOptions: 
+        CreateNamespace: true
+        ServerSideApply: false
+        ApplyOutOfSyncOnly: false
+
+appsApplicationset:
+  avpDeployments:
+    - sftp
+    - ecs-etd
+    - vpcpeering
+    - rook
+  deploymentsEnabled: []
+  appsets:
+    - name: apps-applicationset
+      enabled: false
+      repoPath: 'config/deployment-config.yaml'
+      listElement: '{{ .deploymentConfig | toJson }}'
+      vaultPlugin: false
+      appsetGroup: 'basic'
+      customerName: '{{ .customer }}'
+      argoAppName: '{{ .customer }}-{{ lower .appName }}'
+      appName: '{{ .appName }}'
+      overlayValues: '{{- toYaml .values }}'
+      namespace: '{{ .namespace }}'
+      baseName: '{{ .path.basename }}'
+      sourcePath: '{{ .path.path }}'
+      nameSpace: '{{ .namespace }}'
+      syncOptions: 
+        CreateNamespace: true
+        ServerSideApply: false
+        ApplyOutOfSyncOnly: false
+    - name: apps-applicationset-avp
+      enabled: true
+      repoPath: 'config/deployment-config.yaml'
+      listElement: '{{ .deploymentConfig | toJson }}'
+      vaultPlugin: true
+      appsetGroup: 'avp'
+      customerName: '{{ .customer }}'
+      argoAppName: '{{ .customer }}-{{ lower .appName }}'
+      appName: '{{ .appName }}'
+      overlayValues: '{{- toYaml .values }}'
+      namespace: '{{ default (printf "sftp-%s" .customer) .namespace }}'
+      baseName: '{{ .path.basename }}'
+      sourcePath: '{{ .path.path }}'
+      nameSpace: '{{ .namespace }}'
+      syncOptions: 
+        CreateNamespace: true
+        ServerSideApply: '{{- if eq .path.basename "ecs-etd" -}}true{{- else -}}false{{- end }}'
+        ApplyOutOfSyncOnly: false
+
+appSecApplicationset:
+  avpDeployments:
+    - sftp
+    # - ecs-etd
+  appsets:
+    - name: appsec-applicationset-avp
+      enabled: true
+      repoPath: 'config/deployment-config.yaml'
+      listElement: '{{ .deploymentConfig | toJson }}'
+      vaultPlugin: true
+      appsetGroup: 'avp'
+      customerName: '{{ .customer }}'
+      argoAppName: '{{ .customer }}-{{ lower .appName }}'
+      appName: '{{ .appName }}'
+      overlayValues: '{{- toYaml .values }}'
+      namespace: '{{ default (printf "sftp-%s" .customer) .namespace }}'
+      nameSpace: '{{ .namespace }}'
+      syncOptions: 
+        ServerSideApply: false
+        ApplyOutOfSyncOnly: false

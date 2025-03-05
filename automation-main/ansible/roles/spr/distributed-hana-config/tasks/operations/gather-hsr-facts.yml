@@ -1,0 +1,37 @@
+---
+- name: Determine facts to set from HSR
+  block:
+    - name: Set hana online fact
+      ansible.builtin.set_fact:
+        distributed_hana_config_output_hana_online: "{{ distributed_hana_config_checksr.stdout | regex_search(regexp,'\\1') | default('none', true) | join('') }}"
+      vars:
+        regexp: "\\nonline: ([a-zA-Z]+)\\n"
+      when: distributed_hana_config_gather_facts_hana_online
+
+    - name: Set hana site name fact
+      ansible.builtin.set_fact:
+        distributed_hana_config_output_hana_site_name: "{{ distributed_hana_config_checksr.stdout | regex_search(regexp,'\\1') | default('none', true) | join('') }}"
+      vars:
+        regexp: "\\nsite name: ([a-zA-Z0-9]+)\\n"
+      when: distributed_hana_config_gather_facts_hana_site_name
+
+    - name: Set hana operation mode fact
+      ansible.builtin.set_fact:
+        distributed_hana_config_output_hana_oper_mode: "{{ distributed_hana_config_checksr.stdout | regex_search(regexp,'\\1') | default('logreplay', true) | join('') }}"
+      vars:
+        regexp: "\\nOperation mode of {{ distributed_hana_config_output_hana_site_name }}: ([a-zA-Z]+)\\n"
+      when: distributed_hana_config_gather_facts_hana_oper_mode
+
+    - name: Set hana replication mode fact
+      ansible.builtin.set_fact:
+        distributed_hana_config_output_hana_repl_mode: "{{ distributed_hana_config_checksr.stdout | regex_search(regexp,'\\1') | default('async', true) | join('') }}"
+      vars:
+        regexp: "\\nReplication mode of {{ distributed_hana_config_output_hana_site_name }}: ([a-zA-Z]+)\\n"
+      when: distributed_hana_config_gather_facts_hana_repl_mode
+
+    - name: Set hana mode fact
+      ansible.builtin.set_fact:
+        distributed_hana_config_output_hana_mode: "{{ distributed_hana_config_checksr.stdout | regex_search(regexp,'\\1') | default('') | join('') }}"
+      vars:
+        regexp: "\\nmode: ([a-zA-Z]+)\\n"
+      when: distributed_hana_config_gather_facts_hana_mode

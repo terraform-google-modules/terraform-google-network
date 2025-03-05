@@ -1,0 +1,101 @@
+---
+# List of bobj-specific log groups
+# When 'bobj' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_bobj:
+  - file_path: /usr/sap/*/sap_bobj/logging/aps_*_gc.log
+    log_group_name: /usr/sap/log/aps-gc
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/aps_*_jvm.log
+    log_group_name: /usr/sap/log/aps-jvm
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/aps_*_ncs.trc
+    log_group_name: /usr/sap/log/aps-ncs
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/aps_*_trace*.glf
+    log_group_name: /usr/sap/log/aps-trace
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/boe_cmsd_*.glf
+    log_group_name: /usr/sap/log/boe-cmsd
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/ccm_*_*.log
+    log_group_name: /usr/sap/log/ccm-log
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/connectionserver_*_ncs.trc
+    log_group_name: /usr/sap/log/connectionserver-ncs
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/cmsdbsetup*_*.log
+    log_group_name: /usr/sap/log/cmsdbsetup
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/cms_*_ncs.trc
+    log_group_name: /usr/sap/log/cms-ncs
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/cms_*_trace*.glf
+    log_group_name: /usr/sap/log/cms-trace
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/jobserver_*_*_gc.log
+    log_group_name: /usr/sap/log/jobserver-gc
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/jobserver_*_*_ncs.trc
+    log_group_name: /usr/sap/log/jobserver_ncs_child
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/jobserver_*_*_trace*.glf
+    log_group_name: /usr/sap/log/jobserver-trace
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/jobserver_*_ncs.trc
+    log_group_name: /usr/sap/log/jobserver-ncs
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/cr2020proc_*_*_gc.log
+    log_group_name: /usr/sap/log/cr2020proc-gc
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/cr2020proc_*_ncs.trc
+    log_group_name: /usr/sap/log/cr2020proc_ncs
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/cr2020proc_*_*_trace*.glf
+    log_group_name: /usr/sap/log/cr2020proc-trace
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/crporc_*_*_gc.log
+    log_group_name: /usr/sap/log/crproc-gc
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/crproc_*_ncs.trc
+    log_group_name: /usr/sap/log/crproc_ncs
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/crproc_*_*_trace*.glf
+    log_group_name: /usr/sap/log/crproc-trace
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/wacs_*_gc.log
+    log_group_name: /usr/sap/log/wacs-gc
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/wacs_*_ncs.trc
+    log_group_name: /usr/sap/log/wacs-ncs
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/wacs_*_trace*.glf
+    log_group_name: /usr/sap/log/wacs-trace
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/SIA_*_trace*.glf
+    log_group_name: /usr/sap/log/SIA-trace
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/webiserver_*_ncs.trc
+    log_group_name: /usr/sap/log/webiserver-ncs
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/eventserver_*_ncs.trc
+    log_group_name: /usr/sap/log/webiserver-ncs
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/*_gc.log
+    log_group_name: /usr/sap/log/host-gc
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/tomcatshutdown.log
+    log_group_name: /usr/sap/log/tomcat-shutdown
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/tomcatstartup.log
+    log_group_name: /usr/sap/log/tomcat-startup
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/fileserver_*.InputFileRepository_ncs.trc
+    log_group_name: /usr/sap/log/fileserver-InputFileRepo-ncs
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/fileserver_*.OutputFileRepository_trace.trc
+    log_group_name: /usr/sap/log/fileserver-OutputFileRepo-trace
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+  - file_path: /usr/sap/*/sap_bobj/logging/serverconfig*_*.log
+    log_group_name: /usr/sap/log/serverconfig-log
+    timezone: '{{ cwa_default_log_stream_timezone }}'
+...

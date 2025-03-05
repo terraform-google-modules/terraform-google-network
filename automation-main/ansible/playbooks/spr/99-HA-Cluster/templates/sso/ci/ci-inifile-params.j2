@@ -1,0 +1,210 @@
+################################################################################################################
+#                                                                                                              #
+# Installation service 'System Rename > Standard System > SAP System Rename', product id 'NW_StorageBasedCopy' #
+#                                                                                                              #
+################################################################################################################
+# IMPORTANT DO NOT DELETE!!! SAPInstDes25Hash=$E8f+lq8Q+Kin$JqLJIce0YsRFKXhHxP2sUkqbQVr1cRDqeG3mMV/eCBvEGGke2E1h9XLPwkItag3mwLsxzKaLoSBeSwEdNr9GFlRLb+SX9cfW
+
+# Password for the Diagnostics Agent specific <dasid>adm user. Provided value may be encoded.
+# DiagnosticsAgent.dasidAdmPassword =
+
+# Windows domain in which the Diagnostics Agent users must be created. This is an optional property (Windows only).
+# DiagnosticsAgent.domain =
+
+# Windows only: Password for the Diagnostics Agent specific 'SAPService<DASID>' user.
+# DiagnosticsAgent.sapServiceDASIDPassword =
+
+# Specify whether the all operating system users are to be removed from group 'sapinst' after the execution of Software Provisioning Manager has completed.
+NW_Delete_Sapinst_Users.removeUsers = true
+
+# The DB admin user for SAP HANA tenant database. Default value: SYSTEM
+# NW_HDB_getDBInfo.dbadmin = SYSTEM
+
+# The SQL port for SAP HANA tenant database
+# NW_HDB_getDBInfo.tenantPort =
+
+# Windows only: The domain of the SAP Host Agent user
+# hostAgent.domain =
+
+# Password for the 'sapadm' user of the SAP Host Agent
+# hostAgent.sapAdmPassword =
+
+# Windows only: The domain of all users of this SAP system. Leave empty for default.
+# nwUsers.sapDomain =
+
+# Windows only: The password of the 'SAPServiceSID' user
+# nwUsers.sapServiceSIDPassword =
+
+# UNIX only: The user ID of the 'sapadm' user, leave empty for default. The ID is ignored if the user already exists.
+# nwUsers.sapadmUID =
+
+# UNIX only: The group id of the 'sapsys' group, leave empty for default. The ID is ignored if the group already exists.
+nwUsers.sapsysGID = 79
+
+# UNIX only: The user id of the <sapsid>adm user, leave empty for default. The ID is ignored if the user already exists.
+nwUsers.sidAdmUID = 20205
+
+# The password of the '<sapsid>adm' user
+# nwUsers.sidadmPassword =
+
+# ABAP schema password
+storageBasedCopy.abapSchemaPassword = des25(mHSG2Io0aAmoQTlGD1WDsSVu9A==)
+
+# ABAP target database user
+storageBasedCopy.abapSchemaTarget = SAPJAVA1
+
+# DO NOT USE, SAP INTERNAL USE ONLY
+# storageBasedCopy.db.recovery.pointInTime =
+
+# Password of the Java database schema user
+# storageBasedCopy.db4.sapsiddbPassword =
+
+# Database host of the source system
+storageBasedCopy.dbHostSource = hdb-g01
+
+# Host of the target database
+# storageBasedCopy.dbHostTarget =
+
+# Database ID of the source system
+storageBasedCopy.dbSidSource = G01
+
+# System ID of the target database
+storageBasedCopy.dbSidTarget = G01
+
+# New database tenant name of the target database.
+storageBasedCopy.dbTenantTarget = T01
+
+# Database types. Possible values are: 'ada', 'sap', 'db6', 'mss', 'ora'
+storageBasedCopy.dbType = hdb
+
+# If source and target SAP system ID are the same, the existing licenses can be kept. Default value is 'false', that is the licenses are not overwritten and a new temporary license is not imported.
+# storageBasedCopy.distributed.ci.importTempLicenseJava = false
+
+# ERS rename: Target instance host of the SCS instance
+# storageBasedCopy.distributed.ers.scsHostTarget =
+
+# ERS rename: Target instance number of the SCS instance
+# storageBasedCopy.distributed.ers.scsNumberTarget =
+
+# Distributed rename: Host name of the instance to be renamed
+# storageBasedCopy.distributed.instanceHostSource =
+
+# Distributed rename: Target host name for the instance to be renamed
+# storageBasedCopy.distributed.instanceHostTarget =
+
+# Distributed rename: Instance number of the instance to be renamed
+# storageBasedCopy.distributed.instanceNumberSource =
+
+# Distributed rename: Target instance number for the instance to be renamed
+# storageBasedCopy.distributed.instanceNumberTarget =
+
+# Distributed rename: SAP instance profile of the instance to be renamed
+# storageBasedCopy.distributed.instanceProfileSource =
+
+# Distributed rename: Instance name of the instance to be renamed
+# storageBasedCopy.distributed.instanceSource =
+
+# Fully Qualified Domain Name (FQDN) for the SAP system, mandatory if parameter 'storageBasedCopy.setFqdn' is st to 'true'. Leave empty for automatic detection of the FQDN.
+storageBasedCopy.fqdn = spr.sapns2.us
+
+# SYSTEM user password for SYSTEMDB
+storageBasedCopy.hdb.SystemDBSystemUserPassword = des25(u8JTm3Nk/0kRvjvx+1lqAFYKTA==)
+
+# Specify whether you want to change the password of the DBACOCKPIT user.
+# storageBasedCopy.hdb.changeDbaCockPitUserPassword = false
+
+# Specify whether you want to change the password of the database schema.
+storageBasedCopy.hdb.changeSchemaPassword = false
+
+# Specify whether you want to change the password of the system user
+# storageBasedCopy.hdb.changeSystemUserPassword = false
+
+# Specify whether you want to rename the tenant database name.
+storageBasedCopy.hdb.changeTenantName = true
+
+# Instance number of the SAP HANA Database server
+storageBasedCopy.hdb.instanceNumber = 00
+
+# New password for user DBACOCKPIT
+# storageBasedCopy.hdb.newDbaCockPitUserPassword =
+
+# New password for user SYSTEM
+# storageBasedCopy.hdb.newSystemUserPassword =
+
+# Password of user 'SYSTEM' inside the 'SystemDB' tenant in the SAP HANA Multi-Database Server
+# storageBasedCopy.hdb.systemDbPassword =
+
+# SYSTEM user password for tenant
+storageBasedCopy.hdb.systemUserPassword = des25(JXDPkUMMPwaMBkRFK/yryh6gdw==)
+
+# XML file for SAP HANA database parameters
+# storageBasedCopy.hdb.xmlParameterFile =
+
+# SAP INTERNAL USE ONLY
+# storageBasedCopy.importLicenseDBRefresh = false
+
+# If a  permanent license for ABAP exists, this value is set to 'true'. Default is 'false'.
+# storageBasedCopy.importPermanentLicenseABAP = false
+
+# List of all available instances to be renamed, as loaded from the 'inifile.xml'.
+storageBasedCopy.instanceList = J00,00,/sapmnt/G00/profile/G00_J00_ssoapp01g00,ssoapp01g00,00,ssoapp01t00;SCS01,01,/sapmnt/G00/profile/G00_SCS01_ssoapp01g00,ssoapp01g00,01,ssoapp01t00
+
+# SAP INTERNAL USE ONLY
+# storageBasedCopy.javaSystemRelease =
+
+# The file of the permanent license for ABAP, which is installed if  'storageBasedCopy.importPermanentLicenseABAP' is set to 'true'.
+# storageBasedCopy.licenseFileABAP =
+
+# Master password
+# storageBasedCopy.masterPassword =
+
+# If this parameter is set to 'true', this is the 'ora <dbsid>' user, which is a database OS user required for the system rename. Default value is 'true' and applies for both Oracle 11.2 and Oracle 12.1.
+# storageBasedCopy.ora.hasOraSidUserUNIX = true
+
+# If this parameter set to 'true', this is the 'oracle' user which is a database OS user required for the system rename . Default value is 'false', but for Oracle 12.1 it has to be set to 'true'.
+# storageBasedCopy.ora.hasOracleUserUNIX = false
+
+# Password of the 'oracle' user
+# storageBasedCopy.ora.oraclePassword =
+
+# Password of the 'ora<dbsid>' user
+# storageBasedCopy.ora.orasidPassword =
+
+# If set to 'false', the OS users do not yet exist and must be created as a prerequisite. Default value is 'false'.
+# storageBasedCopy.osUsersMustExist = false
+
+# If a check fails with the specified severity or higher, the Prerequisite Checker (PRC) stops the installation. Possible values are: 'INFINITE' (means never stop the installation), 'FATAL', 'HIGH', 'MEDIUM', 'LOW'.
+# storageBasedCopy.prcSeverity =
+
+# Windows only: SAP global host of the target system
+# storageBasedCopy.sapGlobalHost =
+
+# Windows only: Location of the installation drive of the target system
+# storageBasedCopy.sapLocDrive =
+
+# UNIX only: SAP mount directory of the source system. Default value is '/sapmnt'
+# storageBasedCopy.sapmnt = /sapmnt
+
+# Set Fully Qualified Domain Name (FQDN) for the SAP system. Default is 'false'. If the domain cannot be resolved, the instances will fail to start.
+# storageBasedCopy.setFqdn = true
+
+# ID of the '<sapsid>adm' user of the Unix OS.
+# storageBasedCopy.sidAdmIDUnix =
+
+# Password of the '<sapsid>adm' user.
+# storageBasedCopy.sidAdmPassword =
+
+# SAP system ID (SAPSID) of the source SAP system
+storageBasedCopy.sidSource = G00
+
+# SAP system ID (SAPSID) of the target SAP system
+storageBasedCopy.sidTarget = T00
+
+# SAP INTERNAL USE ONLY
+# storageBasedCopy.swpm.version =
+
+# This parameter is set to 'true' if the selected SAP system type is Unicode.
+storageBasedCopy.unicode = true
+
+SAPINST.CD.PACKAGE.JMIG = /staging/product-line/SAP_Single_Sign_On/SAP_SINGLE_SIGN_ON/SAP_SINGLE_SIGN-ON_3.0_SPS02/2023_JANUARY/Media/51050829/
+

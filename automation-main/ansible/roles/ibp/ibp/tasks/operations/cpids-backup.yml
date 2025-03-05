@@ -1,0 +1,47 @@
+---
+# Synopsis: Makes a backup of CPIDS
+# Inputs:
+#   - sqlcmd_folder : location of the sql commands
+#   - ansible_date_time : from ansible_facts
+# Outputs: Configured file in incron.d (named after major release number)
+# Comments:
+#   - requires gather_facts = true
+
+- name: "Copy cpids-backup.sql command to system"
+  template:
+    dest: "{{ sqlcmd_folder }}/ansible-cpids-{{ item|lower }}-backup.sql"
+    src: 'sqlcmd/sql-cpids-backup.j2'
+    force: yes
+  vars:
+    sql_sid: "n01"
+    sql_date: "{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}"
+  become: true
+  run_once: true
+  loop:
+    - cpids
+
+- name: "Trigger primary CPIDS Backup with sql"
+  include_tasks: operations/sqlcmd-run.yml
+  args:
+    apply:
+      become: true
+      become_user: "n01adm"
+  vars:
+    sql_description: "ansible-cpids-{{ item.name|lower }}-backup"
+    sql_userstorekey: "{{ item.name|upper }}ADMIN"
+    sql_command: "{{ item.command }}"
+    sql_shell: '/bin/csh'
+    sql_results: true
+  loop:
+    - name: 'cpids'
+      command: 'ansible-cpids-cpids-backup.sql'
+
+- name: "Remove ansible-cpids-backup sql commands"
+  file:
+    path:  "{{ sqlcmd_folder }}/ansible-cpids-{{ item|lower }}-backup.sql"
+    state: absent
+  become: true
+  run_once: true
+  loop:
+    - 'cpids'
+...

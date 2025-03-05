@@ -1,0 +1,53 @@
+---
+# Synopsis: Sets up incron backups for GCP
+# Inputs:
+#   spr_hana_incron_gcs_bucket: GCP Cloud Storage Bucket where We will be backing up using incrond.
+#   spr_hana_install_sid: SAP ID of the machine
+#   spr_hana_landscape: SAP Landscape for the machine
+# Outputs: N/A
+# Comments: N/A
+
+  - name: Create backup folders
+    file:
+      path: '{{ item }}'
+      group: sapsys
+      state: directory
+      mode: 0754
+      owner: '{{ spr_hana_install_sid|lower }}adm'
+    become: true
+    loop:
+      - /hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/data/SYSTEMDB
+      - /hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/data/DB_{{ spr_hana_install_sid|upper }}
+      - /hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/log/SYSTEMDB
+      - /hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/log/DB_{{ spr_hana_install_sid|upper }}
+
+  - name: Setup incron.d file for GCP
+    template:
+      dest: /etc/incron.d/{{ spr_hana_install_sid|upper }}.incron
+      src: provisioning/incron-gcp.j2
+    become: true
+
+  - name: Restart the incron service
+    service:
+      name: incrond
+      state: restarted
+    become: true
+
+  - name: Pausing for 10 seconds
+    pause:
+      seconds: 10
+
+  - name: Create backup test files
+    copy:
+      dest: '{{ item }}/backup_test.txt'
+      group: sapsys
+      content: hello world
+      mode: 0640
+      owner: '{{ spr_hana_install_sid|lower }}adm'
+    become: true
+    loop:
+      - /hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/data/SYSTEMDB
+      - /hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/data/DB_{{ spr_hana_install_sid|upper }}
+      - /hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/log/SYSTEMDB
+      - /hana/backups/{{ spr_hana_install_sid|upper }}/HDB00/backup/log/DB_{{ spr_hana_install_sid|upper }}
+...

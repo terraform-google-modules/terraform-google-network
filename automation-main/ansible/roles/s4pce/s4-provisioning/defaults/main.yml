@@ -1,0 +1,30 @@
+---
+
+### Shared values.  May be different depending on server
+sid: ''
+sidadm_uid: ''
+sapsys_gid: '2000'
+saphostagent_source: '/staging/s4/Build/s4-1909/SAPHOSTAGENT/'
+
+### Hana specific values
+db_hostname: 'sazcvxbh1db'
+hana_tar_source: '/staging/s4/Build/s4-1909/DB'
+hdb_instance_number: '00'
+
+### Sapapp specific values
+sapapp_tar_source:  '/staging/s4/Build/s4-1909/APP/'
+sapapp_hostname: 'sazcvxbr1ci'
+
+### Hostfile stuff
+customernumber: 'S4Customer'    # i.e.  0001, 0002, 0003
+domain_fqdn: 'sapshc.chevron.net'
+database_servers:
+  S4DB-STG:
+    hostname: 'sazcvxbh1db'
+application_servers:
+  S4APP-STG:
+    hostname: 'sazcvxbr1ci'
+
+# Whether to extract the HANA tar files.
+extract_hana_tar_files: true
+...

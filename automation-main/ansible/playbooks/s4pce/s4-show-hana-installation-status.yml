@@ -1,0 +1,53 @@
+---
+# Playbook Name: s4-show-hana-installation-status.yml
+# Description: Show installation state of HANA DB
+# Dependencies:
+#   - Ansible v2.9+
+#   - sudo capability or root privileges on target machine
+# Variables:
+#   - TASK:
+# Example:
+#   Execution on remote systems using the any inventory host file
+#     ansible-playbook -i <PATH-TO-INVENTORY> s4-show-hana-installation-status.yml -kK
+#
+# Authors: Naresh Awasthi
+# Version: 2.9-000002
+# History:
+#
+# Modified: 2023-04-05 - Initial playbook creation
+#           2023-04-11 - Removed become: true and become_use: {{ sid | lower }}adm at global level and included at task level.
+# Comments: |
+
+
+- hosts: all
+  gather_facts: false
+
+  vars:
+    owner_var: "{{ sid | lower }}adm"
+
+  vars_prompt:
+    - name: SIDADM_PW
+      prompt: Enter SIDADM password
+      unsafe: true
+      private: true
+      confirm: true
+
+  tasks:
+    - name: Check if user exists
+      ansible.builtin.shell: "cat /etc/passwd |grep {{ owner_var }}:  |awk -F: '{print $1}' "
+      register: chk_user_exists
+
+    - name: Fail if user does not exist
+      ansible.builtin.fail:
+        msg: "user {{ owner_var }} does not exist. Exiting"
+      when: chk_user_exists.stdout != owner_var
+
+    - name: Run check_installation
+      ansible.builtin.command: "/hana/shared/{{ sid | upper }}/hdblcm/hdblcm  --action=check_installation --password={{ SIDADM_PW }} --remote_execution=saphostagent --batch"
+      register: show_version
+      become: true
+      become_user: "{{ sid | lower }}adm"
+
+    - name: Show Version
+      ansible.builtin.debug:
+        var: show_version.stdout_lines

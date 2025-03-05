@@ -1,0 +1,122 @@
+---
+# defaults file for aws-cloudwatch role
+
+# possible values:
+# - "{{ lookup('file', 'files/your-cloudwatch-config.json') | from_json }}" where your-cloudwatch-config.json is your custom
+#   configuration file according to docs reference.
+# - "{{ lookup('file', 'files/your-cloudwatch-config.yaml') | from_yaml }}" where your-cloudwatch-config.yaml is your custom
+#   configuration file according to docs reference.
+#
+# Also is possible to define inline configuration as YAML
+#    cwa_conf_json_file_content:
+#      metrics:
+#        append_dimensions:
+#          AutoScalingGroupName: "${!aws:AutoScalingGroupName}"
+#          ImageId: "${!aws:ImageId}"
+#          InstanceId: "${!aws:InstanceId}"
+#          InstanceType: "${!aws:InstanceType}"
+#        metrics_collected:
+#          mem:
+#            measurement:
+#              - mem_used_percent
+#          swap:
+#            measurement:
+#              - swap_used_percent
+#
+# reference: https://docs.aws.amazon.com/es_es/AmazonCloudWatch/latest/monitoring/CloudWatch-Agent-Configuration-File-Details.html
+# default value: ""
+# notes:
+# * when is empty the role deploys a custom json configuration via template
+cwa_conf_json_file_content: ''
+
+# posible values:
+# - "ec2"
+# - "onPremise"
+# default value: "ec2"
+# notes:
+# * not necessary when you deploy the agent into AWS, default value is fine.
+# * when you set the value 'onPremise' is because you installed the agent outside AWS, so is necessary to set the variables "cwa_aws_region", "cwa_access_key", "cwa_secret_key" also
+cwa_agent_mode: ec2
+
+# posible values:
+# - https://docs.aws.amazon.com/general/latest/gr/rande.html
+# default value: ""
+# notes:
+cwa_aws_region: ''
+
+# posible values:
+# - https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/install-CloudWatch-Agent-commandline-fleet.html
+# default value: "AmazonCloudWatchAgent"
+# notes:
+cwa_profile: AmazonCloudWatchAgent
+
+# posible values:
+# - https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
+# - https://docs.ansible.com/ansible/latest/user_guide/vault.html
+# default value: ""
+# notes:
+# * This is the region where the agent have access to push logs/metrics, only necessary when use **cwa_agent_mode:** "onPremise"
+cwa_access_key: ''
+
+# posible values:
+# - https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html
+# - https://docs.ansible.com/ansible/latest/user_guide/vault.html
+# default value: ""
+# notes:
+# * This is the region where the agent have access to push logs/metrics, only necessary when use **cwa_agent_mode:** "onPremise"
+cwa_secret_key: ''
+
+# posible values:
+# - https://docs.aws.amazon.com/es_es/AmazonCloudWatch/latest/monitoring/install-CloudWatch-Agent-commandline-fleet.html
+# default value: ""
+cwa_http_proxy: ''
+
+# posible values:
+# - https://docs.aws.amazon.com/es_es/AmazonCloudWatch/latest/monitoring/install-CloudWatch-Agent-commandline-fleet.html
+# default value: ""
+cwa_https_proxy: ''
+
+# posible values:
+# - https://docs.aws.amazon.com/es_es/AmazonCloudWatch/latest/monitoring/install-CloudWatch-Agent-commandline-fleet.html
+# default value: "169.254.169.254"
+# * Always disable proxy for aws metadata ip (169.254.169.254)
+cwa_no_proxy: 169.254.169.254
+
+# posible values:
+# - https://linux.die.net/man/8/logrotate
+# default value: "10M"
+cwa_logrotate_file_size: 10M
+
+# posible values:
+# - https://linux.die.net/man/8/logrotate
+# default value: 5
+cwa_logrotate_files: 5
+
+# Default Log Stream Name
+# Accepted values: instance_id, hostname
+# default value: "instance_id"
+cwa_default_log_stream_name: instance_id
+
+# App Customization Variable
+# Accepted values: default, sap, hana, openvpn
+# default value: "default"
+application_preset_selection: default
+
+# Set timezone for log stream ingestion
+cwa_default_log_stream_timezone: UTC
+
+# Boolean value of whether to integrate Collectd data into Cloudwatch metrics
+# Defaults to 'true' to allow Collectd metrics to be shipped to Cloudwatch
+cwa_collectd_plugin_configuration: true
+
+# Boolean value of wether to enable autoscale group dimensions to be appended
+# Defaults to 'false' to not disrupt existing dimensions
+cwa_configure_asg_dimensions: false
+
+# Boolean value of whether to configure repositories on RedHat systems within this role
+# Defaults to `true` to run repository-management role to enable necessary repositories within this role
+cwa_enable_repositories: true
+
+# This is the variable passed to the 'aws-cloudwatch-agent' role which determines if custom metrics would be configured
+cwa_install_metrics: true
+...

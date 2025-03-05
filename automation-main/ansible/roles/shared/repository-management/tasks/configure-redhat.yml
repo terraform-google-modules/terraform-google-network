@@ -1,0 +1,205 @@
+---
+# Description: Configures yum/dnf and performs other pre-configuration tasks for Red Hat based systems.
+# Inputs:
+#   - repo_dns_list: (list) A list of repository servers to download the repository file from.
+#   - repo_force: (bool) Whether to force the re-downloading of the repository file and the re-enabling of the repositories within it.
+#   - repo_delete: (bool) Whether to remove all repositories and repository files that were setup by this Ansible role.
+#   - repo_delete_old: (bool) Whether or not to purge old repository files when downloading a new one
+# Outputs:
+#   - enabled_repositories_results: (list) A list of repositories that were enabled before this role was ran.
+#   - Configures yum/dnf.conf and removes legacy repository files.
+#   - Removes previously downloaded repository files if 'repo_force' or 'repo_delete' are set to true
+
+  - name: '[Red Hat] - [BLOCK] - Configure yum/dnf settings and get a list of currently enabled repositories'
+    block:
+
+      - name: "[Red Hat] - Ensure that the '/etc/yum.repos.d' directory is present"
+        file:
+          state: directory
+          path: /etc/yum.repos.d
+          owner: root
+          group: root
+          mode: '0755'
+        become: true
+
+      - name: '[Red Hat] - Disable the subscription-manager yum/dnf plugin'
+        ini_file:
+          state: present
+          dest: '{{ item }}'
+          create: true
+          no_extra_spaces: true
+          section: main
+          option: enabled
+          value: '0'
+        become: true
+        when: ansible_distribution | lower == 'redhat'
+        loop: "{{ configuration_files[ ansible_distribution | lower + '_' + ansible_distribution_major_version ] | default([], true) }}"
+        vars:
+          configuration_files:
+            redhat_7:
+              - /etc/yum/pluginconf.d/subscription-manager.conf
+            redhat_8:
+              - /etc/yum/pluginconf.d/subscription-manager.conf
+              - /etc/dnf/plugins/subscription-manager.conf
+
+      - name: '[Red Hat] - Have yum/dnf ignore any repositories that return 404 rather than halting package installation entirely'
+        ini_file:
+          state: present
+          dest: '{{ item }}'
+          create: true
+          no_extra_spaces: true
+          section: main
+          option: skip_if_unavailable
+          value: '1'
+        become: true
+        loop: "{{ configuration_files[ ansible_distribution | lower + '_' + ansible_distribution_major_version ] }}"
+        vars:
+          configuration_files:
+            redhat_7:
+              - /etc/yum.conf
+            redhat_8:
+              - /etc/yum.conf
+              - /etc/dnf/dnf.conf
+            redhat_9:
+              - /etc/yum.conf
+              - /etc/dnf/dnf.conf
+            amazon_2018:
+              - /etc/yum.conf
+            amazon_2:
+              - /etc/yum.conf
+
+      - name: '[Red Hat] - Disable repository-wide GPG key checking'
+        ini_file:
+          state: present
+          dest: '{{ item }}'
+          create: true
+          no_extra_spaces: true
+          section: main
+          option: repo_gpgcheck
+          value: '0'
+        become: true
+        loop: "{{ configuration_files[ ansible_distribution | lower + '_' + ansible_distribution_major_version ] }}"
+        vars:
+          configuration_files:
+            redhat_7:
+              - /etc/yum.conf
+            redhat_8:
+              - /etc/yum.conf
+              - /etc/dnf/dnf.conf
+            redhat_9:
+              - /etc/yum.conf
+              - /etc/dnf/dnf.conf
+            amazon_2018:
+              - /etc/yum.conf
+            amazon_2:
+              - /etc/yum.conf
+
+      - name: '[Red Hat] - Disable local package GPG key checking'
+        ini_file:
+          state: present
+          dest: '{{ item }}'
+          create: true
+          no_extra_spaces: true
+          section: main
+          option: localpkg_gpgcheck
+          value: '0'
+        become: true
+        loop: "{{ configuration_files[ ansible_distribution | lower + '_' + ansible_distribution_major_version ] }}"
+        vars:
+          configuration_files:
+            redhat_7:
+              - /etc/yum.conf
+            redhat_8:
+              - /etc/yum.conf
+              - /etc/dnf/dnf.conf
+            redhat_9:
+              - /etc/yum.conf
+              - /etc/dnf/dnf.conf
+            amazon_2018:
+              - /etc/yum.conf
+            amazon_2:
+              - /etc/yum.conf
+
+      - name: '[Red Hat] - Get a list of currently enabled repositories'
+        shell:
+          cmd: yum -v repolist | grep '^Repo-id' | sed -E 's|^Repo-id[[:space:]]*:[[:space:]]*||'
+        changed_when: false
+        become: true
+        register: enabled_repositories_results
+        when: repo_force | bool == false
+
+    when: repo_delete | bool == false  # End BLOCK
+
+  - name: '[Red Hat] - Find legacy Red Hat repository files'
+    find:
+      use_regex: false
+      paths:
+        - /etc/yum.repos.d
+      patterns: >
+        {{
+          [
+            'build-redhat.repo',
+            'build-epel.repo',
+            ansible_distribution | lower + ansible_distribution_major_version + '_' + ansible_distribution_version + '-https*.repo',
+            ansible_distribution | lower + ansible_distribution_major_version + '_' + latest_os_versions[ ansible_distribution | lower + '_' + ansible_distribution_major_version
+        ] + '-https*.repo'
+          ] + repo_dns_list | map('regex_replace', 'https*://', '' ) | list
+        }}
+    become: true
+    register: legacy_repository_file_results
+
+# NOTE: Using a shell task here instead of a file task with a loop to speed up execution.
+  - name: '[Red Hat] - Remove legacy Red Hat repository files'
+    shell:
+      cmd: rm -f {{ legacy_repository_file_results.files | selectattr('path', 'defined') | map(attribute='path') | list | join(' ') }}
+    become: true
+    when:
+      - legacy_repository_file_results.files is defined
+      - legacy_repository_file_results.files | length > 0
+
+  - name: '[Red Hat] - Find legacy distribution Red Hat repository files'
+    find:
+      use_regex: false
+      paths:
+        - /etc/yum.repos.d
+      patterns:
+        - "{{ ansible_distribution | lower + '*_' + '*-*.repo' }}"
+      excludes:
+        - '{{ ansible_distribution | lower }}{{ ansible_distribution_major_version }}_{{ ansible_distribution_version }}-*.repo'
+        - "{{ ansible_distribution | lower }}{{ ansible_distribution_major_version }}_{{ latest_os_versions[ ansible_distribution | lower + '_' + ansible_distribution_major_version\
+          \ ] }}-*.repo"
+    become: true
+    register: legacy_distribution_repository_file_results
+    when: repo_delete_old | bool
+
+# NOTE: Using a shell task here instead of a file task with a loop to speed up execution.
+  - name: '[Red Hat] - Remove legacy distribution Red Hat repository files'
+    shell:
+      cmd: rm -f {{ legacy_distribution_repository_file_results.files | selectattr('path', 'defined') | map(attribute='path') | list | join(' ') }}
+    become: true
+    when:
+      - repo_delete_old | bool
+      - legacy_distribution_repository_file_results.files is defined
+      - legacy_distribution_repository_file_results.files | length > 0
+
+  - name: '[Red Hat] - Find any previously downloaded repository files'
+    find:
+      paths:
+        - /etc/yum.repos.d
+      patterns:
+        - '{{ ansible_distribution | lower }}{{ ansible_distribution_major_version }}_{{ ansible_distribution_version }}-*.repo'
+        - "{{ ansible_distribution | lower }}{{ ansible_distribution_major_version }}_{{ latest_os_versions[ ansible_distribution | lower + '_' + ansible_distribution_major_version\
+          \ ] }}-*.repo"
+    register: repository_file_results
+    when: repo_force | bool or repo_delete | bool
+
+# NOTE: Using a shell task here instead of a file task with a loop to speed up execution.
+  - name: '[Red Hat] - Remove any previously downloaded repository files'
+    shell:
+      cmd: rm -f {{ repository_file_results.files | selectattr('path', 'defined') | map(attribute='path') | list | join(' ') }}
+    become: true
+    when:
+      - repo_force | bool or repo_delete | bool
+      - repository_file_results.files is defined
+      - repository_file_results.files | length > 0
+...

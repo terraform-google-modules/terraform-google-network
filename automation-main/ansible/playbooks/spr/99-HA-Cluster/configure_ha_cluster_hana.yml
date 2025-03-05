@@ -1,0 +1,709 @@
+---
+# Playbook Name: setup_pacemaker_ha_cluster_hana.yml
+# Description: This playbook configures a pair of database servers into cluster mode.
+# Prerequisites:
+#   - 2 SPR Provisioned (blank) S4/HANA DB Servers
+#   - Replication already created with `setup_hana_hsr_primary.yml`
+#   - Pacemaker installed with `setup_pacemaker_ha_cluster_hana`
+#   - Database Ansible Inventory created from template (./inventorydb_template)
+# Dependencies: N/A
+# Variables:
+#   Inventory Host Variables (See template for descriptions)
+#     - sap_hana_hsr_hana_sid
+#     - sap_hana_hsr_hana_instance_number
+#     - sap_hana_hsr_role
+#     - sap_ha_pacemaker_cluster_hadr_provider_path
+#     - sap_ha_pacemaker_cluster_hadr_provider_name
+#     - sap_hana_ha_pacemaker_hana_sid
+#     - sap_hana_ha_pacemaker_node1
+#     - sap_hana_ha_pacemaker_hana_instance_number
+#     - sap_hana_ha_pacemaker_cluster_oip
+#     - customer_vpc_route_table_id_1a
+#     - customer_vpc_route_table_id_1b
+#     - customer_vpc_route_table_id_1c
+# Example:
+#   ansible-playbook setup_pacemaker_ha_cluster_hana.yml -i inventorydb.yml -k
+# Authors: Sean-Thomas Saloom
+# Version: 2.9-000001
+# Modified: 2023-07-10 - Created
+# Comments: N/A
+# Development Notes:
+#   SAP HA Pacemaker srHook
+#   Stop Cluster and validate (play-1, play-2, play-3)
+#   Stop HDB on both nodes (play-4)
+#   SAP HA Pacemaker srHook - Create srHook shared directory (play-5)
+#   SAP HA Pacemaker srHook - Copy srHook to shared directory (play-6)
+#   SAP HA Pacemaker srHook - Check global.ini for 'ha_dr_saphanasr (play-7)
+#   SAP HA Pacemaker srHook - Update srHook in global.ini (play-8)
+#   SAP HA Pacemaker srHook - Add srHook sudo entries (play-9)
+#   Start HDB (play-10)
+#   Stop HDB to verify if srHook is working (play-11)
+#   Verify srHook logged messages in nameserver traces on Node-1 (play-12)
+#   Start HDB (play-13)
+#   Start cluster if logged messages, check pcs status (play-14. play-15, play-16)
+
+- name: Play1 configure resoures on ha cluster for hana
+  become: yes
+  hosts: dbservers
+  gather_facts: true
+  tasks:
+
+  - name: Ensure required packages for Resource Agents are installed
+    yum:
+      name:
+        - resource-agents-sap-hana
+      state: installed
+
+  - name: Wait until HANA SYNC is active
+    shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        python /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/python_support/systemReplicationStatus.py
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: verifysyncstatus
+    changed_when: false
+    failed_when: false
+    retries: 1000
+    delay: 10
+    until: |
+      'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Verify HANA sync status
+    assert:
+      that: |
+        'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+      fail_msg: "Syncing error"
+      success_msg: "Syncing completed"
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Stop the RHEL HA Cluster
+    command: pcs cluster stop --all
+    register: stop_cluster
+    changed_when: "'Stopping Cluster' in stop_cluster.stdout"
+    run_once: true
+    tags:
+      - debug-1
+
+  - name: Validate the RHEL HA Cluster has stopped
+    command: pcs status
+    register: status_stop_cluster
+    changed_when: "'cluster is not available on this node' in status_stop_cluster.stdout"
+    ignore_errors: yes
+    run_once: true
+    tags:
+      - debug-2
+
+  - name: Print the RHEL HA Cluster has stopped
+    debug:
+      var: status_stop_cluster
+    run_once: true
+    tags:
+      - debug-3
+
+  - name: Stop hdb
+    shell: |
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/HDB stop
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: stophdb
+    changed_when: "'hdbdaemon is stopped' in stophdb.stdout"
+    when:
+      - status_stop_cluster.failed == true
+    tags:
+      - debug-4
+
+  - name: "SAP HA Pacemaker srHook - Create srHook shared directory"
+    ansible.builtin.file:
+      path: "{{ sap_ha_pacemaker_cluster_hadr_provider_path }}"
+      state: directory
+      mode: "0755"
+      owner: "{{ sap_hana_ha_pacemaker_hana_sid | lower }}adm"
+      group: sapsys
+    tags:
+      - debug-5
+
+  - name: "SAP HA Pacemaker srHook - Copy srHook to shared directory"
+    ansible.builtin.copy:
+      remote_src: true
+      src: /usr/share/SAPHanaSR/srHook/SAPHanaSR.py
+      dest: "{{ sap_ha_pacemaker_cluster_hadr_provider_path }}/{{ sap_ha_pacemaker_cluster_hadr_provider_name }}.py"
+      mode: "0755"
+      owner: "{{ sap_hana_ha_pacemaker_hana_sid | lower }}adm"
+      group: sapsys
+    # Do not run in check mode because the path is created in the previous step
+    when: not ansible_check_mode
+    tags:
+      - debug-6
+
+  - name: "SAP HA Pacemaker srHook - Check global.ini for 'ha_dr_saphanasr'"
+    ansible.builtin.shell: |
+      grep ha_dr_saphanasr /usr/sap/{{ sap_hana_ha_pacemaker_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini
+    register: __sap_ha_pacemaker_cluster_srhook_trace_global
+    failed_when: false
+    # This command should always run, even in check mode.
+    # It never does a change, but the return code is required for the next task.
+    check_mode: false
+    changed_when: false
+    tags:
+      - debug-7
+
+  - name: "SAP HA Pacemaker srHook - Update srHook in global.ini"
+    ansible.builtin.blockinfile:
+      path: /usr/sap/{{ sap_hana_ha_pacemaker_hana_sid | upper }}/SYS/global/hdb/custom/config/global.ini
+      marker: ""
+      block: |
+        [ha_dr_provider_{{ sap_ha_pacemaker_cluster_hadr_provider_name }}]
+        provider = {{ sap_ha_pacemaker_cluster_hadr_provider_name }}
+        path = {{ sap_ha_pacemaker_cluster_hadr_provider_path }}
+        execution_order = 1
+        [trace]
+        ha_dr_saphanasr = info
+    when: __sap_ha_pacemaker_cluster_srhook_trace_global.rc == 1
+    tags:
+      - debug-8
+
+  - name: "SAP HA Pacemaker srHook - Add srHook sudo entries"
+    ansible.builtin.template:
+      backup: true
+      dest: /etc/sudoers.d/20-saphana
+      mode: "0440"
+      owner: root
+      group: root
+      src: sudofile_20-saphana.j2
+      validate: visudo -cf %s
+    tags:
+      - debug-9
+
+  - name: start hdb
+    shell: |
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/HDB start
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: starthdb
+    changed_when: "'StartWait' in starthdb.stdout"
+    tags:
+      - debug-10
+
+  - name: Wait until HANA SYNC is active
+    shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        python /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/python_support/systemReplicationStatus.py
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: verifysyncstatus
+    changed_when: false
+    failed_when: false
+    retries: 1000
+    delay: 10
+    until: |
+      'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Verify HANA sync status
+    assert:
+      that: |
+        'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+      fail_msg: "Syncing error"
+      success_msg: "Syncing completed"
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: stop hdb to trigger srHook
+    shell: |
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/HDB stop
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: stophdb
+    changed_when: "'hdbdaemon is stopped' in stophdb.stdout"
+    tags:
+      - debug-11
+
+  - name: verify srHook log messages on name server on node 1
+    shell: |
+        awk '/ha_dr_SAPHanaSR.*crm_attribute/ { printf "%s %s %s %s\n",$2,$3,$5,$16 }' nameserver_*
+    args:
+      executable: /bin/bash
+      chdir:  /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/{{ sap_hana_ha_pacemaker_node1 }}/trace
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: verifysrhook
+    changed_when: "'ha_dr_SAPHanaSR' in verifysrhook.stdout"
+    when:
+      - sap_hana_hsr_role == 'primary'
+    tags:
+      - debug-12
+
+  - name: start hdb after srHook verifcation
+    shell: |
+        /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/HDB start
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: starthdb
+    changed_when: "'StartWait' in starthdb.stdout"
+    tags:
+      - debug-13
+
+  - name: Wait until HANA SYNC is active
+    shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        python /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/python_support/systemReplicationStatus.py
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: verifysyncstatus
+    changed_when: false
+    failed_when: false
+    retries: 1000
+    delay: 10
+    until: |
+      'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Verify HANA sync status
+    assert:
+      that: |
+        'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+      fail_msg: "Syncing error"
+      success_msg: "Syncing completed"
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Start the RHEL HA Cluster
+    command: pcs cluster start --all
+    register: start_cluster
+    changed_when: "'Starting Cluster' in start_cluster.stdout"
+    run_once: true
+    tags:
+      - debug-14
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+
+  - name: Validate the RHEL HA Cluster has started
+    command: pcs status
+    register: status_start_cluster
+    ignore_errors: yes
+    run_once: true
+    tags:
+      - debug-15
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+
+  - name: Print the RHEL HA Cluster has stopped
+    debug:
+      var: status_start_cluster
+    run_once: true
+    tags:
+      - debug-16
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+# NOTE: FOR FUTURE AUTOMATION
+  # Configure general cluster properties [optional]
+
+#  - name: Ensure Cluster is in maintenance mode
+#    command: pcs property set maintenance-mode=true
+#    register: maintenance_cluster
+#    changed_when: "'error' not in maintenance_cluster.stdout"
+#    run_once: true
+
+#  - name: Ensure stickiness is configured properly
+#    command: pcs resource defaults update resource-stickiness=1000
+#    register: rconfig
+#    changed_when: "'Defaults do not apply to resource' in rconfig.stdout"
+#    when: sap_hana_ha_pacemaker_stickiness
+
+#  - name: Ensure migration threshold is configured properly
+#    command: pcs resource defaults update migration-threshold=5000
+#    register: rconfig
+#    changed_when: "'Defaults do not apply to resource' in rconfig.stdout"
+#    when: sap_hana_ha_pacemaker_threshold
+
+  # SAPHanaTopology resource gathers status and configuration of SAP HANA System Replication on each node.
+  # In addition, it starts and monitors the local SAP HostAgent which is required for starting, stopping,
+  # and monitoring the SAP HANA instances
+
+  # This is an idea to make it more idempotent
+  # - name: Delete SAP HANA topology if existing
+  #   shell: |
+  #     pcs resource delete SAPHanaTopology_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }}
+  #   ignore_errors: true
+  #   failed_when: false
+  #   no_log: true
+  #   when:
+  #     - sap_hana_hsr_role == 'primary'
+
+
+  - name: Create SAP HANA topology
+  # Large HANA databases can take longer to start up therefore the start timeout may have to be increased.
+    shell: |
+      pcs resource create SAPHanaTopology_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }} \
+      SAPHanaTopology SID={{ sap_hana_ha_pacemaker_hana_sid | upper }} InstanceNumber={{ sap_hana_ha_pacemaker_hana_instance_number }} \
+      op start timeout=600 \
+      op stop timeout=300 \
+      op monitor interval=10 timeout=600 \
+      clone clone-max=2 clone-node-max=1 interleave=true
+    register: create_resource
+    changed_when: "'Assumed agent name' in create_resource.stdout"
+    run_once: true
+    tags:
+      - debug-17
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+
+  - name: Wait until SAP HANA topolgy has started
+    shell: |
+        pcs status resources stonith_hana
+    become: yes
+    register: startstonith
+    changed_when: false
+    retries: 10
+    delay: 10
+    until: |
+      'Started' in startstonith.stdout
+    tags:
+      - debug-17.5
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+
+  - name: Print Create SAP HANA topology
+    debug:
+      var: create_resource.stdout_lines
+    run_once: true
+    tags:
+      - debug-18
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+
+  - name: Show resource SAP HANA topology clone
+    shell: pcs resource config SAPHanaTopology_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }}
+    register: show_clone_resource
+    changed_when: "'Resource: SAPHanaTopology' in show_clone_resource.stdout"
+    run_once: true
+    tags:
+      - debug-19
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+
+  - name: Print Show resource SAP HANA topology clone
+    debug:
+      var: show_clone_resource.stdout_lines
+    run_once: true
+    tags:
+      - debug-20
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+
+  - name: Show node attributes SAP HANA topology
+    shell: crm_mon -A1
+    register: show_node_attributes
+    run_once: true
+    tags:
+      - debug-21
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Print Show node attributes SAP HANA topology
+    debug:
+      var: show_node_attributes.stdout_lines
+    run_once: true
+    tags:
+      - debug-22
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+# NOTE: FOR FUTURE AUTOMATION
+# This is an idea to make it more idempotent
+# - name: Delete SAP HANA resource agent if existing
+#   shell: |
+#     pcs resource delete SAPHana_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }}
+#   ignore_errors: true
+#   failed_when: false
+#   no_log: true
+#   when:
+#     - sap_hana_hsr_role == 'primary'
+
+  - name: Create SAP HANA resource agent
+  # Create Master/Slave SAPHana resource
+  # PREFER_SITE_TAKEOVER: Should resource agent prefer to switch over to the secondary instance instead of restarting primary locally?
+  #   true: do prefer takeover to the secondary site;
+  #   false: do prefer restart locally; never: under no circumstances do a takeover to the other node
+  # AUTOMATED_REGISTER: If a takeover event has occurred, and the DUPLICATE_PRIMARY_TIMEOUT has expired, should the former primary instance be
+  #   registered as secondary?
+      #"false": no, manual intervention will be needed;
+      #"true": yes, the former primary will be registered by resource agent as secondary)
+      #"true": so that after a takeover, the system replication will resume in a timely manner, to avoid disruption
+  # DUPLICATE_PRIMARY_TIMEOUT: The time difference (in seconds) needed between two primary time stamps, if a dual-primary situation occurs. If the time difference is
+  #   less than the time gap, the cluster will hold one or both instances in a "WAITING" status. This is to give the system admin a chance to react to a takeover.
+  #   After the time difference has passed, if AUTOMATED_REGISTER is set to true, the failed former primary will be registered as secondary. After the registration
+  #   to the new primary, all data on the former primary will be overwritten by the system replication.
+    shell: |
+      pcs resource create SAPHana_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }} \
+      SAPHana SID={{ sap_hana_ha_pacemaker_hana_sid | upper }} InstanceNumber={{ sap_hana_ha_pacemaker_hana_instance_number }} \
+      PREFER_SITE_TAKEOVER=true DUPLICATE_PRIMARY_TIMEOUT=7200 AUTOMATED_REGISTER=true \
+      op start timeout=3600 \
+      op stop timeout=3600 \
+      op monitor interval=61 role="Slave" timeout=700 \
+      op monitor interval=59 role="Master" timeout=700 \
+      op promote timeout=3600 \
+      op demote timeout=3600 \
+      promotable notify=true clone-max=2 clone-node-max=1 interleave=true
+    register: create_resource
+    changed_when: "'Assumed agent name' in create_resource.stdout"
+    run_once: true
+    tags:
+      - debug-23
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+
+  - name: Wait until SAP HANA resource agent is promotable
+    shell: |
+        pcs status resources SAPHana_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }}
+    become: yes
+    register: starthanaresourceagent
+    changed_when: false
+    retries: 10
+    delay: 10
+    until: |
+      'promotable' in starthanaresourceagent.stdout
+    tags:
+      - debug-23.5
+
+
+# NOTE: FOR FUTURE AUTOMATION
+    # - name: "Wait for process to stop"
+    #   shell: 'sapcontrol -nr 00 -function GetProcessList ALL'
+    #   args:
+    #     executable: '/bin/csh'
+    #   failed_when: false
+    #   changed_when: false
+    #   register: sapapp_poststop_process_output
+    #   retries: 5
+    #   delay: 10
+    #   until: |
+    #     'GREEN' not in sapapp_poststop_process_output.stdout
+
+
+  - name: Print Create SAP HANA resource agent
+    debug:
+      var: create_resource.stdout_lines
+    run_once: true
+    tags:
+      - debug-24
+
+  - name: Show resource SAP HANA resource agent
+    shell: pcs resource config SAPHana_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }}
+    register: show_resource_agent
+    changed_when: "'Attributes: AUTOMATED_REGISTER' in show_resource_agent.stdout"
+    run_once: true
+    tags:
+      - debug-25
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+
+  - name: Print Show resource SAP HANA resource agent
+    debug:
+      var: show_resource_agent.stdout_lines
+    run_once: true
+    tags:
+      - debug-26
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+
+  - name: Wait until HANA SYNC is active
+    shell: |
+        source /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+        python /usr/sap/{{ sap_hana_hsr_hana_sid | upper }}/HDB{{ sap_hana_hsr_hana_instance_number }}/exe/python_support/systemReplicationStatus.py
+    become: yes
+    become_user: "{{ sap_hana_hsr_hana_sid | lower }}adm"
+    register: verifysyncstatus
+    changed_when: false
+    failed_when: false
+    retries: 1000
+    delay: 10
+    until: |
+      'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Verify HANA sync status
+    assert:
+      that: |
+        'overall system replication status: ACTIVE' in verifysyncstatus.stdout
+      fail_msg: "Syncing error"
+      success_msg: "Syncing completed"
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Create a symbolic link for aws
+    ansible.builtin.file:
+      src: /usr/local/bin/aws
+      dest: /usr/bin/aws
+      state: link
+    become: true
+
+  - name: Retrieve EC2 metadata
+    amazon.aws.ec2_metadata_facts:
+
+  - name: set aws region
+    set_fact:
+      aws_region: '{{ ansible_ec2_instance_identity_document_region }}'
+
+  - name: Create AWS config file
+    become: true
+    ansible.builtin.copy:
+      content: |
+          [default]
+          region = {{ aws_region }}
+          output = json
+      dest: ~/.aws/config
+      mode: "0440"
+
+  - name: Create Virtual IP resource
+    # Terraform creates a route to the OIP on Primary DB
+    # This resource creation should assign the OIP to the other instance eth0 e.g. node 2
+    # Check the eni assignment for the route table in AWS console
+    # Check the oip ip addr assingment on other instance
+    # routing_table={{ customer_vpc_route_table_ids[0] }} - Rakesh's poc
+    shell: |
+      pcs resource create vip_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }} \
+      aws-vpc-move-ip ip={{ sap_hana_ha_pacemaker_cluster_oip }} interface=eth0 routing_table="{{ customer_vpc_route_table_id_1a }},{{ customer_vpc_route_table_id_1b }},{{ customer_vpc_route_table_id_1c }}"
+    register: create_resource
+    changed_when: "'Assumed agent name' in create_resource.stdout"
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Print Create Virtual IP resource
+    debug:
+      var: create_resource.stdout_lines
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Set fact for vip status
+    set_fact:
+      vip_started: "vip_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }}\t(ocf::heartbeat:aws-vpc-move-ip):\t Started"
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Show Virtual IP resource status
+    shell: pcs status
+    register: show_vip_resource_status
+    retries: 10
+    delay: 10
+    until: "vip_started in show_vip_resource_status.stdout"
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Print Show Virtual IP resource
+    debug:
+      var: show_vip_resource_status.stdout_lines
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Show Virtual IP assignment
+    shell: ip addr
+    register: show_vip_assignment
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Print Virtual IP assignment
+    debug:
+      msg:  "{% if sap_hana_ha_pacemaker_cluster_oip in show_vip_assignment.stdout %} oip moved on '{{ inventory_hostname }}' {% endif %}"
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  # For correct operation we need to ensure that SAPHanaTopology resources are started before starting the SAPHana
+  # resources and also that the virtual IP address is present on the node where the Master resource of SAPHana is running.
+  # To achieve this, the following 2 constraints need to be created
+
+  - name: Create Cluster ordering constraint - 1/2
+  # constraint - start SAPHanaTopology before SAPHana
+  # symmetrical=false attribute defines that we care only about the start of resources and they don't need to be stopped in reverse order.
+  # Both resources (SAPHana and SAPHanaTopology) have the attribute interleave=true that allows parallel start of these resources on nodes.
+  # This permits that despite of ordering we will not wait for all nodes to start SAPHanaTopology but we can start the SAPHana resource on
+  # any of nodes as soon as SAPHanaTopology is running there.
+    shell: |
+      pcs constraint order SAPHanaTopology_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }}-clone  \
+      then SAPHana_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }}-clone symmetrical=false
+    register: create_constraint
+    changed_when: "'Adding SAPHanaTopology' in create_constraint.stdout"
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Show Ordering Constraint status
+    shell: pcs constraint
+    register: show_ordering_constraint_status
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Print Show Ordering Constraint status
+    debug:
+      var: show_ordering_constraint_status.stdout_lines
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Create Cluster colocation constraint -2/2
+  # constraint - colocate aws-vpc-move-ip resource with Master of SAPHana resource
+  # Note that the constraint is using a score of 2000 instead of the default INFINITY.
+  #   This allows the aws-vpc-move-ip resource to be taken down by the cluster in case there is no Master
+  #   promoted in the SAPHana resource so it is still possible to use this address with tools like
+  #   SAP Management Console or SAP LVM that can use this address to query the status information about the SAP Instance.
+    shell: |
+      pcs constraint colocation add vip_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }} \
+      with master SAPHana_{{ sap_hana_ha_pacemaker_hana_sid | upper }}_{{ sap_hana_ha_pacemaker_hana_instance_number }}-clone 2000
+    register: colocate_constraint
+    changed_when: "'error' not in colocate_constraint.stdout"
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Show Colocation Constraint status
+    shell: pcs constraint
+    register: show_colocation_constraint_status
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+  - name: Print Show Colocation Constraint status
+    debug:
+      var: show_colocation_constraint_status.stdout_lines
+    when:
+      - sap_hana_hsr_role == 'primary'
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it."

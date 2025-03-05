@@ -1,0 +1,52 @@
+---
+# Synopsis: Gets the hana version levels
+# Inputs:
+#   - sid: SAP ID of the system
+#   - hana_upgrade_source: Path to the upgrade folder
+#   - hana_upgrade_password: Password for the system user
+#   - hana_upgrade_target_hana_afl_sp:
+#   - hana_upgrade_target_hana_afl_patch:
+#   - hana_upgrade_target_sapibpafl_sp:
+#   - hana_upgrade_target_sapibpafl_patch:
+# Outputs:
+#   - hana_version_xml: XML of Hana stats
+# Comments:
+
+- name: "Upgrade DB using hdblcm"
+  shell: >-
+    ./hdblcm --action=update
+    --components=all
+    --component_root={{ hana_upgrade_source }}
+    --system_user=SYSTEM
+    --ignore=verify_signature
+    --system_user_password={{ hana_upgrade_password }}
+    -b
+  args:
+    chdir: "/hana/shared/{{ sid|upper }}/hdblcm"
+  become: true
+  register: upgrade_hdb_output
+
+- name: "Get DB stats and versions"
+  include_tasks: operations/hana-version.yml
+
+- name: "Validate XML Content"
+  include_tasks: general/xml-validation.yml
+  vars:
+    - xml_validation_xmlstring: "{{ hana_version_xml }}"
+    - xml_validation_xpath: "//software-component[name = '{{ item.name }}']/{{ item.stat }}"
+    - xml_validation_node: "{{ item.stat }}"
+    - xml_validation_value: "{{ item.value }}"
+  loop:
+  - name: 'HANA_AFL'
+    stat: 'sp-level'
+    value: "{{ hana_upgrade_target_hana_afl_sp }}"
+  - name: 'HANA_AFL'
+    stat: 'patch-level'
+    value: "{{ hana_upgrade_target_hana_afl_patch }}"
+  - name: 'SAPIBPAFL'
+    stat: 'sp-level'
+    value: "{{ hana_upgrade_target_sapibpafl_sp }}"
+  - name: 'SAPIBPAFL'
+    stat: 'patch-level'
+    value: "{{ hana_upgrade_target_sapibpafl_patch }}"
+...

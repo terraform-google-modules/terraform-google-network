@@ -1,0 +1,21 @@
+{{- $etd_lc_ob := ( index .Values "etd-logcollector") -}}
+{{- if $etd_lc_ob.outBound.db -}}
+{{- range $index, $db := $etd_lc_ob.outBound.db -}}
+{{- if $db.createdns -}}
+apiVersion: dns.gardener.cloud/v1alpha1
+kind: DNSEntry
+metadata:
+  annotations:
+    # Let Gardener manage this DNS entry.
+    dns.gardener.cloud/class: garden
+  name: {{ $db.sid | lower -}}-hana-dns-entry
+  labels:
+    {{- include ".helpers_override.labels" $ | nindent 4 }}
+spec:
+  dnsName: {{ $db.hostname }}
+  ttl: 600
+  targets:
+  - {{ $db.ipaddr }}
+{{- end -}}
+{{- end -}}
+{{- end -}}

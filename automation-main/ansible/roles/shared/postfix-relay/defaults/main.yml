@@ -1,0 +1,24 @@
+---
+# The SMTP address for the remote relay host
+postfix_relay_smtp_address: ''
+
+# The port to use for the SMTP server above
+postfix_relay_smtp_port: '25'
+
+# The username for authenticating with the remote relay host
+postfix_relay_username: ''
+
+# The password for authenticating with the remote relay host
+postfix_relay_password: ''
+
+# Mapping from a domain that we are going to masquerade to the domain we are
+# masquerading as, example:
+#
+# example.com: example.net
+#
+# All email sent from example.com will have its envelope sender change to
+# example.net, so an email sent from jane@example.com will be sent as
+# jane-example.com@example.net as the envelope sender. This allows us to
+# configure SPF for example.net and email should validate for SPF.
+postfix_envelope_sender: {}
+...

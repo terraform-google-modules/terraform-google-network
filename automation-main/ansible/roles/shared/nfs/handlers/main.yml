@@ -1,0 +1,8 @@
+---
+# handlers file for nfs
+
+  - name: Restart_sssd
+    service:
+      name: sssd
+      state: restarted
+...

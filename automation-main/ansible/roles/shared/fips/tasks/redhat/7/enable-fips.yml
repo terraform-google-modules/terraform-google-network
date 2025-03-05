@@ -1,0 +1,71 @@
+---
+# Synopsis: Enables FIPS on RHEL 7
+# Inputs:
+#   - boot_uuid
+
+# may want to create a task to check if the subscription manager is active otherwise enabling may fail
+  - name: Install fips packages
+    package:
+      name: '{{item}}'
+      state: present
+    become: true
+    loop:
+      - dracut-fips
+      - dracut-fips-aesni
+
+  - name: Rebuild initramfs to after installing fips packages
+    shell: dracut -f
+    become: true
+
+  - name: Determine if prelink file exists
+    stat:
+      path: /etc/sysconfig/prelink
+    become: true
+    register: prelink_file_output
+
+  - name: Disable prelinking
+    lineinfile:
+      dest: /etc/sysconfig/prelink
+      state: present
+      backrefs: yes
+      regexp: (?i)^prelinking=yes(.*)
+      line: PRELINKING=no\1
+    become: true
+    when: prelink_file_output.stat.exists
+
+  - name: Set FIPS to 1 in /etc/default/grub
+    lineinfile:
+      dest: /etc/default/grub
+      state: present
+      backrefs: yes
+      regexp: (?i)^GRUB_CMDLINE_LINUX=(.*?)fips=0(.*)
+      line: GRUB_CMDLINE_LINUX=\1fips=1\2
+    become: true
+
+  - name: Add FIPS to /etc/default/grub if missing
+    lineinfile:
+      dest: /etc/default/grub
+      backrefs: yes
+      regexp: (?i)^(GRUB_CMDLINE_LINUX=(?!.*fips)\"[^\"]+)(\".*)
+      line: \1 fips=1\2
+    become: true
+
+  - name: Update boot parameter with UUID in /etc/default/grub
+    lineinfile:
+      dest: /etc/default/grub
+      backrefs: true
+      regexp: ^(GRUB_CMDLINE_LINUX=(?!.*boot)\"[^\"]+)(\".*)
+      line: \1 boot=UUID={{boot_uuid}}\2
+    become: true
+
+  - name: Update kernel to include fips and uuid
+    shell: grubby --update-kernel=$(grubby --default-kernel) --args={{item}}
+    become: true
+    loop:
+      - fips=1
+      - boot=UUID={{boot_uuid}}
+
+  - name: Rebuild grub to include fips and uuid
+    shell: grub2-mkconfig -o /boot/grub2/grub.cfg
+    become: true
+...

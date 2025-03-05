@@ -1,0 +1,17 @@
+---
+tests:
+  - name: sap.work.http_access_log::1
+    inputs:
+      - insert_at: work_http_access_log_metadata
+        type: log
+        log_fields:
+          message: |
+            [01/Dec/2021:00:00:04 +0000] - "GET /sap/bc/ui5_ui5/ui2/ushell/shells/abap/FioriLaunchpad.html?sap-client=100 HTTP/1.1" {[host : localhost:44301][user-agent : collectd/5.9.0][accept : */*][x-forwarded-for : 127.0.0.1][sap-web-dispatcher : version=7.81.0][clientprotocol : https][ssl_cipher_usekeysize : 128][ssl_cipher_suite : c02f]} 200 3193 [18] {[content-type : text/html; charset=utf-8][content-length : 3193][cache-control : no-cache, no-store, must-revalidate, private][pragma : no-cache][expires : Thu, 01 Jan 1970 00:00:00 GMT][connection : close][sap-server : true][sap-icm-log-dtrace : v=0,i=,r=060952C6DC4A1EDC94C73469EAD60EF7,c=61A6D0B2BA82FE14E10000000A021E55,s=1][sap-icm-log-uname : -][sap-icm-log-mandt : 000][sap-perf-fesrec : 15657.000000][set-cookie : sap-usercontext=sap-client=100; path=/][set-cookie : oucqwqzvscwodcuaoredcozucxotuwzecuysefx=GET%23MIICsAYJKoZIhvcNAQcDoIICoTCCAp0CAQAxggIYMIICFAIBADB8MHAxCzAJBgNVBAYTAkRFMRwwGgYDVQQKExNTQVAgVHJ1c3QgQ29tbXVuaXR5MRMwEQYDVQQLEwpTQVAgV2ViIEFTMRQwEgYDVQQLEwtJMDAyMDY1Njg4NzEYMBYGA1UEAwwPTjIzX1NTRkFfUzJTVlBFAggKIBkSGRRTATANBgkqhkiG9w0BAQEFAASCAYCs7zGK%2fJRiivOzLIcvLwUU3U5DCzEFsqcsRB3oKWQp52EEqYAcitTTnwWhVvDaBbz6ZV4v2WriiPaQLR8hGn1TGSCM%2fnsWXVsYrF%2feANMhfZD52GHaFtmUviFicjzvkLBCAcxbjlNFNQ%2boC%2fr1rRqsgYEZvR7jZK245wc0JtG%2bP2SFtM68AUfU%2f0X4UlMr93o%2bQ0DpowbJH45Dggl%2bT9cpQ7nsWKfJmkMx%2f3W0QwTqNilccNvHBZCnh9NnMkjtPFiRBqNpAkn35DOefaRHJLuxTplIP3gyEVSndAjOgE91Myf3uhxOcVicqJS7wPP8BpWkhobqJITaXdxwCXooirPTa%2bCDPL2WRgXduRunqSc0SS%2bLqv0lxVFQ%3d; path=/, expires=Wed, 01-Dec-2021 00:15:04 GMT; Secure; HttpOnly]} {060952C6DC4A1EDC94C73469EAD60EF7,060952C6DC4A1EDC94C73469EAD62EF7,1}
+    outputs:
+      - extract_from: sap_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2021-12-01T00:00:04Z", to_string!(.timestamp), "timestamp parsing incorrect")
+...

@@ -1,0 +1,16 @@
+---
+# # Just a note, but when we update this to 9.1.0 we'll need to ensure our codebase is aligned with the collection.
+# https://docs.ansible.com/ansible/latest/collections/amazon/aws/docsite/CHANGELOG.html#v9-0-0
+# As a potential future enhancement/feature, it may be helpful to compare galaxy collection module references to our codebase to determine which tasks need to be updated; if it could be automated, even better.
+
+collections:
+  - { name: amazon.aws, version: 8.2.2 }   # Need to retest this along with the Ansible Version Cap.  Maybe update both?
+  - { name: ansible.posix, version: 2.0.0 }
+  - { name: ansible.utils, version: 5.1.2 }
+  - { name: ansible.windows, version: 2.7.0 }
+  - { name: azure.azcollection, version: 3.1.0 }
+  - { name: community.aws, version: 8.0.0 } # Need to retest this along with the Ansible Version Cap.  Maybe update both?
+  - { name: community.general, version: 10.3.0 }
+  - { name: community.sap_libs, version: 1.4.2 }
+  - { name: google.cloud, version: 1.4.1 } #Pinned because of ansible-core
+...

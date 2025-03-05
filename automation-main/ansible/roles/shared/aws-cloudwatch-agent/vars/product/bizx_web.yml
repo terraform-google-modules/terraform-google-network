@@ -1,0 +1,9 @@
+---
+# List of bizx_web log groups we want to capture
+# When 'bizx_web' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_bizx_web:
+  - file_path: /app/httpd/sfapache-bizx/logs/access.log*
+    log_group_name: /app/httpd/sfapache-bizx/logs/access
+  - file_path: /app/httpd/sfapache-bizx/logs/error.log*
+    log_group_name: /app/httpd/sfapache-bizx/logs/error
+...

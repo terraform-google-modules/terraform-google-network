@@ -1,0 +1,156 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "GatherTagsForAMICreation",
+          "Effect": "Allow",
+          "Action": [
+             "ec2:DescribeTags"
+          ],
+          "Resource": [
+             "*"
+          ]
+      },
+      {
+          "Sid": "AllowAMICreation",
+          "Effect": "Allow",
+          "Action": [
+              "ec2:DescribeImages",
+              "ec2:CreateImage"
+          ],
+          "Resource": [
+              "*"
+          ]
+      },
+      {
+          "Sid": "AdditionalSSMPermissions",
+          "Effect": "Allow",
+          "Action": [
+              "ssm:DescribeInstanceInformation"
+          ],
+          "Resource": [
+              "*"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "ssm:CancelCommand",
+              "ssm:GetCommandInvocation",
+              "ssm:ListCommandInvocations",
+              "ssm:ListCommands",
+              "ssm:SendCommand",
+              "ssm:GetAutomationExecution",
+              "ssm:GetParameters",
+              "ssm:StartAutomationExecution",
+              "ssm:ListTagsForResource"
+          ],
+          "Resource": [
+              "*"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "ec2:DescribeInstanceAttribute",
+              "ec2:DescribeInstanceStatus",
+              "ec2:DescribeInstances"
+          ],
+          "Resource": [
+              "*"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "lambda:InvokeFunction"
+          ],
+          "Resource": [
+              "arn:${ partition }:lambda:*:*:function:SSM*",
+              "arn:${ partition }:lambda:*:*:function:*:SSM*"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "states:DescribeExecution",
+              "states:StartExecution"
+          ],
+          "Resource": [
+              "arn:${ partition }:states:*:*:stateMachine:SSM*",
+              "arn:${ partition }:states:*:*:execution:SSM*"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "resource-groups:ListGroups",
+              "resource-groups:ListGroupResources",
+              "resource-groups:GetGroupQuery"
+          ],
+          "Resource": [
+              "*"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "cloudformation:DescribeStacks",
+              "cloudformation:ListStackResources"
+          ],
+          "Resource": [
+              "*"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "tag:GetResources"
+          ],
+          "Resource": [
+              "*"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "config:SelectResourceConfig"
+          ],
+          "Resource": [
+              "*"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "compute-optimizer:GetEC2InstanceRecommendations"
+          ],
+          "Resource": [
+              "*"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": [
+              "support:DescribeTrustedAdvisorChecks",
+              "support:DescribeTrustedAdvisorCheckSummaries",
+              "support:DescribeTrustedAdvisorCheckResult"
+          ],
+          "Resource": [
+              "*"
+          ]
+      },
+      {
+          "Effect": "Allow",
+          "Action": "iam:PassRole",
+          "Resource": "*",
+          "Condition": {
+              "StringEquals": {
+                  "iam:PassedToService": [
+                      "ssm.amazonaws.com"
+                  ]
+              }
+          }
+      }
+  ]
+}

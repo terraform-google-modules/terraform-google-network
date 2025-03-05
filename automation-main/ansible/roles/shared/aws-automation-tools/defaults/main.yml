@@ -1,0 +1,59 @@
+---
+# defaults file for aws-automation-tools
+
+# create aws vpc(s)
+aws_automation_vpc_create: no
+
+# create aws directory service
+aws_automation_directory_create: no
+
+# configure linux system to function as cron box for scheduled maintenance activities
+aws_automation_cronbox_setup: no
+
+# rename aws insntances if they meet specific criteria
+aws_automation_instance_rename: no
+
+# shutdown aws instances if they meet specific criteria
+aws_automation_instance_shutdown: no
+
+# delete aws instances if they meet specific criteria
+aws_automation_instance_cleanup: no
+
+# delete aws machine images if they meet specific criteria
+aws_automation_image_delete: no
+
+# delete aws ebs volumes if they meet specific criteria
+aws_automation_volume_delete: no
+
+# shutdown aws instances if they meet specific criteria
+#aws_automation_shutdown_spr: no
+aws_automation_shutdown_spr: no
+
+# start aws instances if they meet spr criteria
+aws_automation_start_spr: no
+# aws region where execution should take place
+aws_region: us-gov-west-1
+
+#TODO: consider grabbing region from ec2_metadata
+
+# number of days from the current date for instance deletion; default value is 7 days
+instance_deletion_grace_period: 7
+
+# number of days to wait before deleting amazon machine images; default value is 3 days
+image_deletion_grace_period: 3
+
+# age of the amazon machine image to maintain in days; default value is 180 days e.g., 6 months
+image_search_period: 180
+
+# delete all available volumes regardless of tag or age; boolean value
+volume_delete_force_all: false
+# TODO: the volume_delete_force_all does not do anything at this moment
+
+# number of days to wait before deleting aws ebs volumes; default value is 3 days
+volume_delete_grace_period: 3
+
+# ebs volume names to safely delete
+volume_delete_list:
+  - test-*
+  - temporary-*
+...

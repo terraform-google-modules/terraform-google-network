@@ -1,0 +1,26 @@
+---
+{{ $ecs_etd := ( index .Values "ecs-etds") }}
+apiVersion: velero.io/v1
+kind: Schedule
+
+metadata:
+  name: "etd-cs--schedule-{{ .Values.customer }}"
+  namespace: {{ .Values.velero.backupNamespace | default "velero" | quote }}
+  annotations:
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+spec:
+  schedule: "{{ .Values.velero.cronData }}"
+  template: 
+    hooks: {}
+    storageLocation: "{{ include ".helpers_override.fullname" . }}-velero-backup"
+    volumeSnapshotLocations:
+      - {{ include ".helpers_override.fullname" . }}-velero-backup
+    includedNamespaces:
+      - "ecs-etd-{{ .Values.customer }}"
+      - "etd-kafka-prd-{{ $ecs_etd.sid }}"
+    excludedNamespaces:
+    {{- range .Values.velero.excludedNamespaces }}
+      - "{{ . }}"
+    {{- end }}
+    metadata: {}
+    ttl: "{{ $.Values.velero.ttl | default "72h0m0s" }}"

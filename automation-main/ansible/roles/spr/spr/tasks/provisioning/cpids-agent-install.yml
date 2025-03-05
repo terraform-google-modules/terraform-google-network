@@ -1,0 +1,120 @@
+---
+# Synopsis: Installs and starts CPIDS Agent
+# Inputs:
+#       spr_cpids_agent_installation_file_source: File path to the location of the cpids agent tar images.
+#       standard_deployment_password: The standard password for deployments.
+#       spr_cpids_agent_installation_file_source: File path to the location of the cpids agent installation files.
+#       spr_cpids_agent_executable_source: File path to the location of the cpids agent installer executable
+# Outputs: Installs and starts CPIDS Agent.
+# Comments: N/A
+
+- name: "Create the user cpids_admin"
+  become: true
+  no_log: true
+  ansible.builtin.user:
+    name: cpids_admin
+    uid: 20204
+    password: "{{ standard_deployment_password }}"
+
+- name: Install required prerequisite packages
+  become: true
+  yum:
+    name:
+    - ncurses-devel
+    - gtk2
+    - ksh
+
+    state: present
+
+- name: "Make sure that /usr/sap has the correct permissions to allow subdirectory creation"
+  become: true
+  ansible.builtin.file:
+    path: '/usr/sap'
+    mode: '0777'
+
+- name: "Run cpids agent installer to generate file system structure"
+  become: true
+  become_user: cpids_admin
+  failed_when: false
+  ansible.builtin.shell: '{{ spr_cpids_agent_executable_source }}/DataServices-Agent-Installer.bin'
+
+- name: "Save installation files to /home/cpids_admin/"
+  become: true
+  ansible.builtin.copy:
+    dest: '/home/cpids_admin/'  # Changed to home directory to avoid links below
+    src: "{{ item }}"
+    force: yes
+    mode: '0755'
+    remote_src: yes
+  loop:
+    - "{{ spr_cpids_agent_installation_file_source }}/libswt-gtk-3740-64.so"
+    - "{{ spr_cpids_agent_installation_file_source }}/libswt-pi-gtk-3740-64.so"
+    - "{{ spr_cpids_agent_installation_file_source }}/libswt-atk-gtk-3740-64.so"
+
+- name: Extract data services agent tars
+  ansible.builtin.include_tasks: general/tar-extract.yml
+  vars:
+    spr_tar_extract_list:
+      - "{{ spr_app_install_source }}/usr-sap.tgz-*"
+      - "{{ spr_app_install_source }}/swt.tgz-*"
+      - "{{ spr_app_install_source }}/sqlanywhere17.tgz-*"
+    spr_tar_extract_overwrite: false
+    spr_tar_extract_async: false
+
+- name: "Make sure that /home/cpids_admin/ has the correct permissions"
+  become: true
+  ansible.builtin.file:
+    path: /home/cpids_admin/
+    owner: cpids_admin
+    group: cpids_admin
+    mode: '0755'
+    recurse: true
+
+# We need to revisit these /usr/lib64 links need all together. May not be necessary. Commenting out
+# Commented by Samba
+# # START "BLOCK: SYMLINKS"
+# - name: "BLOCK: SYMLINKS"
+#   block:
+#   - name: Create a symbolic link for libswt-gtk-3740.so
+#     become: true
+#     ansible.builtin.file:
+#       src: /usr/lib64/libswt-gtk-3740.so
+#       dest: /home/cpids_admin/.swt/lib/linux/x86_64/libswt-gtk-3740.so
+#       owner: cpids_admin
+#       group: cpids_admin
+#       state: link
+
+#   - name: Create a symbolic link for libswt-gtk-3740.so
+#     become: true
+#     ansible.builtin.file:
+#       src: /usr/lib64/libswt-pi-gtk-3740.so
+#       dest: /home/cpids_admin/.swt/lib/linux/x86_64/llibswt-gtk-3740.so
+#       owner: cpids_admin
+#       group: cpids_admin
+#       state: link
+
+#   - name: Create a symbolic link for libswt-atk-gtk-3740.so
+#     become: true
+#     ansible.builtin.file:
+#       src: /usr/lib64/libswt-atk-gtk-3740.so
+#       dest: /home/cpids_admin/.swt/lib/linux/x86_64/libswt-atk-gtk-3740.so
+#       owner: cpids_admin
+#       group: cpids_admin
+#       state: link
+
+# # Update the below for RHEL 9.2
+#   - name: Create a symbolic link for libncurses.so.5
+#     become: true
+#     ansible.builtin.file:
+#       src: /usr/lib64/libncurses.so.6.2
+#       dest: /usr/lib64/libncurses.so.5
+#       owner: root
+#       group: root
+#       state: link
+# END "BLOCK: SYMLINKS"
+
+- name: "Start the data services agent"
+  become: true
+  become_user: cpids_admin
+  ansible.builtin.shell: /usr/sap/DataServicesAgent/dsod_start.sh
+...

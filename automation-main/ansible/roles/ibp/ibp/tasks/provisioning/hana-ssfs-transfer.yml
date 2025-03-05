@@ -1,0 +1,61 @@
+---
+# Synopsis: Transfers the SSFS key from primary to secondary systems
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+#   - ssfs_primary_instance: (provided by playbook) Hostname of the source system to transfer from
+#   - ssfs_secondary_instance: (provided by playbook) Hostname of the destination system to transfer to
+# Outputs: Production SSFS key copied to secondary system
+# Comments: N/A
+
+- name: "Stop secondary Hana DB on {{ ssfs_secondary_instance }}"
+  include_tasks: operations/hana-softstop.yml
+  when: ssfs_secondary_instance == inventory_hostname
+
+- name: "Backup Hana SSFS DAT and KEY on secondary"
+  copy:
+    dest: "{{ item }}.{{ inventory_hostname }}-{{ sid|lower }}.bak"
+    src: "{{ item }}"
+    force: yes
+    remote_src: yes
+  loop:
+    - "/usr/sap/{{ sid|upper }}/SYS/global/security/rsecssfs/data/SSFS_{{ sid|upper }}.DAT"
+    - "/usr/sap/{{ sid|upper }}/SYS/global/security/rsecssfs/key/SSFS_{{ sid|upper }}.KEY"
+  when: ssfs_secondary_instance == inventory_hostname
+  become: true
+
+- name: "Fetch the primary Hana SSFS DAT and KEY from {{ ssfs_primary_instance }}"
+  fetch:
+      dest: '/tmp/ansible/'
+      src: "{{ item }}"
+      validate_checksum: yes
+      fail_on_missing: yes
+      flat: yes
+  when: ssfs_primary_instance == inventory_hostname
+  become: true
+  loop:
+    - "/usr/sap/{{ sid|upper }}/SYS/global/security/rsecssfs/data/SSFS_{{ sid|upper }}.DAT"
+    - "/usr/sap/{{ sid|upper }}/SYS/global/security/rsecssfs/key/SSFS_{{ sid|upper }}.KEY"
+
+- name: "Copy the Hana SSFS DAT and KEY from {{ ssfs_primary_instance }} to {{ ssfs_secondary_instance }}"
+  copy:
+      dest: "{{ item.path }}{{ item.name }}"
+      src: "/tmp/ansible/{{ item.name }}"
+      force: true
+  when: ssfs_secondary_instance == inventory_hostname
+  become: true
+  loop:
+    - name: "SSFS_{{ sid|upper }}.DAT"
+      path: "/usr/sap/{{ sid|upper }}/SYS/global/security/rsecssfs/data/"
+    - name: "SSFS_{{ sid|upper }}.KEY"
+      path: "/usr/sap/{{ sid|upper }}/SYS/global/security/rsecssfs/key/"
+
+- name: "Remove primary keys from localhost"
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ lookup('fileglob', '/tmp/ansible/SSFS_*.DAT') }}"
+    - "{{ lookup('fileglob', '/tmp/ansible/SSFS_*.KEY') }}"
+  delegate_to: localhost
+  run_once: true
+...

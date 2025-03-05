@@ -1,0 +1,16 @@
+{% if cw_preset_selection == "default" %}
+# No ports to monitor
+{% else %}
+{% for item in (lookup('vars', ('ports_' + cw_preset_selection))) %}
+tcpconns-{{ item | string | lower | replace('nn', system_instance_number | default ('00', true)) | replace('nx', '%02d' | format(system_instance_number | default ('01', true) | int + 1 ) | int) }}-local-tcp_connections-LISTEN
+{% endfor %}
+{% endif %}
+{% if available_file_path is defined %}
+tail--counter-available
+{% endif %}
+{% if cw_preset_selection == "cpids" %}
+curl-DSoD-response_code-
+{% endif %}
+{% if cw_preset_selection == "webdispatcher" %}
+curl-FioriLaunchpad-response_code-
+{% endif %}

@@ -1,0 +1,9 @@
+---
+# handlers file for selinux-apparmor
+
+  - name: reboot_system_if_required
+    reboot:
+      reboot_timeout: 480
+    when: reboot_if_needed | bool
+    become: true
+...

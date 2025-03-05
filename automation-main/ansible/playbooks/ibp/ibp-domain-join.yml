@@ -1,0 +1,94 @@
+---
+# Playbook Name: ibp-domain-join.yml
+# Synopsis: Joins Red Hat to Active Directory (AD) domain
+# Description: This playbook is specifically designed to join IBP systems to Active Directory with appropriate RBAC enforcements
+#         It is designed to work the with ibp-ansible-inventory-template.yml and only requires input for the domain_password and domain_fqdn
+# Prerequisites:
+# - Ansible v2.9+
+# - AWS CLI v1.16+
+# - ec2-key of New Instances
+# Dependencies:
+# - repository-management ansible role
+# - domain-join ansible role
+# Variables:
+#   domain_password: The credentials for the AD Account
+#   domain_fqdn: The fully qualified domain name
+# Example:
+#   Normal remote execution. domain_password and domain_fqdn will be prompted:
+#     ansible-playbook ibp-domain-join.yml -u ec2-user --private-key <PRIVATEKEY>"
+#
+# Example:
+#   Remote execution using extra-vars to suppress prompts:
+#     ansible-playbook ibp-domain-join.yml -u ec2-user --private-key <PRIVATEKEY>" -e domain_password="<DOMAIN JOINER PASSWORD>" -e domain_fqdn="<DOMAIN FQDN>"
+#
+# Authors: Louis Lee, Lance Wray
+# Version: 2.9-000005
+# Modified: 2020-03-18 - Created
+#           2020-07-20 - Modified for CRE integration and preserving hostname
+#           2020-10-29 - Added guardrails and options for FedCiv
+#           2020-11-20 - Added when condition to repo config
+#           2021-02-13 - Update to support new Repo-Management role
+#           2024-12-02 - Remove Region Specific Values
+# Comments:
+#     This playbook is designed to work with the ibp-ansible-inventory-template.yml
+
+- hosts: all
+  become: true    #required to install dependencies
+  gather_facts: true
+  vars_prompt:
+  - name: domain_password
+    prompt: "What is the password of the domain joiner account?"
+    unsafe: yes
+    private: yes
+
+  - name: input_domain_fqdn
+    prompt: "FQDN of the domain to join"
+    private: no
+
+  - name: input_domain_sudo_group
+    prompt: "Which domain permission can sudo?"
+    private: no
+    default: 'sg_sms_ibp_os_sudo'
+
+  - name: input_domain_login_group
+    prompt: "Which domain permission can login?"
+    private: no
+    default: 'sg_sms_ibp_os_login'
+
+  - name: input_domain_joiner_account
+    prompt: "Which account to join the domain?"
+    private: no
+    default: 'svc_domain_joiner'
+
+
+  vars:
+    domain_force_join: false
+
+  pre_tasks:
+  - name: "Configure Base Red Hat Repositories from S3"
+    include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: 'base'
+
+  tasks:
+  - name: Domain Join
+    include_role:
+      name: domain-join
+    vars:
+      domain_user: "{{ input_domain_joiner_account }}"
+      domain_dns1: ''
+      domain_dns2: ''
+      domain_set_dns: false
+      domain_set_hostname: true
+      domain_restrict_ssh: true
+      domain_fqdn: "{{ input_domain_fqdn }}"
+      domain_sudo_group: "{{ input_domain_sudo_group }}"
+      domain_login_group: "{{ input_domain_login_group }}"
+
+  post_tasks:
+  - name: "This is the end"
+    debug:
+      msg: "Of the world as we know it"
+...

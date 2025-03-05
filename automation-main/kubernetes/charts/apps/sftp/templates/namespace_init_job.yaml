@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: namespace-init-job
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-1"
+    helm.sh/hook: pre-install
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  template:
+    spec:
+      containers:
+        - name: namespace-init
+          image: alpine:3.20
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              apk update
+              apk add --no-cache bash curl postgresql-client grep yq jq openssh-keygen
+              /bin/bash /vault-write-back.sh;
+          envFrom:
+            - secretRef:
+                name: global-pqsql-secret
+            - secretRef:
+                name: vault-config-secret
+          volumeMounts:
+            - name: namespace-init-cm
+              mountPath: /vault-write-back.sh
+              subPath: vault-write-back.sh
+            - name: extra-tools
+              mountPath: /extra-tools
+            - name: hostkeys
+              mountPath: /hostkeys
+      restartPolicy: OnFailure
+      volumes:
+        - name: hostkeys
+          emptyDir: {}
+        - name: extra-tools
+          emptyDir: {}
+        - name: extra-tools-cm
+          configMap:
+            name: extra-tools-cm
+            defaultMode: 0777
+        - name: namespace-init-cm
+          configMap:
+            name: namespace-init-cm
+            defaultMode: 0777

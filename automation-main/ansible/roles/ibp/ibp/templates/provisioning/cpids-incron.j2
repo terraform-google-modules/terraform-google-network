@@ -1,0 +1,2 @@
+/hana/backups/{{ ibp_incron_sid|upper }}/HDB00/backup/data    IN_MOVED_TO         aws s3 mv $@/$# s3://{{ ibp_incron_bucket_name }}/CPIDS-{{ ibp_incron_release_number }}/{{ ibp_incron_hostname|upper }}/data/$# --sse
+/hana/backups/{{ ibp_incron_sid|upper }}/HDB00/backup/log    IN_MOVED_TO         aws s3 mv $@/$# s3://{{ ibp_incron_bucket_name }}/CPIDS-{{ ibp_incron_release_number }}/{{ ibp_incron_hostname|upper }}/log/$# --sse

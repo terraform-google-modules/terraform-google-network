@@ -1,0 +1,41 @@
+---
+# Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+- name: Verify
+  hosts: all
+  become: false
+  gather_facts: false
+  tasks:
+
+  - name: "Verify Preset Loop"
+    include_tasks: verify-preset-selection.yml
+    loop:
+      - s4pce_variables_create_nodetype: db
+        s4pce_variables_create_productname: hanacockpit
+        expected_fw: hanacockpit
+        expected_cw: hana
+      - s4pce_variables_create_nodetype: db
+        s4pce_variables_create_productname: something_else
+        expected_fw: hana
+        expected_cw: hana
+      - s4pce_variables_create_nodetype: app
+        s4pce_variables_create_productname: webdispatcher
+        expected_fw: webdispatcher
+        expected_cw: webdispatcher
+      - s4pce_variables_create_nodetype: app
+        s4pce_variables_create_productname: data_services
+        expected_fw: data_services
+        expected_cw: base
+      - s4pce_variables_create_nodetype: app
+        s4pce_variables_create_productname: bw4hana
+        expected_fw: sapapp_abap
+        expected_cw: sapapp_abap
+      - s4pce_variables_create_nodetype: app
+        s4pce_variables_create_productname: solman_java
+        expected_fw: sapapp_java
+        expected_cw: sapapp_java
+      - s4pce_variables_create_nodetype: app
+        s4pce_variables_create_productname: dpagent
+        expected_fw: default
+        expected_cw: base
+...

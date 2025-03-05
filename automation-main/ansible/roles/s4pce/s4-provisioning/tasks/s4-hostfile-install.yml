@@ -1,0 +1,13 @@
+---
+# Synopsis: Replaces Host File
+# Inputs: See Role Vars
+# Outputs: New Host File
+# Comments: N/A
+
+- name: update /etc/hosts file
+  template:
+    dest: /etc/hosts
+    src: s4-hostfile.j2
+    backup: yes
+  become: yes
+...

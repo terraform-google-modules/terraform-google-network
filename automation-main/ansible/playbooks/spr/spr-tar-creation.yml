@@ -1,0 +1,88 @@
+---
+# Playbook Name: spr-tar-creation.yml
+# Synopsis: Creates tars for App and Hana.
+# Description: Gracefully stops SAP App and Hana.  Then creates split tar files of desired folders.  Tars are saved to EFS and uploaded to S3 buckets
+# Prerequisites:
+#   - Ansible v2.9+
+#   - Sudo access to S4 App and DB instances
+# Dependencies: N/A
+# Variables:
+#   - instance_type : type of instance, one of app or db
+# Example:
+#   How to start with remote execution using ssh key
+#    ansible-playbook -u ec2-user --private-key myprivatekey.pem -c ssh spr-tar-creation.yml
+#
+#   How to start with remote execution using username/password
+#   - Requires sshpass installed
+#   - Requires ssh fingerprints of remote systems installed
+#      ansible-playbook -u i123456 -k spr-tar-creation.yml
+#
+# Authors: Abdulla Rubaid
+# Version: 2.9-000001
+# Modified: 2022-03-30 - Created
+
+# Comments: N/A
+  - name: 'Play1: Create Tars'
+    gather_facts: true
+    hosts: all
+    tags:
+      - play1
+      - always
+    vars_prompt:
+      - name: instance_type
+        prompt: What is the instance_type of the tar (app or db)?
+        private: no
+    tasks:
+      - name: Create Hana Tars
+        shell: /bin/tar -cvzf - {{ item.path }}/* | split -b 2000M - {{ item.name }}
+        become: true
+        loop:
+          - path: /hana/data
+            name: hana-data.tgz-
+          - path: /hana/log
+            name: hana-log.tgz-
+          - path: /hana/shared
+            name: hana-shared.tgz-
+          - path: /usr/sap
+            name: usr-sap.tgz-
+        when: instance_type == "db"
+        async: 14400 # set async timeout to 4 hours
+        poll: 0
+        register: hanatarcreate_status
+
+      - name: Create SapAPP Tars
+        shell: /bin/tar -cvzf - {{ item.path }}/* | split -b 2000M - {{ item.name }}
+        become: true
+        loop:
+          - path: /sapmnt
+            name: sapmnt.tgz-
+          - path: /usr/sap
+            name: usrsap.tgz-
+        when: instance_type == "app"
+        async: 14400 # set async timeout to 4 hours
+        poll: 0
+        register: sapapptarcreate_status
+
+
+      - name: Wait for Hana Tar Creation to finish
+        async_status:
+          jid: '{{ item.ansible_job_id }}'
+        become: true
+        register: job_result
+        until: job_result.finished
+        delay: 60 # Check every 60 seconds. Adjust as you like.
+        retries: 240 # Retry for 4 hours
+        loop: '{{ hanatarcreate_status.results }}'
+        when: instance_type == "db"
+
+      - name: Wait for SapApp Tar Creation to finish
+        async_status:
+          jid: '{{ item.ansible_job_id }}'
+        become: true
+        register: job_result
+        until: job_result.finished
+        delay: 60 # Check every 60 seconds. Adjust as you like.
+        retries: 240 # Retry for 4 hours
+        loop: '{{ sapapptarcreate_status.results }}'
+        when: instance_type == "app"
+...

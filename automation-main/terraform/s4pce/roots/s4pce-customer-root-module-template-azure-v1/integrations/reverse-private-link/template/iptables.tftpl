@@ -1,0 +1,9 @@
+#cloud-config
+bootcmd:
+ - echo "1" > /proc/sys/net/ipv4/ip_forward
+%{ for k, v in list ~}
+%{ for port in v ~}
+ - iptables -t nat -A PREROUTING -p tcp --dport ${port} -j DNAT --to-destination ${k}:${port}
+%{ endfor ~}
+%{ endfor ~}
+ - iptables -t nat -A POSTROUTING -j MASQUERADE

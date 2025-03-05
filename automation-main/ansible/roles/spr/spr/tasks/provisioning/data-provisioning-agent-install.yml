@@ -1,0 +1,59 @@
+---
+# Synopsis: Installs and starts the data provisioning agent
+# Outputs: Installs and starts data provisioning agent.
+
+- name: Validate paths
+  include_tasks: general/mount-check.yml
+  vars:
+    spr_mount_check_path: "{{ item.path }}"
+    spr_mount_check_size: "{{ item.size|default('0',true) }}"
+  loop:
+  - path: "/usr/sap"
+
+- name: "Add the user dpagent"
+  become: true
+  ansible.builtin.user:
+    name: dpagent
+    group: sapsys
+    home: /usr/sap/dataprovagent
+
+- name: "Create /usr/sap/dataprovagent"
+  become: true
+  file:
+    path: '/usr/sap/dataprovagent'
+    state: directory
+    owner: dpagent
+    group: sapsys
+
+- name: "Change file ownership, group and permissions for the dpagent install source"
+  become: true
+  file:
+    path: '{{ spr_dpagent_install_source }}'
+    state: directory
+    recurse: yes
+    owner: dpagent
+    group: sapsys
+    mode: '0775'
+
+- name: "Execute installation command"
+  become: true
+  become_user: dpagent
+  shell: >-
+    ./hdbinst --silent --batch --path=/usr/sap/dataprovagent
+  args:
+    chdir: '{{ spr_dpagent_install_source }}'
+
+- name: "Export environment variables"
+  become: true
+  become_user: dpagent
+  shell: >-
+    export DPA_INSTANCE=/usr/sap/dataprovagent
+
+- name: "Edit the dpagentconfig.ini file"
+  become: true
+  become_user: dpagent
+  lineinfile:
+    path: '/usr/sap/dataprovagent/dpagentconfig.ini'
+    line: 'cloud.deployment=AWS_'
+    create: yes
+...

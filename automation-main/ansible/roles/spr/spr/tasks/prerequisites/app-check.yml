@@ -1,0 +1,57 @@
+---
+# Synopsis: Validates s4app Prerequisites
+# Inputs:
+#   spr_app_check_source : Source folder for the Application install binaries
+#   spr_app_check_file_ini_params : Location of the input parameters file
+#   spr_app_check_file_instkey : Location of the instkey.pkey file
+#   spr_app_check_file_swpm_sapinst : Location of the SWPM Sapinst
+#   spr_app_check_saphostagent_source : Location of the SAPHOSTAgent source
+#   spr_app_sap_sid_adm : sid adm user name
+# Outputs:
+# Comments:
+
+
+- name: Validate paths
+  include_tasks: general/mount-check.yml
+  vars:
+    spr_mount_check_path: "{{ item.path }}"
+    spr_mount_check_size: "{{ item.size|default('0',true) }}"
+  loop:
+  - path: "/usr/sap"
+  - path: "/sapmnt/"
+  - path: "{{ spr_app_check_source }}"
+  - path: "{{ spr_app_check_file_ini_params }}"
+  - path: "{{ spr_app_check_file_instkey }}"
+  - path: "{{ spr_app_check_file_swpm_sapinst }}"
+  - path: "{{ spr_app_check_saphostagent_source }}"
+
+- name: Paths should be empty
+  block:
+    - name: Check if /sapmnt is empty
+      find:
+        paths: "/sapmnt"
+        file_type: any
+      register: filesFound
+    - fail:
+        msg: "/sapmnt is not empty."
+      when: filesFound.matched > 0
+      # "/usr/sap" #we have trans sub folder, we can add match >1 to fail
+    - name: Check path /usr/sap
+      find:
+        paths: "/usr/sap"
+        file_type: any
+      register: usrsapfiles
+    - fail:
+        msg: "/usr/sap is not clean."
+      when: usrsapfiles.matched > 1
+
+- name: sidadm user exists?
+  block:
+    - getent:
+        database: passwd
+    - set_fact:
+        users_present: "{{ getent_passwd.keys()|list }}"
+    - fail:
+        msg: "user {{ spr_sid_adm }} exists."
+      when: spr_sid_adm in users_present
+...

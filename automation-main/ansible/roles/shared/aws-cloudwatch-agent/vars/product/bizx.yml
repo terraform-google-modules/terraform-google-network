@@ -1,0 +1,37 @@
+---
+# List of bizx log groups we want to capture
+# When 'bizx' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_bizx:
+  - file_path: /app/jboss/jboss-running/server/sfv4Cluster01/log/server.log*
+    log_group_name: /app/jboss/jboss-running/server/sfv4Cluster01/log
+  - file_path: /app/kafka/logs/*
+    log_group_name: /app/kafka/logs
+  - file_path: /app/optier/data/corefirst/logs/*.log*
+    log_group_name: /app/optier/data/corefirst/logs
+  - file_path: /app/redis_nodemanager/log/cachemgr.log
+    log_group_name: /app/redis_nodemanager/log
+  - file_path: /app/redis_nodemanager/log/nodeManager/*
+    log_group_name: /app/redis_nodemanager/log/nodeManager
+  - file_path: /app/scheduler-service/log/*.log
+    log_group_name: /app/scheduler-service/log
+  - file_path: /app/solr/server/logs/server.log
+    log_group_name: /app/solr/server/logs/server
+  - file_path: /app/solr/server/logs/solr-8080-console.log
+    log_group_name: /app/solr/server/logs/solr-8080-console
+  - file_path: /app/tomcat/logs/catalina.out
+    log_group_name: /app/tomcat/logs/catalina
+  - file_path: /app/tomcat/logs/localhost_access_log/*
+    log_group_name: /app/tomcat/logs/localhost_access_log
+  - file_path: /app/tomcat/logs/perf.log
+    log_group_name: /app/tomcat/logs/perf
+  - file_path: /app/tomcat/logs/server.log
+    log_group_name: /app/tomcat/logs/server
+  - file_path: /app/tomcat/logs/sfmail.log
+    log_group_name: /app/tomcat/logs/sfmail
+  - file_path: /app/zookeeper/log/zk.out
+    log_group_name: /app/zookeeper/log/zk
+  - file_path: /usr/local/scheduler-service/log/*.log
+    log_group_name: /usr/local/scheduler-service/log
+  - file_path: /var/log/redis/redis.log
+    log_group_name: /var/log/redis/redis
+...

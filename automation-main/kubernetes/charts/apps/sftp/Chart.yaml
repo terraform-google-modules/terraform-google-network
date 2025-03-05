@@ -1,0 +1,9 @@
+apiVersion: v2
+name: sftpgo
+type: application
+description: Helm Chart for deploying sftpgo with custom values
+version: 0.19.0
+dependencies:
+  - name: sftpgo
+    version: 0.19.0
+    repository: https://charts.sagikazarmark.dev

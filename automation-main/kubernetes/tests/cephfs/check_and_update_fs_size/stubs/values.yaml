@@ -1,0 +1,21 @@
+rook-ceph-cluster:
+  cephClusterSpec:
+    storage:
+      useAllDevices: false
+      storageClassDeviceSets:
+        - name: set1
+          count: 3
+          portable: true
+          encrypted: false
+          volumeClaimTemplates:
+            - metadata:
+                name: data
+              spec:
+                resources:
+                  requests:
+                    storage: 100Gi
+                # IMPORTANT: Change the storage class depending on your environment (e.g. local-storage, gp2)
+                storageClassName: default
+                volumeMode: Block
+                accessModes:
+                  - ReadWriteOnce

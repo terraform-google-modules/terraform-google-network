@@ -1,0 +1,13 @@
+---
+# Description: Molecule converge.yml playbook used to run an Ansible role in a testing scenario.
+
+  - name: Converge
+    hosts: all
+    gather_facts: true
+
+    tasks:
+
+      - name: Run the 'gcp-image-export' role
+        include_role:
+          name: gcp-cli-install
+...

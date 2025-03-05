@@ -1,0 +1,82 @@
+---
+# Synopsis: Configures Clamd
+# Inputs:
+#   - clamd_enable : Whether to install and configure clamd
+#
+# Outputs:
+#   - Running clamd service
+#   - Systemd ExecStart Override for clamd
+
+  - name: Create clam.d directory
+    ansible.builtin.file:
+      path: /etc/clamd.d
+      mode: '0755'
+      state: directory
+    become: true
+
+  - name: Create /var/run/clamav directory for Ubuntu
+    ansible.builtin.file:
+      path: /var/run/clamav
+      mode: '0755'
+      owner: clamav
+      group: clamav
+      state: directory
+    become: true
+    when:
+      - ansible_distribution == 'Ubuntu'
+
+  - name: Create /var/run/clamav directory for RHEL
+    ansible.builtin.file:
+      path: /var/run/clamav
+      mode: '0755'
+      owner: clamscan
+      group: virusgroup
+      state: directory
+    become: true
+    when:
+      - ansible_os_family == 'RedHat'
+
+  - name: Define settings in clamd.conf
+    ansible.builtin.template:
+      src: clamd.conf.j2
+      dest: /etc/clamd.d/clamd.conf
+    become: true
+
+  - name: Install the systemd unit service files
+    ansible.builtin.template:
+      src: '{{ item }}'
+      dest: /etc/systemd/system/{{ item }}
+      owner: root
+      group: root
+      mode: '0644'
+    loop:
+      - clamd@scan.service
+      - clamd@scan.timer
+    become: true
+    when: ansible_facts.service_mgr == "systemd"
+
+  - name: Enable and activate the systemd unit file for each policy
+    ansible.builtin.systemd:
+      name: '{{item}}'
+      state: started
+      enabled: true
+      daemon_reload: yes
+    loop:
+      - clamd@scan.service
+      - clamd@scan.timer
+      - clamav@freshclam.service
+      - clamav@freshclam.timer
+    become: true
+    when: ansible_facts.service_mgr == "systemd"
+
+  - name: Validate that clamd is running
+    ansible.builtin.service:
+      name: '{{item}}'
+      enabled: true
+      state: started
+      daemon_reload: true
+    become: true
+    loop:
+      - "{{ 'clamav-daemon.service' if ansible_os_family == 'Ubuntu' }}"
+      - "{{ 'clamd@scan.service' if ansible_distribution == 'RedHat' }}"
+...

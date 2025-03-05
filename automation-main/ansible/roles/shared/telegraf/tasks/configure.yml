@@ -1,0 +1,83 @@
+---
+  - name: Update the telegraf default environment variables
+    ansible.builtin.template:
+      src: default.j2
+      dest: /etc/default/telegraf
+      selevel: s0
+      seuser: system_u
+      setype: etc_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0600'
+    become: true
+    notify:
+      - restart telegraf
+
+  - name: Setup the telegraf configuration file
+    ansible.builtin.template:
+      src: telegraf.conf.j2
+      dest: /etc/telegraf/telegraf.conf
+      selevel: s0
+      seuser: system_u
+      setype: etc_t
+      serole: object_r
+      owner: root
+      group: telegraf
+      mode: '0640'
+    become: true
+    notify:
+      - restart telegraf
+
+  - name: Remove the existing files in telegraf.d
+    file:
+      state: absent
+      path: /etc/telegraf/telegraf.d
+    become: true
+    when:
+      - telegraf_monitor_profiles is defined
+      - telegraf_monitor_profiles | length > 0
+
+  - name: Re-create the telegraf.d folder
+    file:
+      state: directory
+      path: /etc/telegraf/telegraf.d
+      selevel: s0
+      seuser: system_u
+      setype: etc_t
+      serole: object_r
+      owner: root
+      group: root
+      mode: '0755'
+    become: true
+    when:
+      - telegraf_monitor_profiles is defined
+      - telegraf_monitor_profiles | length > 0
+
+  - name: Configure the port monitors
+    ansible.builtin.include_tasks: monitor/port.yml
+    vars:
+      profile: '{{ item }}'
+    loop: '{{ telegraf_monitor_profiles }}'
+    when:
+      - telegraf_monitor_profiles is defined
+      - telegraf_monitor_profiles | length > 0
+
+  - name: Configure the file monitors
+    ansible.builtin.include_tasks: monitor/files.yml
+    vars:
+      profile: '{{ item }}'
+    loop: '{{ telegraf_monitor_profiles }}'
+    when:
+      - telegraf_monitor_profiles is defined
+      - telegraf_monitor_profiles | length > 0
+
+  - name: Configure the url monitors
+    ansible.builtin.include_tasks: monitor/url.yml
+    vars:
+      profile: '{{ item }}'
+    loop: '{{ telegraf_monitor_profiles }}'
+    when:
+      - telegraf_monitor_profiles is defined
+      - telegraf_monitor_profiles | length > 0
+...

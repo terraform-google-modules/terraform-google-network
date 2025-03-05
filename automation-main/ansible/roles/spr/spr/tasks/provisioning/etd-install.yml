@@ -1,0 +1,322 @@
+# Synopsis: Provisions Enterprise Threat Detection (ETD) Database
+# Inputs:
+#   spr_hana_install_source : Source folder for the Application install binaries
+#   spr_hana_file_install_rsp_xml : Location of the install.rsp.xml file
+#   spr_hana_file_install_rsp : Location of the install.rsp file
+#   spr_hana_install_hostname: Hostname of the instance where HANA will be installed
+#   spr_hana_install_sid: Sid of the HANA instance
+#   spr_hana_install_etd_tenant_sid: Sid of the ETD tenant G02
+#   spr_hana_install_domain: Domain of the HANA instance
+#   spr_hana_product: Type of product
+# Outputs:
+# Comments:
+#   TODO: Get validation working w/ retries/etc.
+
+- name: Extract "{{ spr_hana_product }}" tars
+  ansible.builtin.include_tasks: general/tar-extract.yml
+  vars:
+    spr_tar_extract_list:
+    - "{{ spr_hana_install_source }}/usr-sap.tgz-*"
+    - "{{ spr_hana_install_source }}/hana-data.tgz-*"
+    - "{{ spr_hana_install_source }}/hana-log.tgz-*"
+    - "{{ spr_hana_install_source }}/hana-shared.tgz-*"
+    spr_tar_extract_overwrite: false
+    spr_tar_extract_async: false
+
+- name: Check for /hana/backups/G01/HDB00/backup/log
+  ansible.builtin.stat:
+    path: '/hana/backups/G01/HDB00/backup/log'
+  register: hana_backups_G01_HDB00_backup_log
+
+- name: Check for /hana/backups/G01/HDB00/backup/data
+  ansible.builtin.stat:
+    path: '/hana/backups/G01/HDB00/backup/data'
+  register: hana_backups_G01_HDB00_backup_data
+
+- name: Create /hana/backups/G01/HDB00/backup/log if it does not exist
+  when: hana_backups_G01_HDB00_backup_log.stat.exists == false
+  become: true
+  ansible.builtin.file:
+    path: /hana/backups/G01/HDB00/backup/log
+    state: directory
+
+- name: Create /hana/backups/G01/HDB00/backup/data if it does not exist
+  when: hana_backups_G01_HDB00_backup_data.stat.exists == false
+  become: true
+  ansible.builtin.file:
+    path: /hana/backups/G01/HDB00/backup/data
+    state: directory
+
+- name: "BLOCK: Remove 'basepath_catalogbackup' parameter if it exists in TENANTDB/Hosts, per SCSTE-2264"
+  block:
+  - name: Remove the basepath_catalogbackup from TENANT DB global.ini if it exists
+    become: true
+    community.general.ini_file:
+      path: /hana/shared/G01/global/hdb/custom/config/DB_G01/global.ini
+      state: absent
+      section: persistence
+      option: basepath_catalogbackup
+
+  - name: Remove the basepath_catalogbackup from /hana/shared/G01/HDB00/hdb-g01/global.ini if it exists
+    become: true
+    community.general.ini_file:
+      path: /hana/shared/G01/HDB00/hdb-g01/global.ini
+      state: absent
+      section: persistence
+      option: basepath_catalogbackup
+# END BLOCK: Remove 'basepath_catalogbackup' parameter if it exists in TENANTDB/Hosts, per SCSTE-2264
+
+- name: "BLOCK: Rename DBs"
+  block:
+  - name: "Create /tmp/{{ spr_hana_product }}"
+    ansible.builtin.file:
+      path: 'tmp/{{ spr_hana_product }}'
+      state: directory
+
+  - name: "Save Configuration Files to /tmp/{{ spr_hana_product }}"
+    ansible.builtin.copy:
+      dest: '/tmp/{{ spr_hana_product }}/'
+      src: "{{ item }}"
+      force: true
+      remote_src: true
+    loop_control:
+      label: "Saving /tmp/{{ spr_hana_product }}/{{ item.split('/')[-1] }}"
+    loop:
+    - "{{ spr_hana_file_install_rsp_xml }}"
+    - "{{ spr_hana_file_install_rsp }}"
+
+  - name: "Update install.rsp.xml values"
+    ansible.builtin.replace:
+      path: "/tmp/{{ spr_hana_product }}/{{ spr_hana_file_install_rsp_xml.split('/')[-1] }}"
+      regexp: '[*]{3}'
+      replace: "{{ standard_deployment_password }}"
+
+  - name: "Update install.rsp values"
+    ansible.builtin.replace:
+      path: "/tmp/{{ spr_hana_product }}/{{ spr_hana_file_install_rsp.split('/')[-1] }}"
+      regexp: "{{ item.regexp }}"
+      replace: "{{ item.replace }}"
+    loop:
+    - regexp: 'listen_interface='
+      replace: 'listen_interface=global'
+    - regexp: 'number='
+      replace: 'number=00'
+
+  # NOTE: system rename
+  - name: "Execute rename command"
+    become: true
+    ansible.builtin.shell: >-
+      cat /tmp/{{ spr_hana_product }}/install.rsp.xml | /hana/shared/G01/hdblcm/hdblcm --action rename_system --configfile=/tmp/{{ spr_hana_product }}/install.rsp --target_sid {{ spr_hana_install_sid|upper }} --hostmap=hdb-g01={{ spr_hostname|lower }} --target_password={{ standard_deployment_password }} --read_password_from_stdin=xml --batch -nostart
+    args:
+      chdir: '/'
+
+  # Below code addition is to address SCSTE-2084 and SAP OSS note 3190917 bug with hdblcm rename process.
+  - name: "Update /hana/shared/{{ spr_hana_install_sid|upper }}/lm_structure/landscapeVariables.properties values"
+    community.general.ini_file:
+      path: "/hana/shared/{{ spr_hana_install_sid|upper }}/lm_structure/landscapeVariables.properties"
+      create: no
+      section: null
+      option: "{{ item.name }}"
+      value: '{{ item.value }}'
+      no_extra_spaces: true
+    become: true
+    loop_control:
+      label: "Modifying value of {{ item.name }} to {{ item.value }} in /hana/shared/{{ spr_hana_install_sid|upper }}/lm_structure/landscapeVariables.properties"
+    loop:
+    - {name: 'SID', value: '{{ spr_hana_install_sid|upper }}'} # This is not mandatory. Already reflecting the correct value
+    - {name: 'centralserver', value: '{{ spr_hana_install_hostname }}',}
+
+  - name: "Start the database"
+    ansible.builtin.include_role:
+      name: spr
+      allow_duplicates: true
+      tasks_from: operations/hana-start.yml
+    vars:
+      spr_hana_start_sid: "{{ spr_hana_install_sid|upper }}"
+
+  # NOTE: G01 stop, rename, start
+  - name: "Stop tenant database G01"
+    ansible.builtin.shell: '/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe/hdbsql -xj -i 00 -n {{ spr_hana_install_hostname }}:30013 -u SYSTEM -p {{ standard_deployment_password }} ALTER SYSTEM STOP DATABASE G01'
+    args:
+      executable: '/bin/csh'
+    become: true
+    become_user: "{{ spr_hana_install_sid|lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe"
+
+  - name: "Rename tenant database G01 to {{ spr_hana_install_sid|upper }}"
+    ansible.builtin.shell: '/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe/hdbsql -xj -i 00 -n {{ spr_hana_install_hostname }}:30013 -u SYSTEM -p {{ standard_deployment_password }} RENAME DATABASE G01 to {{ spr_hana_install_sid|upper }}'
+    args:
+      executable: '/bin/csh'
+    become: true
+    become_user: "{{ spr_hana_install_sid|lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe"
+
+  - name: "Start tenant database {{ spr_hana_install_sid|upper }}"
+    ansible.builtin.shell: '/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe/hdbsql -xj -i 00 -n {{ spr_hana_install_hostname }}:30013 -u SYSTEM -p {{ standard_deployment_password }} ALTER SYSTEM START DATABASE {{ spr_hana_install_sid|upper }}'
+    args:
+      executable: '/bin/csh'
+    become: true
+    become_user: "{{ spr_hana_install_sid|lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe"
+
+  # NOTE: G02 stop, rename, start
+  - name: "Stop tenant database G02"
+    ansible.builtin.shell: '/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe/hdbsql -xj -i 00 -n {{ spr_hana_install_hostname }}:30013 -u SYSTEM -p {{ standard_deployment_password }} ALTER SYSTEM STOP DATABASE G02'
+    args:
+      executable: '/bin/csh'
+    become: true
+    become_user: "{{ spr_hana_install_sid|lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe"
+
+  - name: "Rename tenant database G02 to {{ spr_hana_install_etd_tenant_sid|upper }}"
+    ansible.builtin.shell: '/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe/hdbsql -xj -i 00 -n {{ spr_hana_install_hostname }}:30013 -u SYSTEM -p {{ standard_deployment_password }} RENAME DATABASE G02 to {{ spr_hana_install_etd_tenant_sid|upper }}'
+    args:
+      executable: '/bin/csh'
+    become: true
+    become_user: "{{ spr_hana_install_sid|lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe"
+
+  - name: "Start tenant database {{ spr_hana_install_etd_tenant_sid|upper }}"
+    ansible.builtin.shell: '/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe/hdbsql -xj -i 00 -n {{ spr_hana_install_hostname }}:30013 -u SYSTEM -p {{ standard_deployment_password }} ALTER SYSTEM START DATABASE {{ spr_hana_install_etd_tenant_sid|upper }}'
+    args:
+      executable: '/bin/csh'
+    become: true
+    become_user: "{{ spr_hana_install_sid|lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe"
+# END BLOCK: Rename DBs
+
+# TODO: This doesn't seem to exist for ETD?
+# - name: "chown scriptserver.ini file"
+#   ansible.builtin.file:
+#     path: '/usr/sap/{{ spr_hana_install_sid|upper }}/SYS/global/hdb/custom/config/scriptserver.ini'
+#     owner: "{{ spr_hana_install_sid|lower }}adm"
+#     group: sapsys
+#   become: true
+
+- name: "chown /hana/backups directory"
+  ansible.builtin.file:
+    path: '/hana/backups'
+    owner: "{{ spr_hana_install_sid|lower }}adm"
+    group: sapsys
+    recurse: true
+  become: true
+
+- name: "Remove /tmp/{{ spr_hana_product }}"
+  become: true
+  ansible.builtin.file:
+    path: 'tmp/{{ spr_hana_product }}'
+    state: absent
+
+# NOTE: Restarting the DB ensures that the system automatically configures itself based on previous changes
+- name: "Stop the database"
+  ansible.builtin.include_role:
+    name: spr
+    allow_duplicates: true
+    tasks_from: operations/hana-stop.yml
+
+- name: "Start the database"
+  ansible.builtin.include_role:
+    name: spr
+    allow_duplicates: true
+    tasks_from: operations/hana-start.yml
+
+- name: "BLOCK: Postprocessing"
+  block:
+  - name: "Change Public URL value in Tenant DB"
+    # TODO: Recommend looking into 'community.sap_libs.sap_hdbsql module' for such tasks
+    ansible.builtin.shell: /usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe/hdbsql -xj -i 00 -n {{ spr_hana_install_hostname }} -d {{ spr_hana_install_etd_tenant_sid|upper }} -u SYSTEM -p {{ standard_deployment_password }} ALTER SYSTEM ALTER CONFIGURATION \(''\''xsengine.ini'\''', ''\''DATABASE'\'''\) SET \(''\''public_urls'\''', ''\''http_url'\'''\) = ''\''{{ etd_public_url }}'\'
+    # NOTE: csh escapes are disturbing...
+    args:
+      executable: '/bin/csh'
+    register: change_public_url_output
+    become: true
+    become_user: "{{ spr_hana_install_sid|lower }}adm"
+    changed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe"
+
+  # NOTE: Restarting the DB ensures that the system automatically configures itself based on previous changes
+  - name: "Stop the database"
+    ansible.builtin.include_role:
+      name: spr
+      allow_duplicates: true
+      tasks_from: operations/hana-stop.yml
+
+  - name: "Start the database"
+    ansible.builtin.include_role:
+      name: spr
+      allow_duplicates: true
+      tasks_from: operations/hana-start.yml
+  vars:
+    etd_public_url: http://etd-{{ spr_hana_install_etd_tenant_sid|lower }}:80$(SAPSYSTEM)
+    spr_hana_start_sid: "{{ spr_hana_install_sid|upper }}"
+# END BLOCK: Postprocessing
+
+- name: "BLOCK: Validation"
+  block:
+  - name: "Validate that SYSTEMDB parameter 'SRCVHOST' = 'etd-{{ spr_hana_install_etd_tenant_sid|lower }}'"
+    # TODO: Recommend looking into 'community.sap_libs.sap_hdbsql module' for such tasks
+    ansible.builtin.shell: /usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe/hdbsql -xj -i 00 -n {{ spr_hana_install_hostname }}:30013 -u SYSTEM -p {{ standard_deployment_password }} "SELECT VALUE FROM sys.m_inifile_contents WHERE FILE_NAME='webdispatcher.ini' AND VALUE LIKE '%etd%';"
+    register: srcvhost_validation_output
+    args:
+      executable: '/bin/csh'
+    become: true
+    become_user: "{{ spr_hana_install_sid|lower }}adm"
+    changed_when: false
+    failed_when:
+    - expected_srcvhost not in srcvhost_validation_output.stdout
+    ignore_errors: true
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_install_sid|upper }}/HDB00/exe"
+
+  - name: Test connectivity to XS Engine
+    ansible.builtin.uri:
+      url: '{{ xsengine_url }}'
+      method: GET
+      return_content: true
+    register: xsengine_connectivity_output
+    failed_when:
+    - xsengine_connectivity_output.status != 200
+    - "'is up and running' not in xsengine_connectivity_output.content"
+    ignore_errors: true
+    until: xsengine_connectivity_output.status == 200
+    retries: 30 # 30 * 2 seconds => Try for 1 minute
+    delay: 2 # Every 2 seconds
+
+  - name: Pause for 30 seconds
+    ansible.builtin.pause:
+      seconds: 30
+
+  - name: Test connectivity to ETD UI
+    ansible.builtin.uri:
+      url: '{{ etd_ui_url }}'
+      method: GET
+      return_content: false
+      follow_redirects: none
+    register: etd_ui_connectivity_output
+    failed_when:
+    - etd_ui_connectivity_output.status != 303 # NOTE: A redirect is expected
+    ignore_errors: true
+    until: etd_ui_connectivity_output.status == 303
+    retries: 30 # 30 * 2 seconds => Try for 1 minute
+    delay: 2 # Every 2 seconds
+  vars:
+    expected_srcvhost: 'SRCVHOST=etd-{{ spr_hana_install_etd_tenant_sid|lower }}'
+    xsengine_port: 8000
+    xsengine_url: 'http://etd-{{ spr_hana_install_etd_tenant_sid|lower }}:{{ xsengine_port }}'
+    etd_ui_port: 8000
+    etd_ui_url: 'http://etd-{{ spr_hana_install_etd_tenant_sid|lower }}:{{ etd_ui_port }}/sap/secmon/ui/'
+
+## END BLOCK: Validation

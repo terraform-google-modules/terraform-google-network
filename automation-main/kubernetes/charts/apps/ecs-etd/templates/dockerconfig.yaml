@@ -1,0 +1,12 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: dockerconfig
+  annotations:
+    avp.kubernetes.io/path: "{{ .Values.vaultBasePath }}/global/dockerconfig"
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-10"
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    <dockerconfig>

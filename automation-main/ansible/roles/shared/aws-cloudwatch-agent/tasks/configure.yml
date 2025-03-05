@@ -1,0 +1,100 @@
+---
+# Synopsis: Configures AWS Cloudwatch
+# Inputs:
+# {{ cwa_agent_profile_path }}
+# {{ cwa_agent_profile_config_file }}
+# {{ cwa_agent_profile_credentials_file }}
+# {{ cwa_common_config_file }}
+# {{ cwa_logrotate_config_file }}
+# {{ cwa_agent_config_file }}
+# Outputs:
+# None
+
+  - name: Configure aws profile
+    block:
+      - name: Create AWS profile folder
+        file:
+          path: '{{ cwa_agent_profile_path }}'
+          state: directory
+          owner: root
+          group: root
+          mode: 0644
+      - name: Deploy AWS profile config file
+        template:
+          src: profile/config.j2
+          dest: '{{ cwa_agent_profile_config_file }}'
+          owner: root
+          group: root
+          mode: 0644
+          force: true
+      - name: Deploy AWS profile credentials file
+        template:
+          src: profile/credentials.j2
+          dest: '{{ cwa_agent_profile_credentials_file }}'
+          owner: root
+          group: root
+          mode: 0644
+          force: true
+    when: cwa_use_credentials
+
+  - name: Deploy {{ cwa_package }} common configuration file
+    template:
+      src: agent/common-config.toml.j2
+      dest: '{{ cwa_common_config_file }}'
+      force: true
+    notify: Reload {{ cwa_package }}
+
+  - name: Deploy {{ cwa_package }} logrotate configuration file
+    template:
+      src: logrotate/aws-cwa.j2
+      dest: '{{ cwa_logrotate_config_file }}'
+      force: true
+    notify: Reload {{ cwa_logrotate_daemon }}
+
+# Use configuration file from default template
+  - name: Deploy {{ cwa_package }} agent configuration file from default template
+    template:
+      src: agent/amazon-cloudwatch-agent.json.j2
+      dest: '{{ cwa_agent_config_file }}'
+      force: true
+    notify: Reload {{ cwa_package }}
+    when: cwa_use_conf_json_template
+
+# Older version of this role would write the config file to the following
+# location, BUT also run the {{ cwa_agent_ctl }} command with `fetch-config`
+# which copies the configuration into
+# {{ cwa_install_path }}/etc/amazon-cloudwatch-agent.d/file_amazon-cloudwatch-agent.json.
+# This would lead to the exact same configuration file existing in two places.
+#
+# This is unnecessary, but also means that we would unnecessarily need to
+# update the configuration file in two places, and leads to problems if
+# attempting to add/override certain things and using `fetch-config` to replace
+# the existing configuration file. Here we remove the old legacy location,
+# thereby letting cloudwatch agent just have the single configuration.
+#
+# TODO(future): remove this task once all environments have rolled over to new
+# images that have never placed a config file in this location in the first
+# place.
+  - name: Remove old {{ cwa_package }} agent configuration file if it exists
+    file:
+      path: '{{ cwa_install_path }}/etc/amazon-cloudwatch-agent.json'
+      state: absent
+
+# Use custom file from file content
+  - name: Deploy {{ cwa_package }} agent custom configuration file from file content
+    copy:
+      content: '{{ cwa_conf_json_file_content | to_nice_json }}'
+      dest: '{{ cwa_agent_config_file }}'
+    notify: Reload {{ cwa_package }}
+    when: not cwa_use_conf_json_template
+
+  - name: Enable and start amazon-cloudwatch-agent in systemd
+    ansible.builtin.service:
+      name: amazon-cloudwatch-agent
+      state: started
+      enabled: true
+    become: true
+    when:
+      - ansible_virtualization_type != "docker"
+      - ansible_service_mgr == "systemd"
+...

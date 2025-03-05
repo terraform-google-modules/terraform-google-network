@@ -1,0 +1,69 @@
+---
+# Defaults file for the 'vault-auth' role.
+
+# The token used to authenticate with Vault. If the 'vault_token' Ansible variable is not provided, then the 'VAULT_TOKEN' environment variable will be checked for a value, followed by the '~/.vault-token' file on the localhost.
+vault_token:
+
+# The address of the Vault server (Include https:// in the value).
+vault_address:
+
+# The host to delegate the Vault API calls to. Defaults to 'localhost'.
+vault_delegate: localhost
+
+# Whether to verify SSL certificates of the Vault server. Defaults to true.
+vault_ssl_verify: true
+
+# flag to manually toggle use of aws authentication
+vault_aws_auth: false
+
+# The name of the AWS auth engine to use when leveraging AWS authentication
+vault_engine_aws: aws
+
+# The name of the AWS secrets engine to use 'vault_secret_type: aws'
+vault_aws_secrets_engine: aws
+
+# flag to manually toggle use of azure authentication
+vault_azure_auth: false
+
+# The name of the Azure secrets engine to use 'vault_secret_type: azure'
+vault_azure_secrets_engine: azure
+
+# The name of the Azure auth engine to use when leveraging Azure authentication
+vault_engine_azure: azure
+
+# flag to manually toggle use of gcp authentication
+vault_gcp_auth: false
+
+# The name of the GCP auth engine to use when leveraging GCP authentication
+vault_engine_gcp: gcp
+
+# The name of the GCP secrets engine to use 'vault_secret_type: gcp'
+vault_gcp_secrets_engine: gcp
+
+# The type of entity that is authenticating to the GCP auth method. Options are 'service_account' and 'virtual_machine'(default)
+vault_gcp_auth_type: virtual_machine
+
+# The type of secret that is being retrieved from Vault. Options are 'aws', 'azure', 'gcp' and 'kv'(default)
+vault_secrets_type: kv
+
+# A list of dictionaries defining each secret to pull from Vault.
+#   - secret_path: 'engine/path/to/secret', path to the secret within vault beginning with the engine name
+#     secret_version: '2', (optional) only applies to versioned (v2) key-value engines, the specific version of the secret to retrieve
+#     secret_key: 'example_key_name', (optional) only applies to versioned (v2) key-value engines, the specific version of the secret to retrieve, otherwise the whole blob is retured
+#     ansible_fact_name: 'example_ansible_variable', (optional) when specified, an ansible variable will be created with this name and the secret's value stored in it
+vault_secrets:
+
+# flags to manually toggle on debugging of secrets retrieving and uploading
+vault_retrieve_secrets_debugging: false
+vault_upload_secrets_debugging: false
+
+# A list of dictionaries defining each secret to post to Vault.
+#   - secret_path: 'engine/path/to/secret'      // path to the secret within vault beginning with the engine name
+#     secret_key_value_dict:                   // A dictionary of key value pairs for the Vault secret
+#       example_key_1: example_secret_1
+#       example_key_2: example_secret_2
+vault_upload_secrets:
+
+# if the ec2_metadata_facts (ansible_ec2_placement_region) is different from the aws_account_region, set this value.
+replace_ansible_ec2_placement_region: ''
+...

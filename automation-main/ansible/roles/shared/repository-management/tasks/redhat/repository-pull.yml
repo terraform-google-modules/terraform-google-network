@@ -1,0 +1,65 @@
+---
+# Description: Downloads a repository file containing a list of repositories that can be enabled.
+# Inputs:
+#   - repo_dns_list: (list) A list of repository servers to download the repository file from.
+#   - repo_force: (bool) Whether to force the re-downloading of the repository file and the re-enabling of the repositories within it.
+# Outputs:
+#   - Downloads a repository file to the '/etc/yum.repos.d/' directory.
+
+  - name: '[Red Hat] - Find any previously downloaded repository files'
+    find:
+      paths:
+        - /etc/yum.repos.d
+      patterns:
+        - "{{ ansible_distribution | lower }}{{ ansible_distribution_major_version }}_{{ latest_os_versions[ ansible_distribution | lower + '_' + ansible_distribution_major_version\
+          \ ] if repo_latest | bool else ansible_distribution_version }}-*.repo"
+    register: repository_file_results
+
+  - name: '[Red Hat] - [BLOCK] - Download the repository file if it does not exist'
+    block:
+
+    # NOTE: The following task loops over the list of repository servers. The task will download the repository file from
+    #       the first server that it can connect to. The 'failed_when' condition prevents Ansible from displaying output
+    #       as failed in red text, and will only mark the task as truly failed if a non-connection related error occurs,
+    #       such as an invalid task parameter or syntax problem.
+
+      - name: '[Red Hat] - Download the first available repository file'
+        get_url:
+          dest: /etc/yum.repos.d
+          url: "{{ item }}/repofiles/{{ ansible_distribution | lower }}{{ ansible_distribution_major_version }}_{{ ansible_distribution_version }}-{{ item\
+            \ | regex_replace('https*://','') | regex_replace('.repositories.*','') }}.repo"
+          owner: root
+          group: root
+          mode: '0644'
+          timeout: 1
+          force: true
+        register: connectivity_result
+        when: >-
+          connectivity_result is not defined or
+          connectivity_result.status_code is not defined or
+          connectivity_result.status_code != 200
+        failed_when: connectivity_result.url is not defined
+        loop: '{{ repo_dns_list }}'
+        become: true
+
+      - name: '[Red Hat] - Save the list of URLs that the system could connect to as an Ansible fact'
+        set_fact:
+          connected_domain_list: '{{ (connected_domain_list | default([], true) + [ item.domain ]) | unique }}'
+        when: item.status_code is defined and item.status_code == 200
+        loop: '{{ connectivity_result | json_query(query) }}'
+        vars:
+          query: 'results[?status_code].{status_code: status_code, domain: item}'
+
+      - name: '[Red Hat] - Fail if no repositories could be reached'
+        fail:
+          msg: Unable to reach any repositories. Please check connectivity.
+        when: connected_domain_list | length == 0
+
+      - name: '[Red Hat] - Fail if more than one repository file was downloaded'
+        fail:
+          msg: More than one repository file was downloaded. This is a bug that should never occur.
+        when: connected_domain_list | length > 1
+
+    when: repository_file_results.matched == 0 or repo_force | bool  # End BLOCK
+
+...

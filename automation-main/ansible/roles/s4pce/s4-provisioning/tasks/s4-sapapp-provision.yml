@@ -1,0 +1,89 @@
+---
+# Synopsis: Provision IBP App
+# Inputs:
+#   - sapapp_tar_source: Source for compressed SAP Application binaries
+#   - saphostagent_source: Source for SAP Host Agent binaries
+#   - sapapp_hostname: Hostname of the SAP Application server
+#   - sapsys_gid: Group ID of the 'sapsys' group
+#   - sid: SAP ID of the landscape
+#   - sidadm_uid: User ID of the sidadm user
+# Outputs: Configured and running base IBP App system
+# Comments: N/A
+
+- name: Call hostfile-install.yml
+  include_tasks: s4-hostfile-install.yml
+
+- name: Validate environment
+  include_tasks: directories-validate.yml
+  vars:
+    folder_path: "{{item}}"
+  loop:
+  - "{{sapapp_tar_source}}"
+  - "{{saphostagent_source}}"
+
+- name: Set the Hostname
+  hostname:
+    name: "{{ sapapp_hostname }}"
+  become: true
+
+- name: "Ensure Sapsys group has GID of {{ sapsys_gid }}"
+  group:
+    name: sapsys
+    state: present
+    gid: "{{ sapsys_gid }}"
+    local: yes
+  become: true
+
+- name: "Create {{sid|lower}}adm SAP System Administrator"
+  user:
+    name: "{{sid|lower}}adm"
+    comment: "SAP System Administrator"
+    create_home: yes
+    uid: "{{ sidadm_uid }}"
+    group: "{{ sapsys_gid }}"
+    shell: /bin/csh
+    state: present
+
+- name: "Extract Tar files"
+  shell: "cat {{ item }}.tgz-* | tar -zpxvf - -C /"
+  become: yes
+  args:
+    chdir: "{{ sapapp_tar_source }}"
+  loop:
+  - home-sidadm
+  - sapmnt
+  - usrsap
+  register: extracttar_output
+
+- name: "Display extracttar_output when verbosity >= 1"
+  debug:
+    var: extracttar_output
+    verbosity: 1
+
+- name: "Allow Execute on saphostexec"
+  file:
+    path: "{{ item }}"
+    state: file
+    mode: 'u+x'
+  become: yes
+  loop:
+  - "{{ saphostagent_source }}saphostexec"
+  - "{{ saphostagent_source }}installsapinit.sh"
+
+- name: Run the SAP Host Agent Setup script
+  command: "./saphostexec -install"
+  args:
+    chdir: "{{saphostagent_source}}"
+
+- name: Add the SAP services to '/etc/services'
+  lineinfile:
+    path: '/etc/services'
+    line: "{{ item }}"
+    insertafter: EOF
+    state: present
+  loop:
+    - 'sapmsBR1        3696/tcp                # SAP System Message Server Port'
+    - 'sapdp00         3200/tcp                # SAP System Dispatcher Port'
+  become: yes
+
+...

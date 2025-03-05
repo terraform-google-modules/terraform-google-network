@@ -1,0 +1,31 @@
+---
+# Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+- name: Verify
+  hosts: all
+  become: false
+  gather_facts: false
+
+  tasks:
+  - name: "BLOCK: Validation block"
+    delegate_to: 'ubuntu-ansible-18.04'
+    run_once: true
+    block:
+      - name: "Check for Generated File"
+        stat:
+          path: '/tmp/instances'
+        register: file_stat
+
+      - name: "Get Contents of File"
+        command: 'cat /tmp/instances'
+        register: contents
+
+      - name: "Show Contents of File"
+        debug:
+          var: contents.stdout_lines
+
+      - name: "Validate Generated File"
+        assert:
+          that: file_stat.stat.exists | bool
+
+...

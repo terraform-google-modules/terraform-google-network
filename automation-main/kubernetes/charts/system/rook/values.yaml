@@ -1,0 +1,196 @@
+rook-ceph:
+  nodeSelector:
+    worker.garden.sapcloud.io/group: system
+  annotations:
+    # PreSync wave -1 to ensure the Rook operator is deployed before the Ceph cluster
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-1"
+  csi:
+    enableCSIEncryption: false
+    # -- Enable adding volume metadata on the CephFS subvolumes and RBD images.
+    # Not all users might be interested in getting volume/snapshot details as metadata on CephFS subvolume and RBD images.
+    # Hence enable metadata is false by default
+    enableMetadata: false
+    # -- Enable Ceph CSI Liveness sidecar deployment
+    enableLiveness: false
+    # -- Enable Ceph Kernel clients on kernel < 4.17. If your kernel does not support quotas for CephFS
+    # you may want to disable this setting. However, this will cause an issue during upgrades
+    # with the FUSE client. See the [upgrade guide](https://rook.io/docs/rook/v1.2/ceph-upgrade.html)
+    forceCephFSKernelClient: true
+    serviceMonitor:
+      # -- Enable ServiceMonitor for Ceph CSI drivers
+      enabled: true
+      # -- ServiceMonitor additional labels
+      labels: {}
+      # -- Use a different namespace for the ServiceMonitor
+      namespace:
+    csiAddons:
+      enabled: false
+    nfs:
+      enabled: false
+    topology:
+      enabled: true
+      domainLabels:
+        - kubernetes.io/hostname
+        - topology.kubernetes.io/zone
+  # -- Enable discovery daemon
+  enableDiscoveryDaemon: false
+  # -- Disable automatic orchestration when new devices are discovered.
+  disableDeviceHotplug: false
+  monitoring:
+    # -- Enable monitoring. Requires Prometheus to be pre-installed.
+    # Enabling will also create RBAC rules to allow Operator to create ServiceMonitors
+    enabled: true
+rook-ceph-cluster:
+  operatorNamespace: rook-ceph
+  annotations:
+    all:
+      # PreSync wave 1 to ensure the Ceph cluster is deployed after the Rook operator
+      argocd.argoproj.io/hook: PreSync
+      argocd.argoproj.io/sync-wave: "1"
+  monitoring:
+    enabled: true
+    createPrometheusRules: true
+    prometheusRule:
+      # -- Labels applied to PrometheusRule
+      labels: {}
+      # -- Annotations applied to PrometheusRule
+      annotations: {}
+  cephClusterSpec:
+    mon:
+      count: 3
+      allowMultiplePerNode: false
+      volumeClaimTemplate:
+        spec:
+          storageClassName: default
+          resources:
+            requests:
+              storage: 10Gi
+    mgr:
+      count: 2
+      allowMultiplePerNode: false
+    dashboard:
+      # urlPrefix: /ceph-dashboard
+      enabled: true
+      ssl: true
+    # Network configuration, see: https://github.com/rook/rook/blob/v1.14.5/Documentation/CRDs/Cluster/ceph-cluster-crd.md#network-configuration-settings
+    network:
+      # TODO: Discuss (and test) use of encryption and/or compression
+      connections:
+        # TODO: Discuss (and test) use of encryption in transit
+        # Whether to encrypt the data in transit across the wire to prevent eavesdropping the data on the network.
+        # The default is false. When encryption is enabled, all communication between clients and Ceph daemons, or between Ceph daemons will be encrypted.
+        # When encryption is not enabled, clients still establish a strong initial authentication and data integrity is still validated with a crc check.
+        # IMPORTANT: Encryption requires the 5.11 kernel for the latest nbd and cephfs drivers. Alternatively for testing only,
+        # you can set the "mounter: rbd-nbd" in the rbd storage class, or "mounter: fuse" in the cephfs storage class.
+        # The nbd and fuse drivers are *not* recommended in production since restarting the csi driver pod will disconnect the volumes.
+        encryption:
+          enabled: false
+        # TODO: Discuss (and test) use of compression
+        # Whether to compress the data in transit across the wire. The default is false.
+        # Requires Ceph Quincy (v17) or newer. Also see the kernel requirements above for encryption.
+        compression:
+          enabled: false
+          # TODO: Discuss need for IPv6 or dual-stack support
+          # Provide internet protocol version. IPv6, IPv4 or empty string are valid options. Empty string would mean IPv4
+          #ipFamily: "IPv6"
+          # Ceph daemons to listen on both IPv4 and Ipv6 networks
+          #dualStack: false
+    # TODO: Discuss need for crash collector and retenion policy
+    # enable the crash collector for ceph daemon crash collection
+    crashCollector:
+      disable: false
+      # Uncomment daysToRetain to prune ceph crash entries older than the
+      # specified number of days.
+      # daysToRetain: 30
+    # TODO: Discuss log collection
+    # enable log collector, daemons will log on files and rotate
+    logCollector:
+      enabled: true
+      periodicity: daily # one of: hourly, daily, weekly, monthly
+      maxLogSize: 500M # SUFFIX may be 'M' or 'G'. Must be at least 1M.
+    # automate [data cleanup process](https://github.com/rook/rook/blob/v1.14.5/Documentation/Storage-Configuration/ceph-teardown.md#delete-the-data-on-hosts) in cluster destruction.
+    cleanupPolicy:
+      # Since cluster cleanup is destructive to data, confirmation is required.
+      # To destroy all Rook data on hosts during uninstall, confirmation must be set to "yes-really-destroy-data".
+      # This value should only be set when the cluster is about to be deleted. After the confirmation is set,
+      # Rook will immediately stop configuring the cluster and only wait for the delete command.
+      # If the empty string is set, Rook will not destroy any data on hosts during uninstall.
+      confirmation: ""
+    removeOSDsIfOutAndSafeToRemove: true
+    # NOTE: AWS-specific settings cloud-volume storage
+    # TODO: templatize for other cloud providers
+    storage:
+      useAllDevices: false
+      storageClassDeviceSets:
+        - name: set1
+          count: 3
+          portable: true
+          encrypted: false
+          volumeClaimTemplates:
+            - metadata:
+                name: data
+              spec:
+                resources:
+                  requests:
+                    storage: 300Gi
+                # IMPORTANT: Change the storage class depending on your environment (e.g. local-storage, gp2)
+                storageClassName: default
+                volumeMode: Block
+                accessModes:
+                  - ReadWriteOnce
+      onlyApplyOSDPlacement: false
+  ingress:
+    dashboard:
+      ingressClassName: nginx
+  cephFileSystems: []
+  cephBlockPools: {}
+  # -- Settings for the filesystem snapshot class
+  # @default -- See [CephFS Snapshots](../Storage-Configuration/Ceph-CSI/ceph-csi-snapshot.md#cephfs-snapshots)
+  cephFileSystemVolumeSnapshotClass:
+    enabled: false
+    name: ceph-filesystem
+    isDefault: true
+    deletionPolicy: Delete
+    annotations: {}
+    labels: {}
+    # see https://rook.io/docs/rook/v1.10/Storage-Configuration/Ceph-CSI/ceph-csi-snapshot/#cephfs-snapshots for available configuration
+    parameters: {}
+  cephBlockPoolsVolumeSnapshotClass: {}
+  cephObjectStores: {}
+  toolbox:
+    enabled: true
+  placement:
+    all:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: worker.garden.sapcloud.io/group
+                  operator: In
+                  values:
+                    - system
+    mon:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: rook-ceph-mon
+    osd:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: rook-ceph-osd
+    mgr:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: rook-ceph-mgr

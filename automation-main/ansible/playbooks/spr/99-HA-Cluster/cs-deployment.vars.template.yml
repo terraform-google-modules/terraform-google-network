@@ -1,0 +1,33 @@
+---
+# Synopsis: CRE-S4PCE
+# Inputs: N/A
+# Outputs: N/A
+# Comments: Be sure to include the defaults.yml as an additional inventory.
+
+all:
+  hosts:
+  vars:
+    ##### spr-app-cs-ha-install
+    ### spr-app-cs-ha-install Defaults
+    custom_domain: "{{ spr_domain }}"
+    cs_staging_path: "/staging/product-line/SAP_S4HANA/SAP_S4HANA/SAP_S4HANA_2022_FPS01"
+    product_media: "{{ cs_staging_path}}/Media"
+    ascs_inifile_params: "{{ cs_staging_path}}/Configuration_Content/HA/ASCS/inifile.params"
+    ers_inifile_params: "{{ cs_staging_path}}/Configuration_Content/HA/ERS/inifile.params"
+    pas_inifile_params: "{{ cs_staging_path}}/Configuration_Content/HA/PAS/inifile.params"
+    aas_inifile_params: "{{ cs_staging_path}}/Configuration_Content/HA/AAS/inifile.params"
+    swpm_sapinst: "/staging/product-line/software_logistics_toolset/SL_TOOLSET/SL_TOOLSET_1.0/SOFTWARE_PROVISIONING_MGR_2.0/Media/SWPM20SP14_2/sapinst"
+    ascs_ha_product_id: "NW_ABAP_ASCS:S4HANA2022.CORE.HDB.ABAPHA"
+    ers_ha_product_id: "NW_ERS:S4HANA2022.CORE.HDB.ABAPHA"
+    pas_ha_product_id: "NW_ABAP_CI:S4HANA2022.CORE.HDB.HACP"
+    aas_ha_product_id: "NW_DI:S4HANA2022.CORE.HDB.HACP"
+    app_schema_name: "SAPHANADB"
+    download_basket: "/staging/downloadbasket"
+
+    ### spr-app-cs-ha-install vars
+    efs_ha_app_fsid: "INSERT_VALUE"
+    app_schema_password: "INSERT_VALUE"
+    db_virtual_hostname: "INSERT_VALUE"
+    ascs_virtual_hostname: "INSERT_VALUE"
+    ers_virtual_hostname: "INSERT_VALUE"
+...

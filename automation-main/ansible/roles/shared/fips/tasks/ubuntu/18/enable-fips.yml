@@ -1,0 +1,168 @@
+---
+# Synopsis: Enables FIPS on Ubuntu 18
+
+  - name: Save boot partition name
+    shell: df -h | grep -E '^.*\/boot$' | awk '{print $1}'
+    register: boot_partition_name
+
+  - name: Save disk name
+    shell: lsblk -no pkname $(findmnt -n /boot | awk '{ print $2 }')
+    register: boot_disk_name
+
+  - name: Check file system type
+    shell: cat /etc/fstab | grep -E "^.*\/boot\s*xfs.*"
+    register: boot_filesystem_type_results
+    failed_when: boot_filesystem_type_results.rc not in [0, 1]
+
+  - name: Change filesystem type to ext4
+    block:
+
+      - name: Create temp directory
+        file:
+          path: /tmp/boot
+          state: directory
+
+      # Was not able to achieve using the synchronize module, may want to try a different module later
+      - name: Synch files to new directory
+        shell:
+          cmd: rsync -avh /boot/ /tmp/boot/
+        become: true
+
+      - name: Unmount boot
+        mount:
+          path: /boot
+          state: unmounted
+        become: true
+
+      - name: Disable boot.mount service
+        systemd:
+          name: boot.mount
+          state: stopped
+        become: true
+
+      - name: Create a ext4 filesystem
+        filesystem:
+          fstype: ext4
+          dev: '{{ boot_partition_name.stdout }}'
+          force: yes
+        become: true
+
+      - name: Register the boot_uuid
+        shell: blkid {{ boot_partition_name.stdout }} | cut -d '"' -f 2
+        register: boot_uuid
+
+      - name: edit /etc/fstab
+        lineinfile:
+          path: /etc/fstab
+          regexp: ^UUID=
+          line: "UUID={{ boot_uuid.stdout }}\t/boot\text4\tdefaults\t0\t0"
+        become: true
+
+      - name: mount boot
+        mount:
+          path: /boot
+          src: UUID={{ boot_uuid.stdout }}
+          state: mounted
+          fstype: ext4
+        become: true
+
+# Was not able to achieve using the synchronize module, may want to try a different module later
+      - name: Synch files to new directory
+        shell:
+          cmd: rsync -avh /tmp/boot/ /boot/
+        become: true
+
+      - name: Remove deprecated files
+        file:
+          state: absent
+          path: '{{item}}'
+        loop:
+          - /run/systemd/generator/boot.mount
+          - /etc/initramfs-tools/conf.d/resume
+          - /run/systemd/generator/local-fs.target.requires/boot.mount
+          - /run/systemd/generator/swap.target.requires/
+          - /tmp/boot/
+        become: true
+
+    when:
+      - boot_filesystem_type_results.rc == 0
+
+  - name: Register the boot_uuid
+    shell: blkid {{ boot_partition_name.stdout }} | cut -d '"' -f 2
+    register: boot_uuid
+
+  - name: Ensure that grub is installed
+    shell:
+      cmd: grub-install /dev/{{ boot_disk_name.stdout }}
+    become: true
+
+  - name: Create grub.d directory
+    file:
+      path: /etc/default/grub.d
+      state: directory
+
+  - name: Create 99-fips.cfg
+    file:
+      path: /etc/default/grub.d/99-fips.cfg
+      state: touch
+    become: true
+
+  - name: Edit 99-fips.cfg
+    lineinfile:
+      path: /etc/default/grub.d/99-fips.cfg
+      regexp: ^GRUB_CMDLINE_LINUX_DEFAULT=.*
+      line: GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT fips=1 bootdev=UUID={{ boot_uuid.stdout }}"
+    become: true
+
+  - name: Create 99-ubuntu-fips.cfg
+    file:
+      path: /etc/default/grub.d/99-ubuntu-fips.cfg
+      state: touch
+    become: true
+
+  - name: Edit 99-ubuntu-fips.cfg
+    lineinfile:
+      path: /etc/default/grub.d/99-ubuntu-fips.cfg
+      regexp: ^GRUB_FLAVOUR_ORDER=.*
+      line: GRUB_FLAVOUR_ORDER="fips"
+    become: true
+
+  - name: Install fips packages
+    apt:
+      name:
+        - '{{ fips_package_name }}'
+        - openssh-client
+        - openssh-client-hmac
+        - openssh-server
+        - openssh-server-hmac
+        - strongswan
+        - strongswan-hmac
+      state: present
+    become: true
+    vars:
+      fips_package_name: "{{ 'ubuntu-azure-fips' if ansible_system_vendor | lower == 'microsoft corporation' else 'ubuntu-fips' }}"
+
+  - name: Get the FIPS kernel version
+    shell: cat /boot/grub/grub.cfg | grep -E '\s+menuentry ' | sed -E "s|^\s*menuentry 'Ubuntu, with Linux ||g" | sed -E "s|' .*$||g" | grep -v 'recovery
+      mode' | grep '\{{ kernel_version_suffix }}$' | head -n 1 | grep '\{{ kernel_version_suffix }}$'
+    register: kernel_version_results
+    become: true
+    vars:
+      kernel_version_suffix: "{{ '-azure-fips' if ansible_system_vendor | lower == 'microsoft corporation' else '-fips' }}"
+
+  - name: Edit the grub default
+    lineinfile:
+      path: /etc/default/grub
+      regexp: ^GRUB_DEFAULT=
+      line: GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux {{ kernel_version_results.stdout }}"
+    become: true
+
+  - name: grub update
+    shell:
+      cmd: update-grub
+    become: true
+
+  - name: Pause for 15 seconds to allow grub to update
+    pause:
+      seconds: 15
+...

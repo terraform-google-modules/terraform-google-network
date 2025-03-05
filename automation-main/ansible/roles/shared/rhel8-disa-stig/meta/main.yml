@@ -1,0 +1,36 @@
+---
+galaxy_info:
+  role_name: rhel8_disa_stig
+  author: ns2
+  namespace: ns2
+  description: DISA STIG for Red Hat Enterprise Linux 8
+
+  issue_tracker_url: https://github.com/ComplianceAsCode/content/issues
+
+  license: BSD-3-Clause
+
+  min_ansible_version: 2.9
+
+  platforms:
+    - name: GenericBSD
+      versions:
+        - any
+    - name: GenericLinux
+      versions:
+        - any
+    - name: GenericUNIX
+      versions:
+        - any
+
+  galaxy_tags:
+    - system
+    - hardening
+    - openscap
+    - ssg
+    - scap
+    - security
+    - compliance
+    - compliaceascode
+
+dependencies: []
+...

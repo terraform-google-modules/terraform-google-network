@@ -1,0 +1,4 @@
+---
+# TODO: No changes from default for now, add appropriate entries for kubernetes
+logs_kubernetes: []
+...

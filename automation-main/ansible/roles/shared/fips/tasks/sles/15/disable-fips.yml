@@ -1,0 +1,29 @@
+---
+# Synopsis: Disables FIPS on SLES 15
+
+  # Pattern removes dracut-fips. Immediately runs dracut
+  - name: Remove fips packages
+    zypper:
+      name: fips
+      type: pattern
+      state: absent
+    become: true
+
+  - name: Edit the grub default
+    lineinfile:
+      path: /etc/default/grub
+      regexp: ^(.*)( fips=1)(.*)
+      line: \1\3
+      backrefs: true
+    become: true
+
+  - name: grub update
+    shell:
+      cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
+    become: true
+
+  - name: Force ramfs image build
+    shell:
+      cmd: mkinitrd
+    become: true
+...

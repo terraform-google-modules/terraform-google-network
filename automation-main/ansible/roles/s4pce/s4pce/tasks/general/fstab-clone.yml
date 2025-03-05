@@ -1,0 +1,121 @@
+---
+# Description: Clones fstab entries between two instances
+# Inputs:
+#   - fstab_clone_mount_targets: List of mounts to look for in the fstab
+# Outputs:
+#   - Target Instance has attached EBS volumes cloned from source
+#   - Creates a shared_vars in inventory to share data across all hosts.
+# Comments:
+#  - Requires the ansible inventory to be divided up into `target_hosts` and `source_hosts` groups.
+
+
+- name: "BLOCK: Get mounts from source"
+  when: "'source_hosts' in group_names"
+  block:
+      - name: "Get mount points from /etc/fstab"
+        shell: "grep '\\s{{ item }}\\s' /etc/fstab | grep -v root"
+        register: mountpoint_outputs
+        loop: "{{ fstab_clone_mount_targets }}"
+
+      - name: "Save mount point information"
+        set_fact:
+          fstab_mounts: "{{ mountpoint_outputs| json_query('results[*].stdout') }}"
+
+      - name: "Share mount data"
+        add_host:
+          name: shared_vars
+          fstab_mounts: "{{ fstab_mounts }}"
+
+      - name: "Display mounts when verbosity >= 1"
+        debug:
+          var: fstab_mounts
+          verbosity: 1
+## END "BLOCK: Get mounts from source"
+
+- name: "BLOCK: Add mounts to target"
+  when: "'target_hosts' in group_names"
+  become: true
+  block:
+    - name: "Modify fstab"
+      lineinfile:
+        path: '/etc/fstab'
+        state: present
+        line: "{{ item }}"
+      loop: "{{ hostvars['shared_vars'].fstab_mounts }}"
+
+    - name: "Ensure NFS is installed."
+      package:
+        state: installed
+        name: 'nfs-utils'
+
+    - name: "Ensure mount folders exists."
+      file:
+        path: "{{ item|trim }}"
+        state: directory
+        mode: 0755
+      loop: "{{ fstab_clone_mount_targets }}"
+      when: item != 'swap'
+
+    - name: get nvme volumes in use by source instance
+      ansible.builtin.command:
+        cmd: lsblk -J
+      register: lsblk_output
+      become: yes
+
+    - name: Set lsblk list
+      set_fact:
+        lsblk_list: "{{ lsblk_output.stdout | from_json }}"
+
+    - debug:
+        var: lsblk_list.blockdevices
+
+    - name: Initialize volume_list
+      set_fact:
+       volume_list: []
+
+    - name: join children
+      when: "'nvme0' not in item.name"
+      loop: "{{ lsblk_list.blockdevices }}"
+      set_fact:
+        volume_list: "{{ volume_list + item.children | selectattr('name', 'defined') | list }}"
+
+    - debug:
+        var: volume_list
+
+    - name: Verify volume_list
+      debug:
+        msg: "Volume list contains: {{ volume_list }}"
+
+    - name: Filter valid volumes
+      set_fact:
+        valid_volume_list: "{{ volume_list | selectattr('name', 'defined') | list }}"
+
+    - name: Run lvmdevices command
+      ansible.builtin.command:
+        cmd: lvmdevices --devicesfile system.devices --adddev /dev/"{{ item.name }}"
+      loop: "{{ valid_volume_list }}"
+      loop_control:
+          label: "{{ item.name }}"
+      when: "'name' in item"
+
+    - name: Retrieve Volume Group info
+      command: vgs --reportformat json
+      register: vgs_output
+      become: true
+
+    - name: Set  vg_list
+      set_fact:
+        vg_list: "{{ vgs_output.stdout | from_json }}"
+
+    - name: Run vgchange
+      become: true
+      command: vgchange -ay {{ item.vg_name }}
+      loop: "{{ vg_list.report[0].vg }}"
+      loop_control:
+        label: "{{ item.vg_name }}"
+
+    - name: "Remount fstab"
+      become: true
+      command: mount -a
+### END "BLOCK: Add mounts to target"
+...

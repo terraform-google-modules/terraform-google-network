@@ -1,0 +1,19 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "GrantSSMS3Bucket",
+          "Effect": "Allow",
+          "Action": [
+              "s3:GetObject",
+              "s3:PutObject",
+              "s3:PutObjectAcl",
+              "s3:GetEncryptionConfiguration"
+          ],
+          "Resource": [
+            "${ s3_bucket_arn }",
+            "${ s3_bucket_arn }/*"
+          ]
+      }
+  ]
+}

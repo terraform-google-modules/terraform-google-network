@@ -1,0 +1,22 @@
+---
+# This file contains validation tests for various tasks from roles/spr/tasks/main.yml.
+
+  - name: verify
+    hosts: all
+    become: false
+    gather_facts: false
+    tasks:
+
+      - name: Assert that required variables are defined
+        assert:
+          that:
+            - nessus_s3_bucket_aws_region is defined
+            - nessus_package_version is defined
+            - nessus_s3_bucket_name is defined
+            - nessus_s3_bucket_path is defined
+            - nessus_manager_address is defined
+            - nessus_agent_group is defined
+          fail_msg: 'FAIL: please define all required variables'
+          success_msg: 'SUCCESS: all required variables are defined'
+
+...

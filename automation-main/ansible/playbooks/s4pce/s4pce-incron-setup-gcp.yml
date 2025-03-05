@@ -1,0 +1,70 @@
+---
+# Playbook Name: s4pce-incron-setup-gcp.yml
+# Description: Sets up incrontab services on database servers in the S4 PCE environment.
+# Dependencies:
+# - Ansible v2.9+
+# variables:
+# - Groupvars + Hostvars from inventory file
+# - spr_gcs_bucket: <Name of bucket that will be used for backups>
+# Example
+# execution on remote systsm using the ibp inventory host template
+# ansible-playbook s4pce-incron-setup-gcp.yml -k -i defaults -i /<PATH-TO>/<SPR-INVENTORY-FILE> -e spr_gcs_bucket: <Google Cloud Storage Bucket>
+# ansible-playbook s4pce-incron-setup-gcp.yml -k -i /etc/ansible/roles/spr/vars/business/defaults.yml -i /etc/ansible/roles/spr/vars/business/s4pce/cre-support0001.yml -l s001dbhd4 -e spr_gcs_bucket=incron-test3
+# Authors: Abdulla Rubaid, Jian Ouyang
+# Version: 2.9-000007
+# Modified: 2021-12-23 - Created playbook
+#           2022-01-25 - Renamed playbook from s4pce-incron-setup-gcp.yml to s4pce-incron-setup-gcp.yml
+#           2022-01-27 - Updated playbook to use gcp-cli-install role
+#           2022-04-20 - Exclude SAP IQ
+#           2022-07-01 - Exclude non_spr products
+#           2022-08-03 - case sensitivity handling
+#           2022-12-07 - add 'spr_hana_incron_gcs_dr_bucket' to handle data replication to DR region
+# Comments: |
+# execution on remote systsm using the ibp inventory host template
+#   spr_gcs_bucket: Google Cloud Storage Bucket
+
+
+  - name: 'Play0: Prepare dynamic values'
+    gather_facts: true
+    hosts: all
+    tags:
+      - play 0
+      - always
+
+    tasks:
+      - name: Dynamic Group Assignment
+        group_by:
+          key: '{{ item }}'
+        when: item != 'undefined'
+        loop:
+          - "{{ spr_nodetype|default('undefined')|lower }}"
+          - "{{ spr_landscape|default('undefined')|lower }}"
+          - "{{ spr_productname|default('undefined')|lower }}"
+
+  - name: 'Play1: Set up incron service on database hosts'
+    gather_facts: false
+    hosts: db:!iq:!non_spr
+    vars:
+      spr_gcs_bucket: ''
+      spr_gcs_dr_bucket: ''
+    tags:
+      - play1
+      - db
+      - incron
+
+    tasks:
+      - name: Install Google Cloud SDK
+        include_role:
+          name: gcp-cli-install
+
+      - name: Setup Incron
+        include_role:
+          name: spr
+          allow_duplicates: yes
+          tasks_from: provisioning/incron-setup-gcp.yml
+        vars:
+          spr_hana_install_sid: '{{ spr_sid|upper }}'
+          spr_hana_landscape: '{{ spr_landscape }}'
+          spr_hana_incron_gcs_bucket: '{{ spr_gcs_bucket }}'
+          spr_hana_incron_gcs_dr_bucket: '{{ spr_gcs_dr_bucket }}'
+...

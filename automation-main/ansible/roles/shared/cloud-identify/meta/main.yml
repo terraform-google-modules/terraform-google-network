@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  role_name: cloud_identify
+  namespace: ns2
+  author: Devon Thyne
+  description: Leverages metadata endpoints to parse information about current cloud provider target host is running within
+  company: SAP NS2
+
+  issue_tracker_url: https://gitlab.core.sapns2.us/golden-ami-dev/ansible-roles/-/issues
+
+  license: BSD
+
+  min_ansible_version: 2.9
+
+  platforms: []
+
+  galaxy_tags:
+    - cloud-identify
+
+  dependencies: []
+...

@@ -1,0 +1,36 @@
+---
+# Description: Configures drivers and packages required for Google Cloud SDK.
+# Inputs:
+#   - N/A
+# Outputs:
+#   - Installs and configures drivers and packages for Ubuntu running in GCP.
+
+  - name: Install GCP-specific Ubuntu packages and drivers
+    package:
+      state: present
+      name:
+        - apt-transport-https
+        - ca-certificates
+        - gnupg
+        - chrony
+    become: true
+
+  - name: Add the Cloud SDK distribution URI as a package source and import the Google Cloud public key
+    shell: '{{ item }}'
+    become: true
+    loop:
+      - echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+      - curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+
+  - name: Update apt cache
+    apt:
+      update_cache: yes
+    become: true
+
+  - name: Install Google Cloud SDK
+    package:
+      name:
+        - google-cloud-sdk
+      state: present
+    become: true
+...

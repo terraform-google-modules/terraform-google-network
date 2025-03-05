@@ -1,0 +1,31 @@
+---
+# Synopsis: Validates the value of an xml node using xmlpath against the input validation value.
+# Inputs:
+#   - xml_validation_xmlstring: String variable containing the xml to validate
+#   - xml_validation_xpath: Xpath to validate
+#   - xml_validation_value: Value to validate against
+#   - xml_validation_node: Node that the xpath points to
+# Outputs:
+#   - xml_validation_output: Value extracted from xml
+# Comments:
+#  - xml_validation_node is only required because ansible automatically includes the node name along with the value of hte xpath.
+
+- name: "Get XML Content for {{ xml_validation_xpath }}"
+  xml:
+    xmlstring: "{{ xml_validation_xmlstring }}"
+    xpath: "{{ xml_validation_xpath }}"
+    content: text
+  register: xml_out
+
+- name: "Extract value from {{ xml_validation_xpath }}"
+  set_fact:
+    xml_validation_output: "{{ xml_out.matches[0]|json_query(query) }}"
+  vars:
+    query: '"{{ xml_validation_node }}"'
+
+- name: "Validate expected value of {{ xml_validation_value }}"
+  assert:
+    that: "xml_validation_output|string|trim == xml_validation_value|string|trim"
+    fail_msg: "{{ xml_validation_node }} did not match! Expected: {{ xml_validation_value }} Found: {{ xml_validation_output }}"
+    success_msg: "{{ xml_validation_node }} matched expected value of {{ xml_validation_value }}"
+...

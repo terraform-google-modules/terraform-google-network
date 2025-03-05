@@ -1,0 +1,8 @@
+---
+# List of postfix specific logs
+# When 'postfix' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_postfix:
+  - file_path: /var/log/maillog
+    log_group_name: /var/log/maillog
+    timestamp_format: '%b %d %H:%M:%S'
+...

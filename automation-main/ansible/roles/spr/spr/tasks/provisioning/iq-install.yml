@@ -1,0 +1,118 @@
+---
+# Synopsis: Provisions SAP IQ
+# Inputs:
+#   spr_iq_install_sid: SID of the IQ server
+#   spr_iq_install_source: Filepath to the directory containing the setup.bin executable. This value can be updated in the roles/spr/defaults/main.yml file under the `spr_db_source_list` variable definition for `iq`.
+#   spr_iq_file_install_rsp: Filepath to the SAP IQ licence file generated ahead of time according to the instructions in SAP Note #2628620. This value can be updated in the roles/spr/defaults/main.yml file under the `spr_file_install_rsp_xml_list` variable definition for `iq`.
+#   spr_iq_install_hostname: Hostname of the IQ server
+#   spr_iq_install_domain: FQDN to use for updating the hostfile.
+#   spr_iq_product: Should be defined as `iq`.
+#   spr_iq_file_install_rsp_xml: Filepath to the install-response.ini file. This value can be updated in the roles/spr/defaults/main.yml file under the `spr_db_source_list` variable definition for `iq`.
+# Outputs:
+#   Provisions SAP IQ.
+# Comments:
+#   An SAP IQ license needs to be generated ahead of time according to the instructions in SAP Note #2628620. Name the file "{{ spr_iq_install_hostname }}".lic and save it to the directory defined in roles/spr/defaults/main.yml file under the `spr_file_install_rsp_xml_list` variable `iq`.
+
+- name: Install required prerequisite packages
+  become: true
+  yum:
+    name:
+    - openmotif
+    - libXp
+    - libXt
+    - libXtst
+    - libXmu
+    - libXext
+    - libSM
+    - libICE
+    - libX11
+    - libncurses.so.5
+    state: present
+
+- name: Create /sybase/{{ spr_iq_install_sid }} subdirectories
+  become: true
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /sybase/{{ spr_iq_install_sid }}/scripts
+    - /sybase/{{ spr_iq_install_sid }}/data/html
+    - /sybase/{{ spr_iq_install_sid }}/data/lis
+    - /sybase/{{ spr_iq_install_sid }}/saptemp_1/satmp
+
+- name: Create symlink for libnsl
+  become: true
+  file:
+    src: /usr/lib64/libnsl.so.2.0.0
+    dest: /usr/lib64/libnsl.so.1
+    state: link
+
+- name: Create the syb{{ spr_iq_install_sid|lower }} user account
+  become: true
+  user:
+    name: syb{{ spr_iq_install_sid|lower }}
+    state: present
+
+- name: "Create /tmp/{{ spr_iq_product }}"
+  file:
+    path: '/tmp/{{ spr_iq_product }}'
+    state: directory
+
+- name: "Save Configuration File to /tmp/{{ spr_iq_product }}"
+  become: true
+  copy:
+    dest: '/tmp/{{ spr_iq_product }}/'
+    src: "{{ spr_iq_file_install_rsp }}"
+    force: yes
+    remote_src: yes
+
+- name: "Update install-response.ini values"
+  ini_file:
+    path: "/tmp/{{ spr_iq_product }}/{{ spr_iq_file_install_rsp.split('/')[-1] }}"
+    create: no
+    section: null
+    option: "{{ item.name }}"
+    value: '{{ item.value }}'
+    no_extra_spaces: true
+  loop_control:
+    label: "Modifying value of {{ item.name }} to {{ item.value }} in {{ spr_iq_file_install_rsp }}"
+  loop:
+    - { name: 'USER_INSTALL_DIR', value: '/sybase/{{ spr_iq_install_sid }}' }
+    - { name: 'SYSAM_LICENSE_FILE_PATHNAME', value: '/tmp/{{ spr_iq_product }}/{{ spr_iq_install_hostname }}.lic' }
+    - { name: 'SYSAM_EXISTING_LICENSE_SERVER_HOSTNAME', value: '{{ spr_iq_install_hostname }}' }
+  become: true
+
+- name: "Save License File to /tmp/{{ spr_iq_product }}"
+  become: true
+  copy:
+    dest: '/tmp/{{ spr_iq_product }}/'
+    src: "{{ spr_iq_file_install_rsp_xml }}"
+    force: yes
+    remote_src: yes
+
+- name: Change ownership of the installation directory
+  become: true
+  file:
+    path: /sybase/{{ spr_iq_install_sid|upper }}
+    recurse: true
+    owner: "syb{{ spr_iq_install_sid|lower }}"
+
+- name: "Execute silent installation command"
+  become: true
+  become_user: syb{{ spr_iq_install_sid|lower }}
+  shell: >-
+    ./setup.bin -f /tmp/{{ spr_iq_product }}/{{ spr_iq_file_install_rsp.split('/')[-1] }} -i silent -DAGREE_TO_SAP_LICENSE=true -DSYBASE_PRODUCT_LICENSE_TYPE=license -DRUN_SILENT=true
+  args:
+    chdir: '{{ spr_iq_install_source }}'
+  # Including this `failed_when` handler because the silent installation returns two warnings, which ansible interprets as failure even though the installation succeeds.
+  # These values are not configurable via the silent installation parameters file. They're defined in the default port list for SAP IQ.
+  # Listing the warnings here for documentation purposes.
+    # Warning: Property 'Embedded Web Container Service for HTTP' is not specified or has invalid value. Default it to '4282'.
+    # Warning: Property 'Embedded Web Container Service for HTTPS' is not specified or has invalid value. Default it to '4283'.
+  failed_when: false
+
+- name: "Remove /tmp/{{ spr_iq_product }}"
+  file:
+    path: '/tmp/{{ spr_iq_product }}'
+    state: absent
+...

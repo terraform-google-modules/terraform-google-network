@@ -1,0 +1,82 @@
+---
+net_ports:
+  - name: sapapp_java_sapdp
+    host: localhost
+    port: 32nn
+    protocol: tcp # maybe udp?
+    application: sapapp_java
+    service: sapdp
+    description: SAP APP Dispacher (sapapp_java:32<NN>)
+
+  - name: sapapp_java_sapgw
+    host: localhost
+    port: 33nn
+    protocol: tcp
+    application: sapapp_java
+    service: sapgw
+    description: SAP APP Gateway for CPIC and RFC communication (sapapp_java:33<NN>)
+
+  - name: sapapp_java_sapms
+    host: localhost
+    port: 36nn
+    protocol: tcp
+    application: sapapp_java
+    service: sapmsSID
+    description: SAP APP Message Server (sapapp_java_sapms:36<NN>)
+
+  - name: sapapp_java_sapgws
+    host: localhost
+    port: 48nn
+    protocol: tcp
+    application: sapapp_java
+    service: sapgw
+    description: SAP APP Gatway SNC secured for CPIC and RFC communication (sapapp_java:48<NN>)
+
+  - name: sapapp_java_icm_http
+    host: localhost
+    port: 80nn
+    protocol: tcp
+    application: sapapp_java
+    service: icm_http
+    description: SAP APP HTTP ICM (sapapp_java:80<NN>)
+
+  - name: sapapp_java_messageserver
+    host: localhost
+    port: 81nn
+    protocol: tcp
+    application: sapapp_java
+    service: messageserver
+    description: SAP APP HTTP Message Server (sapapp_java:81<NN>)
+
+  - name: sapapp_java_icm_https
+    host: localhost
+    port: 443nn
+    protocol: tcp
+    application: sapapp_java
+    service: icm_https
+    description: SAP APP ICM HTTPS (sapapp_java:443<NN>)
+
+  - name: sapapp_java_messageservers
+    host: localhost
+    port: 444nn
+    protocol: tcp
+    application: sapapp_java
+    service: messageservers
+    description: SAP APP HTTPS Message Server (sapapp_java:444<NN>)
+
+  - name: sapapp_java_sapctrl
+    host: localhost
+    port: 5nn13
+    protocol: tcp
+    application: sapapp_java
+    service: sapctrl
+    description: SAP APP HTTP sapctrl (SCS ASCS) (sapapp_java:5<NN>13)
+
+  - name: sapapp_java_sapctrls
+    host: localhost
+    port: 5nn14
+    protocol: tcp
+    application: sapapp_java
+    service: sapctrls
+    description: AP APP HTTPS sapctrls (SCS ASCS) (sapapp_java:5<NN>14)
+...

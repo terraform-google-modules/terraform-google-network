@@ -1,0 +1,22 @@
+---
+# Description: Runs post-configuration tasks used by the role.
+# Inputs:
+#   - nonexistent_repositories: (dict) A dictionary of operating systems who's values are a list of repositories that don't exist for that operating system.
+# Outputs:
+#   - Disables RHEL repositories that don't exist on the current operating system.
+
+  - name: '[Red Hat] - [BLOCK] - Disable repositories that do not exist for the given operating system'
+    block:
+
+      - name: '[Red Hat] - Save the list of nonexistent repositories to be disabled as a fact'
+        set_fact:
+          repository_list_selected: "{{ nonexistent_repositories[ ansible_distribution | lower + '_' + ( latest_os_versions[ ansible_distribution | lower\
+            \ + '_' + ansible_distribution_major_version ] if repo_latest | bool else ansible_distribution_version ) ] }}"
+
+      - name: '[Red Hat] - Disable the nonexistent repositories'
+        include_tasks: '{{ ansible_distribution | lower }}/repository-disable.yml'
+
+    when: ansible_os_family | lower == 'redhat' and nonexistent_repositories[ ansible_distribution | lower + '_' + ( latest_os_versions[ ansible_distribution
+      | lower + '_' + ansible_distribution_major_version ] if repo_latest | bool else ansible_distribution_version ) ] is defined                                                                                                                                                          # End BLOCK
+
+...

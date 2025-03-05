@@ -1,0 +1,278 @@
+---
+# Playbook Name: s4pce-provision-bastion.yml
+# Description: Provisions a new instance to be a bastion server
+#   Leverages a number of exiting roles to ensure a securely configured system
+# Dependencies:
+#   - Ansible v2.9.19+
+#   - Bastion Deployed on RHEL8
+#   - AWS IAM role with permissions similar to AmazonEC2ReadOnlyAccess and CloudWatchAgentServerPolicy
+#   - IAM Permissions:
+#     - ec2:DescribeInstances - (Play1: Bastion Name Tagging)
+#     - SNS:ListTopics - (Play2)
+#     - SNS:GetTopicAttributes - (Play2)
+#     - SNS:ListSubscriptions - (Play2)
+#     - SNS:TagResource - (Play2)
+#     - SNS:UntagResource - (Play2)
+#     - cloudwatch:PutMetricAlarm - (Play2)
+#     - cloudwatch:DescribeAlarms - (Play2)
+#     - ec2:DescribeImages - (Play2)
+#     - ec2:CreateTags - (Play2)
+#
+# Variables:
+#
+# Example:
+#    ansible-playbook s4pce-provision-bastion.yml -i 10.0.0.1,
+# Authors: Louis Lee
+# Version: 2.9-000005
+# Modified: 2020-03-31 - Created
+#           2021-04-22 - Removed folder root from nfs mount as it is now defaulted by the role and a separate input parameter when customizing
+#           2021-11-09 - Invoke cloud-identify role and support bastion provisioning when outside AWS
+#           2021-11-10 - Updating STIG variable names.
+#           2021-12-03 - Ensure compatibility with Azure Government bastion deployments
+#           2022-05-16 - Support for Azure Cloud in Country
+#           2024-12-02 - Use variable for 'aws_region' in tag-management role.
+
+# Comments:
+#   Bastion to be deployed on rhel8
+#
+#   git-clone-ansible-roles playbook should be run at least once on new bastions.
+#
+#   Play Tags:
+#     play0 information gathering         : Detect and prompt for necessary environment-specific information
+#     play1 provisioning                  : Bastion Provisioning
+#     play2 staging                       : EFS Common Staging Mount
+#     play3 stig                          : Apply DISA STIGs
+#     play4 post-provisioning monitoring  : Bastion Post Tasks and Monitoring
+#     playEND always                      : End of the playbook
+
+
+#################
+##### Play0 #####
+#################
+  - name: 'Play0: Information Gathering'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play0
+      - cloud-identify
+
+    vars_prompt:
+      - name: domain_environment
+        prompt: Which domain to join? (cre, usc)
+        private: no
+        default: cre
+
+      - name: input_aws_region
+        prompt: What is the aws region?
+        private: false
+
+    pre_tasks:
+      - name: Fail on invalid Domain Environment
+        fail:
+          msg: You provided an invalid domain. Must be (cre, usc)
+        when: domain_environment not in ['cre','usc']
+
+      - name: Save Input Variables for later playbook use.
+        set_fact:
+          playbook_aws_region: '{{ input_aws_region }}'
+
+    tasks:
+      - name: Detect Cloud Provider
+        include_role:
+          name: cloud-identify
+
+      - name: Set domain specific facts for CRE
+        set_fact:
+          aws_efs_file_system_id: fs-7edb907f
+          azure_nfs_storage_account: >-
+            {%- if cloud_region == "australiaeast" -%}    ns2cres4pceaueanfs
+            {%- elif cloud_region == "canadacentral" -%}  ns2cres4pcecacnnfs
+            {%- elif cloud_region == "uksouth" -%}        ns2cres4pceuksonfs
+            {%- else -%}                                  ns2cres4pcenfs
+            {%- endif -%}
+          azure_nfs_name: >-
+            {%- if cloud_region == "australiaeast" -%}    cre-s4-pce-australiaeast-common-nfs-staging
+            {%- elif cloud_region == "canadacentral" -%}  cre-s4-pce-canadacentral-common-nfs-staging
+            {%- elif cloud_region == "uksouth" -%}        cre-s4-pce-uksouth-common-nfs-staging
+            {%- else -%}                                  cre-s4-pce-common-nfs-staging
+            {%- endif -%}
+        when: domain_environment == 'cre'
+
+      - name: Set domain specific facts for USC
+        set_fact:
+          aws_efs_file_system_id: fs-a95781d2
+          azure_nfs_storage_account: ns2uscs4pcenfs
+          azure_nfs_name: usc-s4-pce-common-nfs-staging
+        when: domain_environment == 'usc'
+
+
+#################
+##### Play1 #####
+#################
+  - name: 'Play1: Bastion Provisioning'
+    hosts: all
+    gather_facts: true
+    become: false
+    tags:
+      - play1
+      - provisioning
+
+    pre_tasks:
+      - name: Stop if OS is not RHEL8
+        when: (ansible_distribution != 'RedHat' or ansible_distribution_major_version != '8')
+        fail:
+          msg: Bastion OS is not RHEL8
+
+      - name: Configure Red Hat Repositories from S3
+        include_role:
+          name: repository-management
+        vars:
+          repo_enable: 'true'
+          application_preset_selection: [base, epel]
+
+
+    tasks:
+      - name: Provision Bastion
+        include_role:
+          name: bastion
+          vars_from: "business/cre-s4pce-{{ cloud_provider}}.yml"
+
+#################
+##### Play2 #####
+#################
+  - name: 'Play2: EFS Common Staging Mount'
+    hosts: all
+    gather_facts: true
+    tags:
+      - play2
+      - staging
+
+    vars:
+      nfs_mount_dir: /staging
+
+    pre_tasks:
+      - name: Retrieve ec2 metadata
+        ec2_metadata_facts:
+        when: cloud_provider == "aws"
+
+    tasks:
+      - name: Mount EFS Staging
+        include_role:
+          name: nfs
+        vars:
+          nfs_dictionary:
+            staging:
+              path: '{{ nfs_mount_dir }}'
+              src: >-
+                {{
+                  (aws_efs_file_system_id + ".efs." + ansible_ec2_placement_region + ".amazonaws.com") if (
+                    cloud_provider == "aws"
+                  ) else (
+                    azure_nfs_storage_account + ".file.core." + ("windows" if cloud_partition == "public" else "usgovcloudapi") + ".net"
+                  )
+                }}
+              src_root: >-
+                {{
+                  (
+                    ("/" + azure_nfs_storage_account + "/" + azure_nfs_name) if (
+                      cloud_provider == "azure"
+                    ) else ""
+                  ) | default(omit)
+                }}
+
+
+#################
+##### Play3 #####
+#################
+  - name: 'Play3: Apply DISA STIGs'
+    hosts: all
+    become: false
+    tags:
+      - play3
+      - stig
+
+    tasks:
+      - name: Securely configure system against RHEL8 DISA STIG
+        include_role:
+          name: rhel8-disa-stig
+          apply:
+            become: true
+        vars:
+          DISA_STIG_RHEL_08_010200: true
+          DISA_STIG_RHEL_08_020020: true
+          var_accounts_max_concurrent_login_sessions: 3
+          sshd_idle_timeout_value: 900
+          var_sshd_client_alive_interval: 900
+
+
+#################
+##### Play3 #####
+#################
+  - name: 'Play4: Bastion Post Tasks and Monitoring'
+    hosts: all
+    become: false
+    tags:
+      - play4
+      - post-provisioning
+      - monitoring
+
+    tasks:
+      - name: Create AWS CloudWatch Alarms
+        include_role:
+          name: aws-cloudwatch-alarms
+        vars:
+          aws_topic_name: s4pce-cre-monitoring
+          cw_preset_selection: default
+        when: cloud_provider == "aws"
+
+      - name: Update iptables configuration
+        include_role:
+          name: iptables
+
+      - name: Update clamav configuration
+        include_role:
+          name: clamav
+        vars:
+          clamav_create_cron_schedule: true
+          clamav_dir_ignore_pattern: ^/hana/|^/dev/|^/usr/sap/|^/backup/|^/sys|^/proc|^/swap|^/staging
+
+      - name: Update aide configuration
+        include_role:
+          name: aide
+          apply:
+            become: true
+
+      - name: Block AWS-specific tagging configurations
+        when: cloud_provider == "aws"
+        block:
+          - name: Retrieve ec2 metadata
+            ec2_metadata_facts:
+
+          - name: Update tags
+            include_role:
+              name: tag-management
+            vars:
+              aws_tag_null_context_control: true
+              aws_region: '{{ playbook_aws_region }}'
+
+
+###################
+##### PlayEND #####
+###################
+  - name: 'PlayEND: End of playbook'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play-end
+      - always
+      - the-end
+
+    tasks:
+      - name: This is the end
+        delegate_to: localhost
+        run_once: true
+        debug:
+          msg: Of the world as we know it
+...

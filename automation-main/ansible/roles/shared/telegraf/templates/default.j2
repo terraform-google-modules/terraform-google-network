@@ -1,0 +1,6 @@
+{% for (k, v) in telegraf_additional_environment_variables.items() %}
+{{ k -}}={{- v | to_json }}
+{% endfor %}
+
+ELASTIC_USERNAME={{ telegraf_elastic_user | default('') }}
+ELASTIC_PASSWORD={{ telegraf_elastic_password | default('') }}

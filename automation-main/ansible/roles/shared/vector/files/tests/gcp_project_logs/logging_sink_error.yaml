@@ -1,0 +1,19 @@
+---
+tests:
+  - name: gcp:logging_sink_error:1
+    inputs:
+      - insert_at: gcp_project_logs
+        type: log
+        log_fields:
+          message: '{"textPayload":"Cloud Logging sink configuration error in s4-cre-pce, sink cre-s4-northamericanortheast1-activity-log-pubsub: topic_permission_denied
+            ()","insertId":"1awdtf4b3n","resource":{"type":"logging_sink","labels":{"project_id":"s4-cre-pce","name":"cre-s4-northamericanortheast1-activity-log-pubsub","destination":""}},"timestamp":"2022-09-28T21:08:46.273536533Z","severity":"ERROR","labels":{"activity_type_name":"LoggingSinkConfigErrorV2","destination":"pubsub.googleapis.com/projects/s4-cre-pce/topics/cre-s4-northamericanortheast1-activity-log","sink_id":"cre-s4-northamericanortheast1-activity-log-pubsub","error_detail":"","log_entity_id":"","error_code":"topic_permission_denied","log_filter":""},"logName":"projects/s4-cre-pce/logs/logging.googleapis.com%2Fsink_error","receiveTimestamp":"2022-09-28T21:08:46.941590739Z"}'
+    outputs:
+      - extract_from: gcp_text__enriched_out
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!(.metadata.sourcetype, "gcp:error:logging_error")
+              assert_eq!(.metadata.custom.index.suffix, "gcp")
+              assert_eq!(.metadata.source, "gcp:123456789012:global:cre-s4-northamericanortheast1-activity-log-pubsub")
+              assert_eq!(.metadata.custom.gcp.log_name, "projects/s4-cre-pce/logs/logging.googleapis.com/sink_error")
+...

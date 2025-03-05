@@ -1,0 +1,69 @@
+---
+# Description: Configures Zypper and performs other pre-configuration tasks for SUSE based systems.
+# Inputs:
+#   - repo_force: (bool) Whether to force the re-downloading of the repository file and the re-enabling of the repositories within it.
+#   - repo_delete: (bool) Whether to remove all repositories and repository files that were setup by this Ansible role.
+# Outputs:
+#   - Removes previously downloaded sources.list repository files if 'repo_force' or 'repo_delete' are set to true
+
+  - name: "[SUSE] - Ensure that the '/etc/zypp/repos.d' directory is present"
+    file:
+      state: directory
+      path: /etc/zypp/repos.d
+      owner: root
+      group: root
+      mode: '0644'
+    become: true
+    register: repo_dir_present
+    when: repo_delete | bool == false
+
+# NOTE: The Ansible zypper module(s) lack the ability to cleanly list enabled/disabled repos, so warn is set to false here,
+#       and the command module is used instead.
+
+  - name: '[SUSE] - Get currently enabled repositories'
+    command: zypper lr -E -e -
+    become: true
+    register: enabled_repositories_results_raw
+    when: repo_force | bool == false
+    changed_when: false
+    failed_when:
+      - enabled_repositories_results_raw.rc != 0 and enabled_repositories_results_raw.rc != 6
+
+  - name: '[SUSE] - Get the names of currently enabled repositories as a list'
+    set_fact:
+      enabled_repositories_results: "{{ enabled_repositories_results_raw.stdout | regex_findall('((?<=name=).*)(?s:.enabled=1)', multiline=True, ignorecase=True)\
+        \ }}"
+    when: repo_force | bool == false
+
+  - name: '[SUSE] - Remove the previously created repos.d repository file'
+    file:
+      state: absent
+      path: /etc/zypp/repos.d/ansible-managed-repository-management.list
+    become: true
+    when: repo_force | bool or repo_delete | bool
+
+  - name: '[SUSE] - Remove previously created credentials.d files'
+    shell:
+      cmd: rm -rf /etc/zypp/credentials.d/*
+    become: true
+    when: repo_force | bool or repo_delete | bool
+
+  - name: '[SUSE] - Remove previously created repos.d files'
+    shell:
+      cmd: rm -rf /etc/zypp/repos.d/*
+    become: true
+    when: repo_force | bool or repo_delete | bool
+
+  - name: '[SUSE] - Remove previously created services.d files'
+    shell:
+      cmd: rm -rf /etc/zypp/services.d/*
+    become: true
+    when: repo_force | bool or repo_delete | bool
+
+  - name: '[SUSE] - Remove the previously created .repo'
+    file:
+      state: absent
+      path: /etc/zypp/repos.d/*.repo
+    become: true
+    when: repo_force | bool or repo_delete | bool
+...

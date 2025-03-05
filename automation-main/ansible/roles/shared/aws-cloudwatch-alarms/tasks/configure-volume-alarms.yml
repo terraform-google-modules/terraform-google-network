@@ -1,0 +1,57 @@
+---
+# Synopsis: Main set of tasks for installing and configuring disk metrics for cloudwatch on ec2 instances.
+# Inputs:
+#   - aws_topic_name: the name of the aws SNS topic.
+#   - cw_alert_threshold_disk_space: Threshold on which alerts will start being sent.
+#   - ignore_disks: List of mount points to ignore.
+#   - this_disk_path: Individual disk path, variable is prefixed with "this_" to indicate that this is assumed
+#     to be coming from a loop.
+#   - this_disk_fstype: Individual disk file type, variable is prefixed with "this_" to indicate that this is assumed
+#     to be coming from a loop.
+#   - this_disk_device: Individual disk device with the leading /dev/ removed, variable is prefixed with "this_" to indicate that this is assumed
+#     to be coming from a loop.
+#   - cw_install_metrics: Flag to enable/disable custom metric gathering, used to not set Alarms if false
+# Outputs
+#   - CloudWatch alarms for each disk for the instance
+
+# An apply list can be used to ignore disks we don't care about receiving alarms on.
+# we also by default ignore disks with the tmpfs type as they shouldn't fill up, they
+# just create clutter in the alert list.
+  - name: Create volume_alarm_apply_list for host
+    set_fact:
+      volume_alarm_apply_list: '{{ volume_alarm_apply_list|default([],true) + [item.mount] }}'
+    when:
+      - item.mount not in ignore_disks
+      - item.fstype != "tmpfs"
+    loop_control:
+      label: Evaluating {{ item.mount }}
+    loop: '{{ ansible_mounts }}'
+
+
+# If the disk is in the apply list, then we create the disk space alert for the disk passed
+# to this list of tasks.
+  - name: Creating Cloudwatch Disk Space Alerts
+    loop: '{{ ansible_mounts }}'
+    loop_control:
+      label: Evaluating {{ item.mount }}
+    when: item.mount in volume_alarm_apply_list
+    ec2_metric_alarm:
+      state: '{% if cw_install_metrics == true %}present{% else %}absent{% endif %}'
+      name: disk_free_{{ item.mount }}_{{ alarm_name }}
+      metric: disk_used_percent
+      namespace: CWAgent
+      statistic: Average
+      comparison: GreaterThanOrEqualToThreshold
+      threshold: '{{ cw_alert_threshold_disk_space }}'
+      period: 300
+      evaluation_periods: 1
+      unit: Percent
+      region: '{{ ansible_ec2_placement_region }}'
+      description: This will alarm when disk utilization is above {{ cw_alert_threshold_disk_space }}%.
+      dimensions: {path: '{{ item.mount }}', fstype: '{{ item.fstype }}', device: "{{ item.device | replace('/dev/','') }}", InstanceId: '{{ ansible_ec2_instance_id
+          }}'}
+      alarm_actions: ['arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ ansible_ec2_instance_identity_document_accountid }}:{{aws_topic_name}}']
+      ok_actions: ['arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ ansible_ec2_instance_identity_document_accountid }}:{{aws_topic_name}}']
+    delegate_to: localhost
+    become: false
+...

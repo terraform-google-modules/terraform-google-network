@@ -1,0 +1,10 @@
+kind: Secret
+apiVersion: v1
+metadata:
+  name: dockerconfig
+  annotations:
+    avp.kubernetes.io/path: "{{ .Values.vaultBasePath }}/global/dockerconfig"
+type: kubernetes.io/dockerconfigjson
+stringData:
+  .dockerconfigjson: |
+    <dockerconfig>

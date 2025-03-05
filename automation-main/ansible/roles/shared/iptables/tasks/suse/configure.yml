@@ -1,0 +1,63 @@
+---
+# Synopsis: Configures iptables on SUSE with the rules based on the provided ports.
+# Inputs:
+#   - templates/SuSEfirewall2-custom.j2 - templated SUSE firewall configuration file
+#
+# Outputs:
+#   - Configures iptables with rules. Can be viewed on the system using 'iptables -L'
+
+  - name: Configure SUSE 15 iptables rules
+    block:
+      - name: Configure iptables rules
+        ansible.builtin.include_tasks: common/configure-common.yml
+
+      - name: Save persistent iptables rules
+        ansible.builtin.include_tasks: common/save-rules-common.yml
+        vars:
+          iptables_persistent_save_file: /etc/sysconfig/iptables
+    when: ansible_distribution_major_version == '15'
+
+  - name: Configure SUSE 12 iptables rules
+    block:
+      - name: Place the custom iptables rules configuration file on the system
+        ansible.builtin.template:
+          src: SuSEfirewall2-custom.j2
+          dest: /etc/sysconfig/scripts/SuSEfirewall2-custom
+        become: true
+        register: iptables_suse_config_file
+
+      - name: Specify the custom iptables rules file
+        ansible.builtin.lineinfile:
+          path: '{{ item }}'
+          regexp: ^FW_CUSTOMRULES=
+          line: FW_CUSTOMRULES="/etc/sysconfig/scripts/SuSEfirewall2-custom"
+        become: true
+        register: iptables_suse_custom_rules_config
+        loop:
+          - /etc/sysconfig/SuSEfirewall2
+          - /sbin/SuSEfirewall2
+          - /usr/sbin/SuSEfirewall2
+
+      - name: Set the SuSEfirewall2 iptables batch setting to 'no'
+        ansible.builtin.lineinfile:
+          path: /etc/sysconfig/SuSEfirewall2
+          regexp: ^FW_USE_IPTABLES_BATCH=
+          line: FW_USE_IPTABLES_BATCH="no"
+        become: true
+        register: iptables_suse_batch_setting
+
+      - name: Start and enable the SuSEfirewall2 service
+        ansible.builtin.systemd:
+          name: SuSEfirewall2
+          enabled: true
+          state: >-
+            {{
+              'restarted' if (
+                iptables_suse_config_file.changed | bool or
+                iptables_suse_custom_rules_config.changed | bool or
+                iptables_suse_batch_setting.changed | bool
+              ) else 'started'
+            }}
+        become: true
+    when: ansible_distribution_major_version == '12'
+...

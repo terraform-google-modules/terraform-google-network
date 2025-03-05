@@ -1,0 +1,181 @@
+# Synopsis: Provisions abap-stack-based SAP applications
+# Inputs:
+# Inputs:
+#   spr_app_install_file_ini_params: Location of the input parameters file
+#   spr_app_install_file_instkey: Location of the instkey.pkey file
+#   spr_app_install_file_swpm_sapinst: Location of the SWPM Sapinst
+#   spr_app_install_hostname: Hostname of the application
+#   spr_app_install_sid: Target SID of the instance
+#   spr_maxdb_install_sid: Target SID of the database associated with this application
+#   spr_app_install_product: Product to install
+#   spr_app_install_db_hostname: Hostname of the associated DB
+#   spr_db_install_library: File path to the location of the MaxDB build directory, ie 'MaxDB_7.9___SP10_Build_05_'
+#   spr_db_upgrade_library: File path to the location of the MaxDB upgrade directory, ie 'maxdb-server-linux-64bit-x86_64-7_9_10_10'
+# Outputs:
+# Comments:
+
+- name: "Remove /tmp/sapinst_instdir"
+  become: true
+  file:
+    path: '/tmp/sapinst_instdir'
+    state: absent
+
+- name: Set spr_app_install_product to lowercase
+  set_fact:
+    spr_app_install_product: "{{ spr_app_install_product | lower }}"
+
+- name: "BLOCK: SAP MaxDB"
+  block:
+      - name: "Remove the link /usr/lib64/libstdc++.so.6"
+        become: yes
+        file:
+          path: '/usr/lib64/libstdc++.so.6'
+          state: absent
+
+      - name: "Create the link /usr/lib64/libstdc++.so.6"
+        become: yes
+        file:
+          src: '/opt/rh/SAP/lib64/compat-sap-c++-10.so'
+          dest: '/usr/lib64/libstdc++.so.6'
+          state: link
+
+      - name: "Create /tmp/maxdb"
+        file:
+          path: '/tmp/maxdb'
+          state: directory
+
+      - name: "Create start_dir.cd with the filepath to the installation media"
+        copy:
+          dest: '/tmp/maxdb/start_dir.cd'
+          content: |
+            "{{ spr_db_install_library }}"
+            "{{ spr_app_install_file_swpm_sapinst }}"
+
+      - name: "Save Configuration Files to /tmp/maxdb"
+        become: true
+        copy:
+          dest: '/tmp/maxdb/'
+          src: "{{ item }}"
+          force: yes
+          remote_src: yes
+        loop_control:
+          label: "Saving /tmp/maxdb/{{ item | basename }}"
+        loop:
+          - "{{ spr_maxdb_install_file_ini_params }}"
+          - "{{ spr_maxdb_install_file_instkey }}"
+
+      - name: "Update inifile.params values"
+        ini_file:
+          path: "/tmp/maxdb/{{ spr_maxdb_install_file_ini_params.split('/')[-1] }}"
+          create: no
+          section: null
+          option: "{{ item.name }}"
+          value: '{{ item.value }}'
+          no_extra_spaces: true
+        loop_control:
+          label: "Modifying value of {{ item.name }} to {{ item.value }} in {{ spr_maxdb_install_file_ini_params }}"
+        loop:
+          - { name: 'ContentServerSapdb.fCsName', value: '{{ spr_maxdb_install_sid | upper }}' }
+          - { name: 'SAPINST.CD.PACKAGE.RDBMS', value: '{{ spr_db_install_library }}' }
+          - { name: 'SdbInstanceDialogs.autoextend', value: 'true' }
+          - { name: 'SdbInstanceDialogs.sapdataFolder', value: 'sapdata' }
+          - { name: 'SdbInstanceDialogs.saplogFolder', value: 'saplog' }
+        become: true
+
+      - name: "Ensure sapinst is executable"
+        become: true
+        file:
+          path: "{{ spr_app_install_file_swpm_sapinst }}"
+          state: file
+          mode: a+x
+
+      - name: "Execute SAPInst for MaxDB base version Install"
+        become: true
+        shell: >-
+          {{ spr_app_install_file_swpm_sapinst }}
+          SAPINST_INPUT_PARAMETERS_URL=/tmp/maxdb/{{ spr_app_install_file_ini_params.split('/')[-1] }}
+          SAPINST_EXECUTE_PRODUCT_ID=ContentServerSapdb:GENERIC.IND.PD
+          SAPINST_SKIP_DIALOGS=true
+          SAPINST_START_GUISERVER=false
+          SAPINST_MONITOR_SUM=true
+        args:
+          chdir: '/'
+
+      - name: "Remove /tmp/maxdb"
+        become: true
+        file:
+          path: '/tmp/maxdb'
+          state: absent
+
+      - name: "Upgrade MaxDB to Latest Release"
+        become: true
+        command:
+             ./SDBUPD -d {{ spr_maxdb_install_sid | upper }} -u control,{{ standard_deployment_password }} -b -update_global
+        when: spr_db_upgrade_library | length != 0
+        args:
+          chdir: "{{ spr_db_upgrade_library }}"
+
+
+###End "BLOCK: SAP MaxDB"
+
+- name: "BLOCK: SAP Content Server"
+  block:
+      - name: "Create /tmp/{{ spr_app_install_product }}"
+        file:
+          path: '/tmp/{{ spr_app_install_product }}'
+          state: directory
+
+      - name: "Save Configuration Files to /tmp/{{ spr_app_install_product }}"
+        become: true
+        copy:
+          dest: '/tmp/{{ spr_app_install_product }}/'
+          src: "{{ item }}"
+          force: yes
+          remote_src: yes
+        loop_control:
+          label: "Saving /tmp/{{ spr_app_install_product }}/{{ item | basename }}"
+        loop:
+          - "{{ spr_app_install_file_ini_params }}"
+          - "{{ spr_app_install_file_instkey }}"
+
+      - name: "Update inifile.params values"
+        ini_file:
+          path: "/tmp/{{ spr_app_install_product }}/{{ spr_app_install_file_ini_params.split('/')[-1] }}"
+          create: no
+          section: null
+          option: "{{ item.name }}"
+          value: '{{ item.value }}'
+          no_extra_spaces: true
+        loop_control:
+          label: "Modifying value of {{ item.name }} to {{ item.value }} in {{ spr_app_install_file_ini_params }}"
+        loop:
+          - { name: 'NW_GetSidNoProfiles.sid', value: '{{ spr_app_install_sid|upper }}' }
+          - { name: 'SAPCS_INSTANCE.sapcsHostname', value: '{{ spr_app_install_hostname }}' }
+        become: true
+
+      - name: "Ensure sapinst is executable"
+        become: true
+        file:
+          path: "{{ spr_app_install_file_swpm_sapinst }}"
+          state: file
+          mode: a+x
+
+      - name: "Execute SAPInst for Content Server Install"
+        become: true
+        shell: >-
+          {{ spr_app_install_file_swpm_sapinst }}
+          SAPINST_INPUT_PARAMETERS_URL=/tmp/{{ spr_app_install_product }}/{{ spr_app_install_file_ini_params.split('/')[-1] }}
+          SAPINST_EXECUTE_PRODUCT_ID=SAPCS:GENERIC.IND.PD
+          SAPINST_SKIP_DIALOGS=true
+          SAPINST_START_GUISERVER=false
+        args:
+          chdir: '/'
+
+      - name: "Remove /tmp/{{ spr_app_install_product }}"
+        become: true
+        file:
+          path: '/tmp/{{ spr_app_install_product }}'
+          state: absent
+
+###End "BLOCK: SAP Content Server"
+...

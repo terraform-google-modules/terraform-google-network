@@ -1,0 +1,8 @@
+Cmnd_Alias DC1_SOK = /usr/sbin/crm_attribute -n hana_{{ sap_hana_ha_pacemaker_hana_sid | lower }}_site_srHook_DC1 -v SOK -t crm_config -s {{ sap_ha_pacemaker_cluster_hadr_provider_name }}
+Cmnd_Alias DC1_SFAIL = /usr/sbin/crm_attribute -n hana_{{ sap_hana_ha_pacemaker_hana_sid | lower }}_site_srHook_DC1 -v SFAIL -t crm_config -s {{ sap_ha_pacemaker_cluster_hadr_provider_name }}
+Cmnd_Alias DC2_SOK = /usr/sbin/crm_attribute -n hana_{{ sap_hana_ha_pacemaker_hana_sid | lower }}_site_srHook_DC2 -v SOK -t crm_config -s {{ sap_ha_pacemaker_cluster_hadr_provider_name }}
+Cmnd_Alias DC2_SFAIL = /usr/sbin/crm_attribute -n hana_{{ sap_hana_ha_pacemaker_hana_sid | lower }}_site_srHook_DC2 -v SFAIL -t crm_config -s {{ sap_ha_pacemaker_cluster_hadr_provider_name }}
+
+{{ sap_hana_ha_pacemaker_hana_sid|lower }}adm ALL=(ALL) NOPASSWD: DC1_SOK, DC1_SFAIL, DC2_SOK, DC2_SFAIL
+
+Defaults!DC1_SOK, DC1_SFAIL, DC2_SOK, DC2_SFAIL !requiretty

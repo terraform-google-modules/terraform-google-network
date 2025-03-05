@@ -1,0 +1,9 @@
+---
+monitor_urls:
+  - name: DSoD
+    urls:
+      - http://localhost/DSoD/session/logo
+    response_timeout: 10s
+    method: GET
+    insecure_skip_verify: 'true'
+...

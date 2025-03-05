@@ -1,0 +1,8 @@
+---
+# List of freeradius specific logs
+# When 'freeradius' is passed as the application_preset_selection, this group will be substituted for 'logs'
+
+logs_freeradius:
+  - file_path: /var/log/freeradius/radius.log
+    log_group_name: /var/log/freeradius/radius
+...

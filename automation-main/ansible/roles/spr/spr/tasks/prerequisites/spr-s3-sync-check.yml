@@ -1,0 +1,15 @@
+# Synopsis:
+# Inputs:
+#   spr_product_source: Source folder to sync
+
+- name: Compare folder with S3 bucket
+  become: true
+  shell: |
+    aws s3 sync {{ spr_product_source }} s3://ns2-dev-spr-sap-products-repository{{ spr_application_source }} --dryrun
+  register: sync_output
+  changed_when: false
+  failed_when: "'error' in sync_output.stderr"
+
+- name: Set sync status fact
+  set_fact:
+    sync_output: "{{ sync_output }}"

@@ -1,0 +1,294 @@
+---
+# Playbook Name: ibp-migration-webdispatcher.yml
+# Description: Performs a volume snapshot migration of webdispatcher to a new AWS Instance.
+#  Stops webdispatcher application and created volume snapshots of the source.
+#  New EBS Volumes are created from the snapshots. The Volumes are attached to a target
+#  instance, with no pre-existing volumes except for root. Finally the profile data is
+#  migrated from source to target instances
+#
+#  To migrate between two inventories, the old inventory must contain the word `_old` in its
+#  filename.  Likewise, the new inventory must not contain the word `_old` in its filename.
+#  To execute ansible, follow the examples provided below.
+#
+#  Using two different ansible inventories will cause certain hostvars to be squashed and
+#  merged.  Because of this, a single playbook cannot do a complete migration.  This playbook
+#  must be combined with the ibp-operations-update-hosts, ibp-operations-hardstart, and
+#  ibp-post-provision playbooks to finish the migration.
+#
+# Dependencies:
+#   - Ansible v2.9+
+#   - AWS CLI v1.18+
+#   - Jinja2 2.8+
+#   - sudo capability or root privileges on target machine
+#   - ibp ansible role
+#   - New Instances and prepared ansible inventory files (see description)
+#   - ibp-operations-update-hosts Playbook (Completes Host entry update after migration)
+#   - ibp-operations-hardstart playbook (Used to start webdispatcher after migration)
+#   - IAM Permissions:
+#     - ec2:DescribeInstances
+#     - ec2:DescribeVolumes
+#     - ec2:AttachVolume
+#     - ec2:CreateVolume
+#     - ec2:StopInstances (optional)
+#     - ec2:StartInstances (optional)
+#     - ec2:Describe* (ansible aws requires something in here to start/stop instances. like wtf)
+#     - ec2:CreateSnapshot
+#     - ec2:DeleteSnapshot (optional)
+# Variables:
+#   - play_saphostagent_source : (optional) Alternate source for saphostagent install binaries. Leave blank to use inventory value
+#   - play_webdispatcher_sid : (optional) Lowercase SID Admin for webdispatcher. Defaults to n02adm
+#
+# Example:
+#   Execution on remote systems
+#     ansible-playbook ibp-migration-webdispatcher.yml -i </PATH-TO/OLD-HOST-INVENTORY-FILE> -i </PATH-TO/NEW-HOST-INVENTORY-FILE> -k
+#
+# Example
+#   Execution on remote systems
+#     ansible-playbook ibp-migration-webdispatcher.yml -k -i /tmp/hosts_old -i /tmp/hosts
+#
+# Example
+#   Update the hostfiles on all servers after this playbook is finished to complete migration.
+#     ansible-playbook ibp-operations-update-hosts.yml -k -i /tmp/hosts
+#
+# Example
+#   Start webdispatcher after migration is complete.
+#     ansible-playbook ibp-operations-hardstart.yml -k -i /tmp/hosts -l webdispatcher
+#
+# Authors: Louis Lee, Jian Ouyang
+# Version: 2.9-000004
+# Modified: 2020-10-15 - Created playbook
+#           2020-10-29 - Bugfix for fstab clonem removed home/swpm
+#           2022-02-15 - Add NFS package and Folder ownership
+#           2022-02-17 - Enable fact gathering, add alert if  AWS_DEFAULT_REGION not defined
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Play Tags:
+#     play0 always                                      : Creates Webdispatcher Inventory and Collects Metadata
+#     play1 stop-webdispatcher clone-ebs clone-profile  : Stop Source Webdispatcher Application
+#     play2 clone-ebs clone-profile                     : Clone Webdispatcher Volumes
+#     play3 clone-profile                               : Clone Webdispatcher Profile Data
+#     playEND                                           : End of the playbook
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Create Webdispatcher Inventory"
+  hosts: webdispatcher
+  gather_facts: true
+  tags:
+    - play0
+    - always
+
+  vars:
+    nfs_package: 'nfs-utils'
+
+  vars_prompt:
+  - name: play_saphostagent_source
+    prompt: "Alternate source for saphostagent install binaries. Leave blank to use inventory value"
+    private: no
+    default: ''
+
+  - name: play_webdispatcher_sid
+    prompt: "Lowercase SID for webdispatcher."
+    private: no
+    default: 'n02'
+
+  tasks:
+  - name: "check whether aws default region is defined"
+    delegate_to: localhost
+    run_once: true
+    assert:
+      that:
+          - "lookup('env','AWS_DEFAULT_REGION')"
+      fail_msg: define environment variable AWS_DEFAULT_REGION before applying this playbook
+
+  - name: "Get ec2 metadata"
+    ec2_metadata_facts:
+
+  - name: "Clear any dynamically created groups"
+    meta: refresh_inventory
+
+  - name: "Add old hosts to source group"
+    when: "'_old' in inventory_file"
+    group_by:
+      key: source_hosts
+
+  - name: "Add new hosts to target group"
+    when: "'_old' not in inventory_file"
+    group_by:
+      key: target_hosts
+
+  - name: "Validate target and source groups only contain one host each"
+    when:
+      - groups.source_hosts|count != 1
+      - groups.target_hosts|count != 1
+    fail:
+      msg: |
+        Source contains {{ groups.source_hosts|count }}
+        Target contains {{ groups.target_hosts|count }}
+
+
+  - name: "Set Source and Target Instance IDs"
+    set_fact:
+      play_source_instance: "{{ hostvars[groups.source_hosts[0]].ansible_ec2_instance_id }}"
+      play_target_instance: "{{ hostvars[groups.target_hosts[0]].ansible_ec2_instance_id }}"
+      play_saphostagent_source: "{{ play_saphostagent_source|default(saphostagent_source,true) }}"
+      play_webdispatcher_sid: "{{ play_webdispatcher_sid }}"
+
+  - name: "Configure Base Red Hat Repositories from S3"
+    include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: 'base'
+
+  - name: Ensure NFS is installed.
+    become: true
+    package: "name={{ nfs_package }} state=installed"
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Stop Source Webdispatcher Application"
+  hosts: webdispatcher:&source_hosts
+  tags:
+    - play1
+    - stop-webdispatcher
+    - clone-ebs
+    - clone-profile
+
+  tasks:
+  - name: "Stop Webdispatcher Application"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/webdispatcher-hardstop.yml
+
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Clone Webdispatcher Volumes"
+  hosts: webdispatcher
+  gather_facts: true
+  tags:
+    - play2
+    - clone-ebs
+    - clone-profile
+
+  tasks:
+  - name: "Clone and Attach Volumes"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/ebs-clone.yml
+    vars:
+      ebs_clone_source_instance: "{{ play_source_instance }}"
+      ebs_clone_target_instance: "{{ play_target_instance }}"
+      ebs_clone_region: "{{ ansible_ec2_placement_region }}"
+
+  - name: "Make sure instances are up and responding"
+    wait_for_connection:
+
+  - name: "Clone fstab and Mount"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/fstab-clone.yml
+    vars:
+      fstab_clone_mount_targets:
+        - "/usr/sap"
+        - "/staging"
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Clone Webdispatcher Profile Data"
+  hosts: webdispatcher
+  tags:
+    - play3
+    - clone-profile
+
+  vars:
+    staging_location: '/staging/migrations'
+
+  pre_tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  tasks:
+  - name: "Create destination folder"
+    when: "'source_hosts' in group_names"
+    become: true
+    file:
+      path: "{{ staging_location }}/{{ play_source_instance }}"
+      state: directory
+
+  - name: "Tar profile folders"
+    when: "'source_hosts' in group_names"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/folder-tar.yml
+    vars:
+      folder_tar_name: "{{ staging_location }}/{{ play_source_instance }}/webdispatcher"
+      folder_tar_paths:
+      - "/home/{{ play_webdispatcher_sid|lower }}adm"
+      - "/home/sapadm"
+
+  - name: "Setup Webdispatcher Profile on Target"
+    when: "'target_hosts' in group_names"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/webdispatcher-rebuild-profile.yml
+    vars:
+      webdispatcher_rebuild_profile_tars:
+        - "{{ staging_location }}/{{ play_source_instance }}/webdispatcher"
+      webdispatcher_rebuild_profile_saphostagent_source: "{{ play_saphostagent_source }}"
+      webdispatcher_rebuild_profile_hostname: "{{ ibp_hostname }}"
+      webdispatcher_rebuild_profile_sid: "{{ play_webdispatcher_sid|lower }}"
+
+  - name: "Cleanup Webdispatcher Migration Tars"
+    when: "'target_hosts' in group_names"
+    become: true
+    file:
+      path: "{{ staging_location }}/{{ play_source_instance }}/webdispatcher"
+      state: absent
+
+  - name: Recursively change ownership for two folders on webdispatcher group
+    when: "'target_hosts' in group_names"
+    become: true
+    file:
+      path: "{{ item.path }}"
+      state: directory
+      recurse: yes
+      owner: "{{ play_webdispatcher_sid|lower }}adm"
+      group: sapsys
+    loop:
+      - path: "/usr/sap/{{ play_webdispatcher_sid|upper }}/profile"
+      - path: "/sapmnt/{{ play_webdispatcher_sid|upper }}/global"
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

@@ -1,0 +1,38 @@
+---
+# Description: Disables the selected Zypper repositories.
+# Inputs:
+#   - repository_list_selected: (list) A list of repositories to disable.
+# Outputs:
+#   - Disables each repository that is listed in 'repository_list_selected' via Zypper.
+
+  - name: '[SLES] - List the repositories to be disabled'
+    debug:
+      msg: '{{ repository_list_selected }}'
+
+  - name: '[SLES] - Ensure that there is at least one repository to disable'
+    fail:
+      msg: There must be at least one repository listed in the 'repository_list_selected' variable.
+    when: repository_list_selected | length == 0
+
+# NOTE: The 'command' module is used over the 'zypper_repository' module here due to a lack of support from the 'zypper_repository'
+#       for repofiles with >1 repo or repos with >1 baseurl, as well as idempotency issues.
+
+  - name: '[SLES] - Disable the selected repositories via zypper'
+    command: zypper modifyrepo --disable {{ item }}
+    become: true
+    loop: '{{ repository_list_selected }}'
+    register: selected_repository
+    changed_when: "'successfully disabled' in selected_repository.stdout"
+    ignore_errors: true
+
+  - name: '[SLES] - Update the zypper cache'
+    community.general.zypper_repository:
+      repo: '*'
+      runrefresh: true
+      auto_import_keys: true
+    register: zypper_makecache_results
+    failed_when:
+      - zypper_makecache_results.failed is true
+      - zypper_makecache_results.rc != 6 # Don't consider failed if no repositories are defined
+    become: true
+...

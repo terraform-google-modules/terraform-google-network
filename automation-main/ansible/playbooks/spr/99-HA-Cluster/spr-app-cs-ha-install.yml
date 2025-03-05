@@ -1,0 +1,1203 @@
+---
+# Playbook Name: spr-app-ha-cs-install.yml
+# Description: This playbook will install app for HA.
+# Dependencies:
+# - Ansible v2.9+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# - SPR Ansible Role (start/stop db instances)
+# Variables:
+#   - Groupvars and Hostvars from inventory
+# Example:
+#   Execution on remote systems using the spr ansible-inventory template
+#     ansible-playbook spr-app-ha-cs-install.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Rakesh Walekar, Jian Ouyang, Sean-Thomas Saloom
+# Version: 2.9-000001
+# Modified: 2022-03-30 - Created playbook
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+#   For the purposes of this playbook, all variables should be set in the inventory file.
+#
+#   Tags:
+#     play0 always                          : Prepare dynamic values and aws cli for pacemaker
+#     play1                                 : Silent install of SAP Central Services and ERS
+#     play2                                 : Silent install of SAP PAS and AAS
+#     play3                                 : Cleanup
+#     playEND always                        : End of playbook
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - always
+
+  vars:
+    global_sap_cs_ha_pacemaker_configure_firewall: false
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+    - "{{ sap_ha_role|default('undefined')|lower }}"
+    - "{{ sap_hana_hsr_role|default('undefined')|lower }}"
+
+  - name: Group hosts whose hostname contains 'cs'
+    group_by:
+      key: "cs"
+    when: "'cs' in inventory_hostname"
+
+  #for pacemaker to work correctly
+  - name: Create a symbolic link for aws
+    ansible.builtin.file:
+      src: /usr/local/bin/aws
+      dest: /usr/bin/aws
+      state: link
+    become: true
+
+  - name: Retrieve EC2 metadata
+    amazon.aws.ec2_metadata_facts:
+
+  - name: set aws region
+    set_fact:
+      aws_region: '{{ ansible_ec2_instance_identity_document_region }}'
+
+  - name: Create AWS config file
+    become: true
+    ansible.builtin.copy:
+      content: |
+          [default]
+          region = {{ aws_region }}
+          output = json
+      dest: ~/.aws/config
+      mode: "0440"
+
+  - name: set sids
+    set_fact:
+      db_sid: "{{  hostvars[(groups['primary'] | intersect(groups['db'])) | first]['spr_sid'] | upper }}"
+      db_system_sid:  "{{  hostvars[(groups['primary'] | intersect(groups['db'])) | first]['spr_sid'] | upper }}"
+
+
+
+###############
+##### Play1 #####
+#################
+- name: "Play1: Silent install of SAP Central Services and ERS"
+  gather_facts: false
+  become: yes
+  hosts: cs
+  vars:
+    aws_region:  "{{ hostvars[groups['primary'][0]]['ansible_ec2_instance_identity_document_region'] }}"
+    efs_ha_app: "{{ efs_ha_app_fsid }}.efs.{{ aws_region }}.amazonaws.com:/{{ sap_sid | upper }}/ha-app"
+  tags:
+  - play1
+  - cs
+
+  tasks:
+  - name: Set host variable
+    set_fact:
+      sap_sid: "{{ spr_sid | upper }}"
+# Preparation for ASCS and ERS
+# Make sure the EFS is mounted on central services primary and secondary nodes.
+# This play is only validating if the EFS is mounted
+
+# Check for /staging as well
+
+  - name: Check EFS '/efs/ha-app' is mounted
+    shell: |
+        df -h | grep "/efs/ha-app"
+    args:
+      executable: /bin/bash
+    register: check_efs_ha
+    ignore_errors: true
+    changed_when: "'/efs/ha-app' and ':/{{ sap_sid }}/ha-app' in check_efs_ha.stdout"
+
+  - name: Print Check EFS '/efs/ha-app' is mounted
+    debug:
+      var: check_efs_ha.changed
+
+# Preparation for ASCS and ERS
+# Create directories/subdirectories on the mounted EFS
+#      - /efs/ha-app/sap-ha/{{ sap_sid }}/D00
+# If there are more than 2 apps eg. 2 per AZ (total of 4) then make sure you also have D00_APP03 and D00_APP04
+  - name: Create directories if they don't exist
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: root
+      group: root
+      mode: 0777
+    loop:
+      - /efs/ha-app/sap-ha/
+      - /efs/ha-app/sap-ha/{{ sap_sid }}
+      - /efs/ha-app/sap-ha/sapmnt
+      - /efs/ha-app/sap-ha/{{ sap_sid }}/SYS
+      - /efs/ha-app/sap-ha/{{ sap_sid }}/ASCS01
+      - /efs/ha-app/sap-ha/{{ sap_sid }}/ERS02
+      - /efs/ha-app/sap-ha/{{ sap_sid }}/D00_APP01
+      - /efs/ha-app/sap-ha/{{ sap_sid }}/D00_APP02
+#      - /efs/ha-app/sap-ha/{{ sap_sid }}/D00_APP03
+#      - /efs/ha-app/sap-ha/{{ sap_sid }}/D00_APP04
+    when:
+      - check_efs_ha.changed == true
+      #- abap_system == true
+    run_once: true
+
+
+## Preparation for ASCS and ERS
+## Add Overlay IP for ascs on primary central services node
+## Add Overlay IP for ers on secondary central services node
+
+  - name: Show network interface device
+    shell: |
+        ip route get 8.8.8.8 | awk '{print $5}'
+    args:
+      executable: /bin/bash
+    register: network_device
+
+  - name: Validate if overlay ip address was added
+    shell: |
+        ip address show dev {{ network_device.stdout }}
+    args:
+      executable: /bin/bash
+    register: pre_oip
+
+# Add Overlay IP to the network interface
+  - name: Add overlay ip address to central services nodes
+    shell: |
+        ip address add {{ sap_ha_oip }} dev {{ network_device.stdout }}
+    args:
+      executable: /bin/bash
+    when: "'{{ sap_ha_oip }}/32' not in pre_oip.stdout"
+
+# Validate if Overlay IP added to the network interface
+  - name: Validate if overlay ip address was added
+    shell: |
+        ip address show dev {{ network_device.stdout }}
+    args:
+      executable: /bin/bash
+    register: oip_added
+    changed_when: "'{{ sap_ha_oip }}/32' in oip_added.stdout"
+
+## Preparation for ASCS and ERS
+## mount filesystems a) /sapmnt b) /usr/sap/SID/SYS c) /usr/sap/SID/ASC01 (primary) d) /usr/sap/SID/ERS02 (secondary)
+## creates mount points, mounts filesystems using required options, and updates /etc/fstab
+## Note that /usr/sap/trans is a separately mounted EFS and already exists
+
+  - name: Mount filesystems on central services node 1
+    mount:
+      src: "{{ item.src }}"
+      path: "{{ item.path }}"
+      fstype: "{{ item.fstype }}"
+      opts: "{{ item.opts }}"
+      state: mounted
+    loop:
+      - { src: '{{ efs_ha_app }}/sap-ha/sapmnt', path: '/sapmnt', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { src: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/SYS', path: '/usr/sap/{{ sap_sid }}/SYS', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { src: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/ASCS01', path: '/usr/sap/{{ sap_sid }}/ASCS01', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+    when:
+      - sap_ha_role == "primary"
+
+  # - name: Pause until you can verify updates to an application were successful
+  #   ansible.builtin.pause:
+
+  - name: Mount filesystems on central services node 2
+    mount:
+      src: "{{ item.src }}"
+      path: "{{ item.path }}"
+      fstype: "{{ item.fstype }}"
+      opts: "{{ item.opts }}"
+      state: mounted
+    loop:
+      - { src: '{{ efs_ha_app }}/sap-ha/sapmnt', path: '/sapmnt', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { src: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/SYS', path: '/usr/sap/{{ sap_sid }}/SYS', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { src: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/ERS02', path: '/usr/sap/{{ sap_sid }}/ERS02', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+    when:
+      - sap_ha_role == "secondary"
+
+## Preparation for sapinst install on ASCS
+## create swpm user for sapinst based install
+## add user, set password, add it to root group
+
+## Preparation for sapinst install on ASCS
+## cleanup /tmp/sapinst* from previous runs
+  - name: remove sapinst_instdir from /tmp
+    file:
+      path: /tmp/sapinst_instdir
+      state: absent
+    when:
+      - sap_ha_role == "primary"
+
+  - name: find sap* from /tmp
+    find:
+      paths: /tmp
+      patterns: sap*
+      use_regex: true
+    register: sapinst_files
+    when:
+      - sap_ha_role == "primary"
+
+  - name: remove sapinst_instdir and sapinst* from /tmp
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ sapinst_files.files }}"
+    loop_control:
+      label: "{{ item.path }}"
+    when:
+      - sap_ha_role == "primary"
+
+## Preparation for sapinst install
+## Copy relevant kernel and sap hostagent archives to a temp direcory
+  - name: Create download basket folder
+    file:
+      path: "{{ download_basket }}"
+      state: directory
+    run_once: true
+    when:
+      - sap_ha_role == "primary"
+##
+## This should be done using a module
+##
+  - name: Copy installation files from product media to download basket directory
+    shell: |
+        cp -f {{ product_media }}/SAPEXE* {{ download_basket }} &&
+        cp -f {{ product_media }}/igs* {{ download_basket }} &&
+        cp -f {{ product_media }}/SAPHOST* {{ download_basket }} &&
+        cp -f {{ product_media }}/IMDB_CLIENT* {{ download_basket }}
+    args:
+      executable: /bin/bash
+    run_once: true
+    when:
+      - sap_ha_role == "primary"
+
+## Preparation for ASCS and ERS nodes
+## Check for compat package and create appropriate links
+## For RHEL 8.6, compat-sap-c++-10 is required, it may change by RHEL release
+
+  - name: Check for compat libraries referenced by libstdc
+    yum:
+      name:
+        - compat-sap-c++-10
+      state: present
+
+  - name: Create a /usr/sap/lib directory
+    ansible.builtin.file:
+      path: /usr/sap/lib
+      owner: sapadm
+      group: sapsys
+      state: directory
+
+  - name: Create a symbolic link
+    ansible.builtin.file:
+      src: /opt/rh/SAP/lib64/compat-sap-c++-10.so
+      dest: /usr/sap/lib/libstdc++.so.6
+      state: link
+
+## Execution
+## Silent Install of ASCS Instance using parameter file
+## Run sapinst, use correct SWPM version depending on a product version
+  - name: "Ensure sapinst is executable"
+    file:
+      path: "{{ swpm_sapinst }}"   # ISN'T THIS FROM DEFAULTS?
+      state: file
+      mode: a+x
+    when:
+      - sap_ha_role == "primary"
+
+# Move this to a product specific directory
+  - name: Build inifile params for ascs install
+    ansible.builtin.template:
+      backup: true
+      dest: "{{ ascs_inifile_params }}"
+      src: templates/ascs-inifile-params.j2
+    when:
+      - sap_ha_role == "primary"
+
+# Move this to a product specific directory
+  - name: copy cs files
+    copy:
+      dest: "{{ ascs_inifile_params | dirname }}"
+      src: files/cs/
+      mode: "0440"
+      owner: root
+      group: root
+      backup: true
+    when:
+      - sap_ha_role == "primary"
+
+  #templates are too long to get embedded. use a folder instead
+
+  - name: Silent Install execution of ASCS instance
+    shell: >-
+        {{ swpm_sapinst }}
+        SAPINST_USE_HOSTNAME={{ ascs_virtual_hostname }}
+        SAPINST_INPUT_PARAMETERS_URL={{ ascs_inifile_params }}
+        SAPINST_EXECUTE_PRODUCT_ID={{ ascs_ha_product_id }}
+        SAPINST_SKIP_DIALOGS=true
+        SAPINST_START_GUISERVER=false
+    args:
+      executable: /bin/bash
+      chdir: '/'
+    when:
+      - sap_ha_role == "primary"
+
+###
+### Check if first fails do not move on then exit playbook
+###
+
+## Validation
+## Check if sap host agent is up
+## redirect the shell command output to stdout
+  - name: SAP host agent status
+    shell: /usr/sap/hostctrl/exe/saphostexec -status 2>&1
+    args:
+      executable: /bin/bash
+      chdir: '/'
+    register: sap_hostagent_status
+    changed_when:
+      - "'saphostexec running' in sap_hostagent_status.stdout"
+      - "'sapstartsrv running' in sap_hostagent_status.stdout"
+      - "'saposcol running' in sap_hostagent_status.stdout"
+    when:
+      - sap_ha_role == "primary"
+
+## Validation
+## check if sap ascs Instance is up
+## Instance numnber is `01`
+  - name: "Wait for ASCS instance to start"
+    become: true
+    become_user: "{{ sap_sid|lower }}adm"
+    shell: '/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 01 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sap_ascs_status
+    retries: 10
+    delay: 10
+    until: |
+      'GRAY' not in sap_ascs_status.stdout and
+      'YELLOW' not in sap_ascs_status.stdout
+    when:
+      - sap_ha_role == "primary"
+
+## Cleanup
+## remove swpm user
+  - name: delete user swpm for sapinst on cs node 1
+    user:
+      name: "swpm"
+      state: absent
+    when:
+      - sap_ha_role == "primary"
+
+## Cleanup
+## cleanup /tmp/sapinst* from previous runs
+
+  - name: remove sapinst_instdir from /tmp
+    file:
+      path: /tmp/sapinst_instdir
+      state: absent
+    when:
+      - sap_ha_role == "primary"
+
+  - name: find sap* from /tmp
+    find:
+      paths: /tmp
+      patterns: sap*
+      use_regex: true
+    register: sapinst_files
+    when:
+      - sap_ha_role == "primary"
+
+  - name: remove sapinst_instdir and sapinst* from /tmp
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ sapinst_files.files }}"
+    loop_control:
+      label: "{{ item.path }}"
+    when:
+      - sap_ha_role == "primary"
+
+## Preparation for sapinst install on ERS
+## create swpm user for sapinst based install
+## add user, set password, add it to root group
+
+## Preparation for sapinst install on ERS
+## cleanup /tmp/sapinst* from previous runs
+  - name: remove sapinst_instdir from /tmp
+    file:
+      path: /tmp/sapinst_instdir
+      state: absent
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: find sap* from /tmp
+    find:
+      paths: /tmp
+      patterns: sap*
+      use_regex: true
+    register: sapinst_files
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: remove sapinst_instdir and sapinst* from /tmp
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ sapinst_files.files }}"
+    loop_control:
+      label: "{{ item.path }}"
+    when:
+      - sap_ha_role == "secondary"
+
+## Execution
+## Silent Install of ERS Instance using parameter file
+## Run sapinst, use correct SWPM version depending on a product version
+
+  - name: create directory for ers_inifile_params
+    ansible.builtin.file:
+      path: "{{ ers_inifile_params | dirname }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '1777'
+
+  - name: Build inifile params for ers install
+    ansible.builtin.template:
+      backup: true
+      dest: "{{ ers_inifile_params }}"
+      src: templates/ers-inifile-params.j2
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: copy ers files
+    copy:
+      dest: "{{ ers_inifile_params | dirname }}"
+      src: files/ers/
+      mode: "0440"
+      owner: root
+      group: root
+      backup: true
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: Silent Install execution of ERS instance
+    shell: >-
+        {{ swpm_sapinst }}
+        SAPINST_USE_HOSTNAME={{ ers_virtual_hostname }}
+        SAPINST_INPUT_PARAMETERS_URL={{ ers_inifile_params }}
+        SAPINST_EXECUTE_PRODUCT_ID={{ ers_ha_product_id }}
+        SAPINST_SKIP_DIALOGS=true
+        SAPINST_START_GUISERVER=false
+    args:
+      executable: /bin/bash
+      chdir: '/'
+    when:
+      - sap_ha_role == "secondary"
+
+###
+### Check if first fails do not move on then exit playbook
+###
+
+
+## Validation
+## Check if sap host agent is up
+## redirect the shell command output to stdout
+  - name: SAP host agent status
+    shell: /usr/sap/hostctrl/exe/saphostexec -status 2>&1
+    args:
+      executable: /bin/bash
+      chdir: '/'
+    register: sap_hostagent_status
+    changed_when:
+      - "'saphostexec running' in sap_hostagent_status.stdout"
+      - "'sapstartsrv running' in sap_hostagent_status.stdout"
+      - "'saposcol running' in sap_hostagent_status.stdout"
+    when:
+      - sap_ha_role == "secondary"
+
+## Validation
+## check if sap ers Instance is up
+## Instance numnber is `02`
+  - name: "Wait for ERS instance to start"
+    become: true
+    become_user: "{{ sap_sid|lower }}adm"
+    shell: '/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 02 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sap_ers_status
+    retries: 10
+    delay: 10
+    until: |
+      'GRAY' not in sap_ers_status.stdout and
+      'YELLOW' not in sap_ers_status.stdout
+    when:
+      - sap_ha_role == "secondary"
+
+
+  - name: Validate if enqueue replication started
+    shell: grep "operational" /usr/sap/{{ sap_sid}}/ERS02/work/dev_*
+    register: ers_replication_status
+    changed_when:
+      - "'operational' in ers_replication_status.stdout"
+    when:
+      - sap_ha_role == "secondary"
+
+## Cleanup
+# remove swpm user
+  - name: delete user swpm for sapinst on cs node 2
+    user:
+      name: "swpm"
+      state: absent
+    when:
+      - sap_ha_role == "secondary"
+
+## Cleanup
+## cleanup /tmp/sapinst* from previous runs
+
+  - name: remove sapinst_instdir from /tmp
+    file:
+      path: /tmp/sapinst_instdir
+      state: absent
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: find sap* from /tmp
+    find:
+      paths: /tmp
+      patterns: sap*
+      use_regex: true
+    register: sapinst_files
+    when:
+      - sap_ha_role == "secondary"
+
+  - name: remove sapinst_instdir and sapinst* from /tmp
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ sapinst_files.files }}"
+    loop_control:
+      label: "{{ item.path }}"
+    when:
+      - sap_ha_role == "secondary"
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Silent install of SAP PAS and AAS"
+  gather_facts: false
+  become: yes
+  hosts: app:!cs
+  vars:
+    sap_cs_ha_pacemaker_node1:  "{{ hostvars[groups['primary'][0]]['spr_hostname'] }}"
+    aws_region:  "{{ hostvars[groups['primary'][0]]['ansible_ec2_instance_identity_document_region'] }}"
+    sap_cs_ha_pacemaker_node2: "{{ hostvars[groups['secondary'][0]]['spr_hostname'] }}"
+    efs_ha_app: "{{ efs_ha_app_fsid }}.efs.{{ aws_region }}.amazonaws.com:{{ sap_sid | upper }}/ha-app"
+  tags:
+  - play2
+  - app
+
+  tasks:
+  - name: Set host variable
+    set_fact:
+      custom_hostname: "{{ spr_hostname }}"
+      sap_sid: "{{ spr_sid | upper }}"
+
+# Preparation for PAS and AAS
+# Make sure the EFS is mounted on primary app server and additional app server
+# This play is only validating if the EFS is mounted
+  - name: Check EFS '/efs/ha-app' and '/usr/sap/trans' are mounted
+    shell: |
+         df -h | grep -E 'ha-app|/usr/sap/trans'
+    args:
+      executable: /bin/bash
+    register: check_efs_ha
+    ignore_errors: true
+    changed_when:
+      - "'/efs/ha-app' and ':/ha-app' in check_efs_ha.stdout"
+      - "'/usr/sap/trans' and ':/trans-' in check_efs_ha.stdout"
+
+  - name: Print Check EFS are mounted
+    debug:
+      var: check_efs_ha.changed
+
+## Preparation for PAS and AAS
+## mount filesystems a) /sapmnt b) /usr/sap/SID/SYS c) /usr/sap/SID/D00 (PAS) d) /usr/sap/SID/D00 (AAS)
+## creates mount points, mounts filesystems using required options, and updates /etc/fstab
+
+  - name: Mount filesystems on PAS
+    mount:
+      src: "{{ item.src }}"
+      path: "{{ item.path }}"
+      fstype: "{{ item.fstype }}"
+      opts: "{{ item.opts }}"
+      state: mounted
+    loop:
+      - { src: '{{ efs_ha_app }}/sap-ha/sapmnt', path: '/sapmnt', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { src: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/SYS', path: '/usr/sap/{{ sap_sid }}/SYS', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { src: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/D00_APP01', path: '/usr/sap/{{ sap_sid }}/D00', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+    when:
+      - sap_app_role == "pas"
+
+  - name: Mount filesystems on AAS
+    mount:
+      src: "{{ item.src }}"
+      path: "{{ item.path }}"
+      fstype: "{{ item.fstype }}"
+      opts: "{{ item.opts }}"
+      state: mounted
+    loop:
+      - { src: '{{ efs_ha_app }}/sap-ha/sapmnt', path: '/sapmnt', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { src: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/SYS', path: '/usr/sap/{{ sap_sid }}/SYS', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+      - { src: '{{ efs_ha_app }}/sap-ha/{{ sap_sid }}/D00_APP02', path: '/usr/sap/{{ sap_sid }}/D00', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+    when:
+      - sap_app_role == "aas"
+
+## Preparation for sapinst install for PAS and AAS
+## Copy relevant kernel and sap hostagent archives to a temp direcory
+  # - name: Create download basket folder
+  #   file:
+  #     path: "{{ download_basket }}"
+  #     state: directory
+  #   when:
+  #     - sap_app_role == "aas"
+
+  # - name: Copy HDB Client files from product media to download basket directory
+  #   shell: |
+  #       cp {{ product_media }}/IMDB_CLIENT* {{ download_basket }}
+  #   args:
+  #     executable: /bin/bash
+  #   when:
+  #     - sap_app_role == "aas"
+
+## Preparation for PAS and AAS nodes
+## Check for compat package and create appropriate links
+## For RHEL 8.6, compat-sap-c++-10 is required, it may change by RHEL release
+
+  - name: Check for compat libraries referenced by libstdc
+    yum:
+      name:
+        - compat-sap-c++-10
+      state: present
+
+  - name: Create a /usr/sap/lib directory
+    ansible.builtin.file:
+      path: /usr/sap/lib
+      owner: sapadm
+      group: sapsys
+      state: directory
+
+  - name: Create a symbolic link
+    ansible.builtin.file:
+      src: /opt/rh/SAP/lib64/compat-sap-c++-10.so
+      dest: /usr/sap/lib/libstdc++.so.6
+      state: link
+
+## Preparation for sapinst install on PAS
+## create swpm user for sapinst based install
+## add user, set password, add it to root group
+
+  # - name: Create user swpm for sapinst on PAS
+  #   user:
+  #     name: "swpm"
+  #     password: "QwerRewq123"
+  #     group: "root"
+  #     createhome: true
+  #     shell: /bin/bash
+  #     state: present
+  #   when:
+  #     - sap_app_role == "pas"
+
+## Preparation for sapinst install on PAS
+## cleanup /tmp/sapinst* from previous runs
+  - name: remove sapinst_instdir from /tmp
+    file:
+      path: /tmp/sapinst_instdir
+      state: absent
+    when:
+      - sap_app_role == "pas"
+
+  - name: find sap* from /tmp
+    find:
+      paths: /tmp
+      patterns: sap*
+      use_regex: true
+    register: sapinst_files
+    when:
+      - sap_app_role == "pas"
+
+  - name: remove sapinst_instdir and sapinst* from /tmp
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ sapinst_files.files }}"
+    loop_control:
+      label: "{{ item.path }}"
+    when:
+      - sap_app_role == "pas"
+
+  - name: create directory for pas_inifile_params
+    ansible.builtin.file:
+      path: "{{ pas_inifile_params | dirname }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '1777'
+
+## Execution on PAS
+## Silent Install of PAS Instance using parameter file
+## Run sapinst, use correct SWPM version depending on a product version
+  - name: Build inifile params for PAS install
+  # Note that for `inifile.params` the template `pas-inifile-params.j2` must include
+  # the comment from the original inifile.params created during manual execution of install.
+  # Add the following line to the template file.
+  #     # IMPORTANT DO NOT DELETE!!! SAPInstDes25Hash=$9l7+0BUJPz7S$NV4RCYX1zrwjttqqa9NGyHI11P9hdbUjqy7vRCyIA8OXWwsC96fgTwRV6xs7b3ZljGIUmBQ/lkEX/aOoOCU1LjJwpNatp0/1
+  # Decrypt password using swpm version e.g. SWPM-20-SP13 + `instkey.pkey` + comment in `inifile.params`
+    ansible.builtin.template:
+      backup: true
+      dest: "{{ pas_inifile_params }}"
+      src: templates/pas-inifile-params.j2
+    when:
+      - sap_app_role == "pas"
+
+  - name: copy pas files
+    copy:
+      dest: "{{ pas_inifile_params | dirname }}"
+      src: files/pas/
+      mode: "0440"
+      owner: root
+      group: root
+      backup: true
+    when:
+      - sap_app_role == "pas"
+
+  - name: Silent Install execution of PAS instance
+    shell: >-
+        {{ swpm_sapinst }}
+        SAPINST_USE_HOSTNAME={{ custom_hostname }}
+        SAPINST_INPUT_PARAMETERS_URL={{ pas_inifile_params }}
+        SAPINST_EXECUTE_PRODUCT_ID={{ pas_ha_product_id }}
+        SAPINST_SKIP_DIALOGS=true
+        SAPINST_START_GUISERVER=false
+    args:
+      executable: /bin/bash
+      chdir: '/'
+    when:
+      - sap_app_role == "pas"
+
+
+## Validation on PAS
+## Check if sap host agent is up
+## redirect the shell command output to stdout
+  - name: SAP host agent status
+    shell: /usr/sap/hostctrl/exe/saphostexec -status 2>&1
+    args:
+      executable: /bin/bash
+      chdir: '/'
+    register: sap_hostagent_status
+    changed_when:
+      - "'saphostexec running' in sap_hostagent_status.stdout"
+      - "'sapstartsrv running' in sap_hostagent_status.stdout"
+      - "'saposcol running' in sap_hostagent_status.stdout"
+    when:
+      - sap_app_role == "pas"
+
+## Validation on PAS
+## check if sap pas Instance is up
+## Instance numnber is `00`
+  - name: "Wait for PAS instance to start"
+    become: true
+    become_user: "{{ sap_sid|lower }}adm"
+    shell: '/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sap_pas_status
+    retries: 10
+    delay: 10
+    until: |
+      'GRAY' not in sap_pas_status.stdout and
+      'YELLOW' not in sap_pas_status.stdout
+    when:
+      - sap_app_role == "pas"
+
+## Cleanup on PAS
+# remove swpm user
+  - name: delete user swpm for sapinst on cs node 2
+    user:
+      name: "swpm"
+      state: absent
+    when:
+      - sap_app_role == "pas"
+
+## Cleanup on SAPINST_INPUT_PARAMETERS_URL
+## cleanup /tmp/sapinst* from previous runs
+
+  - name: remove sapinst_instdir from /tmp
+    file:
+      path: /tmp/sapinst_instdir
+      state: absent
+    when:
+      - sap_app_role == "pas"
+
+  - name: find sap* from /tmp
+    find:
+      paths: /tmp
+      patterns: sap*
+      use_regex: true
+    register: sapinst_files
+    when:
+      - sap_app_role == "pas"
+
+  - name: remove sapinst_instdir and sapinst* from /tmp
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ sapinst_files.files }}"
+    loop_control:
+      label: "{{ item.path }}"
+    when:
+      - sap_app_role == "pas"
+
+
+## Preparation for sapinst install on AAS
+## create swpm user for sapinst based install
+## add user, set password, add it to root group
+
+  # - name: Create user swpm for sapinst on AAS
+  #   user:
+  #     name: "swpm"
+  #     password: "QwerRewq123"
+  #     group: "root"
+  #     createhome: true
+  #     shell: /bin/bash
+  #     state: present
+  #   when:
+  #     - sap_app_role == "aas"
+
+## Preparation for sapinst install on AAS
+## cleanup /tmp/sapinst* from previous runs
+  - name: remove sapinst_instdir from /tmp
+    file:
+      path: /tmp/sapinst_instdir
+      state: absent
+    when:
+      - sap_app_role == "aas"
+
+  - name: find sap* from /tmp
+    find:
+      paths: /tmp
+      patterns: sap*
+      use_regex: true
+    register: sapinst_files
+    when:
+      - sap_app_role == "aas"
+
+  - name: remove sapinst_instdir and sapinst* from /tmp
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ sapinst_files.files }}"
+    loop_control:
+      label: "{{ item.path }}"
+    when:
+      - sap_app_role == "aas"
+
+  - name: create directory for aas_inifile_params
+    ansible.builtin.file:
+      path: "{{ aas_inifile_params | dirname }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '1777'
+
+
+## Execution on AAS
+## Silent Install of AAS Instance using parameter file
+## Run sapinst, use correct SWPM version depending on a product version
+  - name: Build inifile params for AAS install
+  # Note that for `inifile.params` the template `aas-inifile-params.j2` must include
+  # the comment from the original inifile.params created during manual execution of install.
+  # Add the following line to the template file.
+  #     # IMPORTANT DO NOT DELETE!!! SAPInstDes25Hash=$9l7+0BUJPz7S$NV4RCYX1zrwjttqqa9NGyHI11P9hdbUjqy7vRCyIA8OXWwsC96fgTwRV6xs7b3ZljGIUmBQ/lkEX/aOoOCU1LjJwpNatp0/1
+  # Decrypt password using swpm version e.g. SWPM-20-SP13 + `instkey.pkey` + comment in `inifile.params`
+    ansible.builtin.template:
+      backup: true
+      dest: "{{ aas_inifile_params }}"
+      src: templates/aas-inifile-params.j2
+    when:
+      - sap_app_role == "aas"
+
+  - name: copy pas files
+    copy:
+      dest: "{{ aas_inifile_params | dirname }}"
+      src: files/aas/
+      mode: "0440"
+      owner: root
+      group: root
+      backup: true
+    when:
+      - sap_app_role == "pas"
+
+  - name: Silent Install execution of AAS instance
+    shell: >-
+        {{ swpm_sapinst }}
+        SAPINST_USE_HOSTNAME={{ custom_hostname }}
+        SAPINST_INPUT_PARAMETERS_URL={{ aas_inifile_params }}
+        SAPINST_EXECUTE_PRODUCT_ID={{ aas_ha_product_id }}
+        SAPINST_SKIP_DIALOGS=true
+        SAPINST_START_GUISERVER=false
+    args:
+      executable: /bin/bash
+      chdir: '/'
+    when:
+      - sap_app_role == "aas"
+
+  # - name: Pause until you can verify updates to an application were successful
+  #   ansible.builtin.pause:
+
+## Validation on AAS
+## Check if sap host agent is up
+## redirect the shell command output to stdout
+  - name: SAP host agent status
+    shell: /usr/sap/hostctrl/exe/saphostexec -status 2>&1
+    args:
+      executable: /bin/bash
+      chdir: '/'
+    register: sap_hostagent_status
+    changed_when:
+      - "'saphostexec running' in sap_hostagent_status.stdout"
+      - "'sapstartsrv running' in sap_hostagent_status.stdout"
+      - "'saposcol running' in sap_hostagent_status.stdout"
+    when:
+      - sap_app_role == "aas"
+
+## Validation on AAS
+## check if sap aas Instance is up
+## Instance numnber is `00`
+  - name: "Wait for AAS instance to start"
+    become: true
+    become_user: "{{ sap_sid|lower }}adm"
+    shell: '/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sap_aas_status
+    retries: 10
+    delay: 15
+    until: |
+      'GRAY' not in sap_aas_status.stdout and
+      'YELLOW' not in sap_aas_status.stdout
+    when:
+      - sap_app_role == "aas"
+
+## Cleanup on AAS
+## remove swpm user
+  - name: delete user swpm for sapinst on cs node 2
+    user:
+      name: "swpm"
+      state: absent
+    when:
+      - sap_app_role == "aas"
+
+## Cleanup on AAS
+## cleanup /tmp/sapinst* from previous runs
+
+  - name: remove sapinst_instdir from /tmp
+    file:
+      path: /tmp/sapinst_instdir
+      state: absent
+    when:
+      - sap_app_role == "aas"
+
+  - name: find sap* from /tmp
+    find:
+      paths: /tmp
+      patterns: sap*
+      use_regex: true
+    register: sapinst_files
+    when:
+      - sap_app_role == "aas"
+
+  - name: remove sapinst_instdir and sapinst* from /tmp
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: "{{ sapinst_files.files }}"
+    loop_control:
+      label: "{{ item.path }}"
+    when:
+      - sap_app_role == "aas"
+
+# Update hdbuserstore with hdb vip
+#   Delete the DEFAULT key and add DEFAULT key with correct hdb vip
+#   Update with correct entry
+
+## Stop PAS and AAS
+  - name: Stop PAS and AAS
+    shell: |
+        /usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function Stop
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_sid | lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+
+  - name: "Wait for PAS and AAS instance to stop"
+    become: true
+    become_user: "{{ sap_sid|lower }}adm"
+    shell: '/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sap_app_status
+    retries: 10
+    delay: 15
+    until: |
+      'GREEN' not in sap_app_status.stdout and
+      'YELLOW' not in sap_app_status.stdout
+
+## Delete hdbuserstore entry
+
+  - name: Delete DEFAULT key in hdbuserstore on PAS and AAS if db vip is not defined
+    shell: |
+        /usr/sap/{{ sap_sid|upper }}/hdbclient/hdbuserstore Delete DEFAULT
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_sid | lower }}adm"
+    failed_when: false
+    register: delete_hdbuserstore_default
+    changed_when:
+      - "'Operation succeed' in delete_hdbuserstore_default.stdout"
+
+## Update and validate hdbuserstore entry
+
+  - name: Update DEFAULT key in hdbuserstore on PAS and AAS with db vip
+    shell: |
+        /usr/sap/{{ sap_sid|upper }}/hdbclient/hdbuserstore set DEFAULT {{ db_virtual_hostname }}:30013@{{ db_sid }} {{ app_schema_name }} {{ app_schema_password }}
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_sid | lower }}adm"
+    failed_when: false
+    register: update_hdbuserstore_default
+    changed_when:
+      - "'Operation succeed' in update_hdbuserstore_default.stdout"
+
+  - name: Check hdbuserstore entry on PAS and AAS for db vip
+    shell: |
+        /usr/sap/{{ sap_sid|upper }}/hdbclient/hdbuserstore list | grep ENV
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_sid | lower }}adm"
+    failed_when: false
+    register: db_vip_status
+    changed_when:
+      - "'{{ db_virtual_hostname }}' in db_vip_status.stdout"
+
+## Validate connection to db `R3trans -d`
+
+  - name: Test connection to db
+    shell: |
+        /usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/R3trans -d
+    args:
+      executable: /bin/csh
+    become: yes
+    become_user: "{{ sap_sid | lower }}adm"
+    failed_when: false
+    register: r3trans_status
+    environment:
+      DIR_LIBRARY: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when:
+      - "'R3trans finished (0000)' in r3trans_status.stdout"
+
+## Start PAS and AAS
+
+  - name: Start PAS and AAS
+    shell: |
+        /usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function Start
+    args:
+      executable: /bin/bash
+    become: yes
+    become_user: "{{ sap_sid | lower }}adm"
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+
+  - name: "Wait for PAS and AAS instance to start"
+    become: true
+    become_user: "{{ sap_sid|lower }}adm"
+    shell: '/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ sap_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: sap_app_status
+    retries: 10
+    delay: 15
+    until: |
+      'GRAY' not in sap_app_status.stdout and
+      'YELLOW' not in sap_app_status.stdout
+
+
+
+
+###################
+##### Play3   #####
+###################
+- name: "Play: Cleanup"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+    - play3
+
+  tasks:
+  - name: Cleanup download basket
+    become: true
+    run_once: true
+    file:
+      path: "{{ download_basket }}"
+      state: absent
+
+
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it."
+...

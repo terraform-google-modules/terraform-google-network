@@ -1,0 +1,161 @@
+{{ $ecs_etd := ( index .Values "ecs-etds") }}
+{{- if and $ecs_etd.coldStorage.enable (eq $ecs_etd.etdStage "prd") }}
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: {{ include ".helpers_override.fullname" . }}-velero-backup
+  annotations:
+    meta.upbound.io/{{ .Values.customer }}: s3/v1beta1/bucketversioning
+  labels:
+    resource.upbound.io/{{ .Values.customer }}: {{ .Values.customer }}-velero-bucket
+spec:
+  forProvider:
+    region: {{ $ecs_etd.coldStorage.storage.storageAccountRegion }}
+  providerConfigRef:
+    name: {{ .Values.providerConfigRef.name }}
+  deletionPolicy: Orphan
+---
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: BucketVersioning
+metadata:
+  annotations:
+    meta.upbound.io/{{ .Values.customer }}: s3/v1beta1/bucketversioning
+  labels:
+    resource.upbound.io/{{ .Values.customer }}: {{ .Values.customer }}-backup-bucketversioning
+  name: {{ .Values.customer }}-backup-bucketversioning
+spec:
+  forProvider:
+    bucketSelector:
+      matchLabels:
+        resource.upbound.io/{{ .Values.customer }}: {{ .Values.customer }}-velero-bucket
+    region: {{ $ecs_etd.coldStorage.storage.storageAccountRegion }}
+    versioningConfiguration:
+      - status: Enabled
+  providerConfigRef:
+    name: {{ .Values.providerConfigRef.name }}
+---
+apiVersion: iam.aws.upbound.io/v1beta1
+kind: Role
+metadata:
+    name: {{ include ".helpers_override.fullname" . }}-velero-bucket-role
+spec:
+    forProvider:
+        assumeRolePolicy: |
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "AWS": "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:role/shoot--{{ .Values.gardener.project }}--{{ .Values.gardener.shootName }}-nodes"
+                  },
+                  "Action": "sts:AssumeRole"
+                },
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Federated": "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:oidc-provider/api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.internal.{{ .Values.gardener.baseDomain }}"
+                  },
+                  "Action": "sts:AssumeRoleWithWebIdentity",
+                  "Condition": {
+                    "StringLike": {
+                      "api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.internal.{{ .Values.gardener.baseDomain }}:sub": "system:serviceaccount:velero:*"
+                    }
+                  }
+                }
+              ]
+            }
+        inlinePolicy:
+          - name: {{ include ".helpers_override.fullname" . }}-velero-bucket-policy
+            policy: |
+              {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "ec2:DescribeVolumes",
+                      "ec2:DescribeSnapshots",
+                      "ec2:CreateTags",
+                      "ec2:CreateVolume",
+                      "ec2:CreateSnapshot",
+                      "ec2:DeleteSnapshot"
+                    ],
+                    "Resource": "*"
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:GetObject",
+                      "s3:DeleteObject",
+                      "s3:PutObject",
+                      "s3:PutObjectTagging",
+                      "s3:AbortMultipartUpload",
+                      "s3:ListMultipartUploadParts",
+                      "s3:ListBucket",
+                      "s3:ListTagsForResource"
+                    ],
+                    "Resource": [
+                      "arn:{{ .Values.awsPartition }}:s3:::{{ include ".helpers_override.fullname" . }}-velero-backup/*"
+                    ]
+                  },
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "s3:ListBucket"
+                    ],
+                    "Resource": [
+                      "arn:{{ .Values.awsPartition }}:s3:::{{ include ".helpers_override.fullname" . }}-velero-backup"
+                    ]
+                  }
+                ]
+              }
+    providerConfigRef:
+      name: {{ .Values.providerConfigRef.name }}
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: {{ include ".helpers_override.fullname" . }}-velero-aws-credentials
+  namespace: {{ .Values.velero.backupNamespace | default "velero" | quote }}
+type: Opaque
+stringData:
+  config: |
+    [profile {{ .Values.customer }}]
+      role_arn = "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:role/{{ include ".helpers_override.fullname" . }}-velero-bucket-role"
+      credential_source = Ec2InstanceMetadata
+      region = {{ .Values.awsRegion }}
+---
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: "{{ include ".helpers_override.fullname" . }}-velero-backup"
+  namespace: {{ .Values.velero.backupNamespace | default "velero" | quote }}
+spec:
+  provider: velero.io/aws
+  credential:
+    key: config
+    name: {{ include ".helpers_override.fullname" . }}-velero-aws-credentials
+  config:
+    region: {{ .Values.awsRegion }}
+    profile: {{ .Values.customer }}
+    enableSharedConfig: "true"
+---
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: "{{ include ".helpers_override.fullname" . }}-velero-backup"
+  namespace: {{ .Values.velero.backupNamespace | default "velero" | quote }}
+spec:
+  provider: velero.io/aws
+  objectStorage:
+    bucket: "{{ include ".helpers_override.fullname" . }}-velero-backup"
+  credential:
+    key: config
+    name: {{ include ".helpers_override.fullname" . }}-velero-aws-credentials
+  config:
+    region: {{ .Values.awsRegion }}
+    profile: {{ .Values.customer }}
+    enableSharedConfig: "true"
+    tagging: "backup=velero&customer={{ .Values.customer }}"
+{{- end }}

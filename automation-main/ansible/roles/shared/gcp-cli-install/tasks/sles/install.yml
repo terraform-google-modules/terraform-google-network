@@ -1,0 +1,52 @@
+---
+  - name: Create source repo file for SLES 15
+    copy:
+      dest: /etc/zypp/repos.d/google-cloud-compute.repo
+      content: |
+        [google-cloud-compute]
+        name=Google Cloud Compute
+        baseurl=https://packages.cloud.google.com/yum/repos/google-compute-engine-el9-x86_64-stable
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=0
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+               https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    become: true
+
+  - name: Create source repo file for SLES 15
+    copy:
+      dest: /etc/zypp/repos.d/google-cloud-sdk.repo
+      content: |
+        [google-cloud-sdk]
+        name=Google Cloud Compute
+        baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el9-x86_64
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=0
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+               https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    become: true
+
+  - name: Enable Google Cloud repo
+    command: zypper modifyrepo --enable '{{ item }}'
+    become: true
+    ignore_errors: true
+    with_items:
+      - google-cloud-compute
+      - google-cloud-sdk
+
+  - name: Update the zypper cache
+    community.general.zypper_repository:
+      repo: '*'
+      runrefresh: true
+      auto_import_keys: true
+    become: true
+
+  - name: Installing required packages
+    package:
+      state: latest
+      update_cache: true
+      name:
+        - google-cloud-sdk
+    become: true
+...

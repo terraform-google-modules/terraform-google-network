@@ -1,0 +1,28 @@
+- name: "Perform systemdb backup on db"
+  ansible.builtin.shell: |
+    source /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+    /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/HDB{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}/exe/hdbsql \
+    -i {{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }} -u SYSTEM -p {{ distributed_hana_config_sap_hana_hsr_hana_db_system_password }} -d SYSTEMDB -m <<EOF
+    BACKUP DATA USING FILE ('primary_systemdb_bck');
+    EOF
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  register: distributed_hana_config_systembackup
+  changed_when: "'0 rows affected' in distributed_hana_config_systembackup.stdout"
+
+- name: "Perform tenantdb backup for {{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }} on db"
+  ansible.builtin.shell: |
+    source /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/home/.sapenv.sh && \
+    /usr/sap/{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}/HDB{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}/exe/hdbsql \
+    -i {{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }} -u SYSTEM -p {{ distributed_hana_config_sap_hana_hsr_hana_db_system_password }} -d SYSTEMDB -m <<EOF
+    BACKUP DATA FOR {{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }} USING FILE ('primary_tenantdb_bck');
+    EOF
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  register: distributed_hana_config_databackup
+  changed_when: "'0 rows affected' in distributed_hana_config_databackup.stdout"
+

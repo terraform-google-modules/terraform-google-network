@@ -1,0 +1,227 @@
+---
+
+# Playbook Name: spr-setup-replication.yml
+# Description: Sets up Watchman App replication
+#   SSH keys are configured to allow the source to perform rsync replication to the destination.
+#   Watchman is used to monitor changes and trigger the replication.
+#   Replication pairs are identified by the hostvar 'spr_replication_app`
+#
+#   Detailed example can be found here: https://gitlab.core.sapns2.us/s4hana-pce-dev/s4hana-pce-setup/-/blob/master/maintain/runbooks/runbook-watchman-replication.md
+#
+# Dependencies:
+#   - Ansible v2.9+
+#   - S4 Build Spec (Ansible Inventory) with replication pairs identified with the hostvar `spr_replication_app`
+#   - spr role
+# Variables:
+#   prompt_workflow : Identifies what security boundary and workflow you are in. Valid values [cre-s4pce, dev-ibp]
+#   prompt_force_configure : When set to true, overwrites the current watchman configuration. Default: False
+#
+# Example:
+#   Detailed example can be found here: https://gitlab.core.sapns2.us/s4hana-pce-dev/s4hana-pce-setup/-/blob/master/maintain/runbooks/runbook-watchman-replication.md
+#   Setup Replication on the entire inventory
+#     ansible-playbook spr-setup-replication.yml -i </PATH-TO/spr-INVENTORY-FILE> -k
+#
+#   Setup Replication on a specific application group.
+#     ansible-playbook spr-setup-replication.yml -i </PATH-TO/spr-INVENTORY-FILE> -l group_enterprise_management -k
+#
+#   Setup Replication on specific hosts.
+#     ansible-playbook spr-setup-replication.yml -i </PATH-TO/spr-INVENTORY-FILE> -l s001app01ps4,s001app01ps4dr -k
+#
+#   Pass extra vars with '-e spr_sshkey_setup_replication_pair=cloud-user -e playbook_replication_login_group=cloud-user' for the above command lines.
+#
+# Authors: Louis Lee, Jian Ouyang
+# Version: 2.9-000006
+# Modified: 2021-01-12 - Created playbook
+#           2021-10-18 - Set plays to halt on error
+#           2022-04-07 - Moved to SPR Role, Added dynamic target choice
+#           2022-08-03 - case sensitivity handling
+#           2022-09-14 - Updates for addtional VMs to replicate NFS mounts
+#           2022-12-07 - watchman/rsync log files streaming to GCP cloud logging, stop linux services on 'destionation' VM for failback
+# Comments:
+#   Detailed example can be found here: https://gitlab.core.sapns2.us/s4hana-pce-dev/s4hana-pce-setup/-/blob/master/maintain/runbooks/runbook-watchman-replication.md
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  any_errors_fatal: true
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - always
+
+  vars_prompt:
+    - name: prompt_workflow
+      prompt: What is the security boundary and workflow? | [cre-s4pce, dev-ibp]
+      private: no
+      default: "cre-s4pce"
+
+    - name: prompt_force_configure
+      prompt: Overwrite watchman configurations? | [true, false]
+      private: no
+      default: false
+
+  pre_tasks:
+    - name: "Set replication login group variable"
+      set_fact:
+        playbook_replication_login_group: >-
+          {%- if prompt_workflow == "cre-s4pce" -%} sg_sms_s4_pce_os_login
+          {%- elif prompt_workflow == "dev-ibp" -%} sg_ibp_os_login
+          {%- else -%} undefined
+          {%- endif -%}
+        playbook_configure_force: "{{ prompt_force_configure | bool }}"
+
+    - name: "Fail if workflow is undefined"
+      when: playbook_replication_login_group == "undefined"
+      fail:
+        msg: "{{ workflow }} is an undefined/unknown security boundary and workflow"
+
+    - name: Detect Cloud Provider
+      include_role:
+        name: cloud-identify
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_productname|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+
+  - name: "Replication Group Assignment"
+    group_by:
+      key: "replication_{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_replication_app|default('undefined')|lower }}"
+
+#################
+##### Play1 #####
+#################
+- name: "Play1"
+  any_errors_fatal: true
+  gather_facts: false
+  hosts: replication_source,replication_destination
+  tags:
+  - play1
+  vars:
+    tag_productname: "{{ non_spr_productname | default(omit,true) }}"
+
+  tasks:
+  - name: "Group Replication pairs by hostname"
+    # Note: Max char 15 due to group name length
+    set_fact:
+      replication_pair: "{{ spr_sshkey_setup_replication_pair|lower }}"
+
+  - name: "Setup replication ssh keys"
+    include_role:
+      name: spr
+      tasks_from: general/sshkey-setup.yml
+    vars:
+      spr_sshkey_setup_replication_role: "{{ spr_replication_app }}"
+      spr_sshkey_setup_replication_pair: "{{ replication_pair }}"
+      spr_sshkey_setup_os_login_group: "{{ playbook_replication_login_group }}"
+
+  - name: "Setup Watchman for replication"
+    include_role:
+      name: spr
+      tasks_from: general/watchman-setup.yml
+    vars:
+      spr_watchman_setup_replication_role: "{{ spr_replication_app }}"
+      spr_watchman_setup_replication_pair: "{{ replication_pair }}"
+
+  - name: "Identify replication node type"
+    set_fact:
+      app_node: >-
+        {%- if (
+          ((inventory_hostname | regex_replace('^.+app(?P<node>\\d\\d).*$', '\\g<node>')) == "01" )
+           and (spr_productname != "webdispatcher")
+        ) -%} pas
+        {%- else -%} aas
+        {%- endif -%}
+
+  - name: "Identify nfs replication node type"
+    set_fact:
+      app_node: nfsonly
+    when: tag_productname == "nfsreplica"
+
+  - name: "Call watchman-preconfigure"
+    when: spr_replication_app == 'source'
+    include_role:
+      name: spr
+      tasks_from: general/watchman-preconfigure.yml
+    vars:
+      spr_watchman_preconfigure_replication_pair: "{{ replication_pair }}"
+      spr_watchman_preconfigure_force: "{{ playbook_configure_force }}"
+      spr_watchman_preconfigure_lookup: "{{ app_node }}"
+
+  #ops agent is needed to stream watchman/rsync logs to gcp cloud logging
+  - name: Install GCP ops agent
+    become: true
+    when: (cloud_provider == "gcp") and (spr_replication_app == 'source')
+    ansible.builtin.shell: |
+      curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+      bash add-google-cloud-ops-agent-repo.sh --also-install
+  - name: Confgure ops agent
+    become: true
+    when: (cloud_provider == "gcp") and (spr_replication_app == 'source')
+    copy:
+      dest: "/etc/google-cloud-ops-agent/config.yaml"
+      content: |
+        logging:
+          receivers:
+            app_replication_watchman_log:
+              type: files
+              include_paths:
+              - /usr/local/var/run/watchman/root-state/log
+              record_log_file_path: true
+            app_replication_rsync_log:
+              type: files
+              include_paths:
+              - /var/log/app_replication.txt
+              record_log_file_path: true
+          service:
+            pipelines:
+              default_pipeline:
+                receivers:
+                - app_replication_watchman_log
+                - app_replication_rsync_log
+      mode: '0644'
+  - name: Restart GCP ops agent service
+    become: true
+    when: (cloud_provider == "gcp") and (spr_replication_app == 'source')
+    ansible.builtin.service:
+      name: google-cloud-ops-agent.service
+      state: restarted
+
+  #stop watchman on destination(sink) VM if exists: preventing circular rsync when failback.
+  - name: Stop related services on destination
+    become: true
+    when: spr_replication_app == 'destination'
+    ansible.builtin.service:
+      name: watchman@root.service
+      state: stopped
+    failed_when: false
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

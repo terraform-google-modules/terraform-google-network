@@ -1,0 +1,15 @@
+/*
+  Description: Terraform variables for module run; The variables contained in this page will be used to run this terraform module.
+    The resulting created IAM user will be with the specified policies and groups attached.
+  Comments:
+    - policy_list and group_list may be left blank.
+*/
+
+// aws_region          = "us-gov-west-1"
+// build_user          = ""                  # User id of individual executing terraform; must be defined for auditing purposes.
+// aws-iam-user-object     = {
+//   name              = "iam-testuser1"           # Name of the IAM User to create
+//   policy_list       = [],                       # Policy ARNs to attach. Can be left blank
+//   group_list        = [],                       # Groups to add the User to.  Can be left blank
+//   tag_company       =  ""                       # Tag of the Company.
+// }

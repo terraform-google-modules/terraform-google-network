@@ -1,0 +1,22 @@
+### Changes since release v2024.12.0
+- !113 update spr role defaults to use new `Data Provisioning Agent` release
+- !116 update spr role defaults to use new `CPIDS Agent` release
+- !92 update spr role defaults to use new `EHP8` release
+- !114 fix - use compatible libstdc++ from SAP libraries
+- !111 ETD Automation Requirements
+- !96 Draft: QTM Quick fix
+- !112 Bugfix for IBP Provisioning STOI-109 STOI-110
+- !109 Revert AWS Region Prompt Changes for PCE OS Updating Ansible
+- !107 ~enhancement: Cloud Connector Upgrade and Fix the cloud connector server disk mount point
+- !108 Bugfix STOI-110 Make hostfile internal fqdn a mandatory value
+- !87 update spr role defaults to use new `ADS` release
+- !98 Container update 2024-12-15
+- !101 support unlimted license expiration and explicitly specify database in query to fix Java types
+- !100 Virtual Machine size update
+- !89 i743694_pce-db-app-migration
+- !86 Update spr role defaults to point the new `CAR` release
+- !94 Add playbook to validate spr development hosts
+- !93 Remove Hardcoded Region Values from IBP Automation
+- !97 BUG: Correct Private Hosted Zone Reference in IBP Root.
+- !91 Update Playbooks calling tag-management role to pass aws-region
+- !88 IBP AWS Customer Template

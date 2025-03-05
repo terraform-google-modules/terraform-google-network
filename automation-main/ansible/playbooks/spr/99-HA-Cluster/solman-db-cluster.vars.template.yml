@@ -1,0 +1,52 @@
+---
+# Synopsis: Vars for Solman DB Install
+# Inputs: N/A
+# Outputs: N/A
+# Comments: Be sure to include the defaults.yml as an additional inventory.
+
+all:
+  vars:
+    #pacemaker defaults
+    sap_hana_ha_pacemaker_stonith_name: "stonith_hana"                     # This will always stay as default
+    sap_hana_ha_pacemaker_cluster_name: "hana_cluster"                     # This will always stay as default
+    sap_ha_pacemaker_cluster_hadr_provider_path: "/hana/shared/myhooks"    # This will always stay as default
+    sap_ha_pacemaker_cluster_hadr_provider_name: "SAPHanaSR"               # This will always stay as default
+    sap_hana_ha_pacemaker_configure_firewall: false       # This will always stay as default
+    sap_hana_hsr_hana_instance_number: "00" # This will always stay as default
+    sap_hana_ha_pacemaker_hana_instance_number: "00"          # This will always stay as default
+
+    #spr-setup-pacemaker-hana.yml
+    sap_hana_ha_pacemaker_hacluster_password: ___EXAMPLE_VALUE___ # HANA System password
+    sap_hana_ha_pacemaker_node1: ___EXAMPLE_VALUE___                 # this should be the custom hostname of the primary db
+    sap_hana_ha_pacemaker_node2: ___EXAMPLE_VALUE___               # this should be the custom hostname of the secondary db
+    sap_hana_ha_pacemaker_node1_fqdn: ___EXAMPLE_VALUE___  # this should be the custom fqdn of the primary db
+    sap_hana_ha_pacemaker_node2_fqdn: ___EXAMPLE_VALUE___  # this should be the custom fqdn of the secondary db
+    aws_region: ___EXAMPLE_VALUE___                           # AWS Region
+
+    #spr-configure-pacemaker-hana.yml
+    sap_hana_ha_pacemaker_cluster_oip: ___EXAMPLE_VALUE___             # Assigned OIP of the DB
+    customer_vpc_route_table_id_1a: ___EXAMPLE_VALUE___             # Value from Terraform Layer-HA
+    customer_vpc_route_table_id_1b: ___EXAMPLE_VALUE___             # Value from Terraform Layer-HA
+    customer_vpc_route_table_id_1c: ___EXAMPLE_VALUE___             # Value from Terraform Layer-HA
+
+  hosts:
+  children:
+    dbservers:
+      hosts: # Populate with the inventory key of the appropriate Database Hosts
+        ___EXAMPLE01___:
+        ___EXAMPLE02___:
+
+    dbprimary:
+      vars:
+        sap_hana_hsr_role: "primary" #This will always stay as default
+        sap_hana_hsr_alias: "DC1" #This will always stay as default
+      hosts: # Populate with the inventory key of the appropriate Database Hosts
+        ___EXAMPLE01___:
+
+    dbsecondary:
+      vars:
+        sap_hana_hsr_role: "secondary" #This will always stay as default
+        sap_hana_hsr_alias: "DC2" #This will always stay as default
+      hosts: # Populate with the inventory key of the appropriate Database Hosts
+        ___EXAMPLE02___:
+...

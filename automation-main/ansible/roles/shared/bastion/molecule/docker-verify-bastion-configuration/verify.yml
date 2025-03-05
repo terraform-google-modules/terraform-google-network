@@ -1,0 +1,37 @@
+---
+# Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+  - name: Verify
+    hosts: all
+    gather_facts: yes
+    vars_files:
+      - ../../defaults/main.yml
+    tasks:
+
+    ### Test 1 - Verify Fly CLI binary exists
+      - name: Verify Fly CLI binary exists
+        block:
+          - name: Check for Fly CLI binary file
+            stat:
+              path: /usr/bin/fly
+            register: file_cli_binary_file_check_results
+          - name: Assert that the Fly CLI binary file exists
+            assert:
+              that:
+                - file_cli_binary_file_check_results.stat.exists
+              fail_msg: Fly CLI binary not found on bastion system
+              success_msg: Fly CLI binary found successfully on bastion system
+
+    ### Test 2 - Verify Fly CLI binary is the correct version
+      - name: Verify Fly CLI binary is the correct version
+        block:
+          - name: Get version of installed Fly CLI
+            shell: /usr/bin/fly --version
+            register: file_cli_version_check
+          - name: Assert that the version of installed Fly CLI matches expected version
+            assert:
+              that:
+                - file_cli_version_check.stdout == bastion_fly_cli_version | string
+              fail_msg: Unexpected version of Fly CLI found installed on bastion system
+              success_msg: Correct version Fly CLI detected on bastion system
+...

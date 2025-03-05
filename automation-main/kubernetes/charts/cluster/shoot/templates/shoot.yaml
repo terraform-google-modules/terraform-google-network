@@ -1,0 +1,191 @@
+{{- $defaultmachineimage := index .Values.provider .Values.type "machineimage" }}
+{{- $minAllowedVolSize := .Values.minAllowedVolSize -}}
+{{- $type := .Values.type -}}
+apiVersion: core.gardener.cloud/v1beta1
+kind: Shoot
+metadata:
+  name: {{ .Values.name  }}
+  namespace: garden-{{ .Values.project }}
+  annotations:
+    {{- $ann := deepCopy .Values.annotations }}
+    {{- $_ := set $ann "gardener.cloud/created-by" .Values.user_email }}
+    {{- $_ := set $ann "garden.sapcloud.io/purpose" .Values.purpose }}
+    {{- $ann | toYaml | nindent 4 }}
+spec:
+  extensions: 
+    {{- if.Values.enable_cluster_audit }}
+    - type: shoot-auditlog-service
+      providerConfig:
+        apiVersion: service.auditlog.extensions.gardener.cloud/v1alpha1
+        kind: AuditlogConfig
+        type: standard
+        tenantID: {{ .Values.auditlog.tenantID }}
+        serviceURL: {{ .Values.auditlog.serviceURL }}
+        secretReferenceName: auditlog-credentials
+    {{- end }}
+    {{- if .Values.add_dns }}
+    - type: shoot-dns-service
+      providerConfig:
+        apiVersion: service.dns.extensions.gardener.cloud/v1alpha1
+        dnsProviderReplication:
+          enabled: true
+        kind: DNSConfig
+    {{- end }} 
+  {{- if.Values.haControlPlane }}
+  controlPlane:
+    highAvailability:
+      failureTolerance:
+        type: zone
+  {{- end }}
+  {{- if.Values.enable_cluster_audit }}
+  resources:
+  - name: auditlog-credentials
+    resourceRef:
+      apiVersion: v1
+      kind: Secret
+      name:  {{ .Values.name }}.audit-credentials
+  {{- end }}
+  cloudProfileName: {{ include ( printf "cloudp_%s" .Values.type ) . }}
+  region: {{ .Values.region }}
+  secretBindingName: {{ .Values.secret }}
+  addons:
+    {{ .Values.addons | toYaml | indent 4 | trim}}
+  kubernetes:
+    kubeAPIServer:
+      serviceAccountConfig:
+        extendTokenExpiration: false
+        maxTokenExpiration: 720h0m0s
+      requests:
+        maxNonMutatingInflight: 400
+        maxMutatingInflight: 400
+      enableAnonymousAuthentication: true
+      {{- if.Values.featureGates }}
+      featureGates:
+        {{- .Values.featureGates | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if .Values.enable_cluster_audit }}
+      auditConfig:
+        auditPolicy:
+          configMapRef:
+            name: audit-policy-{{ .Values.name }}
+            namespace: garden-{{ .Values.project }}
+      {{- end }}
+    clusterAutoscaler:
+      {{ .Values.autoscaler | toYaml | indent 6 | trim }}
+    verticalPodAutoscaler:
+      enabled: {{ .Values.verticalPodAutoscaler.enabled }}
+    kubelet:
+      {{- .Values.kubelet | toYaml | nindent 6 }}
+    version: {{ .Values.k8s_version | quote }}
+    enableStaticTokenKubeconfig: {{ .Values.enableStaticTokenKubeconfig }}
+{{- if .Values.add_dns }}
+  dns: {{ .Values.dns | toJson }}
+{{- end }}
+  maintenance:
+    {{ .Values.maintenance | toYaml | indent 4 | trim }}
+  networking:
+{{- include ( printf "net_%s" .Values.type ) . | indent 4 -}}
+    type: {{ .Values.cniType }}
+{{- if eq .Values.cniType "cilium" }}
+{{- if or .Values.hubbleEnable .Values.istioEnable }}
+    providerConfig:
+      apiVersion: cilium.networking.extensions.gardener.cloud/v1alpha1
+{{- if .Values.hubbleEnable }}
+      hubble:
+        enabled: true
+{{- end }}
+{{- if .Values.istioEnable }}
+      bpfSocketLBHostnsOnly:
+        enabled: true
+      cni:
+        exclusive: false
+{{- end }}
+      kind: NetworkConfig
+{{- end }}
+{{- end }}
+  hibernation:
+    enabled: false
+    {{- if .Values.auto_hibernate }}
+    schedules:
+    - start: "0 18 * * *"
+    {{- end }}
+  provider:
+    type: {{ .Values.type }}
+{{- include ( printf "controlPlane_%s" .Values.type ) . | indent 4 -}}
+    infrastructureConfig:
+      {{- include ( printf "infracfg_%s" .Values.type ) . | indent 6 }}
+    workers:
+    {{- range $wgname, $wg := .Values.workergroups }}
+    - name: {{ $wgname }}
+      {{- if $wg.cri}}
+      cri:
+        {{ toYaml $wg.cri | indent 8 | trim }}
+      {{- end }}
+      {{- if $wg.labels }}
+      labels:
+        {{ toYaml $wg.labels | indent 8 | trim }}
+      {{- end }}
+      machine:
+        type: {{ $wg.machine }}
+        {{- with ($wg.machineimage | default $defaultmachineimage) }}
+        image:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      minimum: {{ $wg.min }}
+      maximum: {{ $wg.max }}
+      {{- if $wg.maxSurge }}
+      maxSurge: {{ $wg.maxSurge }}
+      {{- end }}
+      volume:
+        {{- if $wg.useEncryptedDataVolume }}
+        size: {{ $minAllowedVolSize }}
+        {{- else }}
+        size: {{ $wg.vol_size }}
+        {{- end }}
+        type: {{ $wg.vol_type }}
+        {{- if hasKey $wg "vol_encrypted" }}
+        encrypted: {{ $wg.vol_encrypted }}
+        {{- end }}
+{{- if $wg.useEncryptedDataVolume }}
+      kubeletDataVolumeName: {{ $wgname }}-dv
+      dataVolumes:
+      - name: {{ $wgname }}-dv
+        type: {{ $wg.vol_type }}
+        size: {{ $wg.vol_size }}
+        encrypted: true
+{{- end }}
+{{- if $wg.swapDataVolume }}
+{{- include ( printf "workerConfig_%s" $type ) . | indent 6 }}
+{{- end }}
+{{- if $wg.imdsv2_enable }}
+{{- include ( printf "workerConfig_%s" $type ) . | indent 6 }}
+{{- end }}
+      zones:
+{{ toYaml $.Values.zones | indent 6 -}}
+      {{- if $wg.machineControllerManager }}
+      machineControllerManager:
+{{ toYaml $wg.machineControllerManager | indent 8 -}}
+      {{- end }}
+      {{- if $wg.kubernetes }}
+      kubernetes:
+{{ toYaml $wg.kubernetes | indent 8 }}
+      {{- end }}
+      {{- if $wg.taintKey }}
+      taints:
+      - key: WorkGroup
+        value: {{ $wg.taintKey }}
+        effect: NoExecute
+      - key: WorkGroup
+        value: {{ $wg.taintKey }}
+        effect: NoSchedule
+      {{- end }}
+      {{- if $wg.providerConfig }}
+      providerConfig:
+        {{- include ( printf "worker_provider_kind_%s" $type ) . | nindent 8 }}
+        {{- $wg.providerConfig | toYaml | nindent 8 }}
+      {{- end }}
+    {{- end }}
+  purpose: {{ .Values.purpose | quote }}
+  systemComponents:
+    {{- .Values.systemComponents | toYaml | nindent 4 }}
+

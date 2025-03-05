@@ -1,0 +1,15 @@
+### Changes since release v2024.11.0
+- !90 STOI-105 bugfix. Terraform Changelog depedency removal
+- !31 Support restrictive folder/file permissions for spr product directories
+- !79 SAP_S4HANA_Addons Upgrade to FS02
+- !84 Test Environment Code for Azure Networks
+- !77 AWS Terraform Version and Providers Update
+- !76 Update SolMan HA install to use JAVA_DVD specific paths
+- !78 update SLT default main folder
+- !83 Container Hotfix 2024.11.18
+- !75 Container Update 2024-11-15
+- !81 Update GitLab CI Automation
+- !74 Management directory service module
+- !69 Best practice, use random keepers sparingly
+- !73 Update spr role defaults to point the `fiori_fes` 2024-Q4 release
+- !64 Update spr role defaults to point the `bw4hana` 2024-Q4 release

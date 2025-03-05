@@ -1,0 +1,2 @@
+# Test Disk Creation - APP only (HA or SDDR)
+distributed_calculate_disks_test_db_hana: true

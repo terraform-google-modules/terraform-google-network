@@ -1,0 +1,41 @@
+---
+# Description: This task applies a minimal amount of tags under the assumption that tags will be managed by terraform-null-context
+# Inputs:
+#   - All of the tags defined in defaults.yml and the readme.md are used in this task list.
+
+  - name: Apply standard tags to instances
+    ec2_tag:
+      region: '{{ aws_region }}'
+      resource: '{{ aws_instance_id }}'
+      tags:
+        OperatingSystem: '{{ aws_tag_operating_system | lower }}'
+        Image: '{{ aws_tag_image | lower }}'
+        Domain: '{{ realm_output.stdout | lower }}'
+      state: present
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+
+#TODO: need to figure out how to get the MountPoint value properly
+
+  - name: Apply standard tags to disks
+    ec2_tag:
+      region: '{{ aws_region }}'
+      resource: '{{ item.ebs.volume_id }}'
+      tags:
+      # MountPoint:
+        Hostname: '{{ ansible_hostname }}'
+        Instance: '{{ aws_instance_id }}'
+    loop: '{{ aws_instance_disk_list }}'
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+
+# TODO: consider getting fancy with conditionals for the customer tag on disks
+
+  - name: Apply single-tenant tags to disks
+    ec2_tag:
+      region: '{{ aws_region }}'
+      resource: '{{ item.ebs.volume_id }}'
+      tags:
+        Customer: "{% if aws_tag_customer != '' and aws_tag_force_overwrite | bool %}{{ aws_tag_customer | lower }}{% elif aws_tag_customer_current is defined\
+          \ and aws_tag_customer_current != '' %}{{ aws_tag_customer_current | lower }}{% else %} {{ aws_tag_customer }}{% endif %}"
+    loop: '{{ aws_instance_disk_list }}'
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+...

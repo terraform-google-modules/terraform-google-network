@@ -1,0 +1,36 @@
+---
+########################################################################################################################
+########################################################################################################################
+# Description: Vector config file for:
+#  - /usr/sap/*/*/*/trace/backup.log
+#
+# Vector Output Name: sap_trace_backup__out
+#
+# Last Updated & Tested: 2022/02/03
+########################################################################################################################
+########################################################################################################################
+tests:
+  - name: sap.hana.trace.backup::1:splunk
+    inputs:
+      - insert_at: backup__sap_hana_metadata
+        type: log
+        log_fields:
+          message: |
+            2021-03-24T02:15:54+00:00  P0123235      17862042eaa INFO    BACKUP   progress of service: nameserver, s001dbhrd:30001, volume: 1, 82% 2147483648/2617245696
+    outputs:
+      - extract_from: splunk_formatter   #"event_router.good"
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!(is_timestamp(.time), true)
+              a = {"event":"P0123235      17862042eaa INFO    BACKUP   progress of service: nameserver, s001dbhrd:30001, volume: 1, 82% 2147483648/2617245696","fields":{"cloud.account.id":"123456789012","cloud.project.id":"123456789012","cloud.project.name":"test-project","custom.gcp.log_name":"%2Fusr%2Fsap%2Ftrace%2Fbackup%2Elog","custom.log_group":"/usr/sap/trace/backup.log","custom.vector_group":"sap_hana_logs"},"index":"test-index_app","partition_key":"c5cb541cf820932afe2a556f76bc633f","source":"/usr/sap/trace/backup.log","sourcetype":"app:sap:hana:backup","time":"2021-03-24T02:15:54Z"}
+              r = []
+              rr = []
+              for_each(.) -> |_index, value|{
+                if _index != "partition_key" {
+                  r = append(r, [ encode_json(get!(a, [_index])) == encode_json(get!(., [_index])) ])
+                  rr = append(rr, [true])
+                }
+              }
+              assert_eq!(r, rr, "Incorrect Output")
+...

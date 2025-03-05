@@ -1,0 +1,22 @@
+---
+# Description: Molecule converge.yml playbook used to run an Ansible role in a testing scenario.
+
+- name: Converge
+  hosts: all
+  become: false
+  gather_facts: false
+
+  tasks:
+  # - name: "Generate terraform instance list"
+  #   include_role:
+  #     name: s4pce
+  #   vars:
+  #     s4pce_terraform_instance_list: true
+  #     s4pce_terraform_instance_list_location: '/tmp/instances'
+  - name: "Generate Terraform Instance List"
+    delegate_to: 'ubuntu-ansible-18.04'
+    run_once: true
+    template:
+      dest: '/tmp/instances'
+      src: ../../templates/terraform_inventory.j2
+...

@@ -1,0 +1,162 @@
+---
+  - name: Validate cwa_default_log_stream_name input selection
+    assert:
+      that: cwa_default_log_stream_name | regex_search('(instance_id|hostname)')
+      fail_msg: 'cwa_default_log_stream_name is not properly defined: accepted values are instance_id or hostname'
+      success_msg: 'cwa_default_log_stream_name is properly set to: {{cwa_default_log_stream_name}}'
+
+
+# Get the default log groups
+  - name: Include variables file for default
+    include_vars: product/default.yml
+
+  - name: Update defaults for OS [{{ansible_os_family|lower}}]
+    include_vars: '{{ item }}'
+    with_first_found:
+      - files:
+          - product/default_{{ ansible_os_family | lower }}.yml
+          - product/base.yml
+
+  - name: Include variables file for Product [{{application_preset_selection|lower}}]
+    include_vars: '{{ item }}'
+    with_first_found:
+      - files:
+          - product/{{ application_preset_selection | lower }}.yml
+          - product/base.yml
+
+  - name: Include variables for RHEL
+    include_vars: '{{ item }}'
+    with_first_found:
+      - redhat.yml
+      - main.yml
+    when: >
+      ansible_os_family == 'RedHat' and
+      ansible_distribution == 'RedHat'
+      and (
+        ansible_distribution_major_version == '9' or
+        ansible_distribution_major_version == '8' or
+        ansible_distribution_major_version == '7' or
+        ansible_distribution_major_version == '6'
+      )
+    tags:
+      - include-redhat-vars
+
+  - name: Include variables for CentOS
+    include_vars: '{{ item }}'
+    with_first_found:
+      - centos.yml
+      - main.yml
+    when: >
+      ansible_os_family == 'RedHat' and
+      ansible_distribution == 'CentOS'
+      and (
+        ansible_distribution_major_version == '9' or
+        ansible_distribution_major_version == '8' or
+        ansible_distribution_major_version == '7' or
+        ansible_distribution_major_version == '6'
+      )
+    tags:
+      - include-centos-vars
+
+  - name: Include variables for Amazon Linux
+    include_vars: '{{ item }}'
+    with_first_found:
+      - amazon.yml
+      - main.yml
+    when: >
+      ansible_os_family == 'RedHat' and
+      ansible_distribution == 'Amazon'
+    tags:
+      - include-amazon-vars
+
+  - name: Include variables for Debian
+    include_vars: '{{ item }}'
+    with_first_found:
+      - debian.yml
+      - main.yml
+    when: >
+      ansible_os_family == 'Debian' and
+      ansible_distribution == 'Debian'
+    tags:
+      - include-debian-vars
+
+  - name: Include variables for Ubuntu
+    include_vars: '{{ item }}'
+    with_first_found:
+      - ubuntu.yml
+      - main.yml
+    when: >
+      ansible_os_family == 'Debian' and
+      ansible_distribution == 'Ubuntu'
+    tags:
+      - include-ubuntu-vars
+
+  - name: Include variables for SLES
+    include_vars: '{{ item }}'
+    with_first_found:
+      - sles.yml
+      - main.yml
+    when: >
+      ansible_os_family == 'Suse' and
+      ansible_distribution == 'SLES'
+    tags:
+      - include-sles-vars
+
+# Installation Tasks
+
+  - name: Set Environment Variable for installation
+    block:
+
+      - name: Include tasks for installation on RedHat/CentOS/Amazon Linux distribution
+        include_tasks: install-{{ ansible_os_family|lower }}.yml
+        when: >
+          ansible_os_family == 'RedHat' and (
+            ansible_distribution == 'CentOS' or
+            ansible_distribution == 'RedHat' or
+            ansible_distribution == 'Amazon'
+          )
+        tags:
+          - include-redhat-tags
+
+      - name: Include tasks for installation on Debian/Ubuntu distribution
+        include_tasks: install-{{ ansible_os_family|lower }}.yml
+        when: >
+          ansible_os_family == 'Debian' and (
+            ansible_distribution == 'Debian' or
+            ansible_distribution == 'Ubuntu'
+          )
+        tags:
+          - include-debian-tags
+
+      - name: Include tasks for installation on Suse/SLES distribution
+        include_tasks: install-{{ ansible_os_family|lower }}.yml
+        when: >
+          ansible_os_family == 'Suse' and
+          ansible_distribution == 'SLES'
+        tags:
+          - include-sles-vars
+
+      - name: Configure {{ cwa_package }}
+        include_tasks: configure.yml
+        tags:
+          - configure
+
+      - name: Set variable for cw_preset_selection
+        set_fact:
+          cloudwatch_agent_cw_preset_selection: '{{ cw_preset_selection|default(application_preset_selection,true) }}'
+
+      - name: Configure collectd and CloudWatch integration
+        include_role:
+          name: collectd
+        vars:
+          cw_preset_selection: '{{ cloudwatch_agent_cw_preset_selection }}'
+        when: >
+          cwa_collectd_plugin_configuration | bool
+        tags:
+          - configure
+
+    environment:
+      http_proxy: "{{ cwa_http_proxy | default('', true) }}"
+      https_proxy: "{{ cwa_https_proxy | default('', true) }}"
+      no_proxy: "{{ cwa_no_proxy | default('', true) }}"
+...

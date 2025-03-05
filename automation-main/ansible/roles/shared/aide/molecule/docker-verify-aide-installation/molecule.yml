@@ -1,0 +1,74 @@
+---
+#Description: Variables file defining what actions to perform and what Docker images to create for the given Molecule test scenario.
+#Tests:
+#   - Ensure aide package is installed
+#   - Ensure aide config file exists in aide directory for Debian and RedHat respectively
+#   - Ensure aide database has been initialized
+#   - Ensure aide check command succeeds
+#   - Ensure aide cron processes/jobs are present and active
+#   - Ensure that the aide database can be updated
+
+scenario:
+  name: docker-verify-aide-installation
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - dependency
+    - lint
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+#    - idempotence    # NOTE: A lot of our roles aren't truly idempotent as far as Molecule understands, so you might have to comment this line out.
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  - name: rhel-8.2-ansible
+    image: rhel8:8.2
+    pre_build_image: false
+    dockerfile: ../../../../testing/molecule/docker/dockerfiles/rhel-8.2-ansible/Dockerfile
+  - name: ubuntu-ansible-18.04
+    image: ubuntu:18.04
+    pre_build_image: false
+    dockerfile: ../../../../testing/molecule/docker/dockerfiles/ubuntu-ansible-18.04/Dockerfile
+provisioner:
+  name: ansible
+  lint:
+    name: ansible-lint
+    enabled: false
+  playbooks:
+    converge: ./converge.yml
+    verify: ./verify.yml
+    prepare: ./prepare.yml
+verifier:
+  name: ansible
+  enabled: true
+...

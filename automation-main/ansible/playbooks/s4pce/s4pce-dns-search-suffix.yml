@@ -1,0 +1,50 @@
+---
+# Playbook Name: s4pce-dns-search-suffix.yml
+# Description: This script uses NetworkManager to add pce.s4.cre.sapns2.internal to the DNS suffix search order.
+#              This approach ensures that /etc/resolv.conf won't be overwritten at reboot.
+# Prerequisites:
+# - Ansible v2.9+
+# Dependencies:
+# - none
+# Variables:
+# - none
+# Example:
+#   standalone execution against a single host: ansible-playbook s4pce-dns-search-suffix.yml -i <IP Address>, -u azureuser
+#   enter search suffix at the prompt, or press enter to accept the default
+# Example:
+#   standalone execution against a single host with search suffix passed from the command line:
+#   ansible-playbook s4pce-dns-search-suffix.yml -i <IP Address>, -u azureuser  --extra-vars '{"search_suffix":"sapns2.internal"}'
+#   assigns "sapns2.internal" to the DNS search suffix list, does not prompt the user
+# Authors: David Nolan
+# Version: 2.9-000002
+# Modified: 2022-03-04 - Created
+#           2022-04-29 - Modified nmcli_profile fact to only take the first interface for systems with multiple interfaces
+# Comments:
+#
+
+  - hosts: all
+    gather_facts: true
+
+    vars_prompt:
+      - name: search_suffix
+        prompt: What is dns search suffix to be added?
+        default: "pce.s4.cre.sapns2.internal"
+        private: no
+
+    tasks:
+    - name: Get nmcli profile name
+      command: "nmcli -t -f name con show"
+      register: command_output
+
+    - set_fact:
+        nmcli_profile: "{{ command_output.stdout_lines[0] }}"
+
+    - name: Add DNS search suffix     #variable has tics around it because the output of the previous nmcli contains a space.
+      become: true  #required to run nmcli con modify
+      command: "sudo nmcli con modify '{{ nmcli_profile }}' ipv4.dns-search {{ search_suffix }}"
+
+    - name: restart NetworkManager
+      become: true  #required to restart NetworkManager
+      service:
+        name: NetworkManager
+        state: restarted

@@ -1,0 +1,61 @@
+# Usage:
+# Rename `.env-template` to `.env` and update the values
+# `docker compose up -d` or `docker compose run ___service_name___`
+# `docker compose config --services` or `docker compose ps`
+# `docker compose attach ___service_name___`
+# In Container, `ctl+pq` to detach from the container.
+# In Container, `cat /etc/motd` to see the welcome message.
+# NOTE:
+#   - Adding "bridged" network to services can result in dns to not resolve properly.
+#   - Look into a DNS Container. There's a prepackaged Alpinelinux/unbound. Also see: https://pmig.at/en/tech/guides/docker-dns-server/
+
+services:
+  generic_workspace:
+    tty: true
+    restart: always
+    stdin_open: true
+    image: ${ARTIFACT_SERVER}/dev_general/generic_workspace:${GENERIC_WORKSPACE_VERSION}
+    volumes:
+      - ${STE_AUTOMATION}:/mnt/ste_automation
+      - ${MY_REPOS_PATH}:/mnt/repos
+      - ${MY_AWS_CONFIG_PATH}:/root/.aws/config
+      - ${MY_AWS_CREDENTIAL_PATH}:/root/.aws/credentials
+    environment:
+      - TF_VAR_build_user=${TF_VAR_build_user}
+      - AWS_PROFILE=${AWS_PROFILE}
+    dns: ${DNS_SERVER}
+    dns_search: ${DNS_SEARCH}
+    # platform: linux/amd64
+    # platform: linux/arm64/v8
+
+  tofu_workspace:
+    tty: true
+    restart: always
+    stdin_open: true
+    image: ${ARTIFACT_SERVER}/dev_general/tofu_workspace:${TOFU_WORKSPACE_VERSION}
+    volumes:
+      - ${STE_AUTOMATION}:/mnt/ste_automation
+      - ${MY_REPOS_PATH}:/mnt/repos
+      - ${MY_AWS_CONFIG_PATH}:/root/.aws/config
+      - ${MY_AWS_CREDENTIAL_PATH}:/root/.aws/credentials
+    environment:
+      - TF_VAR_build_user=${TF_VAR_build_user}
+      - AWS_PROFILE=${AWS_PROFILE}
+    dns: ${DNS_SERVER}
+    dns_search: ${DNS_SEARCH}
+    # platform: linux/amd64
+    # platform: linux/arm64/v8
+
+  yarn_builder:
+    tty: true
+    restart: always
+    stdin_open: true
+    image: ${ARTIFACT_SERVER}/dev_general/ste_yarn_builder:${YARN_BUILDER_VERSION}
+    volumes:
+      - ${YARN_BUILDER_DOCUSAURUS_REPO}:/mnt/docusaurus
+    environment:
+      - NODE_OPTIONS=${YARN_BUILDER_NODE_OPTIONS}
+    ports:
+      - ${YARN_BUILDER_PORT}:3000
+    # platform: linux/amd64
+    # platform: linux/arm64/v8

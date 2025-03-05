@@ -1,0 +1,11 @@
+---
+# Description: Molecule converge.yml playbook used to run an Ansible role in a testing scenario.
+  - name: Converge
+    hosts: all
+    tasks:
+      - name: Include bastion role
+        include_role:
+          name: bastion
+        vars:
+          bastion_fly_cli_setup: true
+...

@@ -1,0 +1,31 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: label-customer-namespaces
+  annotations:
+    policies.kyverno.io/title: Label Customer Namespaces
+    policies.kyverno.io/subject: Namespace
+    policies.kyverno.io/description: >-
+      Adds lable to namespaces required to allow network connectivity to customer app deployments.
+spec:
+  mutateExistingOnPolicyUpdate: true
+  webhookTimeoutSeconds: 5
+  rules:
+  - name: label-customer-namespaces
+    match:
+      any:
+      - resources:
+          kinds:
+          - Namespace
+          names:
+          - sftp
+          - sftp*
+    mutate:
+      targets:
+        - apiVersion: v1
+          kind: Namespace
+          name: "{{`{{request.object.metadata.name}}`}}"
+      patchStrategicMerge:
+        metadata:
+          labels:
+            customerNamespace: "{{`{{request.object.metadata.name}}`}}"

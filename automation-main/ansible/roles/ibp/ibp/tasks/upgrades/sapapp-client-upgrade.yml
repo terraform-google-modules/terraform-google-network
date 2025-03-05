@@ -1,0 +1,38 @@
+---
+# Synopsis: Upgrade HANA client on SAPApp
+# Inputs:
+#   - sid: SAP ID of the system
+#   - sapapp_client_upgrade_source:
+# Outputs:
+#   -
+# Comments:
+
+
+- name: "Remove old HDB client backup"
+  file:
+    path: "/usr/sap/{{ sid|upper }}/hdbclient.bkup"
+    state: absent
+  become: true
+
+- name: "Backup HANA client"
+  copy:
+    dest: "/usr/sap/{{ sid|upper }}/hdbclient.bkup"
+    src: "/usr/sap/{{ sid|upper }}/hdbclient/"
+    remote_src: yes
+    group: 'sapsys'
+    mode: preserve
+    owner: "{{ sid|lower }}adm"
+  become: true
+
+- name: "Upgrade HANA Client"
+  command: "./hdbinst -p /usr/sap/{{ sid|upper }}/hdbclient"
+  args:
+    chdir: "{{ sapapp_client_upgrade_source }}"
+  become: true
+  register: sapapp_upgrade_output
+
+- name: "Dispay upgrade results"
+  debug: var=sapapp_upgrade_output
+
+# Future Scope Validation?
+...

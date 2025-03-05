@@ -1,0 +1,24 @@
+---
+# Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+- name: Verify
+  hosts: all
+  become: false
+  gather_facts: false
+  tasks:
+  - name: "Generate list of all active sids"
+    delegate_to: localhost
+    set_fact:
+      sidlist: "{{ hostvars | to_json | from_json | json_query('*.sid') | sort | unique }}"
+
+  - name: Sidlist output
+    delegate_to: localhost
+    debug:
+      var: sidlist
+
+  - name: Ensure that sidlist has at least one sid
+    delegate_to: localhost
+    assert:
+      that:
+        - sidlist is defined
+        - sidlist|length >= 1

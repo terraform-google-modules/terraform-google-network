@@ -1,0 +1,285 @@
+---
+# Synopsis: Provision CPIDS
+# Inputs:
+#   - dr_cpids_provision_temp_mount_path: '/mnt/temp_restore'
+#   - dr_cpids_provision_temp_mount_size: '500'
+#   - dr_cpids_provision_temp_restore_folder: "{{ dr_cpids_provision_temp_mount_path }}/temp_restore"
+#   - happic_file_path: From Role default values
+#   - tomcat_file_path: From Role default values
+# Outputs: Configured and running CPIDS system
+# Comments: Requires ansible gather_facts = true
+
+- name: "Get EC2 Metadata"
+  ec2_metadata_facts:
+
+- name: "Install parallel and nvme-cli"
+  package:
+    state: present
+    name:
+      - 'parallel'
+      - 'nvme-cli'
+  become: true
+
+- name: "Create Temporary Volume"
+  ec2_vol:
+    name: "{{ ansible_facts.ec2_instance_id }}-temp-restore"
+    instance: "{{ ansible_facts.ec2_instance_id }}"
+    encrypted: yes
+    volume_type: standard
+    region: "{{ ansible_facts.ec2_placement_region }}"
+    device_name: '/dev/sdo'
+    volume_size: "{{ dr_cpids_provision_temp_mount_size }}"
+    state: present
+    tags:
+      Name: "{{ ansible_facts.ec2_instance_id }}-temp-restore"
+      Hostname: "{{ ansible_hostname }} "
+      MountPoint: "{{ dr_cpids_provision_temp_mount_path }}"
+      Instance: "{{ ansible_facts.ec2_instance_id }}"
+  register: temp_volume_output
+
+- name: "Get the local device id"
+  shell: "nvme list | grep {{ temp_volume_output.volume_id | replace('-','') }} | awk '{print $1}'"
+  become: true
+  register: device_id_output
+
+- name: "Format temp restore volume"
+  filesystem:
+    fstype: xfs
+    dev: "{{ device_id_output.stdout }}"
+  become: true
+
+- name: "Ensure mount point exists"
+  file:
+    path: "{{ dr_cpids_provision_temp_mount_path }}"
+    state: directory
+  become: true
+
+- name: "Mount temp restore volume"
+  mount:
+    state: mounted
+    path: "{{ dr_cpids_provision_temp_mount_path }}"
+    src: "{{ device_id_output.stdout }}"
+    fstype: xfs
+  become: true
+
+- name: Validate filemounts
+  include_tasks: general/directories-validate.yml
+  vars:
+    folder_path: "{{ item }}"
+  loop:
+  - '/hana/data'
+  - '/hana/log'
+  - '/hana/backups'
+  - '/hana/shared'
+  - '/usr/sap'
+
+- name: "Make sure CPIDS is down"
+  include_tasks: operations/cpids-softstop.yml
+
+- name: "Discover S3 Bucket"
+  include_tasks: general/s3-discovery.yml
+
+- name: "Found the s3 bucket: {{ ibp_backup_bucket_name }}"
+  debug:
+    msg: "Found s3 bucket: {{ ibp_backup_bucket_name }}"
+
+- name: "Find last CPIDS backup date"
+  shell: >-
+      aws s3 ls s3://{{ ibp_backup_bucket_name}}/{{ cpids_backup_path }}/data/
+      | sort
+      | grep -i "{{ cpids_backup_prefix }}"
+      | awk 'NR==1 {print $1 " " $2}'
+  register: last_backup_output
+  changed_when: false
+  failed_when: "last_backup_output.stdout == ''"
+  become: true
+
+# This epoch is wrong and needs GMT conversion first
+- name: "Save latest backup date and time"
+  set_fact:
+    backup_date: "{{ last_backup_output.stdout.split(' ')[0] }}"
+    backup_time: "{{ last_backup_output.stdout.split(' ')[1] }}"
+    backup_epoch: "{{ (last_backup_output.stdout|to_datetime).strftime('%s') }}"
+
+- name: "Last Full CPIDS backup {{ cpids_backup_prefix }} found on {{ backup_date}} {{ backup_time }}"
+  debug:
+    msg: "Epoch conversion is {{ backup_epoch }}"
+
+- name: "Clean out backup folders"
+  file:
+    path: "/hana/backups/N01/HDB00/backup/*"
+    state: absent
+  become: true
+
+- name: "Recreate backup folders"
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: 'n01adm'
+    group: 'sapsys'
+  become: true
+  loop:
+    - '/hana/backups/N01/HDB00/backup/data'
+    - '/hana/backups/N01/HDB00/backup/log'
+
+- name: "Create temp restore folder"
+  file:
+    path: "{{ item }}"
+    state: directory
+  become: true
+  loop:
+    - "{{ dr_cpids_provision_temp_restore_folder }}/data"
+    - "{{ dr_cpids_provision_temp_restore_folder }}/log"
+
+- name: "Download backup files to {{ dr_cpids_provision_temp_restore_folder }}/data"
+  shell: >-
+      aws s3 ls --recursive s3://{{ ibp_backup_bucket_name}}/{{ cpids_backup_path }}/data/
+      | awk '$1 >= "{{ backup_date }}" {print "aws s3 cp s3://{{ ibp_backup_bucket_name}}/"$4" ."}'
+      | parallel
+  args:
+    chdir: "{{ dr_cpids_provision_temp_restore_folder }}/data"
+  become: true
+
+- name: "Download log files to {{ dr_cpids_provision_temp_restore_folder }}/log"
+  shell: >-
+      aws s3 ls --recursive s3://{{ ibp_backup_bucket_name}}/{{ cpids_backup_path }}/log/
+      | awk '$1 >= "{{ backup_date }}" {print "aws s3 cp s3://{{ ibp_backup_bucket_name}}/"$4" ."}'
+      | parallel
+  args:
+    chdir: "{{ dr_cpids_provision_temp_restore_folder }}/log"
+  become: true
+
+- name: "Set File and folder permissions"
+  file:
+    path: "{{ dr_cpids_provision_temp_restore_folder }}"
+    recurse: yes
+    group: 'sapsys'
+    state: directory
+    owner: 'n01adm'
+  become: true
+
+# Note: logic: list all log files descending order,
+# $9 is the log file name with epoch time delimited by ".",
+# split the string and use the 1st 10 numbers to convert epoch to YYYY-MM-DD HH:MM:SS
+- name: "Find last log date time"
+  shell: ls -lt | awk 'NR==2 {split($9,a,"."); print strftime("%F %T",substr(a[2],1,10))}'
+  args:
+    chdir: "{{ dr_cpids_provision_temp_restore_folder }}/log"
+  register: log_datetime_output
+  changed_when: false
+
+- name: "Last log datetime is {{ log_datetime_output.stdout }}"
+  debug:
+    msg: "Last log datetime is {{ log_datetime_output.stdout }}"
+
+- name: "Restore Database"
+  shell: >-
+      HDBSettings.sh recoverSys.py
+      --command="RECOVER DATABASE UNTIL TIMESTAMP '{{ log_datetime_output.stdout }}'
+      CLEAR LOG USING DATA PATH ('{{ dr_cpids_provision_temp_restore_folder }}/data')
+      USING LOG PATH ('{{ dr_cpids_provision_temp_restore_folder }}/log')"
+  become: true
+  become_user: 'n01adm'
+  register: restore_database_output
+  failed_when: "'recoverSys, rc = 0 (RC_TEST_OK)' not in restore_database_output.stdout"
+
+- name: "Display restore database output if verbosity >= 1"
+  debug:
+    var: restore_database_output
+    verbosity: 1
+
+- name: "Validate HANA DB Start"
+  shell: 'sapcontrol -nr 00 -function GetProcessList'
+  until: |
+      'GRAY' not in hdb_poststart_process_output.stdout and
+      'YELLOW' not in hdb_poststart_process_output.stdout
+  changed_when: false
+  failed_when: false
+  become: true
+  become_user: 'n01adm'
+  register: hdb_poststart_process_output
+  delay: 60  # Check every 60 seconds. Adjust as you like.
+  retries: 240  # Retry for 4 hours
+
+- name: "Rerun InCron"
+  include_tasks: provisioning/cpids-incron-setup.yml
+  vars:
+    incron_setup_sid: 'n01'
+    incron_setup_release_number: "{{ cpids_tar_source | regex_replace('/staging/cpids/Build/.*?(DSOD-.*?)-TAR.*','\\1') }}"
+    incron_setup_bucket_name: "{{ ibp_backup_bucket_name }}"
+    incron_setup_hostname: "{{ ansible_hostname }}"
+
+- name: "Backup CPIDS"
+  include_tasks: operations/cpids-backup.yml
+
+- name: "Configure happic file"
+  replace:
+    path: "{{ happic_file_path }}"
+    regexp: "{{ item.regex }}"
+    replace: "{{ item.replace }}"
+    backup: yes
+  become: true
+  loop:
+    - regex: 'LOAD_BALANCER=.*$'
+      replace: "LOAD_BALANCER=https://{{ cpids_alb_cname }}/DSoD"
+    - regex: 'tomcat_port=.*$'
+      replace: 'tomcat_port=80'
+
+- name: "Set webserver configuration"
+  xml:
+    path: "{{ tomcat_file_path }}"
+    xpath: '/Server/Service/Connector[@protocol="HTTP/1.1"]'
+    attribute: "{{ item.attribute }}"
+    value: "{{ item.value }}"
+    state: present
+    backup: yes
+  become: true
+  loop:
+    - attribute: 'port'
+      value: '80'
+    - attribute: 'maxThreads'
+      value: '250'
+    - attribute: 'connectionTimeout'
+      value: '20000'
+    - attribute: 'enableLookups'
+      value: 'false'
+    - attribute: 'acceptCount'
+      value: '100'
+    - attribute: 'secure'
+      value: 'false'
+    - attribute: 'redirectPort'
+      value: '8443'
+    - attribute: 'server'
+      value: 'SAP'
+    - attribute: 'scheme'
+      value: 'https'
+    - attribute: 'proxyPort'
+      value: '443'
+
+- name: "Start CPIDS"
+  include_tasks: operations/cpids-softstart.yml
+
+- name: "Delete {{ dr_cpids_provision_temp_restore_folder }} folder"
+  file:
+    path: "{{ dr_cpids_provision_temp_restore_folder }}"
+    state: absent
+  become: true
+
+- name: "Remove temp mount"
+  mount:
+    name: "{{ dr_cpids_provision_temp_mount_path }}"
+    state: absent
+  become: true
+
+- name: "Detach Volume"
+  ec2_vol:
+    id: "{{ temp_volume_output.volume_id }}"
+    instance: None
+    region: "{{ ansible_facts.ec2_placement_region }}"
+
+- name: "Delete Volume"
+  ec2_vol:
+    id: "{{ temp_volume_output.volume_id }}"
+    region: "{{ ansible_facts.ec2_placement_region }}"
+    state: absent
+...

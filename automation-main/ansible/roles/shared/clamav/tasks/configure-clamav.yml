@@ -1,0 +1,123 @@
+---
+# Synopsis: Installs ClamAV and optionally sets up a cron job.
+# Inputs:
+#   - clamav_create_cron_schedule : Whether to setup a cron job to run ClamAV scans.
+#   - clamav_remove_cron_schedule : Whether to remove the ClamAV cron job.
+#   - clamav_targeted_scan_script : Whether to setup additional script that can use used to perform ClamAV
+#                                   scans on-demand against a target path on the filesystem
+#   - clamav_initialize_database : Whether to initialize ClamAV database on-demand as a parf of role configuration
+#   - clamav_schedule_database_refresh : Whether to schedule via cron regular ClamAV database refreshes independent of performing any scans
+#
+# Outputs:
+#   - Places the 'clamrun.sh' script on the system and creates or removes a cron job.
+#   - (Optional) Places the 'clamrun-targeted.sh' script on the system for on-demand virus scanning
+
+  # Check if target is BOSH Stemcell by identifying if user vcap exists
+  - name: Check if Bosh Stemcell user exists
+    ansible.builtin.user:
+      name: vcap
+    check_mode: true
+    register: stemcell_user
+    become: true
+
+  - name: Configure freshclam (updates)
+    ansible.builtin.template:
+      src: freshclam.conf.j2
+      dest: /etc/freshclam.conf
+      mode: 0600
+    become: true
+    when:
+      - clamav_freshclam_http_proxy_address != ''
+      - ansible_os_family == 'RedHat'
+
+# Initialize freshclam database if the main.cvd does not exist and clamav_initialize_database set to true
+  - name: Check to see if the file /var/lib/clamav/main.cvd exists
+    ansible.builtin.stat:
+      path: /var/lib/clamav/main.cvd
+    register: clamav_main_cvd
+    become: true
+
+  - name: Update the freshclam database if the file does not exist
+    ansible.builtin.command: /usr/bin/freshclam -v {{ '--user=root' if stemcell_user.state | d('') == 'present' else '' }}
+    environment:
+      LD_PRELOAD: "{{ '/lib/fips_enable.so' if (ansible_distribution_major_version is version ('9') and ansible_os_family == 'RedHat') else ''}} "
+    become: true
+    when: not clamav_main_cvd.stat.exists or clamav_initialize_database == true
+
+  - name: Create the directory to store the ClamAV script
+    ansible.builtin.file:
+      path: /usr/share/clamav
+      mode: '0755'
+      state: directory
+    become: true
+
+  - name: Copy ClamAV script to the host
+    ansible.builtin.template:
+      src: clamrun.sh
+      dest: /usr/share/clamav/clamrun.sh
+      mode: '0755'
+    become: true
+
+  - name: Copy ClamAV script to the host for running on-demand scans against target files
+    ansible.builtin.template:
+      src: clamrun-targeted.sh
+      dest: /usr/share/clamav/clamrun-targeted.sh
+      mode: '0755'
+    become: true
+    when: clamav_targeted_scan_script | bool == true
+
+  - name: Setup cron job to refresh ClamAV database nightly
+    ansible.builtin.cron:
+      name: Refresh clamscan database
+      user: root
+      state: present
+      minute: '0'
+      hour: '11'
+      weekday: '*'
+      month: '*'
+      job: /usr/bin/freshclam
+    when: clamav_schedule_database_refresh | bool == true
+    become: true
+
+  - name: Setup ClamAV scan in cron
+    ansible.builtin.cron:
+      name: Conduct malware scan using clamscan
+      user: root
+      state: present
+      minute: '{{ clamav_cron_minute }}'
+      hour: '{{ clamav_cron_hour }}'
+      weekday: '{{ clamav_cron_weekday }}'
+      month: '{{ clamav_cron_month }}'
+      job: /usr/share/clamav/clamrun.sh >> /var/log/clamscan.log 2>&1
+    when: clamav_create_cron_schedule | bool == true
+    become: true
+
+  - name: Remove ClamAV scan from cron
+    ansible.builtin.cron:
+      name: Conduct malware scan using clamscan
+      state: absent
+    when: clamav_remove_cron_schedule | bool == true
+    become: true
+
+# TODO: Determine if we need this legacy cron entry task
+
+  - name: Remove legacy ClamAV scan entries from cron
+    ansible.builtin.cron:
+      name: '{{ item }}'
+      state: absent
+    loop:
+      - Conduct malware scan using clamscan script
+      - clamav scheduled scan
+      - ClamAV scan
+    become: true
+
+  - name: Get ClamAV entries from crontab
+    ansible.builtin.command: crontab -l | grep -B1 clam
+    register: crontab_output
+    failed_when: crontab_output.rc not in [0, 1]
+    become: true
+
+  - name: Show ClamAV crontab entries
+    ansible.builtin.debug:
+      msg: '{{ crontab_output.stdout_lines }}'
+...

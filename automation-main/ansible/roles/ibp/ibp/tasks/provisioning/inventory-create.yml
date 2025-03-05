@@ -1,0 +1,137 @@
+---
+# Synopsis: Create ansible inventory file for provisioning
+# Inputs:
+#   - ibp_inventory_create_terraform_output_path         : (provided by playbook) Path to terraform layer-02 apply output
+#   - ibp_inventory_create_destination_path: (provided by playbook) Path to save the newly created inventory file on the local file system
+# Outputs: Ansible inventory file to be used by ibp provisioning
+# Comments:
+#  - Playbook should be run against remote host with staging efs mounted
+
+- name: Get contents of Terraform Layer02 output file
+  shell: cat {{ ibp_inventory_create_terraform_output_path }}
+  register: terraform_apply_layer02
+  delegate_to: localhost
+
+- name: Set Terraform Layer02 output as json fact
+  set_fact:
+    terraform_apply_json: '{{ terraform_apply_layer02.stdout | from_json }}'
+
+- name: Set aws region as fact
+  set_fact:
+    aws_region: '{{ terraform_apply_json.aws_region.value }}'
+
+- name: Set customer number as fact
+  set_fact:
+    customer_number: '{{ terraform_apply_json.customer_number.value }}'
+
+- name: Set customer staging sid as fact
+  set_fact:
+    staging_sid: '{{ terraform_apply_json.staging_sid.value }}'
+  when: "terraform_apply_json | json_query('staging_sid')"
+
+- name: Set customer production sid as fact
+  set_fact:
+    production_sid: '{{ terraform_apply_json.production_sid.value }}'
+  when: "terraform_apply_json | json_query('production_sid')"
+
+- name: Set CPIDS ALB CNAME as fact
+  set_fact:
+    cpids_alb_cname: '{{ terraform_apply_json.cpids_alb_cname.value }}'
+
+- name: Set EFS Staging IP as fact
+  set_fact:
+    efs_staging_ip: '{{ terraform_apply_json.efs_staging_ip.value }}'
+
+- name: Set EFS usrsaptrans IP as fact
+  set_fact:
+    efs_usrsaptrans_ip: '{{ terraform_apply_json.efs_usrsaptrans_ip.value }}'
+  when: "terraform_apply_json | json_query('efs_usrsaptrans_ip')"
+
+- name: Set Layer02 instance name list
+  set_fact:
+    instance_name_list: '{{ instance_name_list + [item] }}'
+  loop: '{{ terraform_apply_json | list | select("match", "instance.*") | list }}'
+
+- name: Set Webdispatcher Private IP address fact
+  set_fact:
+    webdispatcher_ip: '{{ terraform_apply_json.instance_webdispatcher.value.private_ip }}'
+
+- name: Set CPIDS Private IP address fact
+  set_fact:
+    cpids_ip: '{{ terraform_apply_json[item].value.private_ip }}'
+  loop: '{{ instance_name_list | select("match", ".*cpids$") | list }}'
+
+- name: Create list of ibpdb Private IPs
+  set_fact:
+    ibpdb_ip_list: "{{ ibpdb_ip_list + [terraform_apply_json[item].value.private_ip] }}"
+  loop: '{{ instance_name_list | select("match", ".*ibpdb$") | list }}'
+
+- name: Create list of ibpapp Private IPs
+  set_fact:
+    ibpapp_ip_list: "{{ ibpapp_ip_list + [terraform_apply_json[item].value.private_ip] }}"
+  loop: '{{ instance_name_list | select("match", ".*ibpapp$") | list }}'
+
+- name: Create list of production instance IPs
+  set_fact:
+    production_ip_list: "{{ production_ip_list + [terraform_apply_json[item].value.private_ip] }}"
+  loop: '{{ instance_name_list | select("match", ".*production.*") | list }}'
+
+- name: Create list of staging instance IPs
+  set_fact:
+    staging_ip_list: "{{ staging_ip_list + [terraform_apply_json[item].value.private_ip] }}"
+  loop: '{{ instance_name_list | select("match", ".*staging.*") | list }}'
+
+- name: Copy select-newest-cpids-release.sh to remote host
+  copy:
+    src: '{{ role_path }}/files/provisioning/select-newest-cpids-release.sh'
+    dest: /tmp/select-newest-cpids-release.sh
+
+- name: Get latest version of CPIDS
+  shell: bash /tmp/select-newest-cpids-release.sh
+  register: cpids_release_script_output
+
+- name: Set CPIDS version fact
+  set_fact:
+    cpids_release_name: '{{cpids_release_script_output.stdout }}'
+
+- name: Copy select-newest-webdispatcher-release.sh to remote host
+  copy:
+    src: '{{ role_path }}/files/provisioning/select-newest-webdispatcher-release.sh'
+    dest: /tmp/select-newest-webdispatcher-release.sh
+
+- name: Get latest version of Webdispatcher
+  shell: bash /tmp/select-newest-webdispatcher-release.sh
+  register: webdispatcher_release_script_output
+
+- name: Set Webdispatcher version fact
+  set_fact:
+    webdispatcher_release_name: '{{ webdispatcher_release_script_output.stdout }}'
+
+- name: Copy select-newest-sap-release.sh to remote host
+  copy:
+    src: '{{ role_path }}/files/provisioning/select-newest-sap-release.sh'
+    dest: /tmp/select-newest-sap-release.sh
+
+- name: Get latest version of SAP
+  shell: bash /tmp/select-newest-sap-release.sh
+  register: sap_release_script_output
+
+- name: Set SAP version fact
+  set_fact:
+    sap_release_name: '{{ sap_release_script_output.stdout }}'
+
+- name: Create inventory file at {{ ibp_inventory_create_destination_path }}
+  template:
+    src: provisioning/ibp-inventory.yml.j2
+    dest: '{{ ibp_inventory_create_destination_path }}'
+  delegate_to: localhost
+
+- name: Cleanup release selection scripts
+  file:
+    path: '{{ item }}'
+    state: absent
+  loop:
+    - /tmp/select-newest-cpids-release.sh
+    - /tmp/select-newest-webdispatcher-release.sh
+    - /tmp/select-newest-sap-release.sh
+...

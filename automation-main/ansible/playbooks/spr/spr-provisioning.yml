@@ -1,0 +1,1143 @@
+---
+# Playbook Name: spr-provisioning.yml
+# Description: This playbook can provision the following sap applications:
+#   access_control:
+#   access_control_s4hana
+#   ads:
+#   attp:
+#   bobj_bip:
+#   bw4hana:
+#   bw4hana_addons:
+#   bw4hana_bpc:
+#   bwnetweaver:
+#   car:
+#   cloudconnector:
+#   contentserver:
+#   cors:
+#   cpids_agent:
+#   crm:
+#   data_services:
+#   data_warehouse:
+#   dpagent:
+#   hana_ee:
+#   ehp7_erp:
+#   ehp8_erp:
+#   fiori_carab:
+#   fiori_fes:
+#   frun:
+#   gbtr:
+#   gts:
+#   gts_ed4hana:
+#   hanacockpit:
+#   information_steward:
+#   lama_ent_java:
+#   lumira
+#   mii:
+#   nwjava:
+#   optimizer:
+#   payroll:
+#   platform_edition:
+#   plc:
+#   po:
+#   portal:
+#   router:
+#   s4hana:
+#   s4hana_addons:
+#   s4hana_foundation:
+#   s4hana_livecache:
+#   sac_agent:
+#   scm:
+#   slt:
+#   solman_abap:
+#   solman_hdb:
+#   solman_java:
+#   srm:
+#   sso:
+#   tm:
+#   webdispatcher:
+# Dependencies:
+# - Ansible v2.9+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# - SPR Role
+# Variables:
+#   - Groupvars and Hostvars from inventory
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook spr-sample-landscape.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Modified:
+# Authors: Louis Lee, Katja Cresanti, Sean-Thomas Saloom, Dexter Le
+
+# Version: 2.9-000048
+# Modified:
+#
+#           2024-12-20 - Add tasks for Enterprise Threat Detection (ETD) install
+#           2024-10-16 - Remove unused variable `spr_app_install_product` from Router Install play
+#           2024-06-28 - Add tasks for specific compat-sap-c++- packages to install in play0, and symlink in play12 for webdispatcher
+#           2024-04-12 - Add grouping based on sap_app_role for primary app servers
+#           2024-01-04 - Add anycase for Java Product Name in Play10
+#           2023-12-20 - Add hostname validations for BOBJ products (bobj_bip, data_services and lumira) app components
+#           2024-01-04 - Add anycase for Java Product Name in Play10
+#           2023-12-19 - Add anycase for HANA Product Name in Play4
+#           2023-11-07 - Introduce/Enhance Content Server Provisioning, MaxDB Pre-checks, MaxDB Upgrade
+#           2023-10-06 - Exclude router host from play3
+#           2023-10-02 - Decommission ILM from SPR Repository
+#           2023-08-29 - Add BOBJ BI Platform and Lumira Server Automations
+#           2023-08-23 - Add Application Server JAVA for NW to SPR product
+#           2023-07-18 - Enhance Data Services Automation
+#           2023-07-14 - Remove attp selector for java specific tasks
+#           2023-07-11 - Add new Product LaMa Enterprise Java
+#           2023-07-06 - Add new product frun for spr
+#           2023-05-26 - Add support for Global Batch Traceability
+#           2023-04-28 - Add Support for Acces Control for S4HANA (product name change) and Access Control for SAP NetWeaver
+#           2023-04-26 - Added CORS deployments to SPR Provisioning
+#           2023-04-26 - Exclude optimizer from ABAP plays
+#           2023-04-13 - Add support for GTS Edition for S4HANA
+#           2023-04-06 - Install compat-sap-c++-11 used in HANA DB SPS07 release
+#           2023-03-09 - Added SRM and PLC deployments to SPR Provisioning
+#           2023-02-07 - Remove unneeded variables passed to cloudconnector play14
+#           2022-12-09 - webdispatcher classified as PAS. Fix - add required library to webdispatcher provisioning
+#           2022-10-14 - Play 0,24 fix - handle error when aas group fact is not defined
+#           2022-10-07 - Set corresponding PAS as fact on AAS. MII is a JAVA app, removing it from ABAP play.
+#           2022-09-29 - Play 22 fix - Dont run play on PAS without no AAS
+#           2022-09-20 - Play8 host selection fix
+#           2022-09-14 - Mount /sapmnt on AAS after PAS provisioning
+#           2022-09-13 - Exclude hana cockpit from DB start
+#           2022-07-20 - handle case sensitivity in inventory file, dirty check on targeting VMs, DB connection check on app servers
+#           2022-07-01 - Exclude non_spr products
+#           2022-06-23 - enable 3 yum repos, install 4 yum package in play0
+#           2022-06-17 - Exclude mii from Play8 (app abap provision)
+#           2022-06-07 - Exclude sftp_interface from app related plays
+#           2022-05-09 - Exclude solman_hdb from db related plays
+#           2022-04-28 - Removed gcp hostname reset shell script
+#           2022-04-26 - Replaced tag for task 5 which had tag "play7" with "play5"
+#           2022-04-20 - Exclude IQ from HANA DB setup tasks
+#           2022-03-28 - Remove play21 for AAS install
+#           2021-10-08 - Updated playbook to deploy SAP Router
+#           2021-07-26 - Updated dp_agent to dpagent
+#           2021-07-19 - Updated playbook in conjunction with spr role refresh
+#           2021-06-21 - Updated playbook to include additional app install
+#           2021-05-11 - Updated playbook to incorporate Phase 2 products
+#           2021-02-22 - Updated playbook to work with new inventory file format
+#           2020-12-30 - Updated playbook to include deployment of s4hana, s4app, adshana, adsapp, and cloudconnector
+#           2020-12-10 - Created playbook
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+#   For the purposes of this playbook, all variables should be set in the inventory file.
+#   Inventory file examples can be found under the spr ansible role vars/business/ directory.
+#
+#   Tags:
+#     play0 always                          : Dynamic group assignment
+#     play1 hostnames hostfiles             : Prepare hostnames and hostfiles
+#     play2 db prerequisites                : Check the db instances for hardware prerequisites
+#     play3 app prerequisites               : Check the app instances for hardware prerequisites
+#     play4 db provision                    : Install and rename databases
+#     play5 db start                        : Start databases
+#     play6 contentserver provision         : Install content server
+#     play7 optimizer provision             : Install and rename optimizer
+#     play8 app abap provision              : Install and rename abap apps
+#     play9 app abap start                  : Start abap apps
+#     play10 app java provision             : Install and rename java apps
+#     play11 app java start                 : Start java apps
+#     play12 webdispatcher provision        : Install and rename webdispatcher
+#     play13 webdispatcher start            : Start webdispatcher
+#     play14 cloudconnector provision start : Install and start cloudconnector
+#     play15 dpagent provision              : Install data provisioning agent
+#     play16 cpids_agent provision          : Install and start cpids agent
+#     play17 sac_agent provision            : Install and start sac agent
+#     play18 hanacockpit provision          : Install and rename hana cockpit
+#     play19 hanacockpit start              : Start hana cockpit
+#     play20 data_services provision        : Install and start data services
+#     play21 router provision               : Install sap router
+#     play22 configure PAS NFS              : Configure exportfs for PAS
+#     play23 configure AAS sapmnt mount     : Mount PAS NFS on AAS servers
+#     play25 BI Platform provision          : Install and start BI Platform
+#     play26 Lumira Server provision        : Install and start BIP for Lumira and Install Lumira Server
+#     playEND always                        : End of playbook
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  vars:
+    repo_enable: true
+    application_preset_selection: ['hana','epel','base']
+  tags:
+  - play0
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+
+
+ # Known edge case when app01 exists and `sap_app_role: "pas"` is set on another instance
+ # (e.g. app11), both app01 and app11 are designated as pas. In this case `pas_server` for aas is unpredictable.
+  - name: "Dynamic Group Assignment for app servers"
+    group_by:
+      key: "{{ item }}"
+    when: inventory_hostname in groups.app
+    loop:
+     - "{%- if (((( inventory_hostname | regex_replace('^.+app(?P<node>\\d\\d).*$', '\\g<node>')) == \"01\" )) and (sap_app_role is undefined)) -%} pas
+            {%- elif sap_app_role is defined and sap_app_role == \"pas\" -%} pas
+            {%- else -%} aas
+            {%- endif -%}"
+
+  - name: Set corresponding PAS server fact on AAS servers
+    set_fact:
+      pas_server: '{{ item }}'
+    loop: "{{ hostvars[inventory_hostname]['groups']['pas'] }}"
+    when:
+      - groups.aas is defined
+      - inventory_hostname in groups.aas
+      - (item | regex_replace('(app\\d\\d)', 'app')) == (inventory_hostname | regex_replace('(app\\d\\d)', 'app'))
+
+  # Check Hostnames for restrictions and Do not execute provisioning if conditions are not met
+  - name: "Check hostnames for Restrictions"
+    any_errors_fatal: true # <-- stop playbook run if any host fails
+    ansible.builtin.assert:
+      that: spr_hostname is search("^[A-Za-z][A-Za-z0-9]*$")
+      success_msg: hostname is valid
+      fail_msg: |
+        The hostname is {{spr_hostname|lower}}.
+        The hostname can contain only English alphanumerical characters (A-Z, a-z, and 0-9) and cannot start with a number.
+        Please choose a different hostname
+    when:
+      - spr_productname | lower == 'bobj_bip' or spr_productname | lower == 'data_services' or spr_productname | lower == 'lumira'
+      - spr_nodetype | lower == 'app'
+
+  # enable yum repos (no new play is defined as engineers used the existing play# for their notes)
+  - name: enable yum repos
+    include_role:
+      name: repository-management
+  # TODO: Move package installation to product-specific tasks
+  # set compat package versions based on OS, without these packages, the runbook will fail
+  - name: Set package compat map
+    set_fact:
+      compat_package_map:
+        RedHat8: compat-sap-c++-11.x86_64
+        RedHat9: compat-sap-c++-12.x86_64
+  - name: Get Specific compat package
+    set_fact:
+      compat_package: "{{ compat_package_map[ansible_distribution + ansible_distribution_major_version] }}"
+  - name: Install required yum packages
+    become: true
+    ansible.builtin.yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - "{{ compat_package }}"
+      - tuned-profiles-sap-hana.noarch
+      - libstdc++.so.6
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Set Hostnames and Host Files"
+  gather_facts: false
+  hosts: all
+  tags:
+  - play1
+  - hostnames
+  - hostfiles
+
+  vars:
+    hotfix_gcp_hostname: false
+  tasks:
+  - name: "Set the host file"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/hostfile-install.yml
+
+  - name: "Set the Hostname"
+    become: true
+    hostname:
+      name: "{{ spr_hostname|lower }}"
+
+  - name: "remove gcp hostname reset shell script"
+    when: hotfix_gcp_hostname|bool
+    become: true
+    shell: rm -rf /etc/dhcp/dhclient.d/google_hostname.sh
+    ignore_errors: true
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: DB Prerequisites"
+  gather_facts: false
+  hosts: db:!contentserver:!iq:!non_spr:!etd
+  tags:
+  - play2
+  - db
+  - prerequisites
+
+  tasks:
+  - name: "S4HANA Prerequisite Check"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: prerequisites/hana-check.yml
+    vars:
+      spr_hana_check_source: "{{ spr_db_source }}"
+      spr_hana_check_file_install_rsp_xml: "{{ spr_file_install_rsp_xml }}"
+      spr_hana_check_file_install_rsp: "{{ spr_file_install_rsp }}"
+      spr_hana_check_saphostagent_source: "{{ spr_saphostagent_source }}"
+      spr_sid_adm: "{{ spr_sid|lower }}adm"
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: App Prerequisites"
+  gather_facts: false
+  hosts: app:!bobj_bip:!cloudconnector:!contentserver:!cpids_agent:!data_services:!dpagent:!lumira:!sac_agent:!sftp_interface:!non_spr:!router
+  tags:
+  - play3
+  - app
+  - prerequisites
+
+  tasks:
+  - name: "App Prerequisite Check"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: prerequisites/app-check.yml
+    vars:
+      spr_app_check_source: "{{ spr_application_source }}"
+      spr_app_check_file_ini_params: "{{ spr_file_ini_params }}"
+      spr_app_check_file_instkey: "{{ spr_file_instkey }}"
+      spr_app_check_file_swpm_sapinst: "{{ spr_file_swpm_sapinst }}"
+      spr_app_check_saphostagent_source: "{{ spr_saphostagent_source }}"
+      spr_sid_adm: "{{ spr_sid|lower }}adm"
+
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: DB Provisioning"
+  gather_facts: false
+  hosts: db:!hanacockpit:!iq:!solman_hdb:!non_spr:!contentserver:!etd
+  tags:
+  - play4
+  - db
+  - provision
+
+  tasks:
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+  - name: "DB Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/hana-install.yml
+    vars:
+      spr_hana_install_source: "{{ spr_db_source }}"
+      spr_hana_file_install_rsp_xml: "{{ spr_file_install_rsp_xml }}"
+      spr_hana_file_install_rsp: "{{ spr_file_install_rsp }}"
+      spr_hana_install_hostname: "{{ spr_hostname|lower }}"
+      spr_hana_install_sid: "{{ spr_sid|upper}}"
+      spr_hana_install_domain: "{{ spr_domain }}"
+      spr_hana_product: "{{ spr_productname|lower}}"
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: DB Start"
+  gather_facts: false
+  hosts: db:!hanacockpit:!iq:!solman_hdb:!non_spr:!contentserver:!etd
+  tags:
+  - play5
+  - db
+  - start
+
+  tasks:
+  - name: "Start DB"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: operations/hana-start.yml
+    vars:
+      spr_hana_start_sid: "{{ spr_sid|upper}}"
+
+#################
+##### Play6 #####
+#################
+- name: "Play6: SAP MaxDB & SAP Content Server Provisioning"
+  gather_facts: false
+  hosts: contentserver
+  tags:
+  - play6
+  - maxdb
+  - contentserver
+  - provisioning
+
+  tasks:
+
+  - name: "Content Server Prerequisite Check"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: prerequisites/maxdb-check.yml
+    vars:
+      spr_maxdb_install_sid: "{{ spr_maxdb_sid|upper }}"
+      spr_maxdb_check_swpm_source: "{{ spr_file_swpm_sapinst }}"
+      spr_maxdb_check_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+  - name: "SAP MaxDB & SAP Content Server Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/content-server-install.yml
+    vars:
+      spr_app_install_file_ini_params: "{{ spr_file_ini_params }}"
+      spr_app_install_file_instkey: "{{ spr_file_instkey }}"
+      spr_app_install_file_swpm_sapinst: "{{ spr_file_swpm_sapinst }}"
+      spr_app_install_hostname: "{{ spr_hostname|lower }}"
+      spr_app_install_domain: "{{ spr_domain }}"
+      spr_app_install_sid: "{{ spr_sid|upper }}"
+      spr_maxdb_install_file_ini_params: "{{ spr_maxdb_file_ini_params }}"
+      spr_maxdb_install_file_instkey: "{{ spr_maxdb_file_instkey }}"
+      spr_maxdb_install_sid: "{{ spr_maxdb_sid|upper }}"
+      spr_app_install_product: "{{ spr_productname | lower }}"
+      spr_db_install_library: "{{ spr_maxdb_install_library }}"
+      spr_db_upgrade_library: "{{ spr_maxdb_upgrade_library }}"
+
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+#################
+##### Play7 #####
+#################
+- name: "Play7: Optimizer Provisioning"
+  gather_facts: false
+  hosts: optimizer
+  tags:
+  - play7
+  - optimizer
+  - provision
+
+  tasks:
+  - name: "Optimizer Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/optimizer-install.yml
+    vars:
+      spr_app_install_source: "{{ spr_application_source }}"
+      spr_app_install_file_ini_params: "{{ spr_file_ini_params }}"
+      spr_app_install_file_instkey: "{{ spr_file_instkey }}"
+      spr_app_install_file_swpm_sapinst: "{{ spr_file_swpm_sapinst }}"
+      spr_app_install_hostname: "{{ spr_hostname|lower }}"
+      spr_app_install_sid: "{{ spr_sid|upper}}"
+      spr_app_install_domain: "{{ spr_domain }}"
+      spr_app_install_product: "{{ spr_productname }}"
+
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+#################
+##### Play8 #####
+#################
+- name: "Play8: App ABAP Provisioning"
+  gather_facts: false
+  hosts: access_control:access_control_s4hana:attp:bw4hana:bw4hana_addons:bw4hana_bpc:bwnetweaver:car:cors:crm:ehp7_erp:ehp8_erp:fiori_carab:fiori_fes:frun:gbtr:gts:gts_ed4hana:payroll:s4hana:s4hana_addons:s4hana_foundation:s4hana_livecache:scm:slt:srm:tm:&app:!aas
+  tags:
+  - play8
+  - app
+  - abap
+  - provision
+  tasks:
+  - name: "App ABAP Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/app-abap-install.yml
+    vars:
+      spr_app_install_source: "{{ spr_application_source }}"
+      spr_app_install_file_ini_params: "{{ spr_file_ini_params }}"
+      spr_app_install_file_instkey: "{{ spr_file_instkey }}"
+      spr_app_install_file_swpm_sapinst: "{{ spr_file_swpm_sapinst }}"
+      spr_app_install_hostname: "{{ spr_hostname|lower }}"
+      spr_app_install_sid: "{{ spr_sid|upper}}"
+      spr_app_install_domain: "{{ spr_domain }}"
+      spr_app_install_db_sid: "{{ spr_db_sid|upper }}"
+      spr_app_install_product: "{{ spr_productname}}"
+      spr_app_install_db_hostname: "{{ spr_db_hostname|lower }}"
+
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+#################
+##### Play9 #####
+#################
+- name: "Play9: App ABAP Start"
+  gather_facts: false
+  hosts: access_control:access_control_s4hana:attp:bw4hana:bw4hana_addons:bw4hana_bpc:bwnetweaver:car:cors:crm:ehp7_erp:ehp8_erp:fiori_carab:fiori_fes:frun:gbtr:gts:gts_ed4hana:payroll:s4hana:s4hana_addons:s4hana_foundation:s4hana_livecache:scm:slt:srm:tm:&app:!aas
+  tags:
+  - play9
+  - app
+  - abap
+  - start
+
+  tasks:
+  - name: "Start App ABAP"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: operations/app-abap-start.yml
+    vars:
+      spr_app_start_sid: "{{ spr_sid|upper}}"
+
+#################
+##### Play10 #####
+#################
+- name: "Play10: App JAVA Provisioning"
+  gather_facts: false
+  hosts: ads:lama_ent_java:mii:nwjava:po:portal:sso:&app:!aas
+  tags:
+  - play10
+  - app
+  - java
+  - provision
+
+  tasks:
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+  - name: "App JAVA Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/app-java-install.yml
+    vars:
+      spr_app_install_source: "{{ spr_application_source }}"
+      spr_app_install_file_ini_params: "{{ spr_file_ini_params }}"
+      spr_app_install_file_instkey: "{{ spr_file_instkey }}"
+      spr_app_install_file_swpm_sapinst: "{{ spr_file_swpm_sapinst }}"
+      spr_app_install_hostname: "{{ spr_hostname|lower }}"
+      spr_app_install_sid: "{{ spr_sid|upper}}"
+      spr_app_install_domain: "{{ spr_domain }}"
+      spr_app_install_db_sid: "{{ spr_db_sid|upper }}"
+      spr_app_install_db_hostname: "{{ spr_db_hostname|lower }}"
+      spr_app_install_product: "{{ spr_productname|lower}}"
+
+#################
+##### Play11 ####
+#################
+- name: "Play11: App JAVA Start"
+  gather_facts: false
+  hosts: ads:lama_ent_java:mii:nwjava:po:portal:sso:&app:!aas
+  tags:
+  - play11
+  - app
+  - java
+  - start
+
+  tasks:
+  - name: "Start App JAVA"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: operations/app-java-start.yml
+    vars:
+      spr_app_start_sid: "{{ spr_sid|upper}}"
+
+#################
+##### Play12 #####
+#################
+- name: "Play12: Webdispatcher Provisioning"
+  gather_facts: false
+  hosts: webdispatcher
+  tags:
+  - play12
+  - webdispatcher
+  - provision
+
+  tasks:
+  - name: "Delete old symlink - libstdc++.so.6"
+    become: true
+    file:
+      state: absent
+      path: '/lib64/libstdc++.so.6'
+
+  - name: "Create Symlink to {{ compat_package | regex_replace('\\..*', '.so') }} from libstdc++.so.6"
+    become: true
+    file:
+      dest: '/lib64/libstdc++.so.6'
+      src: "/opt/rh/SAP/lib64/{{ compat_package | regex_replace('\\..*', '.so') }}"
+      state: link
+
+  - name: "Webdispatcher Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/webdispatcher-install.yml
+    vars:
+      spr_app_install_source: "{{ spr_application_source }}"
+      spr_app_install_file_ini_params: "{{ spr_file_ini_params }}"
+      spr_app_install_file_instkey: "{{ spr_file_instkey }}"
+      spr_app_install_file_swpm_sapinst: "{{ spr_file_swpm_sapinst }}"
+      spr_app_install_hostname: "{{ spr_hostname|lower }}"
+      spr_app_install_sid: "{{ spr_sid|upper}}"
+      spr_app_install_domain: "{{ spr_domain }}"
+      spr_app_install_product: "{{ spr_productname}}"
+
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+#################
+##### Play13 #####
+#################
+- name: "Play13: Webdispatcher Start"
+  gather_facts: false
+  hosts: webdispatcher
+  tags:
+  - play13
+  - webdispatcher
+  - start
+
+  tasks:
+  - name: "HardStart Webdispatcher"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: operations/webdispatcher-hardstart.yml
+    vars:
+      spr_webdispatcher_hardstart_sid: "{{ spr_sid|upper}}"
+
+#################
+##### Play14 #####
+#################
+- name: "Play14: Cloud Connector Install"
+  gather_facts: false
+  hosts: cloudconnector
+  tags:
+  - play14
+  - cloudconnector
+  - provision
+  - start
+
+  tasks:
+  - name: "Install Cloud Connector"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/cloud-connector-install.yml
+    vars:
+      spr_app_install_source: "{{ spr_application_source }}"
+
+#################
+##### Play15 #####
+#################
+- name: "Play15: Data Provisioning Agent Install"
+  gather_facts: false
+  hosts: dpagent
+  tags:
+  - play15
+  - dpagent
+  - provision
+
+  tasks:
+  - name: "Install Data Provisioning Agent"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/data-provisioning-agent-install.yml
+    vars:
+      spr_dpagent_install_source: "{{ spr_application_source }}"
+
+#################
+##### Play16 #####
+#################
+- name: "Play16: CPIDS Agent Install"
+  gather_facts: false
+  hosts: cpids_agent
+  tags:
+  - play16
+  - cpids_agent
+  - provision
+
+  tasks:
+  - name: "Install CPIDS Agent"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/cpids-agent-install.yml
+    vars:
+      spr_app_install_product: "{{ spr_productname }}"
+      spr_app_install_source: "{{ spr_application_source }}"
+      spr_cpids_agent_installation_file_source: "{{ spr_cpids_installation_file_source }}"
+      spr_cpids_agent_executable_source: "{{ spr_cpids_executable_source }}"
+
+#################
+##### Play17 #####
+#################
+- name: "Play17: SAC Agent Install"
+  gather_facts: false
+  hosts: sac_agent
+  tags:
+  - play17
+  - sac_agent
+  - provision
+
+  tasks:
+  - name: "Install SAC Agent"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/sac-agent-install.yml
+    vars:
+      spr_app_install_product: "{{ spr_productname }}"
+      spr_app_install_source: "{{ spr_application_source }}"
+      spr_sapcar_executable_source: "{{ spr_sapcar_source }}"
+
+#################
+##### Play18 #####
+#################
+- name: "Play18: HCP Provisioning"
+  gather_facts: false
+  hosts: hanacockpit
+  tags:
+  - play18
+  - hanacockpit
+  - provision
+
+  tasks:
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+  - name: "hanacockpit Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/hanacockpit-install.yml
+    vars:
+      spr_hana_install_source: "{{ spr_db_source }}"
+      spr_hana_file_install_rsp_xml: "{{ spr_file_install_rsp_xml }}"
+      spr_hana_file_install_rsp: "{{ spr_file_install_rsp }}"
+      spr_hana_install_hostname: "{{ spr_hostname|lower }}"
+      spr_hana_install_sid: "{{ spr_sid|upper}}"
+      spr_hana_install_domain: "{{ spr_domain }}"
+      spr_hana_product: "{{ spr_productname|lower}}"
+
+#################
+##### Play19 #####
+#################
+- name: "Play19: HCP Start"
+  gather_facts: false
+  hosts: hanacockpit
+  tags:
+  - play19
+  - hanacockpit
+  - start
+
+  tasks:
+  - name: "Start HCP"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: operations/hana-start.yml
+    vars:
+      spr_hana_start_sid: "{{ spr_sid|upper}}"
+
+#################
+##### Play20 #####
+#################
+- name: "Play20: SAP Data Services Provisioning"
+  gather_facts: false
+  hosts: data_services:&app
+  tags:
+  - play20
+  - data_services
+  - provision
+
+  tasks:
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+  - name: "Data Services Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/data-services-install.yml
+    vars:
+      spr_app_install_file_ini_params_ips: "{{ spr_file_ini_params_ips }}"
+      spr_app_install_file_ini_params_data_services: "{{ spr_file_ini_params_data_services }}"
+      spr_app_install_file_ini_params_information_steward: "{{ spr_file_ini_params_information_steward }}"
+      spr_app_install_hdbclient_source: "{{ spr_hdbclient_source_data_services }}"
+      spr_app_install_hostname: "{{ spr_hostname|lower }}"
+      spr_app_install_sid: "{{ spr_sid|upper}}"
+      spr_app_install_domain: "{{ spr_domain }}"
+      spr_app_install_product: "{{ spr_productname|lower}}"
+      spr_app_install_db_hostname: "{{ spr_db_hostname|lower }}"
+      spr_app_install_file_ips_setup_sh: "{{ spr_file_ips_setup_sh }}"
+      spr_app_install_file_data_service_setup_sh: "{{ spr_file_data_services_setup_sh }}"
+      spr_app_install_file_information_steward_setup_sh: "{{ spr_file_information_steward_setup_sh }}"
+      spr_app_install_productkey_ips: "{{ spr_productkey_ips }}"
+      spr_app_install_productkey_data_services: "{{ spr_productkey_data_services }}"
+      spr_app_install_productkey_information_steward: "{{ spr_productkey_information_steward }}"
+
+#################
+##### Play21 #####
+#################
+- name: "Play21: SAP Router Install"
+  gather_facts: false
+  hosts: router
+  tags:
+  - play21
+  - router
+  - provision
+
+  tasks:
+  - name: "Install SAP Router"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/router-install.yml
+    vars:
+      spr_app_install_source: "{{ spr_application_source }}"
+      spr_sapcar_executable_source: "{{ spr_sapcar_source }}"
+
+##################
+##### Play22 #####
+##################
+- name: "Play22 Configure exportfs for PAS"
+  hosts: pas:!bobj_bip:!contentserver:!lumira:!data_services
+  gather_facts: false
+  tags:
+  - play22
+
+  tasks:
+  - name: Update the /sapmnt entry in /etc/exports on the PAS
+    become: true
+    lineinfile:
+      path: '/etc/exports'
+      line: /sapmnt {{ hostvars[ item ].spr_hostname | lower }}(rw,no_root_squash)
+    loop: "{{ hostvars[inventory_hostname]['groups']['aas'] }}"
+    when:
+      - groups.aas is defined
+      - (item | regex_replace('(app\\d\\d)', 'app')) == (inventory_hostname | regex_replace('(app\\d\\d)', 'app'))
+
+  - name: Check if file is empty
+    stat:
+      path: /etc/exports
+    register: exp
+
+  - name: Enable NFS exports
+    become: true
+    service:
+      name: nfs-server
+      state: started
+      enabled: yes
+    when: exp.stat.size != 0
+
+  - name: Reload NFS exports
+    become: true
+    shell: 'exportfs -ra'
+    when: exp.stat.size != 0
+
+  - name: Validate NFS exports
+    become: true
+    shell: 'showmount -e'
+    register: result
+    when: exp.stat.size != 0
+
+  - name: Print Result
+    debug: var=result.stdout_lines
+    when: exp.stat.size != 0
+
+##################
+##### Play23 #####
+##################
+- name: "Play23 Mount PAS NFS on AAS servers"
+  hosts: aas:!bobj_bip:!contentserver:!lumira:!data_services
+  gather_facts: false
+  tags:
+  - play23
+
+  tasks:
+  - name: Update the /sapmnt entry in /etc/fstab on the AAS
+    become: true
+    lineinfile:
+      path: '/etc/fstab'
+      line: "{{ hostvars[ item ].spr_hostname|lower }}:/sapmnt /sapmnt nfs4 nfsvers=4.1 0 0"
+    loop: "{{ hostvars[inventory_hostname]['groups']['pas'] }}"
+    when: (item | regex_replace('(app\\d\\d)', 'app')) == (inventory_hostname | regex_replace('(app\\d\\d)', 'app'))
+
+  - name: Ensure mount point exists for /sapmnt on the AAS
+    become: true
+    file:
+      path: '/sapmnt'
+      state: directory
+
+  - name: Mount /sapmnt
+    become: true
+    shell: mount /sapmnt
+
+##################
+##### Play24 #####
+##################
+- name: "Play24 JAVA AAS Provisioning"
+  hosts: ads:!bobj_bip:!contentserver:!data_services:!lumira:mii:nwjava:po:portal:sso:&app
+  gather_facts: false
+  tags:
+  - play24
+
+  tasks:
+  - name: Set g00adm user ID for PAS
+    when: inventory_hostname in groups.pas
+    vars:
+      spr_sid_user: "{{ spr_sid | lower }}adm"
+    block:
+      - name: Get g00adm UID from PAS
+        getent:
+          database: passwd
+          key: "{{ spr_sid_user }}"
+      - set_fact:
+          sid_uid: "{{ getent_passwd[spr_sid_user][1] }}"
+
+  - name: set PAS sidadm UID for each AAS
+    set_fact:
+      pas_sid_uid: "{{ hostvars[ pas_server ].sid_uid }}"
+    when:
+      - groups.aas is defined
+      - inventory_hostname in groups.aas
+
+  - name: Run aas-install play
+    include_role:
+      name: spr
+      tasks_from: provisioning/aas-install.yml
+    vars:
+      spr_pas_sid: "{{ hostvars[ pas_server ].spr_sid | lower }}"
+      spr_pas_hostname: "{{ hostvars[ pas_server ].spr_hostname | lower }}"
+      spr_aas_install_folder: "{{ spr_aas_source }}"
+      spr_pas_sid_uid: "{{ pas_sid_uid }}"
+      spr_aas_sid: "{{ spr_sid }}"
+    when:
+      - groups.aas is defined
+      - inventory_hostname in groups.aas
+
+
+#################
+##### Play25 #####
+#################
+- name: "Play25: SAP BOBJ BI Platform Provisioning"
+  gather_facts: false
+  hosts: bobj_bip:&app
+  tags:
+  - play25
+  - bobj_bip
+  - provision
+
+  tasks:
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+  - name: "SAP BOBJ BI Platform Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/bobj-bip-install.yml
+    vars:
+      spr_app_install_file_ini_params_bip: "{{ spr_file_ini_params_bip }}"
+      spr_app_install_hdbclient_source: "{{ spr_hdbclient_source_bip }}"
+      spr_app_install_hostname: "{{ spr_hostname|lower }}"
+      spr_app_install_sid: "{{ spr_sid|upper}}"
+      spr_app_install_domain: "{{ spr_domain }}"
+      spr_app_install_product: "{{ spr_productname|lower}}"
+      spr_app_install_db_hostname: "{{ spr_db_hostname|lower }}"
+      spr_app_install_file_bip_setup_sh: "{{ spr_file_bip_setup_sh }}"
+      spr_app_install_productkey_bip: "{{ spr_productkey_bip }}"
+
+#################
+##### Play26 #####
+#################
+- name: "Play26: SAP Lumira Provisioning"
+  gather_facts: false
+  hosts: lumira:&app
+  tags:
+  - play26
+  - lumira
+  - provision
+
+  tasks:
+  - name: "SAP Host Agent Install"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+  - name: "SAP BOBJ BI Platform Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/bobj-bip-install.yml
+    vars:
+      spr_app_install_file_ini_params_bip: "{{ spr_file_ini_params_bip }}"
+      spr_app_install_hdbclient_source: "{{ spr_hdbclient_source_bip }}"
+      spr_app_install_hostname: "{{ spr_hostname|lower }}"
+      spr_app_install_sid: "{{ spr_sid|upper}}"
+      spr_app_install_domain: "{{ spr_domain }}"
+      spr_app_install_product: "{{ spr_productname|lower}}"
+      spr_app_install_db_hostname: "{{ spr_db_hostname|lower }}"
+      spr_app_install_file_bip_setup_sh: "{{ spr_file_bip_setup_sh }}"
+      spr_app_install_productkey_bip: "{{ spr_productkey_bip }}"
+    when:
+      - spr_app_role|lower == 'bip' # TODO: Should we change this var name
+
+  - name: "SAP Lumira Server Provisioning"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/lumira-install.yml
+    vars:
+      spr_app_install_file_ini_params_bip4lumira: "{{ spr_file_ini_params_bip4lumira }}"
+      spr_app_install_file_ini_params_lumira: "{{ spr_file_ini_params_lumira }}"
+      spr_app_install_hostname: "{{ spr_hostname|lower }}"
+      spr_app_install_hostname_bip: "{{ spr_hostname_bip|lower }}"
+      spr_app_install_sid: "{{ spr_sid|upper}}"
+      spr_app_install_domain: "{{ spr_domain }}"
+      spr_app_install_product: "{{ spr_productname|lower}}"
+      spr_app_install_file_bip_setup_sh: "{{ spr_file_bip_setup_sh }}"
+      spr_app_install_file_lumira_setup_sh: "{{ spr_file_lumira_setup_sh }}"
+      spr_app_install_productkey_bip: "{{ spr_productkey_bip }}"
+    when:
+      - spr_app_role|lower == 'lumira' # TODO: Should we change this var name
+      - spr_hostname_bip is defined
+
+#################
+##### Play27 #####
+#################
+- name: "Play27: ETD_HDB Prerequisites"
+  gather_facts: false
+  hosts: etd
+  tags:
+  - play27
+  - etd
+  - prerequisites
+
+  tasks:
+  - name: "ETD_HDB Prerequisite Check"
+    ansible.builtin.include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: prerequisites/hana-check.yml
+    vars:
+      spr_hana_check_source: "{{ spr_db_source }}"
+      spr_hana_check_file_install_rsp_xml: "{{ spr_file_install_rsp_xml }}"
+      spr_hana_check_file_install_rsp: "{{ spr_file_install_rsp }}"
+      spr_hana_check_saphostagent_source: "{{ spr_saphostagent_source }}"
+      spr_sid_adm: "{{ spr_sid|lower }}adm"
+
+
+#################
+##### Play28 #####
+#################
+- name: "Play28: ETD_HDB Provisioning"
+  gather_facts: false
+  hosts: etd
+  tags:
+  - play28
+  - etd
+  - provision
+
+  tasks:
+  - name: "SAP Host Agent Install"
+    ansible.builtin.include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/saphostagent-install.yml
+    vars:
+      spr_saphostagent_install_saphostagent_source: "{{ spr_saphostagent_source }}"
+
+  - name: "ETD_HDB Provisioning"
+    ansible.builtin.include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/etd-install.yml
+    vars:
+      spr_hana_install_source: "{{ spr_db_source }}"
+      spr_hana_file_install_rsp_xml: "{{ spr_file_install_rsp_xml }}"
+      spr_hana_file_install_rsp: "{{ spr_file_install_rsp }}"
+      spr_hana_install_hostname: "{{ spr_hostname|lower }}"
+      spr_hana_install_sid: "{{ spr_sid|upper}}"
+      spr_hana_install_etd_tenant_sid: "{{ spr_etd_tenant_sid|upper }}"
+      spr_hana_install_domain: "{{ spr_domain }}"
+      spr_hana_product: "{{ spr_productname }}"
+
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

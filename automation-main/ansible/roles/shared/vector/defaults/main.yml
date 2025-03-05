@@ -1,0 +1,27 @@
+---
+ns2_azure_activity_event_hub_connection_string: ''
+ns2_azure_activity_event_hub_endpoint: ''
+ns2_azure_activity_event_hub_topic_prefix: ''
+vector_gcp_project_logs_pubsub_subscription: ''
+vector_gcp_cross_project_logging: []
+vector_aggregator_sink_address: ''
+vector_aws_access_key_id: ''
+vector_aws_secret_access_key: ''
+vector_azure_blob_storage_connection_string: ''
+vector_azure_blob_storage_container_name: ''
+vector_ca_root: ''
+vector_certificate: ''
+vector_default_splunk_index: ''
+vector_deployment_type: agent
+vector_private_key: ''
+vector_s3_binaries_url: ''
+vector_sink_azure_storage: false
+vector_sink_firehose: false
+vector_sink_gcp_logging: false
+vector_splunk_index_override: ''
+vector_splunk_index_prefix_override: ''
+vector_splunk_logs_kinesis_region: ''
+vector_splunk_logs_kinesis_stream_name: ''
+vector_tls_cert_key_pass: ''
+vector_version: ''
+...

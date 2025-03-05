@@ -1,0 +1,306 @@
+---
+# Playbook Name: ibp-operations-upgrade.yml
+# Synopsis: Upgrades IBP systems
+# Description:
+#     This playbook is designed to run on an ibp bastion using ibp inventory files.
+#     It will run necessary stop/start commands on required services, read the "upgrade scope file" and upgrade systems accordingly.
+#
+# Prerequisites:
+#   - access to IBP bastion with staging EFS mounted
+#   - IBP upgrade folder on staging with appropriate upgrade-scope.yml file
+#   - Ansible v2.9+
+#   - AWS CLI v1.16+
+#   - sudo capability or root privileges on target machines
+# Dependencies:
+#   - ibp ansible role
+# Variables:
+#   - sid (provided by ansible inventory hostfile)
+#   - hana_system_password: Updated system password on target machines, (leave blank to use default)
+#   - upgrade_scope_file: Path to the upgrade scope file.
+#
+# Example:
+#   Execution on remote systems using the ibp inventory host template from bastion
+#     ansible-playbook ibp-operations-upgrade.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>'
+#
+# Example
+#   Execution on a single instance with ip address of 192.168.1.1
+#     ansible-playbook ibp-operations-softstop.yml -k -i /tmp/hosts -l 192.168.1.1
+#
+# Example
+#   Execution on a single landscape 'production'
+#     ansible-playbook ibp-operations-softstop.yml -k -i /tmp/hosts -l production
+#
+# Example
+#   Execution on landscapes 'staging' and 'test'
+#     ansible-playbook ibp-operations-softstop.yml -k -i /tmp/hosts -l "staging,test"
+#
+# Authors: Louis Lee
+# Version: 2.9-000002
+# Modified: 2020-05-27 - Created playbook
+#           2020-06-23 - Merged ibp-provision and ibp-operations roles to ibp role
+# Comments: |
+# - This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+# - Requires staging to be mounted on bastion
+#
+# - Play Tags:
+#     play0 always : Performs metadata and variable gathering
+#     play1 start-hana stop-app upgrade-ibpdb upgrade-ibpapp : Ensures the ibpdb is up and ibpapp is down.
+#     play2 upgrade-ibpdb upgrade-ibpapp : Run HANA upgrade tasks and restarts the HANA server
+#     play3 upgrade-ibpapp : Run SAPApp upgrade tasks and restarts ibpapp
+#     play-end always the-end: marks end of playbook
+
+#
+# - Requested features:
+#   - Ability to do multiple customers at the same time
+#   - Ability to toggle on and off specific landscapes (production, development, etc)
+#     - We can probably do this by assigning an "upgrade group in play0"
+
+#################
+##### Play0 #####
+#################
+- name: "Play0"
+  hosts: localhost
+  connection: local
+  any_errors_fatal: true
+  tags:
+    - play0
+    - always
+
+  vars_prompt:
+    - name: hana_system_password
+      prompt: 'Password for the hana system. Leave blank for system default'
+      private: yes
+      default: ''
+
+    - name: upgrade_scope_file
+      prompt: 'Path to the upgrade file'
+      private: no
+      default: '/staging/ibp/Upgrade/[Release]-HFC[XX]-EP[NN]/upgrade_scope.yml'
+
+  pre_tasks:
+  - name: "Make sure we're running on the bastion"
+    assert:
+      that: "'bastion-' in ansible_hostname"
+      fail_msg: "This playbook must be run from IBP bastion"
+      success_msg: "Confirmed runninng ansible on the bastion"
+
+  - name: "Get file stats on {{ upgrade_scope_file }}"
+    stat:
+      path: "{{ upgrade_scope_file }}"
+    register: upgrade_scope_stat_output
+
+  - name: "Validate upgrade_scope exists"
+    assert:
+      that: upgrade_scope_stat_output.stat.exists|bool and upgrade_scope_stat_output.stat.size > 1
+      fail_msg: "{{ upgrade_scope_file }} not found or is empty. Stopping upgrade"
+      success_msg: "{{ upgrade_scope_file }} found, reading in values"
+
+  - name: "Import variables from {{ upgrade_scope_file }}"
+    include_vars:
+      file: "{{ upgrade_scope_file }}"
+      name: 'upgrade_vars'
+
+  - name: "Retrieve default passwords"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/defaults-decrypt.yml
+    when: "hana_system_password|count == 0"
+
+  - name: "Save system password"
+    set_fact:
+      hana_system_password: "{{ ibp_defaults.credentials.master_password }}"
+    no_log: true
+    when: "hana_system_password|count == 0"
+
+  - name: "Save vars"
+    add_host:
+      name: var_host
+      upgrade_vars: "{{ upgrade_vars }}"
+      hana_system_password: "{{ hana_system_password }}"
+    no_log: true
+
+### Future scope: - name: "Create upgrade groups here"
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Stop IBP App, Start IBP DB"
+  hosts: ibpapp:ibpdb
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play1
+    - start-hana
+    - stop-app
+    - upgrade-ibpdb
+    - upgrade-ibpapp
+
+  tasks:
+  - name: "Ensure App is stopped"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-softstop.yml
+    when: "'ibpapp' in group_names"
+
+  - name: "Ensure DB is (hard)started"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-hardstart.yml
+    when: "'ibpdb' in group_names"
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Run HANA upgrade tasks"
+  hosts: ibpdb
+  gather_facts: true
+  any_errors_fatal: true
+  tags:
+    - play2
+    - upgrade-ibpdb
+    - upgrade-ibpapp
+
+  pre_tasks:
+  - name: "Create hdbuserstore keys for SYSTEMDB-ADMIN"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hdbkey-create.yml
+    vars:
+      - hdbkey_create_keyname: 'SYSTEMDB-ADMIN'
+      - hdbkey_create_envs: "{{ ansible_hostname }}:30213"
+      - hdbkey_create_user: 'SYSTEM'
+      - hdbkey_create_password: "{{ hostvars['var_host'].hana_system_password }}"
+      - hdbkey_create_sid: "{{ sid|lower }}"
+      - hdbkey_create_force: 'false'
+    when: |
+      hostvars['var_host'].upgrade_vars.hdb_logging_off|bool or
+      hostvars['var_host'].upgrade_vars.hdb_parameters|bool
+
+  - name: "Create hdbuserstore keys for TENANTDB-ADMIN"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hdbkey-create.yml
+    vars:
+      - hdbkey_create_keyname: 'TENANTDB-ADMIN'
+      - hdbkey_create_envs: "{{ ansible_hostname }}:30213@{{ sid|lower }}"
+      - hdbkey_create_user: 'SYSTEM'
+      - hdbkey_create_password: "{{ hostvars['var_host'].hana_system_password }}"
+      - hdbkey_create_sid: "{{ sid|lower }}"
+      - hdbkey_create_force: 'false'
+    when: |
+      hostvars['var_host'].upgrade_vars.hdb_logging_off|bool or
+      hostvars['var_host'].upgrade_vars.hdb_parameters|bool
+
+  tasks:
+  - name: "Upgrade Hana"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: upgrades/hana-server-upgrade.yml
+    vars:
+      hana_upgrade_source: "{{ hostvars['var_host'].upgrade_vars.hdb_upgrade_source }}"
+      hana_upgrade_password: "{{ hostvars['var_host'].hana_system_password }}"
+      hana_upgrade_target_hana_afl_sp: "{{ hostvars['var_host'].upgrade_vars.hana_afl_sp_level }}"
+      hana_upgrade_target_hana_afl_patch: "{{ hostvars['var_host'].upgrade_vars.hana_afl_patch_level }}"
+      hana_upgrade_target_sapibpafl_sp: "{{ hostvars['var_host'].upgrade_vars.sapibpafl_sp_level }}"
+      hana_upgrade_target_sapibpafl_patch: "{{ hostvars['var_host'].upgrade_vars.sapibpafl_patch_level }}"
+    when: "hostvars['var_host'].upgrade_vars.hdb_upgrade|bool"
+
+  - name: "Upgrade Saphostagent"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: upgrades/saphostagent-upgrade.yml
+    vars:
+      saphostagent_upgrade_source: "{{ hostvars['var_host'].upgrade_vars.saphostagent_source }}"
+      saphostagent_upgrade_patch_target: "{{ hostvars['var_host'].upgrade_vars.saphostagent_patch_level }}"
+    when: "hostvars['var_host'].upgrade_vars.hdb_saphostagent|bool"
+
+  - name: "Turn off HANA logging"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-logging-off.yml
+    vars:
+      hana_logging_off_sqlcmd_folder: "{{ hostvars['var_host'].upgrade_vars.sqlcmd_folder }}"
+    when: "hostvars['var_host'].upgrade_vars.hdb_logging_off|bool"
+
+  - name: "Stop Hana"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-softstop.yml
+
+  - name: "Start Hana"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-softstart.yml
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Run SAPApp upgrade tasks"
+  hosts: ibpapp
+  any_errors_fatal: true
+  tags:
+    - play3
+    - upgrade-ibpapp
+
+  tasks:
+  - name: "Upgrade SAP Host Agent"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: upgrades/saphostagent-upgrade.yml
+    vars:
+      saphostagent_upgrade_source: "{{ hostvars['var_host'].upgrade_vars.saphostagent_source }}"
+      saphostagent_upgrade_patch_target: "{{ hostvars['var_host'].upgrade_vars.saphostagent_patch_level }}"
+    when: "hostvars['var_host'].upgrade_vars.app_saphostagent|bool"
+
+  - name: "Upgrade HDB client"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: upgrades/sapapp-client-upgrade.yml
+    vars:
+      sapapp_client_upgrade_source: "{{ hostvars['var_host'].upgrade_vars.app_upgrade_source }}"
+    when: "hostvars['var_host'].upgrade_vars.app_client|bool"
+
+  - name: "Update stack.xml"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: upgrades/sapapp-stackxml-update.yml
+    vars:
+      sapapp_stackxml_update_source: "{{ hostvars['var_host'].upgrade_vars.abap_stack_source }}"
+    when: "hostvars['var_host'].upgrade_vars.abap_stack_xml|bool"
+
+  - name: "Start SAPApp"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-softstart.yml
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    debug:
+      msg: "Of the world as we know it"
+...

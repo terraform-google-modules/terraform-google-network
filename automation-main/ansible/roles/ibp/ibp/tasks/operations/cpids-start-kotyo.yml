@@ -1,0 +1,72 @@
+
+# Start Kotyo
+- name: Start Kotyo
+  become: true
+  environment:
+    JAVA_HOME: '/usr/sap/dsod_package/sapmachine-jdk'
+    PATH: '/usr/sap/dsod_package/sapmachine-jdk/bin:.:/usr/local/sbin:/usr/local/bin:{{ ansible_env.PATH }}:/root/bin'
+  shell: 'nohup ./startup.sh &'
+  args:
+    chdir: /usr/sap/dsod_package/kotyo/bin
+  register: kotyo_start_output
+
+- name: Display Kotyo Start Output
+  debug:
+    var: kotyo_start_output.stdout_lines
+
+# Start ActiveMQ
+- name: Test ActiveMQ URI http://127.0.0.1:8161
+  uri:
+    url: "http://127.0.0.1:8161"
+  failed_when: false
+  register: results_activemq_uri
+
+- name: Check if ActiveMQ is up.
+  assert:
+    that: results_activemq_uri.status == 200
+    fail_msg: ActiveMQ URI is not up, starting in next block
+    success_msg: ActiveMQ URI is up, skipping next block
+  changed_when: false
+  failed_when: false
+
+- name: "Block: Start ActiveMQ"
+  when: results_activemq_uri.status != 200
+  become: true
+  block:
+  - name: "Update ActiveMQ credentials.properties values"
+    ini_file:
+      path: "/usr/sap/dsod_package/activemq/conf/credentials.properties"
+      create: no
+      section: null
+      option: "{{ item.name }}"
+      value: '{{ item.value }}'
+      no_extra_spaces: true
+    loop_control:
+      label: "Modifying value of {{ item.name }} to {{ item.value }} in /usr/sap/dsod_package/activemq/conf/credentials.properties"
+    loop:
+      - { name: 'jdbc.host', value: '{{ cpids_hostname }}' }
+    become: true
+
+  - name: Start ActiveMQ
+    shell: nohup /usr/sap/dsod_package/activemq/bin/activemq-admin start &
+    environment:
+      JAVA_HOME: '/usr/sap/dsod_package/sapmachine-jdk'
+      PATH: '/usr/sap/dsod_package/sapmachine-jdk/bin:.:/usr/local/sbin:/usr/local/bin:{{ ansible_env.PATH }}:/root/bin'
+
+  - name: Test ActiveMQ URI http://127.0.0.1:8161 Post Start
+    uri:
+      url: "http://127.0.0.1:8161"
+      return_content: yes
+    register: results_activemq_uri_poststart
+    retries: 6
+    delay: 5
+    until: results_activemq_uri_poststart.status == 200
+
+  - name: "Validate ActiveMQ Start"
+    assert:
+      that: results_activemq_uri_poststart.status == 200
+      fail_msg: |
+        ActiveMQ did not start
+         {{ results_activemq_uri_poststart.content }}
+      success_msg: ActiveMQ Started
+  # End "Block: Stop ActiveMQ"

@@ -1,0 +1,47 @@
+---
+# Synopsis: Disables FIPS on RHEL 7
+# Inputs:
+#   - initrd_file_path
+#   - boot_uuid
+
+  - name: Remove fips packages
+    yum:
+      name: dracut-fips*
+      state: absent
+    become: true
+
+  - name: Delete initramfs
+    file:
+      name: '{{initrd_file_path}}'
+      state: absent
+    become: true
+
+  - name: Run dracut
+    shell: dracut
+    become: true
+
+  - name: Remove boot parameter with UUID in /etc/default/grub
+    lineinfile:
+      dest: /etc/default/grub
+      state: present
+      backrefs: yes
+      regexp: ^GRUB_CMDLINE_LINUX=(.*?)boot=UUID={{boot_uuid}}(.*)
+      line: GRUB_CMDLINE_LINUX=\1\2
+    become: true
+
+  - name: Disable fips in /etc/default/grub
+    lineinfile:
+      dest: /etc/default/grub
+      state: present
+      backrefs: yes
+      regexp: ^GRUB_CMDLINE_LINUX=(.*?)fips=1(.*)
+      line: GRUB_CMDLINE_LINUX=\1\2
+    become: true
+
+  - name: Update kernel to remove fips and uuid
+    shell: grubby --update-kernel=ALL --remove-args={{item}}
+    become: true
+    loop:
+      - fips=1
+      - boot=UUID={{boot_uuid}}
+...

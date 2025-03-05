@@ -1,0 +1,34 @@
+---
+# Synopsis: Removes ClamAV from the system.
+# Inputs:
+#   - N/A
+#
+# Outputs:
+#   - Removes ClamAV from the system.
+
+  - name: Remove the ClamAV scripts and its directory
+    ansible.builtin.file:
+      path: /usr/share/clamav
+      state: absent
+    become: true
+
+  - name: Remove the clamav package and its dependencies
+    ansible.builtin.package:
+      name:
+        - clamav
+        - clamav-update
+      state: absent
+    become: true
+
+  - name: Remove ClamAV database refresh from cron
+    ansible.builtin.cron:
+      name: Refresh clamscan database
+      state: absent
+    become: true
+
+  - name: Remove ClamAV scan from cron
+    ansible.builtin.cron:
+      name: Conduct malware scan using clamscan
+      state: absent
+    become: true
+...

@@ -1,0 +1,75 @@
+---
+# Synopsis: This playbook will retrieve a temporary Hashicorp Vault token used for authentication, it will first check if the local system has any vault credentials before retrieving the token from Vault.
+# Inputs:
+#   - vault_address: This is the IP address of the vault server
+#   - vault_engine_aws: the name of the AWS secrets engine to leverage in Vault
+# Outputs: A valid temporary vault token that can be used to retrieve secrets.
+
+  - name: Determine whether source host is in AWS
+    uri:
+      url: http://169.254.169.254/latest/meta-data
+      timeout: 2
+    register: aws_check_output
+    failed_when: false
+
+  - name: Fail check that instance is in fact in AWS when attempting to leverage IAM authentication
+    fail:
+      msg: '[ERROR]: No vault-token passed. Source host is also not in AWS to attempt to leverage AWS IAM authentication.'
+    when: aws_check_output.status | int != 200
+
+  - name: Get EC2 Instance Metadata
+    ec2_metadata_facts:
+
+  - name: Update fact if does not match the region
+    set_fact:
+      ansible_ec2_placement_region: '{{ replace_ansible_ec2_placement_region }}'
+    when: >
+      replace_ansible_ec2_placement_region is defined and
+      replace_ansible_ec2_placement_region is not none and
+      replace_ansible_ec2_placement_region | length > 0
+
+  - name: Get EC2 Instance ID
+    ec2_instance_info:
+      instance_ids: '{{ ansible_ec2_instance_id }}'
+      region: '{{ ansible_ec2_placement_region }}'
+    register: instance_data
+
+  - name: Get EC2 Instance Profile Association
+    shell: |
+      /usr/local/bin/aws ec2 describe-iam-instance-profile-associations \
+        --filter "Name=instance-id,Values={{ ansible_ec2_instance_id }}"
+    register: iam_profile_association
+
+  - name: Get current instance role arn
+    set_fact:
+      instance_role_arn: '{{ (iam_profile_association.stdout | from_json).IamInstanceProfileAssociations[-1].IamInstanceProfile.Arn }}'
+
+  - name: Extract instance role name from role arn
+    set_fact:
+      instance_role_name: "{{ instance_role_arn.split('/')[-1] }}"
+
+  - name: Obtain vault nonce value for current instance role
+    shell: |
+      curl -s {{ '-k' if (vault_ssl_verify | bool) else '' }} -X POST "{{ vault_address }}/v1/auth/{{ vault_engine_aws }}/login" \
+        -d '{"role":"{{ instance_role_name }}","pkcs7":"'$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')'"}' | grep -Po '"nonce": *\K"[^"]*"' | tr -d \"
+    register: vault_nonce
+
+  - name: Insert nonce value into ~/.vault-nonce file
+    copy:
+      dest: ~/.vault-nonce
+      content: '{{ vault_nonce.stdout }}'
+
+# TODO: convert this shell into a URI module to enable --check runs to not fail
+  - name: Obtain vault token for current instance role
+    shell: |
+      curl -s {{ '-k' if (vault_ssl_verify | bool == false) else '' }} -X POST "{{ vault_address }}/v1/auth/{{ vault_engine_aws }}/login" \
+        -d '{"role":"{{ instance_role_name }}","pkcs7":"'$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 | tr -d '\n')'","nonce":"'$(cat ~/.vault-nonce)'"}' | grep -Po '"client_token": *\K"[^"]*"' | tr -d \"
+    register: vault_token_output
+    no_log: true
+
+  - name: Set vault token and address from AWS metadata
+    set_fact:
+      vault_token: '{{ vault_token_output.stdout }}'
+    no_log: true
+    when: vault_token_output is changed
+...

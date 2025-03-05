@@ -1,0 +1,19 @@
+---
+tests:
+  - name: sap.work.available::1
+    inputs:
+      - insert_at: work_available_metadata
+        type: log
+        log_fields:
+          message: |
+            Unavailable 26.01.2021 18:29:54 - 28.01.2021 20:11:55
+    outputs:
+      - extract_from: sap_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2021-01-29T04:11:55Z", to_string!(.timestamp), "timestamp parsing incorrect")
+              assert_eq!("Unavailable", .fields.status, "status parsing incorrect")
+              assert_eq!("/usr/sap/work/available", .metadata.custom.log_group, "incorrect log group")
+...

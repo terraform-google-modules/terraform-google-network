@@ -1,0 +1,38 @@
+---
+  - name: Get tags for current instances
+    amazon.aws.ec2_tag_info:
+      region: '{{ ansible_ec2_instance_identity_document_region }}'
+      resource: '{{ ansible_ec2_instance_id }}'
+    register: telegraf_ec2_instance_tags
+
+  - name: Additional environment variables
+    set_fact:
+      telegraf_additional_environment_variables:
+        NS2_VM_NAME: "{{ telegraf_ec2_instance_tags['tags'].get('Name', 'NAME-MISSING') }}"
+        NS2_AWS_PARTITION: '{{ ansible_ec2_services_partition }}'
+        NS2_AWS_REGION: '{{ ansible_ec2_placement_region }}'
+        NS2_AWS_AVAILABILITY_ZONE: '{{ ansible_ec2_placement_availability_zone }}'
+        NS2_AWS_TAGS: "{{ telegraf_ec2_instance_tags['tags'].items() | map('join', ':') | join(';') }}"
+        NS2_AWS_TAGS_LIST: "{{ telegraf_ec2_instance_tags['tags'] | to_json }}"
+        NS2_AWS_VM_ID: '{{ ansible_ec2_instance_id }}'
+        NS2_AWS_VM_TYPE: '{{ ansible_ec2_instance_type }}'
+        NS2_AWS_IMAGE_ID: "{{ ansible_ec2_ami_id | default('AMI-UNKNOWN') }}"
+
+        NS2_IP_ADDRESSES: "{{ [ansible_ec2_local_ipv4 | default(''), ansible_ec2_ipv6 | default(''), ansible_ec2_public_ipv4 | default('')] | select() |\
+          \ list | join(',') }}"
+        NS2_CLOUD_PROVIDER: aws
+
+        NS2_TAG_NAME: "{{ telegraf_ec2_instance_tags['tags'].get('Name', '') }}"
+        NS2_TAG_PRODUCT_NAME: "{{ telegraf_ec2_instance_tags['tags'].get('ProductName', '') }}"
+        NS2_TAG_CNAMES: "{{ telegraf_ec2_instance_tags['tags'].get('cnames', '') }}"
+        NS2_TAG_IMAGE: "{{ telegraf_ec2_instance_tags['tags'].get('Image', '') }}"
+        NS2_TAG_DOMAIN: "{{ telegraf_ec2_instance_tags['tags'].get('Domain', '') }}"
+        NS2_TAG_BUSINESS: "{{ telegraf_ec2_instance_tags['tags'].get('Business', '') }}"
+        NS2_TAG_ENVIRONMENT: "{{ telegraf_ec2_instance_tags['tags'].get('Environment', '') }}"
+        NS2_TAG_CUSTOMER: "{{ telegraf_ec2_instance_tags['tags'].get('Customer', '') }}"
+
+  - name: Set some variables for templating use
+    set_fact:
+      telegraf_hyperscaler: aws
+      telegraf_hyperscaler_aws: true
+...

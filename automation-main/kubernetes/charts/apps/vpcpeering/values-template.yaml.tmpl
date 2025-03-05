@@ -1,0 +1,20 @@
+{{ $envConfig := (datasource "envConfig")  }}
+# Shoot VPC information
+region: {{ .Env.region }}
+shootProjectName: {{ .Env.projectName }}
+shootClusterName: {{ $envConfig.shootName }}
+shootVpcId: {{ .Env.shootVpcId }}
+shootCidrBlock: {{ .Env.shootCidrBlock }}
+shootNodeSgId: {{ .Env.shootNodeSgId }}
+shootRtbIds:
+{{ .Env.shootRtbIds | strings.Indent 2 }}
+
+# Customer VPC information (generated and applied via deployment config file)
+customerName: <customer-name>
+customerVpcId: <customer-vpc-id>
+customerCidrBlock: <customer-cidr-block>
+customerNodeSgId: <customer-node-sg-id>
+customerRtbIds:
+  - rtbId: <shoot-rtb-id>
+  - rtbId: <shoot-rtb-id>
+  - rtbId: <shoot-rtb-id>

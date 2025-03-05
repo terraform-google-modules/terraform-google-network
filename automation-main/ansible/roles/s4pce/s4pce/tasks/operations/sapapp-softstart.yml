@@ -1,0 +1,95 @@
+---
+# Synopsis: Does a software start of SAPAPP
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+# Outputs: Started SAPAPP
+- name: "Starting SAPAPP services"
+  shell: "{{ item }}"
+  become: true
+  become_user: "{{ spr_sid|lower }}adm"
+  args:
+    executable: '/bin/csh'
+  register: sapapp_services_output
+  loop:
+    - sapcontrol -nr 01 -function StartService PS4
+    - sapcontrol -nr 00 -function StartService PS4
+  failed_when: false
+
+- debug:
+    var: sapapp_services_output
+
+- name: "Starting SAPAPP system"
+  shell: "{{ item }}"
+  become: true
+  become_user: "{{ spr_sid|lower }}adm"
+  args:
+    executable: '/bin/csh'
+  register: sapapp_system_output
+  loop:
+    - sapcontrol -nr 01 -function StartSystem
+    - sapcontrol -nr 00 -function StartSystem
+  failed_when: false
+
+- debug:
+    var: sapapp_system_output
+
+- name: "Get Process list"
+  shell: 'sapcontrol -nr 00 -function GetProcessList'
+  args:
+    executable: '/bin/csh'
+  become: true
+  become_user: "{{ spr_sid|lower }}adm"
+  failed_when: false
+  changed_when: false
+  register: sapapp_process_output
+
+- name: "Check if SAPAPP is already stopped"
+  assert:
+    that: |
+        'GREEN' not in sapapp_process_output.stdout
+    success_msg: SAPAPP process not detected. Starting in next block
+    fail_msg: SAPAPP is already started. Skipping next block
+  changed_when: false
+  failed_when: false
+
+- name: "BLOCK: Start SAPAPP"
+  when: "'GREEN' not in sapapp_process_output.stdout"
+  become: true
+  become_user: "{{ spr_sid|lower }}adm"
+  block:
+  - name: "Check if HANA DB is accessible"
+    shell: "R3trans -d"
+    args:
+      executable: '/bin/csh'
+    become: yes
+    become_user: "{{ spr_sid|lower }}adm"
+    register: r3trans_output
+    retries: 10
+    delay: 10
+    until: "'R3trans finished (0000).' in r3trans_output.stdout"
+
+  - name: "Starting SAPAPP"
+    shell: 'sapcontrol -nr 00 -function StartSystem ALL'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+
+  - name: "Wait for process to start"
+    shell: 'sapcontrol -nr 00 -function GetProcessList'
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+    changed_when: false
+    register: sapapp_poststart_process_output
+    retries: 3
+    delay: 10
+    until: |
+      'GRAY' not in sapapp_poststart_process_output.stdout and
+      'YELLOW' not in sapapp_poststart_process_output.stdout
+
+  - name: "Output post-start processes"
+    debug:
+      var: sapapp_poststart_process_output.stdout_lines
+  # End "BLOCK: Start SAPAPP"
+
+...

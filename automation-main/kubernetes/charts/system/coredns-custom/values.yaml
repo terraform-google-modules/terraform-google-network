@@ -1,0 +1,10 @@
+coreDnsCustomPort: 8053
+coreDnsCustomNameList: 
+  - "ibp.sapns2.us"
+coreDnsCustomIpList: 
+  - "169.254.169.253"
+# corednsCustom:
+#   - name: "mesh"
+#     corednsPort: 8053
+#     servers:
+#       - "127.0.0.1:15053"

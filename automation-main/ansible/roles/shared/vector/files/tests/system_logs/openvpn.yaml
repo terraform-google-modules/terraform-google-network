@@ -1,0 +1,37 @@
+---
+tests:
+  - name: var.log.openvpn::1
+    inputs:
+      - insert_at: openvpn_metadata
+        type: log
+        log_fields:
+          message: '2021-12-13 21:40:22 173.79.122.222:55079 peer info: IV_COMP_STUBv2=1'
+    outputs:
+      - extract_from: system_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2021-12-14T05:40:22Z", to_string!(.timestamp), "timestamp parsing incorrect")
+              assert_eq!("openvpn", .metadata.sourcetype, "wrong sourcetype")
+              assert_eq!("/var/log/openvpn", .metadata.custom.log_group, "wrong log_group")
+              assert_eq!("security", .metadata.custom.index.suffix, "wrong index")
+
+  - name: var.log.openvpn::2
+    inputs:
+      - insert_at: openvpn_metadata
+        type: log
+        log_fields:
+          message: "2021-12-13 21:40:26 173.79.122.222:55079 SENT CONTROL [OpenVPN-Client-10.69.5.116-vpnuser]: 'AUTH_FAILED,CRV1:U2F:auth:aTUxMTUyMg==:eyJjaGFsbg2TXMyY'\
+            \ (status=1)"
+    outputs:
+      - extract_from: system_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2021-12-14T05:40:26Z", to_string!(.timestamp), "timestamp parsing incorrect")
+              assert_eq!("openvpn", .metadata.sourcetype, "wrong sourcetype")
+              assert_eq!("/var/log/openvpn", .metadata.custom.log_group, "wrong log_group")
+              assert_eq!("security", .metadata.custom.index.suffix, "wrong index")
+...

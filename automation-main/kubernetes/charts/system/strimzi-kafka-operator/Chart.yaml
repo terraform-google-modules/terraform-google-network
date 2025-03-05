@@ -1,0 +1,10 @@
+apiVersion: v2
+name: strimzi-kafka-operator
+description: A Helm chart for strimzi-kafka-operator
+type: application
+# renovate: name=strimzi-kafka-operator repository=https://strimzi.io/charts
+version: 0.44.0
+dependencies:
+  - name: strimzi-kafka-operator
+    version: "0.44.0"
+    repository: https://strimzi.io/charts

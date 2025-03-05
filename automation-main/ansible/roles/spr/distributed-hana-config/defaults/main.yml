@@ -1,0 +1,20 @@
+# Output
+distributed_hana_config_output_checksr: ""
+
+# Inputs
+distributed_hana_config_sap_hana_hsr_hana_sid: ""
+distributed_hana_config_spr_hostname: ""
+distributed_hana_config_sap_hana_hsr_primary_ip: ""
+distributed_hana_config_sap_hana_hsr_hana_primary_hostname: ""
+distributed_hana_config_sap_hana_hsr_secondary_ip: ""
+distributed_hana_config_sap_hana_hsr_hana_secondary_hostname: ""
+distributed_hana_config_sap_hana_hsr_alias: ""
+distributed_hana_config_sap_hana_hsr_rep_mode: ""
+distributed_hana_config_sap_hana_hsr_oper_mode: ""
+distributed_hana_config_sap_hana_hsr_hana_db_system_password: ""
+
+# Local
+distributed_hana_config_local_sap_hana_hsr_hana_instance_number: "00"
+
+# Test Hana config
+distributed_hana_config_test_db_hana_sync: false

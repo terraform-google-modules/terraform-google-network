@@ -1,0 +1,284 @@
+---
+# Playbook Name: ibp-dr-setup.yml
+# Synopsis: Sets up ibp disaster recovery
+# Description: This playbook will stop production sapapp, sets up hdbuserstore keys, ssfs keys, sql log modes, hana replication and then restarts everything.
+#     It is designed to work with the ibp-ansible-inventory-template file
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS CLI v1.16+
+#   - sudo capability or root privileges on target machine
+#   - Functional IBP Production and Disaster Recovery Landscapes
+# Dependencies:
+#   - ibp ansible role
+# Variables:
+#   - sid : (provided by ansible inventory hostfile) The SAP ID of the instance
+#   - groups/group_names: (provided by ansible inventory hostfile) The landscapes groups that each instance belongs to.
+#   - sqlcmd_folder : location of the sql commands.  Defaults to '/staging/ibp/Build/SQL-Statements'
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-dr-setup.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>'
+#
+# Example
+#   Execution only on production and disaster recovery instances
+#     ansible-playbook ibp-dr-setup.yml -k -i /tmp/hosts -l 192.168.1.1,192.168.1.2
+#
+# Example
+#   Execution of a specific play 'setup-disaster-recovery' This will invoke play1 and play 2
+#     ansible-playbook ibp-dr-setup.yml -k -i /tmp/hosts --tags 'setup-disaster-recovery'
+#
+# Authors: Louis Lee
+# Version: 2.9-000008
+# Modified: 2020-03-30 - Created playbook
+#           2020-04-09 - Completed disaster recovery steps
+#           2020-04-28 - Decoupled playbook vars from role vars
+#           2020-04-28 - Added parameter tweaks and missing steps from SAP Notes
+#           2020-05-11 - Creates CPIDS hdb keys and initial backup.
+#           2020-05-14 - Moves defaults-decrypt to subfolder, Additional SapApp configuration
+#           2020-06-01 - Rename playbook, fix missing default value
+#           2020-06-23 - Merged ibp-provision and ibp-operations roles to ibp role
+#           2020-07-06 - Update task and subfolder references
+#
+# Comments: |
+#   This playbook is semi-idempotent. It will skip disaster recovery setup if it detects replication is already enabled.
+#   It will not idempotently enforce replication values.
+#
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Some plays are prerequisites for other plays and are tagged accordingly.
+#
+#   Play Tags:
+#     play0 always: This play always runs. Decides which will be the primary DB
+#     play1 stop-sapapp setup-disaster-recovery: Stops production SAP Application. Pre-requisite for disaster recovery
+#     play2 setup-disaster-recovery: Sets up disaster recovery. This will restart production and disaster recovery Hana DBs
+#     play3 configure-cpids: Start production SAP Application
+#     play4 start-sapapp: Start production SAP Application
+#     playEND: Marks the end of the playbook
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Confirm new primary replication site"
+  # Select hosts in the production and disaster_recovery groups that also exist in ibpdb
+  hosts: production:disaster_recovery:&ibpdb
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - always
+    - play0
+
+  vars:
+    # possible option to use different replication pairs
+    replication_source: 'production'
+
+  tasks:
+  - name: "Add DB to replication_primary"
+    group_by:
+      key: replication_primary
+    when: replication_source in group_names
+
+  - name: "Add DB to replication_secondary"
+    group_by:
+      key: replication_secondary
+    when: replication_source not in group_names
+
+  post_tasks:
+  - name: "Fail if more than one primary is selected"
+    fail:
+      msg: "The group replication_primary doesn't contain only one host: {{ groups.replication_primary }}"
+    run_once: true
+    when: groups.replication_primary|count != 1
+
+  - name: "Fail if more than one secondary is selected"
+    fail:
+      msg: "The group replication_secondary doesn't contain only one host: {{ groups.replication_secondary }}"
+    run_once: true
+    when: groups.replication_secondary|count != 1
+
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Stop production SAP Application"
+  # Intersection of ibpapp and production
+  hosts: ibpapp:&production
+  any_errors_fatal: true
+  gather_facts: false
+  tags:
+    - play1
+    - stop-sapapp
+    - setup-disaster-recovery
+
+  tasks:
+  - name: "Stop SAP Application"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-hardstop.yml
+
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Setup disaster recovery on Hana DB"
+  hosts: replication_primary:replication_secondary
+  gather_facts: true
+  any_errors_fatal: true
+  tags:
+    - play2
+    - setup-disaster-recovery
+  vars:
+    sqlcmd_folder: '/staging/ibp/Build/SQL-Statements'
+
+  pre_tasks:
+  - name: "Check and skip play if replication is already setup on disaster recovery server"
+    shell: "./exe/hdbnsutil -sr_state"
+    args:
+      executable: /bin/csh
+    become: true
+    become_user: "{{ sid|lower }}adm"
+    register: validate_replication_output
+    when: groups.replication_secondary[0] == inventory_hostname
+    failed_when: "'Command not found' in validate_replication_output.stdout"
+    changed_when: false
+
+  - name: "End setup disaster recovery if already configured"
+    meta: end_play
+    when: "'mode: none' not in hostvars[groups.replication_secondary[0]].validate_replication_output.stdout|default('')"
+
+  - name: "Populate ibp defaults variable"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/defaults-decrypt.yml
+
+  tasks:
+  - name: "Setup hdbuserstore keys"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hdbuserstorekey-create.yml
+    vars:
+      hdb_password: "{{ ibp_defaults.credentials.master_password }}"
+      hdb_hostname: "{{ ansible_hostname|lower }}"
+
+  - name: "Start disaster recovery prerequisites"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: disaster-recovery/dr-prerequisites-setup.yml
+    vars:
+      dr_prereq_primary_ip: "{{ groups.replication_primary[0] }}"
+      dr_prereq_secondary_ip: "{{ groups.replication_secondary[0] }}"
+
+  - name: "Transfer SSFS key"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hana-ssfs-transfer.yml
+    vars:
+      ssfs_primary_instance: "{{ groups.replication_primary[0] }}"
+      ssfs_secondary_instance: "{{ groups.replication_secondary[0] }}"
+
+  - name: "Start disaster recovery setup"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: disaster-recovery/dr-setup.yml
+    vars:
+      dr_setup_primary_ip: "{{ groups.replication_primary[0] }}"
+      dr_setup_secondary_ip: "{{ groups.replication_secondary[0] }}"
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Configure CPIDS"
+  hosts: cpids
+  gather_facts: true
+  any_errors_fatal: true
+  tags:
+    - play3
+    - configure-cpids
+
+  vars:
+    sqlcmd_folder: '/staging/ibp/Build/SQL-Statements'
+
+  pre_tasks:
+  - name: "Populate ibp defaults variable"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/defaults-decrypt.yml
+
+  tasks:
+  - name: "Setup hdbuserstore keys"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/cpids-hdbkey-create.yml
+    vars:
+      cpids_hdbkey_create_sid: 'n01'
+      cpids_hdbkey_create_password: "{{ ibp_defaults.credentials.master_password }}"
+      cpids_hdbkey_create_hostname: "{{ ansible_hostname|lower }}"
+      cpids_hdbkey_create_port: '30015'
+      cpids_hdbkey_create_keyname: 'CPIDSADMIN'
+
+  - name: "Backup CPIDS"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/cpids-backup.yml
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Start SAP Application and configure for disaster recovery"
+  hosts: ibpapp:&production
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play4
+    - start-sapapp
+
+  pre_tasks:
+  - name: "Populate ibp defaults variable"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/defaults-decrypt.yml
+
+  - name: "Add disaster recovery DB to hdbuserstore key"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: provisioning/hdbkey-create.yml
+    vars:
+      hdbkey_create_keyname: 'DEFAULT'
+      hdbkey_create_envs: "ibpdb-{{ sid|lower }}:30213;ibpdr-{{ sid|lower }}:30213@{{ sid|upper }}"
+      hdbkey_create_user: 'SAPHANADB'
+      hdbkey_create_password: "{{ ibp_defaults.credentials.saphanadb_password }}"
+      hdbkey_create_sid: "{{ sid }}"
+      hdbkey_create_force: true
+
+  tasks:
+  - name: "Start production SAP Application"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-hardstart.yml
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    debug:
+      msg: "Of the world as we know it"
+...

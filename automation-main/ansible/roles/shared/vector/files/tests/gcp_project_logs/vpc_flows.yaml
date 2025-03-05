@@ -1,0 +1,18 @@
+---
+tests:
+  - name: gcp:vpc_flows:1
+    inputs:
+      - insert_at: gcp_project_logs
+        type: log
+        log_fields:
+          message: '{"insertId":"1inwfwzfhwz7sd","jsonPayload":{"end_time":"2022-10-12T19:57:45.833132153Z","start_time":"2022-10-12T19:57:45.832286031Z","packets_sent":"8","connection":{"dest_port":49670,"src_ip":"142.250.66.234","src_port":443,"dest_ip":"10.69.39.7","protocol":6},"reporter":"DEST","dest_instance":{"zone":"australia-southeast1-a","region":"australia-southeast1","project_id":"s4-cre-pce","vm_name":"mail-7078700d24bea348"},"dest_vpc":{"vpc_name":"cre-s4-australiasoutheast1-management","subnetwork_name":"cre-s4-australiasoutheast1-management-infrastructure-az1","project_id":"s4-cre-pce"},"bytes_sent":"292","rtt_msec":"0"},"resource":{"type":"gce_subnetwork","labels":{"subnetwork_id":"6601017519068974348","subnetwork_name":"cre-s4-australiasoutheast1-management-infrastructure-az1","project_id":"s4-cre-pce","location":"australia-southeast1-a"}},"timestamp":"2022-10-12T19:58:21.532164524Z","logName":"projects/s4-cre-pce/logs/compute.googleapis.com%2Fvpc_flows","receiveTimestamp":"2022-10-12T19:58:21.532164524Z"}'
+    outputs:
+      - extract_from: gcp_json__enriched_out
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!(.metadata.sourcetype, "gcp:vpc_flow")
+              assert_eq!(.metadata.custom.index.suffix, "network")
+              assert_eq!(.metadata.source, "123456789012:australia-southeast1-a:6601017519068974348")
+              assert_eq!(.metadata.custom.gcp.log_name, "projects/s4-cre-pce/logs/compute.googleapis.com/vpc_flows")
+...

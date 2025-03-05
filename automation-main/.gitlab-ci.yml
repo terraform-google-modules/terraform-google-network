@@ -1,0 +1,165 @@
+---
+default:
+  artifacts:
+    expire_in: "1 mos"
+
+variables:
+  PIPELINE_NAME: Default Pipeline
+  CLEANUP_LABELS: "false"
+
+workflow:
+  name: $PIPELINE_NAME
+  rules:
+    # # Don't Run on Drafts
+    # - if: $CI_MERGE_REQUEST_TITLE =~ /^Draft:/
+    #   variables:
+    #     PIPELINE_NAME: 'DRAFT: $CI_MERGE_REQUEST_TITLE'
+    #   when: never
+
+    # Renames the pipeline if it's a scheduled pipeline
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      variables:
+        PIPELINE_NAME: 'Scheduled Pipeline'
+
+    # Renames the pipeline if triggered manually
+    - if: $CI_PIPELINE_SOURCE == "web"
+      variables:
+        PIPELINE_NAME: 'Manual Pipeline'
+
+    # Renames the pipeline if it's a merge request
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      variables:
+        PIPELINE_NAME: 'MR pipeline: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME'
+
+    # Don't run pipeline on push to branch if an open MR exists for this branch
+    # (LL) Not sure what scenario this is?? Don't think this rule actually does anything.
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      variables:
+        PIPELINE_NAME: 'Protected branch pipeline: $CI_COMMIT_BRANCH'
+      when: never
+
+    # This will trigger when a merge request is merged. Be sure to order correctly with other workflows.
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /Merge branch.*/
+      variables:
+        PIPELINE_NAME: 'Post-MR pipeline: $CI_COMMIT_TITLE'
+
+    # Running on Protected Branches - Trigger pipeline on a new release tag
+    - if: $CI_COMMIT_REF_PROTECTED
+      variables:
+        PIPELINE_NAME: 'Protected branch and release pipeline: $CI_COMMIT_BRANCH'
+
+    # Renames the pipeline if it's a branch
+    # (LL) I've never seen this happen?  I think the previous one supercedes this
+    - if: $CI_COMMIT_BRANCH
+      variables:
+        PIPELINE_NAME: 'Branch pipeline: $CI_COMMIT_BRANCH'
+
+stages:
+  - init
+  - label-cleanup
+  - on_merge
+  - release
+
+pre-commit:
+  stage: init
+  image: harbor.dev.ste.dev.scs.sap/dev_general/ste_runner_tofu:latest
+  script:
+    - export FILES_COMMIT_BACK_FLAG=0
+    - python .cicd/labels.py
+    - bash .cicd/gitconfig.sh
+    - |
+      if [[ -n "$CI_MERGE_REQUEST_IID" ]]; then
+        echo "DEBUG $(date +'%Y-%m-%d %H:%M:%S') : Running pre-commit for Merge Requests"
+        pre-commit --version
+        pre-commit run --all-files
+      fi
+    - |
+      if [[ -n "$CI_MERGE_REQUEST_IID" ]]; then
+        echo "DEBUG $(date +'%Y-%m-%d %H:%M:%S') : Running pre-commit Auto TF Docs for Merge Requests"
+        source .cicd/auto_tfdocs.sh;
+      fi
+    - source .cicd/auto-changelog-pre.sh
+    # - echo "$CI_API_V4_URL"
+    # - echo "$(env | sort)"
+    # - echo $FILES_COMMIT_BACK_FLAG
+    - |
+      if [[ $FILES_COMMIT_BACK_FLAG -eq 1 ]]; then
+        git push origin HEAD:"$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"
+        echo "DEBUG $(date +'%Y-%m-%d %H:%M:%S') : Git Pushed changes to source branch"
+        echo "DEBUG $(date +'%Y-%m-%d %H:%M:%S') : Exiting pipeline with expected failure for writeback"
+        echo "DEBUG $(date +'%Y-%m-%d %H:%M:%S') : Writeback should trigger new pipeline"
+        exit 1
+      else
+        exit 0
+      fi;
+# TODO: Convert Bash Scripts to Python
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+      when: on_success
+  # Do not fetch artifacts from preceding jobs
+  needs: []
+
+prepare_release:
+  stage: init
+  image: harbor.dev.ste.dev.scs.sap/dev_general/ste_runner_tofu:latest
+  rules:
+  - if: '$CI_COMMIT_TAG =~ /^v?\d+\.\d+\.\d+$/'
+  script:
+    - mkdir -p release_notes
+    - bash .cicd/gitconfig.sh -t ssh
+    - git fetch origin main
+    - git checkout main
+    - PREVIOUS_TAG=$(git describe --tags --abbrev=0 ${CI_COMMIT_TAG}^)
+    - echo "### Changes since release ${PREVIOUS_TAG}" > release_notes/release_notes_${CI_COMMIT_TAG}.md
+    - git log --pretty="format:%H" ${CI_COMMIT_TAG}...${PREVIOUS_TAG} | python3 .cicd/release-notes.py >> release_notes/release_notes_${CI_COMMIT_TAG}.md
+    - cat release_notes/release_notes_${CI_COMMIT_TAG}.md
+    - git add .
+    - git commit -m "Auto-create release notes for Release ${CI_COMMIT_TAG}"
+    - git push origin main
+  artifacts:
+    paths:
+    - release_notes/release_notes_${CI_COMMIT_TAG}.md
+  needs: []
+
+label-cleanup:
+  stage: label-cleanup
+  image: harbor.dev.ste.dev.scs.sap/dev_general/ste_runner_tofu:latest
+  script:
+    - python .cicd/labels-remove-status.py
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "web" && $CLEANUP_LABELS == "true"
+      when: on_success
+  needs: []
+
+auto-changelog:
+  stage: on_merge
+  image: harbor.dev.ste.dev.scs.sap/dev_general/ste_runner_tofu:latest
+  script:
+    - bash .cicd/auto-changelog-post.sh
+    # - echo "$(env | sort)"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_COMMIT_TITLE =~ /Merge branch.*/
+  needs: []
+
+create_release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: prepare_release
+      artifacts: true
+  rules:
+  - if: '$CI_COMMIT_TAG =~ /^v?\d+\.\d+\.\d+$/'
+  script:
+    - echo "Creating release"
+  release:
+    name: 'Release $CI_COMMIT_TAG'
+    description: 'release_notes/release_notes_${CI_COMMIT_TAG}.md'
+    tag_name: '$CI_COMMIT_TAG'
+    ref: '$CI_COMMIT_SHA'
+...

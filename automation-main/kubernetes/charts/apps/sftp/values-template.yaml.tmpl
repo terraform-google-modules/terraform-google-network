@@ -1,0 +1,240 @@
+{{ $envConfig := (datasource "envConfig")  }}
+sftpgo:
+  fullnameOverride: sftpgo
+  nameOverride: sftpgo
+
+  s3BucketAuto: true
+
+  replicaCount: 3
+
+  podAnnotations:
+    argocd.argoproj.io/sync-wave: "2"
+
+  deploymentStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  image:
+    repository: {{ $envConfig.sftpgoRegistry }}
+    pullPolicy: IfNotPresent
+    tag: {{ $envConfig.sftpgoImageVersion }}
+  imagePullSecrets:
+    - name: dockerconfig
+  envFrom:
+    - secretRef:
+        name: sftpgo-config
+  env:
+    SFTPGO_LOG_FILE_PATH: ""
+    SFTPGO_COMMON__PROXY_PROTOCOL: 1
+    SFTPGO_COMMON__IDLE_TIMEOUT: "5"
+    SFTPGO_HTTPD__TOKEN_VALIDATION: 1
+    SFTPGO_HTTPD__CERTIFICATE_FILE: "/var/lib/sftpgo/certs/tls.crt"
+    SFTPGO_HTTPD__CERTIFICATE_KEY_FILE: "/var/lib/sftpgo/certs/tls.key"
+    SFTPGO_DATA_PROVIDER__DRIVER: postgresql
+    SFTPGO_DATA_PROVIDER__CREATE_DEFAULT_ADMIN: "true"
+    SFTPGO_DATA_PROVIDER__IS_SHARED: "1"
+    SFTPGO_DATA_PROVIDER__SSLMODE: "1"
+
+  config:
+    sftpd:
+      host_key_algorithms:
+        - "rsa-sha2-512-cert-v01@openssh.com"
+        - "rsa-sha2-256-cert-v01@openssh.com"
+        - "ecdsa-sha2-nistp256-cert-v01@openssh.com"
+        - "ecdsa-sha2-nistp384-cert-v01@openssh.com"
+        - "ecdsa-sha2-nistp521-cert-v01@openssh.com"
+        - "ecdsa-sha2-nistp256"
+        - "ecdsa-sha2-nistp384"
+        - "ecdsa-sha2-nistp521"
+        - "rsa-sha2-512"
+        - "rsa-sha2-256"
+      kex_algorithms:
+        - "ecdh-sha2-nistp256"
+        - "ecdh-sha2-nistp384"
+        - "ecdh-sha2-nistp521"
+        - "diffie-hellman-group14-sha256"
+      ciphers:
+        - "aes256-gcm@openssh.com"
+        - "aes192-ctr"
+        - "aes256-ctr"
+      macs:
+        - "hmac-sha2-256-etm@openssh.com"
+        - "hmac-sha2-256"
+        - "hmac-sha2-512-etm@openssh.com"
+        - "hmac-sha2-512"
+      publickey_algorithms:
+        - "rsa-sha2-512"
+        - "rsa-sha2-256"
+        - "ecdsa-sha2-nistp256"
+        - "ecdsa-sha2-nistp384"
+        - "ecdsa-sha2-nistp521"
+      host_keys:
+        - "/var/lib/sftpgo/host_keys/id_rsa"
+        - "/var/lib/sftpgo/host_keys/id_ecdsa_p384"
+        - "/var/lib/sftpgo/host_keys/id_ecdsa_p256"
+
+  service:
+    type: ClusterIP
+    ports:
+      http:
+        port: 80
+        nodePort: 32080
+    sessionAffinity: ClientIP
+
+  storage:
+    uploadFsSize: 10Gi
+    className: ceph-filesystem
+
+  services:
+    public:
+      annotations:
+        cert.gardener.cloud/purpose: managed
+        cert.gardener.cloud/secretname: sftpgo-tls
+        dns.gardener.cloud/class: garden
+        dns.gardener.cloud/ttl: '600'
+        service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+        service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+        service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+        service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+        service.beta.kubernetes.io/aws-load-balancer-type: nlb
+        service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+        service.beta.kubernetes.io/aws-load-balancer-attributes: deletion_protection.enabled=true
+      type: LoadBalancer
+      externalTrafficPolicy: Local
+      ports:
+        sftp:
+          port: 22
+
+  ui:
+    ingress:
+      enabled: true
+      className: nginx
+      annotations:
+        cert.gardener.cloud/purpose: managed
+        cert.gardener.cloud/secretname: sftpgo-ui-tls
+        dns.gardener.cloud/class: garden
+        dns.gardener.cloud/ttl: '600'
+        nginx.ingress.kubernetes.io/rewrite-target: /
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+        nginx.ingress.kubernetes.io/affinity: "cookie"
+        nginx.ingress.kubernetes.io/session-cookie-name: "INGRESSCOOKIE"
+        nginx.ingress.kubernetes.io/affinity-mode: "persistent" 
+        nginx.ingress.kubernetes.io/session-cookie-expires: "21600"
+        nginx.ingress.kubernetes.io/session-cookie-max-age: "21600"
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  nodeSelector:
+    worker.garden.sapcloud.io/group: application
+
+  topologySpreadConstraints:
+    enabled: true
+    maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: DoNotSchedule
+
+  securityContext:
+    runAsUser: 1000
+    allowPrivilegeEscalation: false
+    privileged: false
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+  podSecurityContext:
+    fsGroup: 1000
+    fsGroupChangePolicy: "OnRootMismatch"
+    seccompProfile:
+      type: RuntimeDefault
+
+  volumeMounts:
+    - name: aws-creds
+      mountPath: /var/lib/sftpgo/.aws/credentials
+      subPath: credentials
+      readOnly: true
+    - name: aws-config
+      mountPath: /var/lib/sftpgo/.aws/config
+      subPath: config
+      readOnly: true
+    - name: host-keys
+      mountPath: /var/lib/sftpgo/host_keys
+      readOnly: true
+    - name: sftpgo-tls
+      mountPath: /var/lib/sftpgo/certs
+      readOnly: true
+    - name: sftp-volume
+      mountPath: /sftp
+
+  volumes:
+    - name: aws-creds
+      secret:
+        secretName: aws-credentials
+        items:
+        - key: credentials
+          path: credentials
+    - name: aws-config
+      secret:
+        secretName: aws-config
+        items:
+        - key: config
+          path: config
+    - name: host-keys
+      secret:
+        secretName: hostkeys
+    - name: sftpgo-tls
+      secret:
+        secretName: sftpgo-tls
+    - name: sftp-volume
+      persistentVolumeClaim:
+        claimName: sftp-cephfs-pvc
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 99
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+vaultBasePath: {{ $envConfig.vaultBasePath }}
+vaultPath: ""
+dbName: ""
+
+gardener:
+  project: {{ .Env.projectName }}
+  shootName: {{ $envConfig.shootName }}
+awsAccountID: "{{ .Env.accountID }}"
+awsPartition: {{ .Env.awsPartition }}
+awsRegion: {{ $envConfig.region }}
+envBaseDomain: {{ $envConfig.envBaseDomain }}
+providerConfigRef:
+  name: aws-provider-config
+  
+services:
+  internal:
+    enabled: true
+    annotations:
+      cert.gardener.cloud/purpose: managed
+      cert.gardener.cloud/secretname: sftpgo-tls
+      dns.gardener.cloud/class: garden
+      dns.gardener.cloud/ttl: '600'
+      service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+      service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+      service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+      service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+      service.beta.kubernetes.io/aws-load-balancer-attributes: deletion_protection.enabled=true
+    type: LoadBalancer
+    externalTrafficPolicy: Local
+    ports:
+      sftp:
+        port: 22
+

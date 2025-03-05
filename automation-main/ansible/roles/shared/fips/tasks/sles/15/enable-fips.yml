@@ -1,0 +1,29 @@
+---
+# Synopsis: Enables FIPS on SLES 15
+
+  # Pattern installs dracut-fips. Immediately runs dracut
+  - name: Install fips packages using zypper
+    zypper:
+      name: fips
+      type: pattern
+      state: present
+    become: true
+
+  - name: Set the grub cmdline linux default to include fips flag
+    lineinfile:
+      path: /etc/default/grub
+      regexp: ^(GRUB_CMDLINE_LINUX_DEFAULT=)(".*)(")
+      line: \1\2 fips=1\3
+      backrefs: true
+    become: true
+
+  - name: Make grub config from updated configuration file
+    shell:
+      cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
+    become: true
+
+  - name: Force ramfs image build
+    shell:
+      cmd: dracut -f --regenerate-all
+    become: true
+...

@@ -1,0 +1,47 @@
+---
+# Description: Applies symlink and environment variable export for compat packages (SAP NOTE 3119751)
+# Inputs: N/A
+# Outputs: N/A
+# Comments: N/A
+
+- name: Set shared object compat map
+  set_fact:
+    compat_shared_object_map:
+      RedHat8: compat-sap-c++-11.so
+      RedHat9: compat-sap-c++-13.so
+
+- name: Get Specific compat package
+  set_fact:
+    compat_shared_object: "{{ compat_shared_object_map[ansible_distribution + ansible_distribution_major_version] }}"
+
+- name: "Create libstdc++.so.6 symlink in /opt/rh/SAP/lib64"
+  become: true
+  ansible.builtin.file:
+    src: "/opt/rh/SAP/lib64/{{ compat_shared_object }}"
+    dest: /opt/rh/SAP/lib64/libstdc++.so.6
+    state: link
+
+- name: Ensure /usr/sap/lib exists
+  become: true
+  ansible.builtin.file:
+    path: /usr/sap/lib
+    state: directory
+    owner: sapadm
+    group: sapsys
+
+- name: "Create libstdc++.so.6 symlink in /usr/sap/lib"
+  become: true
+  ansible.builtin.file:
+    src: /opt/rh/SAP/lib64/libstdc++.so.6
+    dest: /usr/sap/lib/libstdc++.so.6
+    state: link
+    owner: sapadm
+    group: sapsys
+
+- name: "Export LD_LIBRARY_PATH environment variable"
+  become: true
+  ansible.builtin.lineinfile:
+    path: "/root/.bashrc"
+    line: "export LD_LIBRARY_PATH=/opt/rh/SAP/lib64:/usr/sap/lib:$LD_LIBRARY_PATH"
+
+...

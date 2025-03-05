@@ -1,0 +1,55 @@
+---
+# +----------------------------------------------------------------------------------------+
+# | __   __      _             _                   _              ___           __ _       |
+# | \ \ / /__ __| |_ ___ _ _  | |   ___  __ _ __ _(_)_ _  __ _   / __|___ _ _  / _(_)__ _  |
+# |  \ V / -_) _|  _/ _ \ '_| | |__/ _ \/ _` / _` | | ' \/ _` | | (__/ _ \ ' \|  _| / _` | |
+# |   \_/\___\__|\__\___/_|   |____\___/\__, \__, |_|_||_\__, |  \___\___/_||_|_| |_\__, | |
+# |                                     |___/|___/       |___/                      |___/  |
+# | Managed by Ansible                                                                     |
+# +----------------------------------------------------------------------------------------+
+#
+# Description: Metadata for GCE Agent Logs
+# Vector Output Name: json__gce_agent_logs__metadata
+# Notes:
+#
+# +----------------------------------------------------------------------------------------+
+
+type: remap
+inputs:
+  - gcp_log_router.os_config_agent
+  - gcp_log_router.gce_guest_agent
+  - gcp_log_router.gce_metadata_scrips
+drop_on_abort: true
+drop_on_error: true
+reroute_dropped: true
+source: |
+  .metadata, err = merge(.metadata,
+      compact({
+          "sourcetype": "gcp:cloudaudit",
+          "source": (string(.metadata.cloud.project.id) + ":" + (string(.metadata.cloud.region) ?? "global") + ":" + (split(string(.logName) ?? "unknown","/")[-1]) ?? "gcp:agent:unknown"),
+          "cloud": {
+              "instance": {
+                  "id": string(.resource.labels.instance_id) ?? null,
+                  "name": string(.resource.labels.instance_name) ?? null
+              }
+          },
+          "custom": {
+              "gcp": {},
+              "index": {
+                  "suffix": "gcp"
+              }
+          },
+          "fields": {
+              "resource_name": string(.resource.labels.name) ?? null
+          }
+      }),
+      deep: true
+  )
+
+  if err != null {
+      abort "error merging metadata: {{err}}"
+  }
+
+  .host = string(.resource.labels.instance_name) ?? (string(.resource.labels.instance_id) ?? null)
+  .jsonPayload.sourceLocation = del(.sourceLocation)
+...

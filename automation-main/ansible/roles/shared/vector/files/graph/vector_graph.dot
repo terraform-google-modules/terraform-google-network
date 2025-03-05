@@ -1,0 +1,296 @@
+digraph {
+  "vector_ingest" [shape=trapezium]
+  "vector_internal_metrics" [shape=trapezium]
+  "gcp_project_logs" [shape=trapezium]
+  "backup__sap_hana_logs" [shape=trapezium]
+  "trace_alerts__sap_hana_logs" [shape=trapezium]
+  "cluster_server_system__sap_java_logs" [shape=trapezium]
+  "cluster_server_system_response__sap_java_logs" [shape=trapezium]
+  "sap_bobj_logging_server_config__sap_logs" [shape=trapezium]
+  "sftp__sap_logs" [shape=trapezium]
+  "trace_sapstartsrv__sap_logs" [shape=trapezium]
+  "work_available__sap_logs" [shape=trapezium]
+  "work_http_access_log__sap_logs" [shape=trapezium]
+  "work_sapstartsrv__sap_logs" [shape=trapezium]
+  "audit__system_logs" [shape=trapezium]
+  "journald__system_logs" [shape=trapezium]
+  "nessus__system_logs" [shape=trapezium]
+  "openvpn__system_logs" [shape=trapezium]
+  "syslog__system_logs" [shape=trapezium]
+  "tuned__system_logs" [shape=trapezium]
+  "gcp_host_logs_filter" [shape=diamond]
+  "gcp_json__enriched_out" -> "gcp_host_logs_filter"
+  "gcp_json__enriched_out" -> "gcp_host_logs_filter" [label="dropped"]
+  "gcp_json__enriched_out_dropped" -> "gcp_host_logs_filter"
+  "gcp_proto__enriched_out" -> "gcp_host_logs_filter"
+  "gcp_proto__enriched_out" -> "gcp_host_logs_filter" [label="dropped"]
+  "gcp_proto__enriched_out_dropped" -> "gcp_host_logs_filter"
+  "gcp_text__enriched_out" -> "gcp_host_logs_filter"
+  "gcp_text__enriched_out" -> "gcp_host_logs_filter" [label="dropped"]
+  "gcp_text__enriched_out_dropped" -> "gcp_host_logs_filter"
+  "gcp_metadata__enriched_out" -> "gcp_host_logs_filter"
+  "gcp_metadata__enriched_out" -> "gcp_host_logs_filter" [label="dropped"]
+  "vector_ingest" -> "gcp_host_logs_filter"
+  "event_router" [shape=diamond]
+  "splunk_event_format_enforcer" -> "event_router"
+  "splunk_event_format_enforcer" [shape=diamond]
+  "splunk_formatter" -> "splunk_event_format_enforcer"
+  "splunk_formatter" -> "splunk_event_format_enforcer" [label="dropped"]
+  "splunk_formatter" [shape=diamond]
+  "gcp_json__enriched_out" -> "splunk_formatter"
+  "gcp_json__enriched_out" -> "splunk_formatter" [label="dropped"]
+  "gcp_json__enriched_out_dropped" -> "splunk_formatter"
+  "gcp_proto__enriched_out" -> "splunk_formatter"
+  "gcp_proto__enriched_out" -> "splunk_formatter" [label="dropped"]
+  "gcp_proto__enriched_out_dropped" -> "splunk_formatter"
+  "gcp_text__enriched_out" -> "splunk_formatter"
+  "gcp_text__enriched_out" -> "splunk_formatter" [label="dropped"]
+  "gcp_text__enriched_out_dropped" -> "splunk_formatter"
+  "gcp_metadata__enriched_out" -> "splunk_formatter"
+  "gcp_metadata__enriched_out" -> "splunk_formatter" [label="dropped"]
+  "vector_ingest" -> "splunk_formatter"
+  "vector_metrics" -> "splunk_formatter"
+  "vector_metrics_to_log" [shape=diamond]
+  "vector_internal_metrics" -> "vector_metrics_to_log"
+  "gcp_json__enriched_out" [shape=diamond]
+  "json__cloud_error_reporting_insights__metadata" -> "gcp_json__enriched_out"
+  "json__cloud_scheduler_executions__metadata" -> "gcp_json__enriched_out"
+  "json__cluster_autoscaler_visibility__metadata" -> "gcp_json__enriched_out"
+  "json__gce_agent_logs__metadata" -> "gcp_json__enriched_out"
+  "json__gce_ops_agent_fluent_bit_logs__metadata" -> "gcp_json__enriched_out"
+  "json__gcp_generic__metadata" -> "gcp_json__enriched_out"
+  "json__host_logs__metadata" -> "gcp_json__enriched_out"
+  "json__kubernetes_cluster_event_logs__metadata" -> "gcp_json__enriched_out"
+  "json__kubernetes_container_logs__metadata" -> "gcp_json__enriched_out"
+  "json__kubernetes_node_logs__metadata" -> "gcp_json__enriched_out"
+  "json__kubernetes_pod_logs__metadata" -> "gcp_json__enriched_out"
+  "json__nat_flows__metadata" -> "gcp_json__enriched_out"
+  "json__unknown__metadata" -> "gcp_json__enriched_out"
+  "json__vpc_flows__metadata" -> "gcp_json__enriched_out"
+  "gcp_json__enriched_out_dropped" [shape=diamond]
+  "json__cloud_error_reporting_insights__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__cloud_scheduler_executions__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__cluster_autoscaler_visibility__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__gce_agent_logs__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__gce_ops_agent_fluent_bit_logs__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__gcp_generic__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__host_logs__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__kubernetes_cluster_event_logs__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__kubernetes_container_logs__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__kubernetes_node_logs__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__kubernetes_pod_logs__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__nat_flows__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__unknown__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "json__vpc_flows__metadata" -> "gcp_json__enriched_out_dropped" [label="dropped"]
+  "gcp_log_router" [shape=diamond]
+  "gcp_project_logs_metadata" -> "gcp_log_router"
+  "gcp_log_router_unmatched" [shape=diamond]
+  "gcp_log_router" -> "gcp_log_router_unmatched" [label="_unmatched"]
+  "kubernetes_router" -> "gcp_log_router_unmatched" [label="_unmatched"]
+  "gcp_project_logs_metadata" [shape=diamond]
+  "gcp_project_logs" -> "gcp_project_logs_metadata"
+  "gcp_proto__enriched_out" [shape=diamond]
+  "proto__activity_logs__metadata" -> "gcp_proto__enriched_out"
+  "proto__data_access__metadata" -> "gcp_proto__enriched_out"
+  "proto__system_event__metadata" -> "gcp_proto__enriched_out"
+  "proto__unknown__metadata" -> "gcp_proto__enriched_out"
+  "gcp_proto__enriched_out_dropped" [shape=diamond]
+  "proto__activity_logs__metadata" -> "gcp_proto__enriched_out_dropped" [label="dropped"]
+  "proto__data_access__metadata" -> "gcp_proto__enriched_out_dropped" [label="dropped"]
+  "proto__system_event__metadata" -> "gcp_proto__enriched_out_dropped" [label="dropped"]
+  "proto__unknown__metadata" -> "gcp_proto__enriched_out_dropped" [label="dropped"]
+  "gcp_text__enriched_out" [shape=diamond]
+  "text__cloud_function__metadata" -> "gcp_text__enriched_out"
+  "text__gce_postgres_logs__metadata" -> "gcp_text__enriched_out"
+  "text__ipsec_events__metadata" -> "gcp_text__enriched_out"
+  "text__kubernetes_container_logs__metadata" -> "gcp_text__enriched_out"
+  "text__logging_sink_error__metadata" -> "gcp_text__enriched_out"
+  "text__router_events__metadata" -> "gcp_text__enriched_out"
+  "text__unknown__metadata" -> "gcp_text__enriched_out"
+  "gcp_text__enriched_out_dropped" [shape=diamond]
+  "text__cloud_function__metadata" -> "gcp_text__enriched_out_dropped" [label="dropped"]
+  "text__gce_postgres_logs__metadata" -> "gcp_text__enriched_out_dropped" [label="dropped"]
+  "text__ipsec_events__metadata" -> "gcp_text__enriched_out_dropped" [label="dropped"]
+  "text__kubernetes_container_logs__metadata" -> "gcp_text__enriched_out_dropped" [label="dropped"]
+  "text__logging_sink_error__metadata" -> "gcp_text__enriched_out_dropped" [label="dropped"]
+  "text__router_events__metadata" -> "gcp_text__enriched_out_dropped" [label="dropped"]
+  "text__unknown__metadata" -> "gcp_text__enriched_out_dropped" [label="dropped"]
+  "json__cloud_error_reporting_insights__metadata" [shape=diamond]
+  "gcp_log_router" -> "json__cloud_error_reporting_insights__metadata" [label="cloud_error_insights"]
+  "json__cloud_scheduler_executions__metadata" [shape=diamond]
+  "gcp_log_router" -> "json__cloud_scheduler_executions__metadata" [label="cloud_scheduler_executions"]
+  "json__cluster_autoscaler_visibility__metadata" [shape=diamond]
+  "kubernetes_router" -> "json__cluster_autoscaler_visibility__metadata" [label="cluster_autoscaler_visibility"]
+  "json__gce_agent_logs__metadata" [shape=diamond]
+  "gcp_log_router" -> "json__gce_agent_logs__metadata" [label="os_config_agent"]
+  "gcp_log_router" -> "json__gce_agent_logs__metadata" [label="gce_guest_agent"]
+  "gcp_log_router" -> "json__gce_agent_logs__metadata" [label="gce_metadata_scrips"]
+  "json__gce_ops_agent_fluent_bit_logs__metadata" [shape=diamond]
+  "gcp_log_router" -> "json__gce_ops_agent_fluent_bit_logs__metadata" [label="gce_ops_agent_fluent_bit"]
+  "json__gcp_generic__metadata" [shape=diamond]
+  "gcp_log_router_unmatched" -> "json__gcp_generic__metadata" [label="json_gcp_generic_log"]
+  "json__host_logs__metadata" [shape=diamond]
+  "gcp_log_router" -> "json__host_logs__metadata" [label="host_logs"]
+  "json__kubernetes_cluster_event_logs__metadata" [shape=diamond]
+  "kubernetes_router" -> "json__kubernetes_cluster_event_logs__metadata" [label="kube_cluster_event_logs"]
+  "json__kubernetes_container_logs__metadata" [shape=diamond]
+  "kubernetes_router" -> "json__kubernetes_container_logs__metadata" [label="json_kube_container_logs"]
+  "json__kubernetes_node_logs__metadata" [shape=diamond]
+  "kubernetes_router" -> "json__kubernetes_node_logs__metadata" [label="kube_node_logs"]
+  "json__kubernetes_pod_logs__metadata" [shape=diamond]
+  "kubernetes_router" -> "json__kubernetes_pod_logs__metadata" [label="kube_pod_logs"]
+  "json__nat_flows__metadata" [shape=diamond]
+  "gcp_log_router" -> "json__nat_flows__metadata" [label="nat_flows"]
+  "json__unknown__metadata" [shape=diamond]
+  "gcp_log_router_unmatched" -> "json__unknown__metadata" [label="json_payload"]
+  "json__vpc_flows__metadata" [shape=diamond]
+  "gcp_log_router" -> "json__vpc_flows__metadata" [label="vpc_flows"]
+  "kubernetes_router" [shape=diamond]
+  "gcp_log_router" -> "kubernetes_router" [label="kubernetes_logs"]
+  "proto__activity_logs__metadata" [shape=diamond]
+  "gcp_log_router" -> "proto__activity_logs__metadata" [label="activity"]
+  "proto__data_access__metadata" [shape=diamond]
+  "gcp_log_router" -> "proto__data_access__metadata" [label="data_access"]
+  "proto__system_event__metadata" [shape=diamond]
+  "gcp_log_router" -> "proto__system_event__metadata" [label="system_event"]
+  "proto__unknown__metadata" [shape=diamond]
+  "gcp_log_router_unmatched" -> "proto__unknown__metadata" [label="proto_payload"]
+  "text__cloud_function__metadata" [shape=diamond]
+  "gcp_log_router" -> "text__cloud_function__metadata" [label="cloud_functions"]
+  "text__gce_postgres_logs__metadata" [shape=diamond]
+  "gcp_log_router" -> "text__gce_postgres_logs__metadata" [label="text_postgres_logs"]
+  "text__ipsec_events__metadata" [shape=diamond]
+  "gcp_log_router" -> "text__ipsec_events__metadata" [label="router_events"]
+  "text__kubernetes_container_logs__metadata" [shape=diamond]
+  "kubernetes_router" -> "text__kubernetes_container_logs__metadata" [label="text_kube_container_logs"]
+  "text__logging_sink_error__metadata" [shape=diamond]
+  "gcp_log_router" -> "text__logging_sink_error__metadata" [label="logging_sink_error"]
+  "text__router_events__metadata" [shape=diamond]
+  "gcp_log_router" -> "text__router_events__metadata" [label="ipsec_events"]
+  "text__unknown__metadata" [shape=diamond]
+  "gcp_log_router_unmatched" -> "text__unknown__metadata" [label="text_payload"]
+  "vector_metrics" [shape=diamond]
+  "vector_metrics_to_log" -> "vector_metrics"
+  "gcp_metadata__enriched_out" [shape=diamond]
+  "sap_hana_logs__out" -> "gcp_metadata__enriched_out"
+  "sap_hana_logs__out" -> "gcp_metadata__enriched_out" [label="dropped"]
+  "sap_java_logs__out" -> "gcp_metadata__enriched_out"
+  "sap_java_logs__out" -> "gcp_metadata__enriched_out" [label="dropped"]
+  "sap_logs__out" -> "gcp_metadata__enriched_out"
+  "sap_logs__out" -> "gcp_metadata__enriched_out" [label="dropped"]
+  "system_logs__out" -> "gcp_metadata__enriched_out"
+  "system_logs__out" -> "gcp_metadata__enriched_out" [label="dropped"]
+  "sap_hana_logs__dropped_out" -> "gcp_metadata__enriched_out"
+  "sap_java_logs__dropped_out" -> "gcp_metadata__enriched_out"
+  "sap_logs__dropped_out" -> "gcp_metadata__enriched_out"
+  "system_logs__dropped_out" -> "gcp_metadata__enriched_out"
+  "backup__sap_hana_logs_parsed" [shape=diamond]
+  "backup__sap_hana_metadata" -> "backup__sap_hana_logs_parsed"
+  "backup__sap_hana_metadata" [shape=diamond]
+  "backup__sap_hana_logs" -> "backup__sap_hana_metadata"
+  "sap_hana_logs__dropped_out" [shape=diamond]
+  "backup__sap_hana_logs_parsed" -> "sap_hana_logs__dropped_out" [label="dropped"]
+  "trace_alerts__sap_hana_logs_parsed" -> "sap_hana_logs__dropped_out" [label="dropped"]
+  "sap_hana_logs__out" [shape=diamond]
+  "backup__sap_hana_logs_parsed" -> "sap_hana_logs__out"
+  "trace_alerts__sap_hana_logs_parsed" -> "sap_hana_logs__out"
+  "trace_alerts__sap_hana_logs_parsed" [shape=diamond]
+  "trace_alerts__sap_hana_metadata" -> "trace_alerts__sap_hana_logs_parsed"
+  "trace_alerts__sap_hana_metadata" [shape=diamond]
+  "trace_alerts__sap_hana_logs" -> "trace_alerts__sap_hana_metadata"
+  "cluster_server_system__sap_java_logs_parsed" [shape=diamond]
+  "cluster_server_system__sap_java_metadata" -> "cluster_server_system__sap_java_logs_parsed"
+  "cluster_server_system__sap_java_metadata" [shape=diamond]
+  "cluster_server_system__sap_java_logs" -> "cluster_server_system__sap_java_metadata"
+  "cluster_server_system_response__sap_java_logs_parsed" [shape=diamond]
+  "cluster_server_system_response__sap_java_metadata" -> "cluster_server_system_response__sap_java_logs_parsed"
+  "cluster_server_system_response__sap_java_metadata" [shape=diamond]
+  "cluster_server_system_response__sap_java_logs" -> "cluster_server_system_response__sap_java_metadata"
+  "sap_java_logs__dropped_out" [shape=diamond]
+  "cluster_server_system__sap_java_logs_parsed" -> "sap_java_logs__dropped_out" [label="dropped"]
+  "sap_java_logs__out" [shape=diamond]
+  "cluster_server_system__sap_java_logs_parsed" -> "sap_java_logs__out"
+  "cluster_server_system_response__sap_java_logs_parsed" -> "sap_java_logs__out"
+  "sap_bobj_logging_server_config__sap_logs_parsed" [shape=diamond]
+  "sap_bobj_logging_server_config_metadata" -> "sap_bobj_logging_server_config__sap_logs_parsed"
+  "sap_bobj_logging_server_config_metadata" [shape=diamond]
+  "sap_bobj_logging_server_config__sap_logs" -> "sap_bobj_logging_server_config_metadata"
+  "sap_logs__dropped_out" [shape=diamond]
+  "sap_bobj_logging_server_config__sap_logs_parsed" -> "sap_logs__dropped_out" [label="dropped"]
+  "sftp__sap_logs_parsed" -> "sap_logs__dropped_out" [label="dropped"]
+  "trace_sapstartsrv__sap_logs_parsed" -> "sap_logs__dropped_out" [label="dropped"]
+  "work_available__sap_logs_parsed" -> "sap_logs__dropped_out" [label="dropped"]
+  "work_http_access_log__sap_logs_parsed" -> "sap_logs__dropped_out" [label="dropped"]
+  "work_sapstartsrv__sap_logs_parsed" -> "sap_logs__dropped_out" [label="dropped"]
+  "sap_logs__out" [shape=diamond]
+  "sap_bobj_logging_server_config__sap_logs_parsed" -> "sap_logs__out"
+  "sftp__sap_logs_parsed" -> "sap_logs__out"
+  "trace_sapstartsrv__sap_logs_parsed" -> "sap_logs__out"
+  "work_available__sap_logs_parsed" -> "sap_logs__out"
+  "work_http_access_log__sap_logs_parsed" -> "sap_logs__out"
+  "work_sapstartsrv__sap_logs_parsed" -> "sap_logs__out"
+  "sftp__sap_logs_parsed" [shape=diamond]
+  "sftp_metadata" -> "sftp__sap_logs_parsed"
+  "sftp_metadata" [shape=diamond]
+  "sftp__sap_logs" -> "sftp_metadata"
+  "trace_sapstartsrv__sap_logs_parsed" [shape=diamond]
+  "trace_sapstartsrv_metadata" -> "trace_sapstartsrv__sap_logs_parsed"
+  "trace_sapstartsrv_metadata" [shape=diamond]
+  "trace_sapstartsrv__sap_logs" -> "trace_sapstartsrv_metadata"
+  "work_available__sap_logs_parsed" [shape=diamond]
+  "work_available_metadata" -> "work_available__sap_logs_parsed"
+  "work_available_metadata" [shape=diamond]
+  "work_available__sap_logs" -> "work_available_metadata"
+  "work_http_access_log__sap_logs_parsed" [shape=diamond]
+  "work_http_access_log_metadata" -> "work_http_access_log__sap_logs_parsed"
+  "work_http_access_log_metadata" [shape=diamond]
+  "work_http_access_log__sap_logs" -> "work_http_access_log_metadata"
+  "work_sapstartsrv__sap_logs_parsed" [shape=diamond]
+  "work_sapstartsrv_metadata" -> "work_sapstartsrv__sap_logs_parsed"
+  "work_sapstartsrv_metadata" [shape=diamond]
+  "work_sapstartsrv__sap_logs" -> "work_sapstartsrv_metadata"
+  "audit__system_logs_parsed" [shape=diamond]
+  "audit_metadata" -> "audit__system_logs_parsed"
+  "audit_metadata" [shape=diamond]
+  "audit__system_logs" -> "audit_metadata"
+  "journald__system_logs_parsed" [shape=diamond]
+  "journald_metadata" -> "journald__system_logs_parsed"
+  "journald_metadata" [shape=diamond]
+  "journald__system_logs" -> "journald_metadata"
+  "nessus__system_logs_parsed" [shape=diamond]
+  "nessus_metadata" -> "nessus__system_logs_parsed"
+  "nessus_metadata" [shape=diamond]
+  "nessus__system_logs" -> "nessus_metadata"
+  "openvpn__system_logs_parsed" [shape=diamond]
+  "openvpn_metadata" -> "openvpn__system_logs_parsed"
+  "openvpn_metadata" [shape=diamond]
+  "openvpn__system_logs" -> "openvpn_metadata"
+  "syslog__system_logs_parsed" [shape=diamond]
+  "syslog_metadata" -> "syslog__system_logs_parsed"
+  "syslog_metadata" [shape=diamond]
+  "syslog__system_logs" -> "syslog_metadata"
+  "system_logs__dropped_out" [shape=diamond]
+  "audit__system_logs_parsed" -> "system_logs__dropped_out" [label="dropped"]
+  "journald__system_logs_parsed" -> "system_logs__dropped_out" [label="dropped"]
+  "nessus__system_logs_parsed" -> "system_logs__dropped_out" [label="dropped"]
+  "openvpn__system_logs_parsed" -> "system_logs__dropped_out" [label="dropped"]
+  "syslog__system_logs_parsed" -> "system_logs__dropped_out" [label="dropped"]
+  "tuned__system_logs_parsed" -> "system_logs__dropped_out" [label="dropped"]
+  "system_logs__out" [shape=diamond]
+  "audit__system_logs_parsed" -> "system_logs__out"
+  "journald__system_logs_parsed" -> "system_logs__out"
+  "nessus__system_logs_parsed" -> "system_logs__out"
+  "openvpn__system_logs_parsed" -> "system_logs__out"
+  "syslog__system_logs_parsed" -> "system_logs__out"
+  "tuned__system_logs_parsed" -> "system_logs__out"
+  "tuned__system_logs_parsed" [shape=diamond]
+  "tuned_metadata" -> "tuned__system_logs_parsed"
+  "tuned_metadata" [shape=diamond]
+  "tuned__system_logs" -> "tuned_metadata"
+  "firehose" [shape=invtrapezium]
+  "event_router" -> "firehose" [label="bad"]
+  "event_router" -> "firehose" [label="good"]
+  "event_router" -> "firehose" [label="_unmatched"]
+  "gcp_logging_host_logs" [shape=invtrapezium]
+  "gcp_host_logs_filter" -> "gcp_logging_host_logs"
+}

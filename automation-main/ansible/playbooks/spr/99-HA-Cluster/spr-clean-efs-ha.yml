@@ -1,0 +1,114 @@
+---
+# Playbook Name: spr-clean-efs-ha.yml
+# Description: Used for deleting a specific SID on an EFS-HA Volume
+#     This can be used to "clean and reset" the state of EFS-HA from a partial install.
+# Dependencies:
+# - Ansible v2.9+
+# - AWS CLI v1.16+
+# - sudo capability or root privileges on target machine
+# - disk-management ansible role
+# - nfs ansible role
+# Variables:
+# Example:
+#   Execution on remote systems using the fuse inventory host template
+#     ansible-playbook s4pce-create-disks-non-spr.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Louis Lee
+# Version: 2.9-000001
+# Modified: 2023-07-19 - Created playbook
+# Comments: |
+#   Tags:
+#     play0 always cloud-identify : Prepare dynamic values
+#     play1                       : Mount and Clean Subfolder SID
+#     playEND                     : The End
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - cloud-identify
+  - always
+
+  vars_prompt:
+    - name: global_sid_to_erase
+      prompt: What is the (global_sid_to_erase) on the efs?
+      private: false
+
+  tasks:
+  - name: "Save the {{ global_sid_to_erase }} as a hostvar"
+    ansible.builtin.set_fact:
+      hostvar_sid_to_erase: "{{ global_sid_to_erase | upper }}"
+
+  # Notes: outputs: cloud_provider, machine_id
+  - name: Detect Cloud Provider
+    include_role:
+      name: cloud-identify
+
+  - name: Group by Cloud Provider
+    group_by:
+      key: "cloud_{{ cloud_provider }}"
+
+
+#################
+##### Play1 #####
+#################
+- name: Play1 Clean SID from
+  hosts: cloud_aws
+  tags:
+  - play1
+
+  vars:
+    aws_efs_file_system_id: "{{ efs_ha_app_fsid }}"
+
+  pre_tasks:
+    - name: Retrieve ec2 metadata
+      ec2_metadata_facts:
+      when: cloud_provider == "aws"
+
+  tasks:
+  - name: "Mount EFS"
+    include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        temp:
+          path: '/mnt/temp'
+          src: '{{ aws_efs_ip_address | default(aws_efs_file_system_id + ".efs." + ansible_ec2_placement_region + ".amazonaws.com",true) }}'
+
+  # NOTE: Ansible `file` is really slow for bulk file manipulation.
+  - name: "Erase the Folder {{ hostvar_sid_to_erase }}"
+    become: true
+    run_once: true
+    command: "rm -rf /mnt/temp/{{ hostvar_sid_to_erase }}"
+
+  - name: "Unmount Temporary EFS"
+    include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        temp:
+          path: '/mnt/temp'
+          state: absent
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

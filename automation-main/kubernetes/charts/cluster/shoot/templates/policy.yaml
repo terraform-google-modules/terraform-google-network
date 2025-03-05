@@ -1,0 +1,10 @@
+{{ if .Values.enable_cluster_audit }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audit-policy-{{ .Values.name }}
+  namespace: garden-{{ .Values.project }}
+data:
+  policy: |-
+    {{ .Files.Get "files/auditpolicy.yaml" | indent 4 | trim }}
+{{ end }}

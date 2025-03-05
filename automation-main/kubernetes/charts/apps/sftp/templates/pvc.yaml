@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sftp-cephfs-pvc
+spec:
+  storageClassName: {{ .Values.sftpgo.storage.className | default "ceph-filesystem" }}
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.sftpgo.storage.uploadFsSize }}

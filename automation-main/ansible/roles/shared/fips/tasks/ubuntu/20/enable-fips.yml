@@ -1,0 +1,44 @@
+---
+# Synopsis: Enables FIPS on Ubuntu 20
+
+  - name: Create grub.d directory
+    file:
+      path: /etc/default/grub.d
+      state: directory
+
+  - name: Create 99-fips.cfg
+    file:
+      path: /etc/default/grub.d/99-fips.cfg
+      state: touch
+    become: true
+
+  - name: Edit 99-fips.cfg
+    lineinfile:
+      path: /etc/default/grub.d/99-fips.cfg
+      regexp: ^GRUB_CMDLINE_LINUX_DEFAULT=.*
+      line: GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT fips=1"
+    become: true
+
+  - name: Create 99-ubuntu-fips.cfg
+    file:
+      path: /etc/default/grub.d/99-ubuntu-fips.cfg
+      state: touch
+    become: true
+
+  - name: Edit 99-ubuntu-fips.cfg
+    lineinfile:
+      path: /etc/default/grub.d/99-ubuntu-fips.cfg
+      regexp: ^GRUB_FLAVOUR_ORDER=.*
+      line: GRUB_FLAVOUR_ORDER="fips"
+    become: true
+
+  - name: Install fips packages
+    apt:
+      name:
+        - '{{ fips_package_name }}'
+      state: present
+    become: true
+    vars:
+      fips_package_name: "{{ 'ubuntu-azure-fips' if ansible_system_vendor | lower == 'microsoft corporation' else 'linux-fips' }}"
+
+...

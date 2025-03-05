@@ -1,0 +1,61 @@
+---
+# Synopsis: Terminates 'test-' instances older than 7 days
+# Inputs:
+#   - aws_region :
+#   - search_date :
+# Outputs:
+#   - Terminates instances tagged 'test-' created more than 7 days ago.
+
+  - name: Set Date Range as a Fact
+    set_fact:
+      search_date: "{{ '%Y-%m-%d' | strftime( ( ansible_date_time.epoch | int ) - ( 86400 * instance_deletion_grace_period )  ) }}"
+
+  - name: Get ec2_instances
+    local_action:
+      module: ec2_instance_info
+      region: '{{ aws_region }}'
+    register: discovered_instances
+    tags:
+      - search
+      - delete
+
+##### This uses JMESPath for the query
+### the 'to_json|from_json' is necessary due to a bug? in ansible that treats json as unary values
+### See: https://github.com/ansible/ansible/issues/27299
+  - name: These instances have are older than {{ search_date }} and have a 'test-' name tag
+    debug:
+      msg: '{{ discovered_instances | to_json | from_json | json_query(query) }}'
+    vars:
+      query: 'instances[?network_interfaces[0].attachment.attach_time<=`{{ search_date }}` && starts_with(tags.Name, `test-`) == `true` ].{InstanceId: instance_id,
+        NicAttachTime: network_interfaces[0].attachment.attach_time, Name: tags.Name }'
+    tags:
+      - search
+      - delete
+
+  - name: Geting instances to delete
+    set_fact:
+      delete_instances: '{{ discovered_instances | to_json | from_json | json_query(query) }}'
+    vars:
+      query: instances[?network_interfaces[0].attachment.attach_time<=`{{ search_date }}` && starts_with(tags.Name, `test`) == `true` ].instance_id
+    tags:
+      - search
+      - delete
+
+  - name: Notify if there is nothing to delete
+    debug:
+      msg: No instances to delete
+    when: delete_instances|length == 0
+
+  - name: Terminate aws instances
+    local_action:
+      module: ec2
+      region: '{{ aws_region }}'
+      aws_access_key: '{{ aws_automation_access_key }}'
+      aws_secret_key: '{{ aws_automation_secret_key }}'
+      state: absent
+      instance_ids: '{{ delete_instances }}'
+      wait: true
+    when: delete_instances|length > 0
+    tags:
+      - delete
+...

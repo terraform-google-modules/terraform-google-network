@@ -1,0 +1,150 @@
+---
+
+# Playbook Name: ibp-setup-incron.yml
+# Description: Idempotent setup of InCron for Database Hosts
+# Prerequisites:
+#   - STE Requirements listed in Contributing Guide
+#   - sudo capability or root privileges on target machine
+#   - IBP IAM Instance Profiles assigned to Hosts
+# Dependencies:
+#   - ibp ansible role
+#   - ibp customer inventory
+# Variables: N/A
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-setup-incron.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>
+# Authors: Louis Lee
+# Version: 2025-01-01
+# Modified: 2025-01-01 - Created
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Play Tags:
+#     play0 prerequisites : Sets mandatory variables
+#     play1 hana-incron : Configures InCron on Hana DB Hosts
+#     play2 cpids-incron : Configures InCron on CPIDS Hosts
+#     playEND : End of the playbook
+
+#################
+##### Play0 #####
+#################
+- name: "Play0:  Prerequisites"
+  hosts: all
+  gather_facts: false
+  tags:
+  - play0
+  - prerequisites
+  - always
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Generate role dynamic variables"
+    ansible.builtin.include_role:
+      name: ibp
+      allow_duplicates: true
+      tasks_from: general/variables-create.yml
+
+  - name: "Discover S3 Backup Bucket"
+    ansible.builtin.include_role:
+      name: ibp
+      allow_duplicates: true
+      tasks_from: general/s3-discovery.yml
+
+  - name: "Set application_preset_selection"
+    ansible.builtin.set_fact:
+      application_preset_selection: "['{{ ibp_application_preset_selection }}']"
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Configure Hana Incron"
+  hosts: ibpdb
+  gather_facts: false
+  become: false
+  tags:
+  - play1
+  - hana-incron
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Display Hana Variables"
+    ansible.builtin.debug:
+      msg: |
+        Host {{ inventory_hostname }}
+        System Usage is {{ system_usage }}
+        Application Preset is {{ application_preset_selection }}
+        Hana Tar Source is {{ hana_tar_source }}
+        Sid is {{ sid }}
+        Hostname will be {{ ibp_hostname }}
+        IBP Backup Bucket is {{ ibp_backup_bucket_name }}
+
+  - name: "Pause for 10 seconds"
+    ansible.builtin.pause:
+      seconds: 10
+
+  - name: "Setup InCron"
+    ansible.builtin.include_role:
+      name: ibp
+      allow_duplicates: true
+      tasks_from: provisioning/hana-incron-setup.yml
+    vars:
+      incron_setup_sid: "{{ sid }}"
+      incron_setup_release_number: "{{ hana_tar_source | regex_replace('/staging/ibp/Build/(.*?)-(\\d{4})(.*)/DB','\\2') }}"
+      incron_setup_bucket_name: "{{ ibp_backup_bucket_name }}"
+      incron_setup_hostname: "{{ ibp_hostname }}"
+      incron_setup_suffix: "{{ suffix }}"
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Configure CPIDS Incron"
+  hosts: cpids
+  gather_facts: false
+  become: false
+  tags:
+  - play4
+  - cpids-incron
+  any_errors_fatal: true
+
+  tasks:
+  - name: "Provisioning CPIDS with these settings"
+    ansible.builtin.debug:
+      msg: |
+        Host {{ inventory_hostname }}
+        Application Preset is {{ application_preset_selection }}
+        CPIDS Tar Source is {{ cpids_tar_source }}
+        SAP Host Agent Source is {{ saphostagent_source }}
+        Hostname will be {{ ibp_hostname }}
+        IBP Backup Bucket is {{ ibp_backup_bucket_name }}
+
+  - name: "Pause for 10 seconds"
+    ansible.builtin.pause:
+      seconds: 10
+
+  - name: "Setup InCron"
+    ansible.builtin.include_role:
+      name: ibp
+      allow_duplicates: true
+      tasks_from: provisioning/cpids-incron-setup.yml
+    vars:
+      incron_setup_sid: 'n01'
+      incron_setup_release_number: "{{ cpids_tar_source | regex_replace('/staging/cpids/Build/.*?(DSOD-.*?)-TAR.*','\\1') }}"
+      incron_setup_bucket_name: "{{ ibp_backup_bucket_name }}"
+      incron_setup_hostname: "{{ ibp_hostname }}"
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    ansible.builtin.debug:
+      msg: "Of the world as we know it"
+...

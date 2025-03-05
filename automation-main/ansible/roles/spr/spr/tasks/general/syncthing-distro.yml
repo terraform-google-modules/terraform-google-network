@@ -1,0 +1,99 @@
+---
+# Synopsis: Copies files to syncthing distribution.  Also deletes old versions if desired
+# Inputs:
+#   spr_syncthing_productname: (Required) product to copy.  Should match item in spr_products
+#   spr_products: From role defaults, list of supported products
+#   spr_syncthing_prefix: From role defaults, the prefix added to spr_product path that determines final destination
+#   spr_cleanup_older: Default False, whether or not to delete old versions from syncthing location
+#   spr_versions_to_keep: Default 1, number of older versions to keep.
+# Outputs:
+#   - Product copied to syncthing distribution folder
+#   - Older versions deleted from syncthing distribution folder
+# Comments:
+
+- name: List spr_products (Verbosity >=1)
+  ansible.builtin.debug:
+    msg: "{{ spr_products.keys() | list }}"
+    verbosity: 1
+
+- name: Check if the Product Name is Valid
+  ansible.builtin.assert:
+    that: spr_syncthing_productname in spr_products
+    success_msg: Success!
+    fail_msg: Fail!
+
+
+- name: Form file pathing
+  ansible.builtin.set_fact:
+    src_path: "{{ spr_products[spr_syncthing_productname].path }}/{{ spr_products[spr_syncthing_productname].version }}"
+
+- name: Split file pathing
+  ansible.builtin.set_fact:
+    src_dirname: "{{ src_path | dirname }}"
+    src_basename: "{{ src_path | basename }}"
+
+- name: Ensure Destination Path Exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ spr_syncthing_prefix }}{{ src_dirname }}"
+    state: directory
+
+- name: Use RSYNC to clone to Syncthing Target
+  register: rsync_output
+  become: true
+  ansible.posix.synchronize:
+    src: "{{ src_dirname }}/{{ src_basename }}"
+    dest: "{{ spr_syncthing_prefix }}{{ src_dirname }}/"
+    rsync_opts:
+      - "--exclude=DB_Backup"
+  delegate_to: "{{ inventory_hostname }}"
+
+- name: RSYNC Output (Verbosity >= 1)
+  ansible.builtin.debug:
+    var: rsync_output.stdout_lines
+    verbosity: 1
+
+- name: Update Latest Symlink
+  register: symlink_output
+  become: true
+  ansible.builtin.file:
+    src: "{{ spr_syncthing_prefix }}{{ spr_products[spr_syncthing_productname].path }}/{{ spr_products[spr_syncthing_productname].version }}"
+    dest: "{{ spr_syncthing_prefix }}{{ spr_products[spr_syncthing_productname].path }}/latest"
+    state: link
+    force: true
+
+- name: Show new Symlink
+  when: symlink_output.changed == true
+  ansible.builtin.debug:
+    var: symlink_output.diff
+
+- name: "BLOCK: Cleanup Old Versions"
+  when: spr_cleanup_older|lower|bool
+  block:
+    - name: Get Folders in Target Path
+      ansible.builtin.find:
+        paths: "{{ spr_syncthing_prefix }}{{ spr_products[spr_syncthing_productname].path }}"
+        file_type: directory
+      register: find_out
+
+    - name: Save found_folders
+      ansible.builtin.set_fact:
+        found_folders: "{{ find_out['files'] | map(attribute='path') | sort(reverse=true) | list }}"
+        latest_list: ["{{ spr_syncthing_prefix }}{{ spr_products[spr_syncthing_productname].path }}/{{ spr_products[spr_syncthing_productname].version }}"]
+
+    - name: Remove latest from found_folders
+      ansible.builtin.set_fact:
+        found_folders: "{{ found_folders | difference(latest_list) }}"
+
+    - name: "Preserve {{ spr_versions_to_keep }} older versions"
+      ansible.builtin.set_fact:
+        found_folders: "{{ found_folders[spr_versions_to_keep:] }}"
+
+    - name: Delete old versions
+      become: true
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ found_folders }}"
+  #END "BLOCK: Cleanup Old Versions"
+...

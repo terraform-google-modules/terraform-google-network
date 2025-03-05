@@ -1,0 +1,57 @@
+---
+# Synopsis: Provisions SAP router
+# Inputs:
+# Inputs:
+#   spr_app_install_source: Full path to the SAP Router installation binary, saprouter_811-80003478.sar
+#   spr_sapcar_executable_source: Full path to the SAPCAR executable
+# Outputs:
+# Comments:
+
+- name: "BLOCK: Install SAP Router"
+  block:
+      - name: "Create /usr/sap/saprouter"
+        become: true
+        file:
+          path: '/usr/sap/saprouter'
+          state: directory
+
+      - name: "Get saprouter package location in Media"
+        find:
+          paths: "{{ spr_app_install_source }}"
+          patterns:
+            - saprouter_.*.sar
+          use_regex: yes
+        register: saprouter_output
+
+      - name: Copy the SAP Router binary {{ spr_app_install_source }} to /usr/sap/saprouter
+        become: true
+        copy:
+          dest: '/usr/sap/saprouter/'
+          src: '{{ item.path }}'
+          force: yes
+          remote_src: yes
+        with_items:
+          "{{ saprouter_output.files }}"
+
+      - name: "UNSAR the SAP Router binary file in the directory"
+        become: true
+        shell: "{{ spr_sapcar_executable_source }} -xvf {{ item.path | basename }}"
+        args:
+          chdir: '/usr/sap/saprouter/'
+        with_items:
+          "{{ saprouter_output.files }}"
+
+      - name: "Create the saprouttab file"
+        become: true
+        copy:
+          dest: "/usr/sap/saprouter/saprouttab"
+          content: |
+            D * * * *
+
+      - name: "Edit /etc/rc.local to automatically start SAP Router on system boot"
+        become: true
+        lineinfile:
+          path: '/etc/rc.local'
+          line: 'nohup /usr/sap/saprouter -r &'
+          create: yes
+...

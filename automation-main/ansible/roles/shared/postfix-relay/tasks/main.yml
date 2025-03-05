@@ -1,0 +1,131 @@
+---
+  - name: Install Postfix
+    package:
+      name: postfix
+      state: present
+    become: true
+    tags:
+      - install
+
+  - name: stop, disable, and mask FirewallD service
+    systemd:
+      name: firewalld
+      state: stopped
+      enabled: no
+      masked: yes
+    become: true
+
+  - name: Configure Postfix allowed relay networks
+    command: postconf -e 'mynetworks = 127.0.0.0/8 [::1]/128 [fe80::]/64' 'mynetworks_style = subnet'
+    become: true
+
+  - name: Configure the username/password for the environment relay
+    template:
+      src: sasl-password.j2
+      dest: /etc/postfix/sasl_passwd
+      owner: root
+      group: root
+      mode: 0600
+    register: postfix_changed_sasl_password
+    become: true
+
+  - name: Run postmap for the sasl_password
+    command: postmap hash:/etc/postfix/sasl_passwd
+    when: postfix_changed_sasl_password.changed
+    notify: restart Postfix
+    become: true
+
+  - name: Disable the smtp_fallback_relay
+    command: postconf -X smtp_fallback_relay
+    become: true
+
+  - name: Configure Postfix with some sane defaults
+    shell: |
+      postconf -e 'inet_interfaces = all' \
+      'inet_protocols = all' \
+      'smtp_tls_mandatory_protocols = !SSLv2,!SSLv3,!TLSv1' \
+      'smtp_tls_protocols = $smtp_tls_mandatory_protocols' \
+      'smtp_tls_fingerprint_digest = sha256' \
+      'smtp_tls_ciphers = high' \
+      'smtp_tls_mandatory_ciphers = high' \
+      'smtpd_tls_ciphers = high' \
+      'smtpd_tls_mandatory_ciphers = high' \
+      'smtpd_tls_mandatory_protocols = $smtp_tls_mandatory_protocols' \
+      'smtpd_tls_protocols = $smtp_tls_mandatory_protocols' \
+      'transport_destination_recipient_limit = 1'
+    become: true
+
+  - name: Configure Postfix with the relay settings
+    shell: |
+      postconf -e 'relayhost = [{{ postfix_relay_smtp_address }}]:{{ postfix_relay_smtp_port }}' \
+      'smtp_sasl_auth_enable = yes' \
+      'smtp_sasl_security_options = noanonymous' \
+      'smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd' \
+      'smtp_use_tls = yes' \
+      'smtp_tls_security_level = encrypt' \
+      'smtp_tls_note_starttls_offer = yes'
+    when:
+      - postfix_relay_smtp_address is defined
+      - postfix_relay_smtp_port is defined
+      - postfix_relay_smtp_address | length > 0
+      - postfix_relay_smtp_port | length > 0
+    become: true
+
+  - name: Remove relayhost configuration
+    shell: |
+      postconf -X relayhost
+      postconf -X smtp_sasl_auth_enable
+      postconf -X smtp_sasl_security_options
+    when:
+      - postfix_relay_smtp_address is not defined or postfix_relay_smtp_address | length == 0
+    become: true
+
+  - name: Configure Postfix with the path to the CA certificate on Red Hat systems
+    shell: postconf -e 'smtp_tls_CAfile = /etc/ssl/certs/ca-bundle.crt'
+    when: ansible_os_family | lower == 'redhat'
+    become: true
+
+  - name: Configure Postfix with the path to the CA certificate on Ubuntu systems
+    shell: postconf -e 'smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt'
+    when: ansible_distribution | lower == 'ubuntu'
+    become: true
+
+  - name: BLOCK - Enable envelope sender masquerade
+    block:
+      - name: Write canonical mapping to disk
+        template:
+          src: postfix-envelope-sender.j2
+          dest: /etc/postfix/envelopesender
+          owner: root
+          group: root
+          mode: 0644
+        notify:
+          - restart Postfix
+
+      - name: Enable envelope sender masquerade in Postfix
+        shell: |
+          postconf -e 'canonical_maps = regexp:/etc/postfix/envelopesender' \
+          'canonical_classes = envelope_sender'
+
+    when:
+      - postfix_envelope_sender is defined
+      - postfix_envelope_sender | dict2items | length > 0
+    become: true
+
+  - name: Disable envelope sender masquerade
+    shell: |
+      postconf -X canonical_maps
+      postconf -X canonical_classes
+    when:
+      - postfix_envelope_sender is not defined or postfix_envelope_sender | dict2items | length == 0
+    become: true
+    notify:
+      - restart Postfix
+
+  - name: Enable Postfix service and start it
+    service:
+      name: postfix
+      enabled: true
+      state: started
+    become: true
+...

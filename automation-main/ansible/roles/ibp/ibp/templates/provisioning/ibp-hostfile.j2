@@ -1,0 +1,59 @@
+127.0.0.1       localhost.localdomain   localhost
+::1        localhost6.localdomain6   localhost6
+#=========================================================================================
+# IBP Customer{{ customer_number }} host file created by Ansible
+#=========================================================================================
+# CPIDS
+{{ hostvars[groups.cpids[0]].ansible_default_ipv4.address }}    ns2cpids.{{ hostfile_fqdn|lower }}    ns2cpids    ns2cpids.ibp.sapns2.us    c{{ customer_number|lower }}-cpids.{{ hostfile_fqdn|lower }}    c{{ customer_number|lower }}-cpids
+#-----------------------------------------------------------------------------------------
+# Webdispatcher
+{% if all_incoming_connections_to_wdisp == true %}
+{{ hostvars[groups.webdispatcher[0]].ansible_default_ipv4.address }}    ibpwdisp-n02.{{ hostfile_fqdn|lower }}    ibpwdisp-n02 {% for backend in sidlist %}    wdisp-{{ backend|lower }}.{{ hostfile_fqdn|lower }} {% endfor %}    c{{ customer_number|lower }}-wdisp.{{ hostfile_fqdn|lower }}    c{{ customer_number|lower }}-wdisp   wdisp-{{ hostvars[groups.staging[0]].sid|lower }}.{{customer_fqdn_suffix|lower}}    wdisp-{{ hostvars[groups.production[0]].sid|lower }}.{{customer_fqdn_suffix|lower}}    sdi-{{ hostvars[groups.staging[0]].sid|lower }}.{{customer_fqdn_suffix|lower}}  sdi-{{ hostvars[groups.production[0]].sid|lower }}.{{customer_fqdn_suffix|lower}}  customer00{{ customer_number }}-cpids.{{customer_fqdn_suffix|lower}}
+{% else %}
+{{ hostvars[groups.webdispatcher[0]].ansible_default_ipv4.address }}    ibpwdisp-n02.{{ hostfile_fqdn|lower }}    ibpwdisp-n02 {% for backend in sidlist %}    wdisp-{{ backend|lower }}.{{ hostfile_fqdn|lower }} {% endfor %}    c{{ customer_number|lower }}-wdisp.{{ hostfile_fqdn|lower }}    c{{ customer_number|lower }}-wdisp
+{% endif %}
+#-----------------------------------------------------------------------------------------
+# Landscape Staging
+#=========================================================================================
+{% for server in groups.staging %}
+{% if server in groups.ibpdb %}
+{{ hostvars[server].ansible_default_ipv4.address }}    ibpdb-{{ hostvars[server].sid|lower  }}.{{ hostfile_fqdn|lower }}    ibpdb-{{ hostvars[server].sid|lower  }}    tenant-{{ hostvars[server].sid|lower }}.{{ hostfile_fqdn|lower }}    tenant-{{ hostvars[server].sid|lower }}    c{{ customer_number|lower }}-ibpdb-{{ hostvars[server].suffix|lower }}
+#-----------------------------------------------------------------------------------------
+{% elif server in groups.ibpapp %}
+{{ hostvars[server].ansible_default_ipv4.address }}    ibpapp01-{{ hostvars[server].sid|lower }}.{{ hostfile_fqdn|lower }}    ibpapp01-{{ hostvars[server].sid|lower }}   c{{ customer_number|lower }}-ibpapp-{{ hostvars[server].suffix|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endfor %}
+# Landscape Test
+#=========================================================================================
+{% for server in groups.test %}
+{% if server in groups.ibpdb %}
+{{ hostvars[server].ansible_default_ipv4.address }}    ibpdb-{{ hostvars[server].sid|lower  }}.{{ hostfile_fqdn|lower }}    ibpdb-{{ hostvars[server].sid|lower  }}    tenant-{{ hostvars[server].sid|lower }}.{{ hostfile_fqdn|lower }}    tenant-{{ hostvars[server].sid|lower }}    c{{ customer_number|lower }}-ibpdb-{{ hostvars[server].suffix|lower }}
+#-----------------------------------------------------------------------------------------
+{% elif server in groups.ibpapp %}
+{{ hostvars[server].ansible_default_ipv4.address }}    ibpapp01-{{ hostvars[server].sid|lower }}.{{ hostfile_fqdn|lower }}    ibpapp01-{{ hostvars[server].sid|lower }}   c{{ customer_number|lower }}-ibpapp-{{ hostvars[server].suffix|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endfor %}
+# Landscape Production
+#=========================================================================================
+{% for server in groups.production %}
+{% if server in groups.ibpdb %}
+{{ hostvars[server].ansible_default_ipv4.address }}    ibpdb-{{ hostvars[server].sid|lower  }}.{{ hostfile_fqdn|lower }}    ibpdb-{{ hostvars[server].sid|lower  }}    tenant-{{ hostvars[server].sid|lower }}.{{ hostfile_fqdn|lower }}    tenant-{{ hostvars[server].sid|lower }}    c{{ customer_number|lower }}-ibpdb-{{ hostvars[server].suffix|lower }}
+#-----------------------------------------------------------------------------------------
+{% elif server in groups.ibpapp %}
+{{ hostvars[server].ansible_default_ipv4.address }}   ibpapp01-{{ hostvars[server].sid|lower }}.{{ hostfile_fqdn|lower }}    ibpapp01-{{ hostvars[server].sid|lower }}   c{{ customer_number|lower }}-ibpapp-{{ hostvars[server].suffix|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endfor %}
+# Landscape Disaster Recovery
+#=========================================================================================
+{% for server in groups.disaster_recovery %}
+{% if server in groups.ibpdb %}
+{{ hostvars[server].ansible_default_ipv4.address }}    ibpdr-{{ hostvars[server].sid|lower  }}.{{ hostfile_fqdn|lower }}    ibpdr-{{ hostvars[server].sid|lower  }}    tenant-{{ hostvars[server].sid|lower }}.{{ hostfile_fqdn|lower }}    tenant-{{ hostvars[server].sid|lower }}    c{{ customer_number|lower }}-ibpdb-{{ hostvars[server].suffix|lower }}
+#-----------------------------------------------------------------------------------------
+{% elif server in groups.ibpapp %}
+{{ hostvars[server].ansible_default_ipv4.address }}    ibpapp01-{{ hostvars[server].sid|lower }}.{{ hostfile_fqdn|lower }}    ibpapp01-{{ hostvars[server].sid|lower }}   c{{ customer_number|lower }}-ibpapp-{{ hostvars[server].suffix|lower }}
+#-----------------------------------------------------------------------------------------
+{% endif %}
+{% endfor %}

@@ -1,0 +1,25 @@
+[Unit]
+Description=Apache Tomcat
+After=syslog.target network.target
+
+[Service]
+Type=forking
+
+Environment="JAVA_HOME=/usr/sap/analyticscloudagent/SAPJVM/sapjvm_8"
+Environment="JRE_HOME=/usr/sap/analyticscloudagent/SAPJVM/sapjvm_8"
+Environment="CATALINA_PID=/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}/temp/tomcat.pid"
+Environment="CATALINA_HOME=/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}"
+Environment="CATALINA_BASE=/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}"
+Environment="CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC"
+
+ExecStart=/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}/bin/startup.sh
+ExecStop=/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}/bin/shutdown.sh
+
+User=sacagent
+Group=sapsys
+UMask=0022
+RestartSec=10
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

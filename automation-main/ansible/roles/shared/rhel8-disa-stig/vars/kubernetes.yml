@@ -1,0 +1,17 @@
+---
+# Place any DISA STIG configuration variables in this file that differ from what the 'primary.yml' variables file has.
+# This file takes precedence over 'primary.yml'.
+
+# This file is automatically included by the role when the 'application_preset_selection' variable is set to 'kubernetes' as
+# per the mapping in the 'main.yml' variables file.
+
+DISA_STIG_RHEL_08_040100: false # A firewall must be installed on RHEL 8.
+DISA_STIG_RHEL_08_040090: false # A RHEL 8 firewall must employ a deny-all, allow-by-exception policy for allowing connections to other systems.
+DISA_STIG_RHEL_08_040260: false # The RHEL 8 must not be performing packet forwarding unless the system is a router.
+
+DISA_STIG_RHEL_08_020260: true # RHEL 8 account identifiers (individuals, groups, roles, and devices) must disabled after 35 days of inactivity.
+DISA_STIG_RHEL_08_020200: true # RHEL 8 user account passwords must have a 60_day maximum password lifetime restriction.
+
+DISA_STIG_RHEL_08_010200: true # RHEL 8 must be configured so that all network connections associated with SSH traffic are terminated at the end of the session or after 10 minutes of inactivity, except to fulfill documented and validated mission requirements.
+
+...

@@ -1,0 +1,38 @@
+---
+# Synopsis: CRE-S4PCE
+# Inputs: N/A
+# Outputs: N/A
+# Comments: Be sure to include the defaults.yml as an additional inventory.
+
+all:
+  hosts:
+  vars:
+    ##### spr-app-cs-ha-install
+    ### spr-app-cs-ha-install Defaults
+    custom_domain: "{{ spr_domain }}"
+    cs_staging_path: "/staging/product-line/SAP_SOLUTION_MANAGER/SAP_SOLUTION_MANAGER/SAP_SOLUTION_MANAGER_7.2_FPS19"
+    product_media: "{{ cs_staging_path}}/Media/JAVA"
+    java_dvd: "/staging/product-line/SAP_JAVA_DVD/51055106"
+    solman_java_dvd: "/staging/product-line/SAP_JAVA_DVD/51045655_4"
+    ascs_inifile_params: "{{ cs_staging_path}}/Configuration_Content/HA/JAVA/NEW-INSTALL/SCS/inifile.params"
+    ers_inifile_params: "{{ cs_staging_path}}/Configuration_Content/HA/JAVA/NEW-INSTALL/ERS/inifile.params"
+    pas_inifile_params: "{{ cs_staging_path}}/Configuration_Content/HA/JAVA/NEW-INSTALL/PAS/inifile.params"
+    aas_inifile_params: "{{ cs_staging_path}}/Configuration_Content/HA/JAVA/NEW-INSTALL/AAS/inifile.params"
+    db_inifile_params: "{{ cs_staging_path}}/Configuration_Content/HA/JAVA/NEW-INSTALL/DB/inifile.params"
+    swpm_sapinst: "/staging/product-line/software_logistics_toolset/SL_TOOLSET/SL_TOOLSET_1.0/SOFTWARE_PROVISIONING_MGR_1.0/Media/SWPM10SP41/sapinst"
+    ascs_ha_product_id: "NW_Java_SCS:SOLMAN72SR2.JAVA.HDB.HA"
+    ers_ha_product_id: "NW_ERS:SOLMAN72SR2.JAVA.HDB.HA"
+    pas_ha_product_id: "NW_Java_CI:SOLMAN72SR2.JAVA.HDB.HA"
+    aas_ha_product_id: "NW_DI:SOLMAN72SR2.JAVA.HDB.HA"
+    db_ha_product_id: "NW_Java_DB:SOLMAN72SR2.JAVA.HDB.HA"
+    app_schema_name: "SAPJAVA1"
+    download_basket: "/staging/downloadbasket"
+
+    ### spr-app-cs-ha-install vars
+    efs_ha_app_fsid: "___EXAMPLE_VALUE___"        # EFS ID of EFS-HA
+    app_schema_password: "___EXAMPLE_VALUE___"    # This is the password used for Applications
+    db_virtual_hostname: "___EXAMPLE_VALUE___"    # Virtual Hostname of the Database
+    ascs_virtual_hostname: "___EXAMPLE_VALUE___"  # Virtual Hostname of the JAVA Central Service
+    ers_virtual_hostname: "___EXAMPLE_VALUE___"   # Virtual Hostname of then JAVA Enqueue Service
+    umeHost: "___EXAMPLE_VALUE___"                # Hostname of the Primary ABAP App (NOT JAVA)
+...

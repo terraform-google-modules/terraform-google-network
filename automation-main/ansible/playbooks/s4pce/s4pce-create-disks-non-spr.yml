@@ -1,0 +1,246 @@
+---
+# Playbook Name: s4pce-create-disks-non-spr.yml
+# Description: Creates and mounts necessary EBS and EFS mounts on SPR systems.
+#     It is designed to work with the spr-ansible-inventory-template file without additional inputs.
+# Dependencies:
+# - Ansible v2.9+
+# - AWS CLI v1.16+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# - disk-management ansible role
+# Variables:
+#   - efs_staging_ip: IP Address of the staging EFS to be mounted. (Inventory GroupVar)
+#   - nfs_usr_sap_trans_ip: IP Address of the usr_sap_trans GCP Filestore instance (Inventory GroupVar)
+#   - efs_usr_sap_trans_fsid: AWS EFS ID of the Customer's EFS Volume (Inventory GroupVar)
+#   - aws_efs_ip_address: IP address of the file system. When defined will use this var instead of the efs_usr_sap_trans_fsid (Inventory GroupVar)
+#   - spr_productname: Used to create dynamic group (Inventory HostVar)
+#   - non_spr_productname: Used to create dynamic group (Inventory HostVar)
+#   - spr_landscape: Used to create dynamic group (Inventory HostVar)
+#   - spr_nodetype: Used to create dynamic group (Inventory HostVar)
+#   - spr_usr_sap_mount_size: Customer's `/usr/sap` mount size (Inventory HostVar)
+# Example:
+#   Execution on remote systems using the fuse inventory host template
+#     ansible-playbook s4pce-create-disks-non-spr.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Neelima Gummadi
+# Version: 2.9-000001
+# Modified: 2022-07-01 - Created playbook
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+#   AWS has a maxiumum limit of 16TB.  Future iterations to add multi-disk support
+#   Tags:
+#     play0 always cloud-identify : Prepare dynamic values
+#     play1 app                   : app Volumes
+#     play2 usrsaptrans           : EFS usr/sap/trans Mount
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - cloud-identify
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ non_spr_productname|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+
+  # Notes: outputs: cloud_provider, machine_id
+  - name: Detect Cloud Provider
+    include_role:
+      name: cloud-identify
+
+  - name: Group by Cloud Provider
+    group_by:
+      key: "cloud_{{ cloud_provider }}"
+
+  - name: "Configure Base Repositories from S3"
+    include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: 'base'
+
+#################
+##### Play1 #####
+#################
+- name: Play3 SapApp Volumes
+  hosts: app:non_spr
+  tags:
+  - play1
+  - app
+  vars:
+    tag_productname: "{{ non_spr_productname | default(omit,true) }}"
+
+  tasks:
+  - name: "{{ inventory_hostname }} has {{ (ansible_facts.memtotal_mb/1000)|round|int }}GB of system memory"
+    set_fact:
+      ram_size: "{{ (ansible_facts.memtotal_mb/1000)|round|int }}"
+
+  - name: "Calculate swap size"
+    set_fact:
+      swap_size: >-
+          {% if ram_size|int < 32 %} {{ ram_size|int * 2 }}
+          {% elif ram_size|int < 64 %} 64
+          {% elif ram_size|int < 128 %} 96
+          {% elif ram_size|int < 256 %} 128
+          {% elif ram_size|int < 512 %} 160
+          {% elif ram_size|int < 1024 %} 192
+          {% elif ram_size|int < 2048 %} 224
+          {% elif ram_size|int < 4096 %} 256
+          {% elif ram_size|int < 8192 %} 288
+          {% else %} 320
+          {% endif %}
+
+  - name: "Additional swap size will be {{ swap_size|int }}GB"
+    set_fact:
+      swap_size: "{{ swap_size|int }}"
+
+  - name: Include disk management role to create, attach, parition, format, and mount disks
+    when: tag_productname != "sap_idm"
+    include_role:
+      name: disk-management
+    vars:
+      disk_create: true
+      disk_encryption: true
+      disk_encryption_key_default: ''
+      disk_preset_selection: 'custom'
+      custom:
+        usr_sap:
+          mount_point: '/usr/sap'
+          size: "{{ spr_usr_sap_mount_size | default(50, true) }}"
+        sapmnt:
+          mount_point: '/sapmnt'
+          size: 50
+        swap:
+          mount_point: '/swap'
+          size: "{{ swap_size|int }}"
+
+  - name: Include disk management role for sapidm to create, attach, parition, format, and mount disks
+    when: tag_productname == "sap_idm"
+    include_role:
+      name: disk-management
+    vars:
+      disk_create: true
+      disk_encryption: true
+      disk_encryption_key_default: ''
+      disk_preset_selection: 'custom'
+      custom:
+        usr_sap:
+          mount_point: '/usr/sap'
+          size: "{{ spr_usr_sap_mount_size | default(50, true) }}"
+        sapmnt:
+          mount_point: '/sapmnt'
+          size: 50
+        swap:
+          mount_point: '/swap'
+          size: "{{ swap_size|int }}"
+        sybase:
+          mount_point: '/sybase'
+          size: 500
+
+#################
+##### Play2 #####
+#################
+- name: "Play2 EFS usr/sap/trans"
+  hosts: app:non_spr
+  gather_facts: false
+  tags:
+  - play2
+  - usrsaptrans
+
+  vars:
+    aws_efs_file_system_id: "{{ efs_usr_sap_trans_fsid | default(omit,true) }}"
+    nfs_file_system_ip: "{{ nfs_usr_sap_trans_ip | default(omit,true) }}"
+    nfs_mount_dir: "{{ spr_efs_mount|default('none',true) }}"
+    azure_nfs_storage_account: "{{ spr_azure_customer_storage_account|default(omit,true) }}"
+    azure_nfs_name: "{{ spr_azure_customer_file_share|default(omit,true) }}"
+    gcp_filestore_name: "{{ spr_gcp_filestore_name | default(omit,true) }}"
+
+  pre_tasks:
+    - name: Retrieve ec2 metadata
+      ec2_metadata_facts:
+      when: cloud_provider == "aws"
+
+  tasks:
+  - name: "Block: Mount usr/sap/trans"
+    when: nfs_mount_dir != 'none'
+    become: true
+    block:
+    - name: "Create list of subfolders for NFS"
+      set_fact:
+        nfs_mnt: "{{ hostvars | to_json | from_json | json_query('*.spr_efs_mount') | sort | unique }}"
+      # Deconstructing what just happened:
+      # json_query('*.sid') - get sids for all hosts
+      # sort - sorts in alphabetical/numerical
+      # unique - remove duplicates
+
+    - name: "Mount Temporary EFS"
+      include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          temp:
+            path: '/mnt/temp'
+            src: '{{ aws_efs_ip_address | default(aws_efs_file_system_id + ".efs." + ansible_ec2_placement_region + ".amazonaws.com",true) }}'
+
+    - name: "Create NFS Subfolders"
+      run_once: true
+      file:
+        path: "/mnt/temp/{{ item }}"
+        state: directory
+        mode: 0755
+      loop_control:
+        label: "Ensuring subfolder {{ item }} exists on NFS"
+      loop: "{{ nfs_mnt }}"
+
+    - name: "Unmount Temporary EFS"
+      include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          temp:
+            path: '/mnt/temp'
+            state: absent
+
+    - name: "Mount the /usr/sap/trans"
+      include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          temp:
+            path: '/usr/sap/trans'
+            src: '{{ aws_efs_ip_address | default(aws_efs_file_system_id + ".efs." + ansible_ec2_placement_region + ".amazonaws.com",true) }}'
+            src_root: '/{{ nfs_mount_dir }}'
+  #END "Block: Mount usr/sap/trans"
+
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

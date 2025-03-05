@@ -1,0 +1,54 @@
+---
+# Description: Hotfix for SAP Compat issues
+# Inputs:
+#   - ansible_facts
+# Outputs: Workaround for SAP Compat issues
+# Comments:
+#   - gather_facts must be set to true
+
+- name: "Block: Bugfix for release 2005 and above"
+  become: true
+  block:
+    - name: "Delete original libstdc++.so.6.0.19 file"
+      file:
+        state: absent
+        path: '/usr/lib64/libstdc++.so.6.0.19'
+
+    - name: "Delete old symlink"
+      file:
+        state: absent
+        path: '/usr/lib64/libstdc++.so.6'
+
+    - name: "Update compat-sap-c++-6.so as libstdc++.so.6 for RHEL7"
+      copy:
+        dest: '/usr/lib64/libstdc++.so.6'
+        src: '/opt/rh/SAP/lib64/compat-sap-c++-6.so'
+        force: yes
+        remote_src: yes
+      when: ansible_distribution_major_version == "7"
+
+    - name: "Update compat-sap-c++-9.so as libstdc++.so.6 for RHEL8"
+      copy:
+        dest: '/usr/lib64/libstdc++.so.6'
+        src: '/opt/rh/SAP/lib64/compat-sap-c++-9.so'
+        force: yes
+        remote_src: yes
+      when: ansible_distribution_major_version == "8"
+
+    - name: "Update compat-sap-c++-9.so as libstdc++.so.6 for RHEL9"
+      copy:
+        dest: '/usr/lib64/libstdc++.so.6'
+        src: '/opt/rh/SAP/lib64/compat-sap-c++-12.so'
+        force: yes
+        remote_src: yes
+      when: ansible_distribution_major_version == "9"
+
+    - name: "Create Symlink"
+      ansible.builtin.file:
+        dest: '/usr/lib64/libstdc++.so.6'
+        src: '/usr/lib64/libstdc++.so.6.0.29'
+        force: yes
+        state: link
+      when: ansible_distribution_major_version == "9"
+## End "Block: Bugfix for release 2005 and above"
+...

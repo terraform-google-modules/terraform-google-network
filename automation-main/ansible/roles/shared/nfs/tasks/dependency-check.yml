@@ -1,0 +1,68 @@
+---
+# Synopsis: Performs checks on all configuration dependencies prior to execution and fails if any are not met
+
+  - name: Fail check for supported shared file system state
+    fail:
+      msg: "[ERROR]: Unsupported nfs state option for '{{ item.key }}': '{{ item.value.state }}'"
+    loop: "{{ query('dict', nfs_dictionary) }}"
+    when: >
+      item.value.state is defined and
+      not (
+        item.value.state == "present" or
+        item.value.state == "absent"
+      )
+
+  - name: Fail check for passed source when configuring shared file system
+    fail:
+      msg: "[ERROR]: Must pass value for 'src' when configuring nfs '{{ item.key }}'"
+    loop: "{{ query('dict', nfs_dictionary) }}"
+    when: >
+      (
+        item.value.src is undefined or
+        item.value.src | length < 1
+      ) and
+      (
+        item.value.state is undefined or
+        (
+          item.value.state is defined and
+          item.value.state == "present"
+        )
+      )
+
+  - name: Fail check for passed efs mount target when filesystem dns does not resolve
+    fail:
+      msg: "[ERROR]: Must pass filesystem dns name as src: '{{ item.value.src }}' when configuring nfs '{{ item.key }}' to EFS access point."
+    loop: "{{ query('dict', nfs_dictionary) }}"
+    when:
+      - item.value.access_point_id is defined
+      - item.value.src[:3] != "fs-"
+
+  - name: Fail check for passed efs mount target when filesystem dns does not resolve
+    fail:
+      msg: "[ERROR]: Filesystem src: '{{ item.value.src }}' does not resolve when configuring nfs '{{ item.key }}'. Consider passing attribute 'efs_mount_target'\
+        \ to specify an IP address to directly access the filesystem with."
+    loop: "{{ query('dict', nfs_dictionary) }}"
+    when: >
+      nfs_dns_resolve_status is defined and
+      nfs_dns_resolve_status[item.key] is defined and
+      not nfs_dns_resolve_status[item.key] | bool and
+      (
+        item.value.efs_mount_target is undefined or
+        item.value.efs_mount_target is none or
+        item.value.efs_mount_target | length < 1
+      )
+
+  - name: Fail check for missing mandatory variable - nfs_aws_efs_utils_s3_path - when nfs_aws_efs_utils_s3_bucket is defined
+    fail:
+      msg: "[ERROR]: Missing mandatory passed variable 'nfs_aws_efs_utils_s3_path' when 'nfs_aws_efs_utils_s3_bucket' is defined. Please refer to README\
+        \  documentation on the different means to pass variable sets to the automation."
+    when: >
+      nfs_aws_efs_utils_s3_bucket is defined and
+      nfs_aws_efs_utils_s3_bucket is not none and
+      nfs_aws_efs_utils_s3_bucket | length > 0 and
+      (
+        nfs_aws_efs_utils_s3_path is not defined or
+        nfs_aws_efs_utils_s3_path is none or
+        nfs_aws_efs_utils_s3_path | length < 1
+      )
+...

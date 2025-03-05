@@ -1,0 +1,71 @@
+cmp:
+  create: "true"
+  plugins:
+    argocd-vault-plugin:
+      allowConcurrency: true
+      discover:
+        find:
+          command:
+            - sh
+            - "-c"
+            - "find . -name '*.yaml' | xargs -I {} grep \"<path\\|avp\\.kubernetes\\.io\" {} | grep ."
+      generate:
+        command:
+          - argocd-vault-plugin
+          - generate -s argocd-vault-plugin-credentials
+          - "."
+      lockRepo: false
+    argocd-vault-plugin-helm:
+      allowConcurrency: true
+      discover:
+        find:
+          command:
+            - sh
+            - "-c"
+            - "find . -name 'Chart.yaml' && find . -name 'values.yaml'"
+      generate:
+        command:
+          - sh
+          - "-c"
+          - |
+            helm template $ARGOCD_APP_NAME --include-crds -n $ARGOCD_APP_NAMESPACE ${ARGOCD_ENV_HELM_ARGS} . |
+            argocd-vault-plugin generate -s argocd-vault-plugin-credentials -
+      lockRepo: false
+    argocd-vault-plugin-overlay:
+      allowConcurrency: true
+      discover:
+        find:
+          command:
+            - sh
+            - "-c"
+            - "find . -name 'Chart.yaml' && find . -name 'values.yaml'"
+      generate:
+        command:
+          - bash
+          - "-c"
+          - |
+            if [ -f "koverride" ]; then
+              chmod +x koverride
+              helm template "$ARGOCD_APP_NAME" --include-crds -n "$ARGOCD_APP_NAMESPACE" -f "$ARGOCD_ENV_HELM_VALUE_FILE" -f <(echo "$ARGOCD_ENV_HELM_VALUES") --post-renderer ./koverride . | argocd-vault-plugin generate -s argocd-vault-plugin-credentials -
+            else
+              helm template "$ARGOCD_APP_NAME" --include-crds -n "$ARGOCD_APP_NAMESPACE" -f "$ARGOCD_ENV_HELM_VALUE_FILE" -f <(echo "$ARGOCD_ENV_HELM_VALUES") . | argocd-vault-plugin generate -s argocd-vault-plugin-credentials -
+            fi
+
+          # - |
+          #   [ -f "koverride" ] && helm template "$ARGOCD_APP_NAME" --include-crds -n "$ARGOCD_APP_NAMESPACE" -f "$ARGOCD_ENV_HELM_VALUE_FILE" -f <(echo "$ARGOCD_ENV_HELM_VALUES") --post-renderer ./koverride . | argocd-vault-plugin generate -s argocd-vault-plugin-credentials - || helm template "$ARGOCD_APP_NAME" --include-crds -n "$ARGOCD_APP_NAMESPACE" -f "$ARGOCD_ENV_HELM_VALUE_FILE" -f <(echo "$ARGOCD_ENV_HELM_VALUES") . | argocd-vault-plugin generate -s argocd-vault-plugin-credentials -
+      lockRepo: false
+    argocd-vault-plugin-kustomize:
+      allowConcurrency: true
+      discover:
+        find:
+          command:
+            - find
+            - "."
+            - -name
+            - kustomization.yaml
+      generate:
+        command:
+          - sh
+          - "-c"
+          - "kustomize build . | argocd-vault-plugin generate -s argocd-vault-plugin-credentials -"
+      lockRepo: false

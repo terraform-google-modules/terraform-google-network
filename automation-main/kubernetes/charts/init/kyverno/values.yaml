@@ -1,0 +1,238 @@
+kyverno:
+  global:
+    nodeSelector:
+      worker.garden.sapcloud.io/group: system
+  features:
+    forceFailurePolicyIgnore:
+      enabled: true
+  apiVersionOverride:
+    podDisruptionBudget: policy/v1
+  # Admission controller configuration
+  admissionController:
+    # -- (int) Desired number of pods
+    replicas: 3
+    serviceMonitor:
+      enabled: true
+  # Background controller configuration
+  backgroundController:
+    resources:
+      # -- Pod resource limits
+      limits:
+        cpu: 400m
+        memory: 900Mi
+      # -- Pod resource requests
+      requests:
+        cpu: 200m
+        memory: 512Mi
+    # -- (int) Desired number of pods
+    replicas: 3
+    rbac:
+      # -- Create RBAC resources
+      coreClusterRole:
+        # -- Extra resource permissions to add in the cluster role
+        extraResources:
+          - apiGroups:
+              - ''
+            resources:
+              - serviceaccounts
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+          - apiGroups:
+              - batch
+            resources:
+              - jobs
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+          - apiGroups:
+              - apiextensions.k8s.io
+            resources:
+              - customresourcedefinitions
+            verbs:
+              - create
+              - update
+              - delete
+              - get
+              - list
+          - apiGroups:
+              - ''
+            resources:
+              - configmaps
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+          - apiGroups:
+              - rbac.authorization.k8s.io
+            resources:
+              - roles
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+          - apiGroups:
+              - rbac.authorization.k8s.io
+            resources:
+              - rolebindings
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+          - apiGroups:
+              - ''
+            resources:
+              - namespaces
+            verbs:
+              - update
+              - patch
+              - list
+          - apiGroups:
+              - apps
+            resources:
+              - daemonsets
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+          - apiGroups:
+              - apps
+            resources:
+              - deployments
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+          - apiGroups:
+              - apps
+            resources:
+              - statefulsets
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+          - apiGroups:
+              - ''
+            resources:
+              - services
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+          - apiGroups:
+              - core.strimzi.io
+            resources:
+              - strimzipodsets
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+              - watch
+              - patch
+          - apiGroups:
+              - kafka.strimzi.io
+            resources:
+              - kafkas
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+              - watch
+              - patch
+          - apiGroups:
+              - ''
+            resources:
+              - pods
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+          - apiGroups:
+              - gateway.networking.k8s.io
+            resources:
+              - gateways
+            verbs:
+              - create
+              - delete
+              - update
+              - get
+              - list
+              - watch
+              - patch
+  # Cleanup controller configuration
+  cleanupController:
+    # -- (int) Desired number of pods
+    replicas: 2
+  # Reports controller configuration
+  reportsController:
+    # -- (int) Desired number of pods
+    replicas: 2
+  crds:
+    migration:
+      # -- (bool) Enable CRD migration
+      enabled: false
+    annotations:
+      argocd.argoproj.io/sync-options: Replace=true
+  config:
+    webhooks:
+      namespaceSelector:
+        matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
+        - key: shoot.gardener.cloud/no-cleanup
+          operator: NotIn
+          values:
+            - 'true'
+        - key: gardener.cloud/purpose
+          operator: NotIn
+          values:
+            - kube-system
+      objectSelector:
+        matchExpressions:
+        - key: webhooks.kyverno.io/exclude
+          operator: DoesNotExist
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            - kube-system
+        - key: shoot.gardener.cloud/no-cleanup
+          operator: NotIn
+          values:
+            - 'true'
+        - key: gardener.cloud/purpose
+          operator: NotIn
+          values:
+            - kube-system
+    # webhookLabels:
+    #   'argocd.argoproj.io/instance': 'kyverno'
+    resourceFiltersExcludeNamespaces:
+      - kube-system
+      - kyverno

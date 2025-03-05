@@ -1,0 +1,5 @@
+/*
+  Description: Terraform variables for module run; The variables contained in this page will be used to run this terraform module.
+*/
+
+build_user = "testing-user"

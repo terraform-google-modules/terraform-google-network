@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  role_name: clamav
+  namespace: scs
+  author: Matt Bittner (i869415)
+  description: Installs ClamAV, either as a script or a daemon, sets up a cron job, and runs a scan.
+  company: SAP SCS
+
+  issue_tracker_url: https://gitlab.core.sapns2.us/scs/shared/ansible/
+
+  license: BSD
+
+  min_ansible_version: 2.9
+
+  galaxy_tags:
+    - clamav
+    - antivirus
+    - antimalware
+    - security
+...

@@ -1,0 +1,54 @@
+---
+# Description: Setup Ansible Logging
+# Inputs:
+#   - ansible_logging_config_folder : folder location of the config file.
+#   - ansible_logging_path : log file that ansible will log to.
+# Outputs: Host provisioned to log ansible executions
+# Comments: N/A
+
+  - name: 'BLOCK: Ansible logging'
+    become: true
+    block:
+
+      - name: Ensure that the {{ ansible_logging_config_folder }} directory exists
+        file:
+          state: directory
+          path: '{{ ansible_logging_config_folder }}'
+
+      - name: Ensure Ansible config file exists
+        file:
+          state: touch
+          path: '{{ ansible_logging_config_folder }}/ansible.cfg'
+
+      - name: Set Ansible Configurations
+        ini_file:
+          section: '{{ item.section }}'
+          path: '{{ ansible_logging_config_folder }}/ansible.cfg'
+          option: '{{ item.option }}'
+          value: '{{ item.value }}'
+          state: present
+        loop_control:
+          label: Setting ansible {{ item.section }}/{{ item.option }} to {{ item.value }}
+        loop:
+          - option: log_path
+            value: '{{ ansible_logging_path }}'
+            section: defaults
+          - option: callback_whitelist
+            value: profile_tasks
+            section: defaults
+          - option: sort_order
+            value: none
+            section: callback_profile_tasks
+          - option: task_output_limit
+            value: all
+            section: callback_profile_tasks
+
+      - name: Ensure {{ ansible_logging_path }} has global write permissions
+        file:
+          path: '{{ ansible_logging_path }}'
+          state: touch
+          mode: 0666
+          owner: root
+
+### End "BLOCK: Ansible logging"
+...

@@ -1,0 +1,278 @@
+---
+# Playbook Name: ibp-post-provision.yml
+# Description: Performs Post Provisioning tasks on IBP instances
+#  This playbook contains post-provisioning tasks that should be
+#  performed on all IBP Instances.  The contents of this playbook
+#  is already included within the ibp-provision-all playbook.
+#
+#  See the play tags below for available subsets.
+#
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS CLI v1.18+
+#   - sudo capability or root privileges on target machine
+# Dependencies:
+#   - ibp ansible role
+#   - tag-management ansible role (post-provisioning)
+#   - repository-management ansible role
+#   - aws-cloudwatch-alarms ansible role (post-provisioning)
+#   - aws-cloudwatch-agent ansible role (post-provisioning)
+#   - iptables ansible role (post-provisioning)
+#   - clamav ansible role (post-provisioning)
+#   - aide ansible role (post-provisioning)
+# Variables:
+#   Variables dynamically created and used by other roles:
+#     application_preset_selection
+#     cw_preset_selection
+#     firewall_preset_selection
+#     aws_tag_product_name
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-provision-all.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>
+#
+# Example
+#   Only run provisioning  on a single instance with ip address of 192.168.1.1
+#     ansible-playbook ibp-provision-all.yml -k -i /tmp/hosts -l 192.168.1.1
+#
+# Example
+#   Execution of a specific plays 'pre-provision' and 'post-provision'
+#     ansible-playbook ibp-provision-all.yml -k -i /tmp/hosts --tags 'pre-provision,post-provision'
+#
+# Example
+#   Update the hostfiles on all servers
+#     ansible-playbook ibp-provision-all.yml -k -i /tmp/hosts --tags 'pre-provision'
+#
+# Authors: Louis Lee, Richard Breiten, Abdulla Rubaid
+# Version: 2.9-000008
+# Modified: 2020-10-19 - Created playbook
+#           2020-10-27 - Bugfix for sns email and numbers
+#           2020-12-18 - Add `dev/shm` to ignore disks CloudWatch alarm creation
+#           2020-12-23 - Update Documentation
+#           2021-04-26 - Added postfix configuration to use mail relay
+#           2022-03-03 - Adding flag to aide role to run update task asynchronously
+#           2022-08-03 - Adding play7 for tenable installation/configuration
+#           2023-03-01 - Removed Cloudwatch sns config variable in play2 to skip sns config for ibp
+#           2024-12-02 - Use variable for 'aws_region' in tag-management role.
+#           2024-12-03 - Removed unused variables. Moved variable usage to the Role Call. Removed hardcoded Region Values
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Play Tags:
+#     play0 always            : Generate Metadata
+#     play1 tag-management    : Sets tags on Instances, Volumes and other AWS Resources
+#     play2 cloudwatch-alarms : Create Cloudwatch Alarms and Monitoring
+#     play3 iptables          : Setup IPTables for Kinesis/Splunk Monitoring
+#     play4 clamav            : Setup ClamAV
+#     play5 aide              : Setup and Provision AIDE
+#     play6 postfix           : Setup postfix relay configuration
+#     play7 nessus            : Install and configure the tenable nessus agent
+#     playEND                 : End of the playbook
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Generate Metadata"
+  hosts: all
+  gather_facts: true
+  become: false
+  tags:
+  - play0
+  - always
+
+  any_errors_fatal: no
+
+  vars_prompt:
+  - name: nessus_key
+    prompt: What is the Tenable Manager registration key?
+    unsafe: yes
+    private: yes
+
+  - name: input_aws_region
+    prompt: What is the aws region?
+    private: false
+
+  pre_tasks:
+  - name: Save Input Variables for later playbook use.
+    set_fact:
+      playbook_aws_region: '{{ input_aws_region }}'
+      nessus_registration_key: "{{ nessus_key }}"
+
+  tasks:
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Sets tags on Instances, Volumes and other AWS Resources"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play1
+  - tag-management
+  any_errors_fatal: yes
+
+  tasks:
+  - name: "Update tags"
+    include_role:
+      name: tag-management
+    vars:
+      aws_tag_business: 'ibp'
+      aws_region: '{{ playbook_aws_region }}'
+
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Create Cloudwatch Alarms and Monitoring"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play2
+  - cloudwatch-alarms
+  any_errors_fatal: yes
+
+  tasks:
+  - name: "Create AWS CloudWatch Alarms"
+    include_role:
+      name: aws-cloudwatch-alarms
+    vars:
+      ignore_disks:
+        - /dev
+        - /dev/shm
+        - /sap/staging
+        - /hana/staging
+        - /boot
+        - /staging
+        - /usr/sap/trans
+
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Setup IPTables for Kinesis/Splunk Monitoring"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play3
+  - iptables
+  any_errors_fatal: yes
+
+  tasks:
+  - name: "Update iptables configuration"
+    include_role:
+      name: iptables
+
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Setup ClamAV"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play4
+  - clamav
+  any_errors_fatal: yes
+
+  tasks:
+  - name: "Update clamav configuration"
+    include_role:
+      name: clamav
+    vars:
+      clamav_create_cron_schedule: true
+      clamav_dir_ignore_pattern: '^/hana/|^/dev/|^/usr/sap/|^/backup/|^/sys|^/proc|^/swap|^/staging'
+
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: Setup AIDE"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play5
+  - aide
+  any_errors_fatal: yes
+
+  tasks:
+  - name: "Update aide configuration"
+    include_role:
+      name: aide
+      apply:
+        become: true
+    vars:
+      aide_async_update: true
+
+#################
+##### Play6 #####
+#################
+- name: "Play6: Setup postfix"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play6
+  - postfix
+  any_errors_fatal: yes
+
+  tasks:
+  - name: "Configure postfix"
+    include_role:
+      name: postfix-relay
+    vars:
+      postfix_relay_smtp_address: "{{ input_postfix_relay_smtp_address }}"
+      postfix_relay_smtp_port: "{{ input_postfix_relay_smtp_port }}"
+
+#################
+##### Play7 #####
+#################
+- name: "Play7: Install Nessus Agent"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play7
+  - nessus
+  - tenable
+  any_errors_fatal: yes
+
+  tasks:
+    - name: Install Tenable Nessus Agent
+      include_role:
+        name: nessus-agent
+      vars:
+        nessus_s3_bucket_aws_region: "{{ input_nessus_s3_bucket_aws_region }}"
+        nessus_s3_bucket_name: "{{ input_nessus_s3_bucket_name }}"
+        nessus_s3_bucket_path: "{{ input_nessus_s3_bucket_path }}"
+        nessus_manager_address: "{{ input_nessus_manager_address }}"
+        nessus_agent_group: "{{ input_nessus_agent_group }}"
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

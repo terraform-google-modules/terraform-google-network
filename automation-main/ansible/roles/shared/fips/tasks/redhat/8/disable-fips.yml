@@ -1,0 +1,7 @@
+---
+# Synopsis: Disables FIPS on RHEL 8
+
+  - name: Disable FIPS for Red Hat 8 if not disabled and desired
+    command: /usr/bin/fips-mode-setup --disable
+    become: true
+...

@@ -1,0 +1,122 @@
+---
+# Playbook Name: s4pce-vector-install.yml
+# Description: Performs vector installs on S4PCE instances
+#  This playbook contains vector install tasks that should be
+#  performed on all S4PCE Instances.
+#
+#
+# Dependencies:
+#   - Ansible v2.9+
+#   - AWS CLI v1.18+
+#   - sudo capability or root privileges on target machine
+#   - vector role
+# Variables:
+#   Variables dynamically created and used by other roles:
+#     vector_version
+# Example:
+#   Execution on remote systems using the s4pce inventory host template
+#     ansible-playbook s4pce-vector-install.yml -k -i </PATH-TO/S4PCE-HOST-INVENTORY-FILE>
+#
+# Example
+#   Only run vector install  on a single instance with ip address of 192.168.1.1
+#     ansible-playbook s4pce-vector-install.yml -k -i /tmp/hosts -l 192.168.1.1
+#
+#
+# Authors: Jayesh Patel
+# Version: 2.9-000013
+# Modified: 2023-04-25 - Created playbook
+# Comments: |
+#   This playbook is designed to be used with the s4pce-ansible-inventory-template.yml
+#   Play Tags:
+#     play0 always            : Generate Metadata
+#     Vector                  : Install and configure logging for Azure/GCP
+#     playEND                 : End of the playbook
+
+  #################
+  ##### Play0 #####
+  #################
+  - name: 'Play0: Generate Metadata'
+    hosts: all
+    gather_facts: true
+    become: false
+    tags:
+      - play0
+      - always
+
+    # Given the scope of S4PCE, and the fact that this is post provisioning. Continue playbook on false-errored hosts.
+    any_errors_fatal: false
+
+    vars_prompt:
+      - name: playbook_validation_email
+        prompt: Address to send validation email to? (leave blank to skip validation)
+        private: false
+        default: ''
+
+    pre_tasks:
+      - name: Save Validation email
+        set_fact:
+          validation_email: '{{ playbook_validation_email }}'
+
+
+    tasks:
+      - name: Run the 'vault-auth' role to pull secrets from Vault
+        ansible.builtin.include_role:
+          name: vault-auth
+          apply:
+            become: false
+        when: vault_secrets is defined and vault_secrets is not none
+
+      # This will output the following variables: s4pce_firewall_preset_selection
+      - name: Generate role dynamic variables
+        ansible.builtin.include_role:
+          name: s4pce
+          tasks_from: general/variables-create.yml
+        vars:
+          s4pce_variables_create_nodetype: '{{ spr_nodetype }}'
+          s4pce_variables_create_productname: '{{ spr_productname }}'
+
+      # Notes: outputs:
+      # cloud_provider/cloud_partition (aws[govcloud,commercial],gcp[gcp],azure[usgovernment,public])
+      # machine_id
+      - name: Detect Cloud Provider
+        ansible.builtin.include_role:
+          name: cloud-identify
+
+      - name: Group by Cloud Provider
+        group_by:
+          key: cloud_{{ cloud_provider }}
+
+  - name: 'Installs vector for logging in Azure/GCP'
+    hosts: cloud_azure:cloud_gcp
+    gather_facts: false
+    become: false
+    any_errors_fatal: true
+    tags:
+      - vector
+
+    tasks:
+      - name: Install/configure Vector
+        ansible.builtin.include_role:
+          name: vector
+        vars:
+          vector_version: 0.29.1-1
+
+  ###################
+  ##### PlayEND #####
+  ###################
+  - name: 'PlayEND: End of playbook'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play-end
+      - always
+      - the-end
+
+    tasks:
+      - name: This is the end
+        delegate_to: localhost
+        run_once: true
+        debug:
+          msg: Of the world as we know it
+...

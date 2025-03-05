@@ -1,0 +1,81 @@
+---
+# Synopsis: Deletes AMIs older than 6 months and deregisters AMIs from the last 6 months if they are not the newest version of their AMI Type
+# Inputs:
+#   - aws_region: us-gov-west-1
+#   - image_deletion_date: the date that the image will be deleted
+#   - image_search_date: the playbook searches for images that were created before this date
+# Outputs:
+#   - deletes AMIs created more than 6 months ago
+#   - degregisters AMIs created in the past 6 months that are not the most recent version of their AMI-Type
+
+  - name: Set image search and deletion time frames
+    set_fact:
+# default value: 3 days from the current date
+      image_deletion_date: "{{ '%Y-%m-%d' | strftime( ( ansible_date_time.epoch | int ) + ( 86400 * {{ image_deletion_grace_period }} )  ) }}"
+# default value: 180 days ago from the current date
+      image_search_date: "{{ '%Y-%m-%d' | strftime( ( ansible_date_time.epoch | int ) - ( 86400 * {{ image_search_period }} )  ) }}"
+
+### NOTE: The existing ansible module that handles images, called ec2_ami_facts, does not allow the user to search or sort based on creation date.
+### TO-DO: Revisit in the future if subsequent versions of ansible provide this functionality.
+  - name: Generate a list of AMIs with "Golden-*" in their name and that are older than 6 months
+    shell: aws ec2 describe-images --filters "Name=tag:AMI-Type,Values=Golden" --query 'Images[?CreationDate<=`{{ image_search_date }}`][].{id:ImageId}'
+      --output text | sort
+    register: golden_amis_delete
+
+  - name: Tag the list of Golden AMIs that are older than 6 months for deletion
+    ec2_tag:
+      region: '{{ aws_region }}'
+      resource: '{{ item }}'
+      state: present
+      tags:
+        Status: PENDING DELETION
+        DeletionDate: '{{ image_deletion_date }}'
+    loop: '{{ golden_amis_delete.stdout_lines | list }}'
+
+### NOTE: The existing ansible module that handles images, called ec2_ami_facts, does not allow the user to search or sort based on creation date.
+#### TO-DO: Revisit in the future if subsequent versions of ansible provide this functionality.
+  - name: Find the latest AMI of type "Golden"
+    shell: aws ec2 describe-images --filters "Name=tag:AMI-Type,Values=Golden" --query 'sort_by(Images, &CreationDate)[-1].{id:ImageId}' --output text |
+      sort
+    register: golden_ami_newest
+
+### NOTE: The existing ansible module that handles images, called ec2_ami_facts, does not allow the user to search or sort based on creation date.
+#### TO-DO: Revisit in the future if subsequent versions of ansible provide this functionality.
+  - name: Generate a list of AMIs with "Golden-" in their name that are less than 6 months old, but not the latest version of their AMI Type
+    shell: aws ec2 describe-images --filters "Name=tag:AMI-Type,Values=Golden" --query 'Images[?CreationDate>=`{{ image_search_date }}`][].{id:ImageId}'
+      --output text | sort
+    register: golden_amis_deregister
+
+  - name: Notify if there is nothing to delete or deregister
+    debug:
+      msg: No images to deregister
+    when: golden_amis_delete|length == 0 and golden_amis_deregister|length == 0
+
+  - pause:
+      prompt: Would you like to deregister all Golden AMIs created in the past 6 months, except the most recent?
+    register: user_input_deregister
+
+  - name: Deregister Golden AMIs that are less than 6 months old, but not the latest version of their AMI Type
+    local_action:
+      module: ec2_ami_facts
+      region: '{{ aws_region }}'
+      delete_snapshot: false
+      state: absent
+      image_ids: '{{ golden_amis_deregister }}'
+    loop: '{{ golden_amis_deregister.stdout_lines | difference(golden_ami_newest.stdout_lines) | list }}'
+    when: user_input_deregister | bool
+
+  - pause:
+      prompt: Would you like to deregister Golden AMIs older than 6 months?
+    register: user_input_delete
+
+  - name: Delete Golden AMIs older than 6 months
+    local_action:
+      module: ec2_ami
+      region: '{{ aws_region }}'
+      delete_snapshot: true
+      state: absent
+      image_ids: '{{ golden_amis }}'
+    loop: '{{ golden_amis.stdout_lines | list }}'
+    when: user_input_delete | bool
+...

@@ -1,0 +1,3 @@
+# Test Disk Creation - HANA only
+distributed_calculate_disks_test_db_hana: true
+distributed_calculate_disks_test_usr_sap: true

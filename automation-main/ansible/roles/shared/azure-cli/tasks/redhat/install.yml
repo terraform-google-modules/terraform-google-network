@@ -1,0 +1,87 @@
+---
+
+# Description: Configures drivers and packages required for Azure CLI.
+# Inputs:
+#   - N/A
+# Outputs:
+#   - Installs and configures drivers and packages for Azure CLI in Redhat.
+
+  - name: '[BLOCK] Azure CLI installation on RedHat 7'
+    block:
+
+      - name: Install python3 for Azure CLI
+        package:
+          name: python3
+          state: present
+        become: true
+
+      - name: Remove previous versions of Azure CLI
+        package:
+          state: absent
+          name: azure-cli
+        become: true
+
+      - name: Remove cached information from Azure locations
+        file:
+          path: '{{ item }}'
+          state: absent
+          force: true
+        loop:
+          - /root/.azure
+          - /home/cloud-user/.azure
+        become: true
+
+      - name: Install Azure CLI on {{ ansible_distribution }}
+        package:
+          state: present
+          name: azure-cli
+        become: true
+
+    when:
+      - ansible_distribution_major_version | lower == '7'
+  # End [BLOCK] Azure CLI installation on RedHat 7
+
+  - name: '[BLOCK] Azure CLI installation on RedHat 8'
+    block:
+
+      - name: Remove previous versions of Azure CLI
+        package:
+          state: absent
+          name: azure-cli
+        become: true
+
+      - name: Remove cached information from Azure locations
+        file:
+          path: '{{ item }}'
+          state: absent
+          force: true
+        loop:
+          - /root/.azure
+          - /home/cloud-user/.azure
+        become: true
+
+      - name: Install pip for Azure CLI
+        package:
+          state: present
+          name: python3-pip
+        become: true
+
+      - name: Install Azure CLI on {{ ansible_distribution }}
+        package:
+          state: present
+          name: azure-cli
+        become: true
+        when: ansible_distribution_version is version('8.2', '>')
+
+      - name: Install Azure CLI on {{ ansible_distribution }}
+        package:
+          state: present
+          name: azure-cli == 2.37.0
+        become: true
+        when: ansible_distribution_version is version('8.2', '==')
+
+    when:
+      - ansible_distribution_major_version | lower == '8'
+  # End [BLOCK] Azure CLI installation on RedHat 8
+
+...

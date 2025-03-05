@@ -1,0 +1,50 @@
+---
+# Description: Configures drivers and packages required for Azure CLI.
+# Inputs:
+#   - N/A
+# Outputs:
+#   - Installs and configures drivers and packages for Azure CLI in Ubuntu.
+
+  - name: '[BLOCK] Azure CLI installation on Ubuntu 18'
+    block:
+
+      - name: Pull the upstream repository signing keys
+        apt_key:
+          keyserver: keyserver.ubuntu.com
+          id: BC528686B50D79E339D3721CEB3E94ADBE1229CF
+          keyring: /etc/apt/trusted.gpg.d/microsoft.gpg
+        become: true
+
+      - name: Configure Azure Repository
+        apt_repository:
+          repo: deb https://packages.microsoft.com/ubuntu/18.04/prod bionic main microsoft
+          state: present
+        become: true
+
+      - name: Remove previous versions of Azure CLI
+        package:
+          state: absent
+          name: azure-cli
+        become: true
+
+      - name: Remove cached information from Azure locations
+        file:
+          path: '{{ item }}'
+          state: absent
+          force: true
+        loop:
+          - /root/.azure
+          - /home/cloud-user/.azure
+        become: true
+
+      - name: Install Azure CLI on {{ ansible_distribution }}
+        package:
+          state: present
+          name: azure-cli
+        become: true
+
+    when:
+      - ansible_distribution_major_version | lower == '18'
+  # End [BLOCK] Azure CLI installation on Ubuntu 18
+
+...

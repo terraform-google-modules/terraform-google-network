@@ -1,0 +1,23 @@
+---
+# Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+  - name: Verify
+    hosts: all
+    gather_facts: true
+
+    tasks:
+
+      - name: Check if gcloud is installed and commands are available
+        stat:
+          path: '{{ item }}'
+        loop:
+          - /usr/bin/gcloud
+          - /usr/bin/gsutil
+        register: gcloud_facts_results
+
+      - name: Ensure that the gcloud is installed and commands are available
+        assert:
+          that: item.stat.exists | bool
+        loop: '{{ gcloud_facts_results.results }}'
+
+...

@@ -1,0 +1,233 @@
+---
+# Playbook Name: ibp-dr-failback.yml
+# Synopsis: Restores replication on a former primary HANA DB
+# Description: This playbook will register the former primary DB as a secondary in the
+#              replication site. This does not completely rebuild the HANA DB if it was lost.
+#
+# Prerequisites:
+#   - Ansible v2.9+
+#   - sudo capability or root privileges on target machines
+#   - IBP Production and Disaster Recovery Landscapes with replication already enabled.
+#   - Disaster Recovery instance has already performed takeover.
+#
+# Dependencies:
+#   - ibp ansible role
+#   - ibp ansible inventory host file
+#
+# Variables:
+#   - sid : (provided by ansible inventory hostfile) The SAP ID of the instance
+#   - groups/group_names: (provided by ansible inventory hostfile) The landscapes groups that each instance belongs to.
+#   - sqlcmd_folder : location of the sql commands.  Defaults to '/staging/ibp/Build/SQL-Statements'
+#   - ibp_failback_wait_for_sync: (default true) Waits for replication to sync between the two DBs
+#
+# Example:
+#   Execution on remote systems using the ibp inventory host template
+#     ansible-playbook ibp-dr-failback.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>'
+#
+# Example
+#   Execution specifically on production and disaster recovery instances
+#     ansible-playbook ibp-dr-failback.yml -k -i /customer00xx/hosts -l 192.168.1.1,192.168.1.2
+#
+# Example
+#   Don't wait for replication to synchronize
+#     ansible-playbook ibp-dr-failback.yml -k -i /customer00xx/hosts -e ibp_failback_wait_for_sync='false'
+#
+# Example
+#   Failback with with production the new primary DB
+#     ansible-playbook ibp-dr-failback.yml -k -i /customer00xx/hosts -e ibp_failback_new_primary='Production'
+#
+# Example
+#   Register but don't start new secondary DB
+#     ansible-playbook ibp-dr-failback.yml -k -i /customer00xx/hosts --tags "register"
+#
+# Example
+#   Only validate replication state on new secondary DB
+#     ansible-playbook ibp-dr-failback.yml -k -i /customer00xx/hosts --tags "play2"
+#
+# Authors: Louis Lee
+# Version: 2.9-000004
+# Modified: 2020-04-16 - Created playbook
+#           2020-06-01 - Renamed playbook
+#           2020-06-23 - Merged ibp-provision and ibp-operations roles to ibp role
+#           2020-07-06 - Update task and subfolder references
+# Comments: |
+#   This playbook is designed to be used with the ibp-ansible-inventory-template.yml
+#   Some plays are prerequisites for other plays and are tagged accordingly.
+#
+#   Play Tags:
+#     play0 always : This play always runs. Decides which will be the new primary DB
+#     play1 register : Checks if replication is already setup on the new secondary and will stop the playbook if true
+#     play2 register : Hard stops HANA DB on new secondary DB
+#     play3 register : Register the new secondary in the replication site
+#     play4 : Hard start HANA DB on the new secondary DB
+#     play5 : Validate and wait for replication to sync
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Confirm new primary replication site"
+  # this means production and disaster_recovery hosts that intersect with ibpdb
+  hosts: production:disaster_recovery:&ibpdb
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - always
+    - play0
+
+  vars_prompt:
+  - name: ibp_failback_new_primary
+    prompt: "Which will be the new primary HANA DB in the replication site? ( production or disaster_recovery )"
+    private: no
+    default: 'disaster_recovery'
+
+  pre_tasks:
+  - name: "Fail on invalid input"
+    fail:
+      msg: 'Invalid input please select production or disaster_recovery.  Quitting now.'
+    run_once: true
+    when:
+    - ibp_failback_new_primary != 'production'
+    - ibp_failback_new_primary != 'disaster_recovery'
+
+  tasks:
+  - name: "Add DB to replication_primary"
+    group_by:
+      key: replication_primary
+    when: ibp_failback_new_primary in group_names
+
+  - name: "Add DB to replication_secondary"
+    group_by:
+      key: replication_secondary
+    when: ibp_failback_new_primary not in group_names
+
+  post_tasks:
+  - name: "Fail if more than one primary is selected"
+    fail:
+      msg: "The group replication_primary doesn't contain only one host: {{ groups.replication_primary }}"
+    run_once: true
+    when: groups.replication_primary|count != 1
+
+  - name: "Fail if more than one secondary is selected"
+    fail:
+      msg: "The group replication_secondary doesn't contain only one host: {{ groups.replication_secondary }}"
+    run_once: true
+    when: groups.replication_secondary|count != 1
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Check status of replication_secondary"
+  hosts: replication_secondary
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play1
+
+  tasks:
+  - name: "Check replication state"
+    shell: "./exe/hdbnsutil -sr_state"
+    args:
+      executable: /bin/csh
+    become: true
+    become_user: "{{ sid|lower }}adm"
+    register: replication_state_output
+    failed_when: false
+    changed_when: false
+
+  - name: "Stop playbook if already secondary system"
+    assert:
+      that: "'is secondary/consumer system: true' not in replication_state_output.stdout"
+      fail_msg: 'Already setup for replication as a secondary'
+      success_msg: 'Not currently setup as replication secondary. Proceeding...'
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Stop HANA DB on new secondary DB"
+  hosts: replication_secondary
+  any_errors_fatal: true
+  gather_facts: false
+  tags:
+    - play2
+
+  tasks:
+  - name: "Make sure the DB is hard stopped"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-hardstop.yml
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Register new secondary in replication site"
+  # this means production and disaster_recovery hosts that intersect with ibpdb
+  hosts: production:disaster_recovery:&ibpdb
+  gather_facts: true
+  any_errors_fatal: false
+  tags:
+    - play3
+
+  pre_tasks:
+  - name: "Set the ibp_failback_replication_name"
+    set_fact:
+      ibp_failback_replication_name: >-
+        {% if groups.replication_secondary == groups.production %} Primary
+        {% elif groups.replication_secondary == groups.disaster_recovery %} Secondary
+        {% endif %}
+
+  - name: "Sanitize variable"
+    set_fact:
+      ibp_failback_replication_name: "{{ ibp_failback_replication_name | replace(' ','') }}"
+
+  tasks:
+  - name: "Register as secondary DB"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: disaster-recovery/dr-hana-failback.yml
+    vars:
+      dr_failback_source_instance: "{{ groups.replication_primary[0] }}"
+      dr_failback_destination_instance: "{{ groups.replication_secondary[0] }}"
+      dr_site_instance: "{{ ibp_failback_replication_name }}"
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Start secondary HANA DB"
+  hosts: replication_secondary
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play4
+
+  tasks:
+  - name: "Restart the HANA DB"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/hana-hardstart.yml
+
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: Wait for replication status"
+  hosts: replication_primary
+  gather_facts: false
+  any_errors_fatal: true
+  tags:
+    - play5
+
+  vars:
+    ibp_failback_wait_for_sync: true
+    sqlcmd_folder: '/staging/ibp/Build/SQL-Statements'
+
+  tasks:
+  - name: "Validate sync from disaster_recovery DB"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: disaster-recovery/dr-hana-validate-sync.yml
+    when: ibp_failback_wait_for_sync|bool
+...

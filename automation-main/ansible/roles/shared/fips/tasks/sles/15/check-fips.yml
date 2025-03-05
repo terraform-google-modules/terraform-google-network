@@ -1,0 +1,15 @@
+---
+# Synopsis: Checks for FIPS status on SLES 15
+# Outputs:
+#   - fips_state
+
+  - name: Determine if FIPS is enabled
+    command: sysctl -n crypto.fips_enabled
+    become: true
+    register: fips_state_output
+    changed_when: false
+
+  - name: Set Fact fips_state
+    set_fact:
+      fips_state: '{{fips_state_output.stdout|bool}}'
+...

@@ -1,0 +1,14 @@
+
+---
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: irsa-runtimeconfig
+  annotations:
+    # helm.sh/hook: post-install
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  serviceAccountTemplate:
+    metadata:
+      annotations:
+        eks.amazonaws.com/role-arn: "arn:{{ .Values.awsPartition }}:iam::{{ .Values.awsAccountID }}:role/{{ .Values.israRoleName }}"

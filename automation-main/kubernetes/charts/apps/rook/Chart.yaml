@@ -1,0 +1,11 @@
+apiVersion: v2
+name: rook
+description: Helm Chart for deploying Rook-managed CephFS
+type: application
+version: 1.14.5
+appVersion: 1.14.5
+dependencies: 
+  []
+  # - name: rook-ceph-cluster
+  #   version: 1.14.5
+  #   repository: https://charts.rook.io/release

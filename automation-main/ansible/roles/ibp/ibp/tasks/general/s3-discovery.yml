@@ -1,0 +1,40 @@
+---
+# Synopsis: Discovers the backup folder for the customer
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+# Outputs:
+#   - ibp_backup_bucket_name : AWS S3 bucket for the customer
+# Comments: Could use improvements.
+
+- name: Get EC2 Metadata
+  ec2_metadata_facts:
+  register: ec2_metadata
+
+- name: "Get EC2 Instance Info"
+  ec2_instance_info:
+    region: "{{ ansible_facts.ec2_placement_region }}"
+    instance_ids:
+      - "{{ ansible_ec2_instance_id }}"
+  register: ec2_instance_info
+
+- name: "Get VPC ID of instance"
+  set_fact:
+    vpc_id: "{{ ec2_instance_info.instances.0.vpc_id }}"
+
+- name: "Get VPC Name"
+  ec2_vpc_net_info:
+    region: "{{ ansible_facts.ec2_placement_region }}"
+    vpc_ids: "{{ vpc_id }}"
+  register: vpc_info
+
+- name: "Get S3 Bucket List"
+  aws_s3_bucket_info:
+  become: true
+  register: get_s3buckets_info_output
+
+- name: "Save S3 Bucket Name"
+  set_fact:
+    ibp_backup_bucket_name: "{{ get_s3buckets_info_output | to_json | from_json | json_query(query) | first }}"
+  vars:
+    query: 'buckets[?starts_with(name,`{{ vpc_info.vpcs[0].tags.Name }}-backups`)].name'
+...

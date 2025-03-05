@@ -1,0 +1,82 @@
+{{- range .Values.appSecApplicationset.appsets }}
+{{- if .enabled }}
+{{- $appset := . }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ $appset.name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: '{{ $.Values.gitlabRepoUrl }}'
+              revision: '{{ $.Values.targetBranchName }}'
+              files:
+                - path: '{{ $appset.repoPath }}'
+          - list:
+              elementsYaml: "{{ $appset.listElement }}"
+            selector:
+              matchExpressions:
+                - key: appName
+                  operator: In
+                  values:
+                    {{- range $.Values.appSecApplicationset.avpDeployments }}
+                    - {{ . }}
+                    {{- end }}
+  syncPolicy:
+    applicationsSync: create-update
+    preserveResourcesOnDeletion: true
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/syncPolicy
+  template:
+    metadata:
+      name: '{{ $appset.argoAppName }}-sec'
+      labels:
+        appsetType: app-sec
+        customerName: '{{ $appset.customerName }}'
+      annotations:
+        argocd.argoproj.io/compare-options: IncludeMutationWebhook=true
+        argocd.argoproj.io/manifest-generate-paths: .;../../../sftp
+    spec:
+      project: default
+      source:
+        repoURL: '{{ $.Values.gitlabRepoUrl }}'
+        targetRevision: '{{ $.Values.targetBranchName }}'
+        path: 'charts/apps/{{ $appset.appName }}/extras/vault_secrets'
+        plugin:
+          name: argocd-vault-plugin-overlay
+          env:
+            - name: HELM_VALUE_FILE
+              value: '../../values.yaml'
+            - name: HELM_VALUES
+              value: |
+                {{ $appset.overlayValues }}
+      destination:
+        server: 'https://kubernetes.default.svc'
+        namespace: '{{ $appset.nameSpace }}'
+      syncPolicy:
+        automated:
+          prune: false
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+        syncOptions:
+          {{- if $appset.syncOptions.ServerSideApply }}
+          - ServerSideApply={{ $appset.syncOptions.ServerSideApply }}
+          {{- end }}
+          {{- if $appset.syncOptions.ApplyOutOfSyncOnly }}
+          - ApplyOutOfSyncOnly='{{ $appset.syncOptions.ApplyOutOfSyncOnly }}'
+          {{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,28 @@
+---
+# Synopsis: CRE-S4PCE
+# Inputs: N/A
+# Outputs: N/A
+# Comments: Inventory Vars for Central Service and ABAP Multi-node configuration
+
+all:
+  hosts:
+  vars:
+    ##### spr-app-cs-ha-install
+    ### spr-app-cs-ha-config Defaults
+    sap_cs_ha_pacemaker_cluster_name: "cs_cluster"
+    sap_cs_ha_pacemaker_stonith_name: "stonith_cs"
+    sap_ascs_instance_number: "01"
+    sap_ers_instance_number: "02"
+    sap_cs_ha_pacemaker_configure_firewall: false
+
+    ### spr-app-cs-ha-config vars
+    efs_ha_app_fsid:                        # Value from Terraform Layer-01
+    customer_vpc_route_table_id_1a:         # Value from Terraform Layer-HA
+    customer_vpc_route_table_id_1b:         # Value from Terraform Layer-HA
+    customer_vpc_route_table_id_1c:         # Value from Terraform Layer-HA
+    ascs_virtual_hostname:                  # Value set from inventory `spr_custom_hostfile_entries`
+    ers_virtual_hostname:                   # Value set from inventory `spr_custom_hostfile_entries`
+    sap_cs_cluster_oip:                     # Value set from inventory `spr_custom_hostfile_entries`
+    sap_er_cluster_oip:                     # Value set from inventory `spr_custom_hostfile_entries`
+    sap_cs_ha_pacemaker_hacluster_password: # Password for ha_cluster
+...

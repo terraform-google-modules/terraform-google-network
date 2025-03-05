@@ -1,0 +1,32 @@
+---
+# Synopsis: Commonly shared set of tasks that remove the iptables ANSIBLE_MANAGED chain
+
+  - name: Remove the custom iptables rule from the 'INPUT' chain
+    ansible.builtin.iptables:
+      chain: INPUT
+      wait: '{{ iptables_lock_wait }}'
+      protocol: all
+      jump: ANSIBLE_MANAGED
+      state: absent
+    become: true
+
+  - name: Check whether the 'ANSIBLE_MANAGED' iptables chain exists
+    ansible.builtin.shell: iptables -L ANSIBLE_MANAGED
+    register: ansible_chain_results
+    failed_when: ansible_chain_results.rc not in [0,1]
+    changed_when: false
+    become: true
+
+  - name: Flush the 'ANSIBLE_MANAGED' iptables chain
+    ansible.builtin.iptables:
+      chain: ANSIBLE_MANAGED
+      wait: '{{ iptables_lock_wait }}'
+      flush: true
+    become: true
+    when: ansible_chain_results.rc == 0
+
+  - name: Remove the 'ANSIBLE_MANAGED' iptables chain
+    ansible.builtin.shell: iptables -X ANSIBLE_MANAGED
+    when: ansible_chain_results.rc == 0
+    become: true
+...

@@ -1,0 +1,43 @@
+---
+# defaults file for nessus-agent
+
+### Explicit Defaults
+
+# AWS region containing S3 bucket to download Nessus Agent binaries
+nessus_s3_bucket_aws_region: us-gov-west-1
+
+# Version of Tenable Nessus agent to install
+nessus_package_version: 8.1.0
+
+# Port number to communicate with Tenable Nessus Manager on
+nessus_manager_port: '8834'
+
+# Location of the Nessus Agent binary.
+#   valid options: aws_s3, local
+binary_location: aws_s3
+
+### Mandatory
+
+# URI to the Tenable Nessus Manager
+nessus_manager_address: ''
+
+# Tenable manager registration key
+nessus_registration_key: ''
+
+# Nessus Scannner scan group name
+nessus_agent_group: ''
+
+### Mandatory binary_location: aws_s3
+
+# Name of the AWS S3 bucket containing the Nessus Agent packages
+nessus_s3_bucket_name: ''
+
+# Path within the S3 bucket to the folder containing the Nessus Agent packages
+nessus_s3_bucket_path: ''
+
+### Mandatory binary_location: local
+
+# Full local Ansible controller folder path to binary e.g. "/tmp/nessus_agent_binaries"
+binary_local_folder: ''
+
+...

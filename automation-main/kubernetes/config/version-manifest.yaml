@@ -1,0 +1,25 @@
+# things to update regularly
+# cluster version
+k8s_version: 1.28.13
+ubuntu_version: 20.4.20240921
+# argo version info
+argocdVltPluginVer: 1.18.1
+argocdImageVersion: 2.11.1
+# sftpgo version info
+sftpgoRegistry: harbor.dev.ste.dev.scs.sap/sftpgo/sftpgo
+sftpgoImageVersion: 10d83936
+# Velero config
+veleroPluginVersion: v1.10.0
+# Crossplane config
+crossplaneAWSProviderVersion: v1.10.0
+# ecs-etds config
+initAlpineVersion: 3.20.2
+initBitnamiKubectlVersion: 1.30.3
+etdsRegistry: harbor.dev.ste.dev.scs.sap/etddev
+etd_coldstorage: 2.13.15
+etd_logcollector: 2.13.15
+etd_kafka_2_hana: 2.13.15
+etd_loglearner: 2.13.15
+etd_normalizer: 2.13.15
+etd_transporter: 2.13.15
+kafkaVersion: 3.7.1

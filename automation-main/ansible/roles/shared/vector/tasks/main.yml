@@ -1,0 +1,61 @@
+---
+# tasks file for vector
+
+  - name: Validate that the vector_splunk_index_prefix is set
+    ansible.builtin.assert:
+      that: vector_splunk_index_prefix is defined and vector_splunk_index_prefix | length > 0
+
+  - name: Validate that the appropriate firehose variables are set
+    ansible.builtin.assert:
+      that:
+        - vector_splunk_logs_kinesis_stream_name | length > 0
+        - vector_splunk_logs_kinesis_region | length > 0
+        - vector_aws_access_key_id | length > 0
+        - vector_aws_secret_access_key | length > 0
+    when: vector_sink_firehose
+
+  - name: Validate that the appropriate Azure Blob Storage vars are set
+    ansible.builtin.assert:
+      that:
+        - vector_azure_blob_storage_container_name | length > 0
+        - vector_azure_blob_storage_connection_string | length > 0
+    when: vector_sink_azure_storage
+
+  - name: Install vector from S3
+    ansible.builtin.include_tasks: install-s3.yml
+    when:
+      - vector_s3_binaries_url is defined
+      - vector_s3_binaries_url | length > 0
+
+  - name: Install Vector from package repository
+    ansible.builtin.include_tasks: install-repository.yml
+    when:
+      - vector_s3_binaries_url is undefined or vector_s3_binaries_url | length == 0
+
+  - name: Collect metadata for vector
+    ansible.builtin.include_tasks: metadata.yml
+
+  - name: Configure Vector Variables
+    ansible.builtin.include_tasks: configure.yml
+
+  - name: Configure Vector Agent
+    ansible.builtin.include_tasks: configure-vector-agent.yml
+    when:
+      - vector_deployment_type == "agent"
+
+  - name: Configure Vector Aggregator
+    ansible.builtin.include_tasks: configure-vector-aggregator.yml
+    when:
+      - vector_deployment_type == "aggregator"
+
+  - name: Configure GCP Cross Project Logs
+    ansible.builtin.include_tasks: configure-gcp-cross-project-aggregator.yml
+    when:
+      - vector_gcp_cross_project_logging  | length > 0
+
+  - name: Copy Vector config files
+    ansible.builtin.include_tasks: copy-vector-config.yml
+
+  - name: Update systemd configuration
+    ansible.builtin.include_tasks: systemd.yml
+...

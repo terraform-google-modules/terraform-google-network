@@ -1,0 +1,14 @@
+- name: "Calculate swap size"
+  ansible.builtin.set_fact:
+    distributed_calculate_disks_swap_size: >-
+        {% if distributed_calculate_disks_ram_size|int < 32 %} {{ distributed_calculate_disks_ram_size|int * 2 }}
+        {% elif distributed_calculate_disks_ram_size|int < 64 %} 64
+        {% elif distributed_calculate_disks_ram_size|int < 128 %} 96
+        {% elif distributed_calculate_disks_ram_size|int < 256 %} 128
+        {% elif distributed_calculate_disks_ram_size|int < 512 %} 160
+        {% elif distributed_calculate_disks_ram_size|int < 1024 %} 192
+        {% elif distributed_calculate_disks_ram_size|int < 2048 %} 224
+        {% elif distributed_calculate_disks_ram_size|int < 4096 %} 256
+        {% elif distributed_calculate_disks_ram_size|int < 8192 %} 288
+        {% else %} 320
+        {% endif %}

@@ -1,0 +1,39 @@
+{{ define "cloudp_gcp" -}}
+gcp
+{{- end }}
+
+{{ define "net_gcp" }}
+{{ .Values.provider.gcp.networks | toYaml }}
+{{end }}
+
+{{ define "infracfg_gcp" }}
+apiVersion: gcp.provider.extensions.gardener.cloud/v1alpha1
+kind: InfrastructureConfig
+networks:
+  workers: 10.250.0.0/16
+  {{- if .Values.provider.gcp.staticNatName }}
+  cloudNAT:
+    natIPNames: 
+    - name: {{.Values.provider.gcp.staticNatName}}
+  {{- end }}
+{{ end }}
+
+{{ define "controlPlane_gcp" }}
+controlPlaneConfig:
+  apiVersion: gcp.provider.extensions.gardener.cloud/v1alpha1
+  kind: ControlPlaneConfig
+  zone: {{index .Values.zones 0}}
+{{ end }}
+
+{{ define "workerConfig_gcp" }}
+providerConfig:
+  apiVersion: gcp.provider.extensions.gardener.cloud/v1alpha1
+  kind: WorkerConfig
+  volume:
+    interface: NVME
+dataVolumes:
+- name: swap
+  type: SCRATCH
+  size: 375Gi
+  encrypted: true
+{{- end }}

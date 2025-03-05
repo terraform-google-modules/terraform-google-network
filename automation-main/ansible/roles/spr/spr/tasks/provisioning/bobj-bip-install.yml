@@ -1,0 +1,233 @@
+---
+# Synopsis: Silent installation of SAP Business Intelligence Platform
+# Inputs:
+#   spr_app_install_hostname: Hostname of the application instance
+#   spr_app_install_sid: SID of the application instance
+#   spr_app_install_hdbclient_source: Filepath to the hdbclient hdbinst executable
+#   spr_app_install_file_ini_params_bip: Filepath to the configuration file for bip, bip-response.ini
+#   spr_app_install_domain: FQDN of the target environment
+#   spr_app_install_product: Product to install
+#   spr_app_install_db_hostname: Hostname of the SAP Data Services HANA database
+#   spr_app_install_file_bip_setup_sh: Filepath to the setup.sh executable for SAP BIP, found under the Media directory. For BIP, it should be from media ending with 'ONE'
+#   spr_app_install_productkey_bip: Productkey for BIP
+# Outputs:
+# Comments:
+
+- name: Install required prerequisite packages
+  become: true
+  yum:
+    name:
+    - ksh
+    - libnsl.so.1
+    - libnsl.i686
+    - libstdc++.i686
+    - libstdc++.x86_64
+    - glibc.i686
+    - glibc.x86_64
+    - libX11.i686
+    - libX11.x86_64
+    - libXext.i686
+    - libXext.x86_64
+    - expat.i686
+    - expat.x86_64
+    - libgcc.i686
+    - libgcc.x86_64
+    - libXcursor.i686
+    - libXcursor.x86_64
+    - libXrender.i686
+    - libXrender.x86_64
+    - libXfixes.i686
+    - libXfixes.x86_64
+    - libxcb.i686
+    - libxcb.x86_64
+    - libXau.i686
+    - libXau.x86_64
+    - xz-libs.i686
+    state: present
+
+# BEGIN BLOCK: Install SAP BIP
+- name: "BLOCK: Install SAP BIP"
+  block:
+      - name: Create [sid]adm user
+        become: true
+        ansible.builtin.user:
+          name: "{{ spr_app_install_sid|lower }}adm"
+          group: sapsys
+          shell: '/bin/bash'
+          comment: "SAP System Administrator"
+
+      - name: Create /usr/sap/{{ spr_app_install_sid|upper }}/tmp
+        become: true
+        file:
+          path: "/usr/sap/{{ spr_app_install_sid|upper }}/tmp/"
+          state: directory
+          owner: "{{ spr_app_install_sid|lower }}adm"
+          group: sapsys
+
+      - name: Set ulimit for [sid]adm
+        become: true
+        become_user: "{{ spr_app_install_sid|lower }}adm"
+        shell: ulimit
+
+      - name: Create the installation directory /usr/sap/hdbclient
+        become: true
+        file:
+          path: '/usr/sap/hdbclient'
+          state: directory
+          owner: "{{ spr_app_install_sid|lower }}adm"
+          group: sapsys
+
+      - name: Install HDB Client
+        become: true
+        ansible.builtin.expect:
+          command: "{{ spr_app_install_hdbclient_source }}"
+          responses:
+            Enter Installation Path \[\/usr\/sap\/hdbclient\]: /usr/sap/hdbclient
+        args:
+          chdir: '/usr/sap/hdbclient'
+
+      - name: Create odbc directory
+        become: true
+        file:
+          path: '/usr/sap/{{ spr_app_install_sid|upper }}/odbc'
+          state: directory
+          owner: "{{ spr_app_install_sid|lower}}adm"
+          group: sapsys
+
+      - name: Create odbc.ini
+        become: true
+        copy:
+          dest: "/usr/sap/{{ spr_app_install_sid|upper }}/odbc/odbc.ini"
+          owner: "{{ spr_app_install_sid|lower }}adm"
+          group: sapsys
+          content: |
+            [SAP_HANA_ODBC]
+            Driver=/usr/sap/hdbclient/libodbcHDB.so
+            DriverUnicodeType=1
+            CHAR_AS_UTF8=1
+            ServerNode={{ spr_app_install_db_hostname }}:30015
+
+# Add ODBC environment variables (ODBCHOME, ODBCINI, LD_LIBRARY_PATH etc) to <sid>adm user
+      - name: Modify .bashrc of <sid>adm user
+        become: true
+        become_user:  "{{ spr_app_install_sid|lower }}adm"
+        blockinfile:
+          state: present
+          insertafter: EOF
+          dest: ~/.bashrc
+          content: |
+            # User specific environment
+            ODBCHOME=/usr/sap/hdbclient
+            export ODBCHOME
+            ODBCINI=/usr/sap/{{ spr_app_install_sid|upper }}/odbc/odbc.ini
+            export ODBCINI
+            PATH="$HOME/.local/bin:$HOME/bin:$PATH:$ODBCHOME:$ODBCINI"
+            export PATH
+            LD_LIBRARY_PATH=/usr/sap/hdbclient
+            export LD_LIBRARY_PATH
+
+# Let us create the script for  DB users creation for the BIP install
+      - name: Create DBUSERS.sql
+        become: true
+        become_user: "{{ spr_app_install_sid|lower }}adm"
+        no_log: true
+        copy:
+          dest: "/tmp/dbusers.sql"
+          owner: "{{ spr_app_install_sid|lower }}adm"
+          group: sapsys
+          content: |
+            CREATE USER CMSADMIN PASSWORD QwerRewq123 NO FORCE_FIRST_PASSWORD_CHANGE;
+            CREATE USER AUDITDSADMIN PASSWORD QwerRewq123 NO FORCE_FIRST_PASSWORD_CHANGE;
+            ALTER USER CMSADMIN DISABLE PASSWORD LIFETIME;
+            ALTER USER AUDITDSADMIN DISABLE PASSWORD LIFETIME;
+
+# Let us execute the script for  DB users creation for the BIP install
+      - name: Create the DB Users for BIP Install
+        become: true
+        become_user: "{{ spr_app_install_sid|lower }}adm"
+        no_log: true
+        shell:
+          "source ~/.bashrc;
+          hdbsql -i 00 -n {{ spr_app_install_db_hostname }}:30015 -u SYSTEM -p QwerRewq123 -I /tmp/dbusers.sql"
+        args:
+          chdir: '/'
+
+# Let us remove the script for  DB users creation
+      - name: Remove DBUSERS.sql
+        become: true
+        become_user: "{{ spr_app_install_sid|lower }}adm"
+        ansible.builtin.file:
+          path:  "/tmp/dbusers.sql"
+          state: absent
+
+      - name: Save configuration file to /usr/sap/{{ spr_app_install_sid|upper }}/tmp
+        become: true
+        become_user: "{{ spr_app_install_sid|lower }}adm"
+        copy:
+          dest: "/usr/sap/{{ spr_app_install_sid|upper }}/tmp/"
+          src: "{{ spr_app_install_file_ini_params_bip }}"
+          force: yes
+          remote_src: yes
+
+      - name: Update SAP BIP Response.ini values
+        become: true
+        become_user: "{{ spr_app_install_sid|lower }}adm"
+        no_log: true
+        ini_file:
+          path: "/usr/sap/{{ spr_app_install_sid|upper }}/tmp/{{ spr_app_install_file_ini_params_bip.split('/')[-1] }}"
+          create: no
+          section: null
+          option: "{{ item.name }}"
+          value: '{{ item.value }}'
+          no_extra_spaces: true
+        loop_control:
+          label: "Modifying value of {{ item.name }} to {{ item.value }} in {{ spr_app_install_file_ini_params_bip }}"
+        loop:
+          - { name: 'clusterkey', value: 'SCSSPRClusterKey' }
+          - { name: 'cmspassword', value: '{{ standard_deployment_password }}' }
+          - { name: 'cmsport', value: '6400' }
+          - { name: 'existingauditingdbdsn', value: 'SAP_HANA_ODBC' }
+          - { name: 'existingauditingdbpassword', value: '{{ standard_deployment_password }}' }
+          - { name: 'existingauditingdbuser', value: 'AUDITDSADMIN' }
+          - { name: 'existingcmsdbdsn', value: 'SAP_HANA_ODBC' }
+          - { name: 'existingcmsdbpassword', value: '{{ standard_deployment_password }}' }
+          - { name: 'existingcmsdbuser', value: 'CMSADMIN' }
+          - { name: 'existingcmsdbreset', value: '1' }
+          - { name: 'installdir', value: '/usr/sap/{{ spr_app_install_sid|upper }}/' }
+          - { name: 'lcmpassword', value: '{{ standard_deployment_password }}' }
+          - { name: 'lcmport', value: '3690' }
+          - { name: 'productkey', value: "{{ spr_app_install_productkey_bip }}" }
+          - { name: 'neworexistinglcm', value: 'new' }
+          - { name: 'selectintegrateddatabase', value: '0' }
+          - { name: 'sianame', value: '{{ spr_app_install_hostname }}' }
+          - { name: 'siaport', value: '6410' }
+          - { name: 'wacsport', value: '6405' }
+          - { name: 'webappservertype', value: 'tomcat' }
+          - { name: 'tomcatconnectionport', value: '8080' }
+          - { name: 'tomcatredirectport', value: '8443' }
+          - { name: 'tomcatshutdownport', value: '8005' }
+
+# Run the .bashrc as soon as Shell is invoked. Otherwise setup fails with ODBC related errors
+# Also the BOBJ Installs must be performed as <sid>adm user. Not the root user
+      - name: Execute silent installation of SAP BIP
+        become: true
+        become_user: "{{ spr_app_install_sid|lower }}adm"
+        shell:
+          "source ~/.bashrc;
+          {{ spr_app_install_file_bip_setup_sh }}
+          -r /usr/sap/{{ spr_app_install_sid|upper }}/tmp/{{ spr_app_install_file_ini_params_bip.split('/')[-1] }}
+          -InstallDir /usr/sap/{{ spr_app_install_sid|upper }}"
+        args:
+          chdir: '/'
+
+# Let us remove the BIP Response ini file after install
+      - name: Remove BIP Response ini file after install
+        become: true
+        become_user: "{{ spr_app_install_sid|lower }}adm"
+        ansible.builtin.file:
+          path:  "/usr/sap/{{ spr_app_install_sid|upper }}/tmp/{{ spr_app_install_file_ini_params_bip.split('/')[-1] }}"
+          state: absent
+
+# END BLOCK: Install SAP BIP
+
+...

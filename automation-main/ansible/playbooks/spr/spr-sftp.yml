@@ -1,0 +1,689 @@
+---
+# Playbook Name: spr-sftp.yml
+# Description: Creates the sftp interface servers and mounts interface on clients
+#     On the sftp servers, will setup the sftp user with chroot access.
+#     Data will be set to a NFS location that will be mounted on specified clients with the same SID
+#     Data should be read/write accessible by the sapsys group
+#     Sets up the SFTP Server to listen on 8022 and restrict that port to only sftp (excludes ssh)
+#     Port 8022 is the intended port to be sent to the private endpoint
+# Dependencies:
+# - Ansible v2.9+
+# - sudo capability or root privileges on target machines
+# - RHEL8.4+ required for sftp servers
+# Variables:
+#   - efs_usr_sap_trans_fsid : For AWS, NFS Filesystem to mount (Inventory Variable)
+#   - spr_azure_customer_storage_account: For Azure, storage account which contains the NFS Filesystem to mount (Inventory Variable)
+#   - spr_azure_customer_sftp_file_share: For Azure, NFS Filesystem to mount (Inventory Variable)
+#   - nfs_usr_sap_trans_ip: For GCP, NFS Filesystem to mount (Inventory Variable)
+#   - spr_gcp_filestore_name: For GCP, NFS Filesystem to mount (Inventory Variable)
+#   - spr_interfaces_efs_mount: Subdirectory of the NFS to mount (Inventory Variable)
+#   - playbook_user_sftp_name: Input variable for SFTP Username. Automatically generates from inventory if not specified
+# Examples:
+#   Execution on remote systems
+#     ansible-playbook spr-sftp.yml -k -i /roles/spr/vars/business/defaults.yml -i /<PATH-TO>/<INVENTORY-FILE> -l <TARGET-FILTER>
+#
+#   Execution with specified username
+#     ansible-playbook spr-sftp.yml -k -i /roles/spr/vars/business/defaults.yml -i /<PATH-TO>/<INVENTORY-FILE> -e playbook_user_sftp_name="example_user"
+#
+# Authors: Louis Lee, Jian Ouyang, David Nolan, Dexter Le, Nick Martinez
+# Version: 2.16-000009
+# Modified: 2022-06-07 - Created playbook
+#           2022-07-19 - Ability to specify custom username
+#           2022-08-19 - Bugfix for SSH Rules, Folder Permissions
+#           2022-09-19 - Bugfix for SSH Rules for explicit AllowGroups inclusion and Match All rule
+#           2022-09-20 - Enable selinx
+#           2022-09-30 - mount Azure blob containers/AWS s3 bucket
+#           2022-10-12 - Introduce clamAV for scanning files introduced by customers
+#           2023-01-25 - Modify ANSIBLE MANAGED SFTP_INTERFACE BLOCK due to sshd bug processing options based on order
+#           2024-03-29 - Add nfs_sync to ensure parity between nfs_dictionary and remote
+#           2024-07-23 - Add new variable for determining which Azure NFS filesystem to mount
+# Comments:
+#   - Generated sshkey is stored on the ansible controller at /tmp/sftpusername.pem
+#   - maintaining this as a separate playbook for the initial draft.
+#   - If nfs_sync is enabled, /etc/fstab mounts are overwritten to maintain parity with nfs_dictionary
+#     Will merge into SPR provisioning at a later date
+
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - cloud-identify
+  - always
+
+  vars:
+    playbook_user_sftp_name: ''
+    playbook_user_sftp_id: 69
+    playbook_user_sapsys_id: 79
+    allowed_selinux_modes:
+      - enforcing
+      - permissive
+
+  vars_prompt:
+  - name: selinux_mode
+    prompt: "Choose SELinx mode([{{ allowed_selinux_modes | join(', ') }}]):"
+    private: no
+    default: '{{ allowed_selinux_modes[0] }}'
+
+  pre_tasks:
+  - name: "Validate SELinux mode"
+    fail:
+      msg: >-
+        SELinx mode "{{ selinux_mode }}" is not allowed.
+        Please choose a mode in {{ allowed_selinux_modes | join(', ') }}
+    when: not selinux_mode in allowed_selinux_modes
+    delegate_to: localhost
+    run_once: true
+
+  - name: Save selinux_mode
+    set_fact:
+      selinux_mode: "{{ selinux_mode }}"
+
+  tasks:
+  # Notes: outputs: cloud_provider, machine_id, cloud_partition, cloud_region
+  - name: "Detect Cloud Provider"
+    ansible.builtin.include_role:
+      name: cloud-identify
+
+  - name: "Group by Cloud Provider"
+    ansible.builtin.group_by:
+      key: "cloud_{{ cloud_provider }}"
+
+  - name: "Dynamic Group Assignment"
+    ansible.builtin.group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_productname|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+
+  - name: "Create Group for Interface hosts"
+    when: spr_interfaces_efs_mount|default('none',true) != 'none'
+    ansible.builtin.group_by:
+      key: interface_hosts
+
+  - name: "Create Group for managed sftp blob access hosts"
+    when: spr_customer_sftp_object_container|default('none',true) != 'none'
+    ansible.builtin.group_by:
+      key: managed_sftp_blobs
+
+  #the following should be conditionally created: hosts: sftp_interface
+  - name: "Set SFTP Username"
+    run_once: true
+    ansible.builtin.set_fact:
+      user_sftp_name: "{{ (playbook_user_sftp_name == '') | ternary(inventory_hostname[:4] + 'sftp',playbook_user_sftp_name)  }}"
+      user_sftp_id: "{{ playbook_user_sftp_id }}"
+      user_sapsys_id: "{{ playbook_user_sapsys_id }}"
+
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: One-time Prerequisites"
+  gather_facts: false
+  hosts: interface_hosts
+  tags:
+    - play1
+
+  vars:
+    aws_efs_file_system_id: "{{ efs_usr_sap_trans_fsid | default(omit,true) }}"
+    azure_nfs_storage_account: "{{ spr_azure_customer_storage_account|default(omit,true) }}"
+    azure_nfs_name: "{{ spr_azure_customer_sftp_file_share|default(omit,true) }}"
+    gcp_filestore_name: "{{ spr_gcp_filestore_name | default(omit,true) }}"
+    nfs_file_system_ip: "{{ nfs_usr_sap_trans_ip | default(omit,true) }}"
+    nfs_directory: "{{ spr_interfaces_efs_mount }}"
+
+  pre_tasks:
+    - name: "Retrieve ec2 metadata"
+      amazon.aws.ec2_metadata_facts:
+      when: cloud_provider == "aws"
+
+  tasks:
+    - name: "Configure Base Repositories from S3"
+      ansible.builtin.include_role:
+        name: repository-management
+      vars:
+        repo_enable: 'true'
+        application_preset_selection: ['base']
+
+    - name: "Mount Temporary NFS"
+      ansible.builtin.include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          temp:
+            path: '/mnt/temp'
+            src: >-
+              {%- if cloud_provider == "aws" -%}      {{ aws_efs_file_system_id }}.efs.{{ ansible_ec2_placement_region }}.amazonaws.com
+              {%- elif cloud_provider == "azure" and cloud_partition == "usgovernment" -%}  {{ azure_nfs_storage_account }}.file.core.usgovcloudapi.net
+              {%- elif cloud_provider == "azure" and cloud_partition == "public" -%}  {{ azure_nfs_storage_account }}.file.core.windows.net
+              {%- elif cloud_provider == "gcp" -%}  {{ nfs_file_system_ip }}
+              {%- endif -%}
+            src_root: >-
+              {%- if cloud_provider == "aws" -%}
+              {%- elif cloud_provider == "azure" -%}    /{{ azure_nfs_storage_account }}/{{ azure_nfs_name }}
+              {%- elif cloud_provider == "gcp" -%}  /{{ gcp_filestore_name }}
+              {%- endif -%}
+
+    - name: "Create NFS Interface Subfolders"
+      become: true
+      run_once: false #update to false so all directories can be created
+      ansible.builtin.file:
+        path: "/mnt/temp/{{ nfs_directory }}"
+        state: directory
+        mode: 0777
+      loop_control:
+        label: "Ensuring subfolder interface exists on NFS"
+
+    - name: "Unmount Temporary NFS"
+      ansible.builtin.include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          temp:
+            path: '/mnt/temp'
+            state: absent
+
+
+#################
+##### Play2 #####
+#################
+- name: "Play2 SFTP Configuration"
+  hosts: sftp_interface
+  gather_facts: true
+  tags:
+  - play2
+
+  vars:
+    aws_efs_file_system_id: "{{ efs_usr_sap_trans_fsid | default(omit,true) }}"
+    azure_nfs_storage_account: "{{ spr_azure_customer_storage_account|default(omit,true) }}"
+    azure_nfs_name: "{{ spr_azure_customer_sftp_file_share|default(omit,true) }}"
+    gcp_filestore_name: "{{ spr_gcp_filestore_name | default(omit,true) }}"
+    nfs_file_system_ip: "{{ nfs_usr_sap_trans_ip | default(omit,true) }}"
+    nfs_directory: "{{ spr_interfaces_efs_mount }}"
+    default_firewalld_zone: disa-stig
+
+  handlers:
+    #Handlers always run in the order they are defined, not in the order listed in the notify statements.
+    - name: "reboot"
+      become: true
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+
+    #allow port 8022 for sshd
+    - name: "create selinx type enforcement file"
+      become: true
+      copy:
+        dest: "/tmp/port8022-sshd.te"
+        content: |
+          module port8022-sshd 1.0;
+
+          require {
+            type oa_system_port_t;
+            type sshd_t;
+            class tcp_socket name_bind;
+          }
+
+          #============= sshd_t ==============
+          allow sshd_t oa_system_port_t:tcp_socket name_bind;
+
+    - name: "compile type enforcement file and load the corresponding policy file"
+      become: true
+      ansible.builtin.shell: |
+        checkmodule -M -m -o /tmp/port8022-sshd.mod /tmp/port8022-sshd.te
+        semodule_package -o /tmp/port8022-sshd.pp -m /tmp/port8022-sshd.mod
+        semodule -X 300 -i /tmp/port8022-sshd.pp
+        rm -rf /tmp/port8022-sshd.*
+
+    - name: "Restart_sshd"
+      become: true
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
+
+    - name: "Restart_rsyslog"
+      become: true
+      ansible.builtin.service:
+        name: rsyslog
+        state: restarted
+
+  pre_tasks:
+    - name: "Retrieve ec2 metadata"
+      amazon.aws.ec2_metadata_facts:
+      when: cloud_provider == "aws"
+
+  tasks:
+    - name: "Mount SFTP NFS"
+      ansible.builtin.include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          sftp_interface_data:
+            path: "/mnt/sftp/{{ user_sftp_name }}/data"
+            src: >-
+              {%- if cloud_provider == "aws" -%}      {{ aws_efs_file_system_id }}.efs.{{ ansible_ec2_placement_region }}.amazonaws.com
+              {%- elif cloud_provider == "azure" and cloud_partition == "usgovernment" -%}  {{ azure_nfs_storage_account }}.file.core.usgovcloudapi.net
+              {%- elif cloud_provider == "azure" and cloud_partition == "public" -%}  {{ azure_nfs_storage_account }}.file.core.windows.net
+              {%- elif cloud_provider == "gcp" -%}  {{ nfs_file_system_ip }}
+              {%- endif -%}
+            src_root: >-
+              {%- if cloud_provider == "aws" -%}      /{{ nfs_directory }}
+              {%- elif cloud_provider == "azure" -%}  /{{ azure_nfs_storage_account }}/{{ azure_nfs_name }}/{{ nfs_directory }}
+              {%- elif cloud_provider == "gcp" -%}  /{{ gcp_filestore_name }}/{{ nfs_directory }}
+              {%- endif -%}
+
+    - name: "Make folder for chroot logging"
+      become: true
+      ansible.builtin.file:
+        path: '/mnt/sftp/{{ user_sftp_name }}/dev'
+        state: directory
+
+    - name: "Create sftp and sapsys group"
+      become: true
+      ansible.builtin.group:
+        name: "{{ item.name }}"
+        gid: "{{ item.gid }}"
+      loop:
+        - name: sftp
+          gid: "{{ user_sftp_id }}"
+        - name: sapsys
+          gid: "{{ user_sapsys_id }}"
+
+    - name: "Check if user exists"
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ user_sftp_name }}"
+        fail_key: false
+
+    - name: "BLOCK: Create User"
+      when: getent_passwd[user_sftp_name] == none
+      block:
+        - name: "Generate SSH Key"
+          run_once: true
+          delegate_to: localhost
+          community.crypto.openssh_keypair:
+            comment: "{{ user_sftp_name }}"
+            passphrase: ''
+            path: "/tmp/{{ user_sftp_name }}.pem"
+            force: true
+            size: 4096
+            type: rsa
+          register: key_output
+
+        - name: "Create sftp user"
+          become: true
+          ansible.builtin.user:
+            name: "{{ user_sftp_name }}"
+            group: sftp
+            groups: sapsys
+            append: true
+            comment: "SFTP User"
+            expires: -1
+            create_home: false
+            uid: "{{ user_sftp_id }}"
+          register: create_user_output
+
+        - name: "Ensure SSH Folder structure is valid"
+          become: true
+          ansible.builtin.file:
+            path: "{{ create_user_output.home }}/.ssh"
+            owner: "{{ user_sftp_name }}"
+            state: directory
+
+        - name: "Set SSH Public Key for user"
+          become: true
+          ansible.builtin.lineinfile:
+            create: true
+            state: present
+            path: "{{ create_user_output.home }}/.ssh/authorized_keys"
+            owner: "{{ user_sftp_name }}"
+            line: "{{ key_output.public_key }}"
+      #End "BLOCK: Create User"
+
+    - name: "Change folder ownership"
+      become: true
+      ansible.builtin.file:
+        path: "/mnt/sftp/{{ user_sftp_name }}/data"
+        state: directory
+        owner: "{{ user_sftp_name }}"
+        group: sftp
+
+    - name: "Add additional ports for sftp"
+      become: true
+      notify: Restart_sshd
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: "{{ item.regexp }}"
+        insertbefore: BOF
+        line: "{{ item.line }}"
+        validate: sshd -tf %s
+      loop:
+        - regexp: ^#?\s*Port\s+22
+          line: 'Port 22'
+        - regexp: ^#?\s*Port\s+8022
+          line: 'Port 8022'
+
+    - name: "Update sshd configuration for sftp group"
+      become: true
+      notify: Restart_sshd
+      ansible.builtin.blockinfile:
+        path: /etc/ssh/sshd_config
+        insertbefore: AllowGroups.*
+        marker: "# {mark} ANSIBLE MANAGED SFTP_INTERFACE BLOCK"
+        block: |
+          Match Group sftp
+              ChrootDirectory /mnt/sftp/%u
+              AllowTcpForwarding no
+              X11Forwarding no
+              ForceCommand internal-sftp -d /data -m 0666 -u 0077 -l VERBOSE -f AUTH
+              AllowGroups sftp
+          Match LocalPort 8022
+              AllowTcpForwarding no
+              X11Forwarding no
+              ForceCommand internal-sftp
+          Match All
+        validate: sshd -tf %s
+
+    - name: "Get Service Status"
+      ansible.builtin.service_facts:
+
+    - name: "Allow Port 8022 through FirewallD"
+      when: ansible_facts.services['firewalld.service'].state == 'running'
+      become: true
+      ansible.posix.firewalld:
+        permanent: true
+        immediate: true
+        port: 8022/tcp
+        state: enabled
+        zone: "{{ default_firewalld_zone }}"
+
+    - name: "Setup log forwarding"
+      become: true
+      notify: Restart_rsyslog
+      ansible.builtin.copy:
+        dest: "/etc/rsyslog.d/sftp_{{ user_sftp_name }}.conf"
+        content: |
+          $AddUnixListenSocket /mnt/sftp/{{ user_sftp_name }}/dev/log
+          input(type="imuxsock" Socket="/mnt/sftp/{{ user_sftp_name }}/dev/log" CreatePath="on")
+          if $programname == 'internal-sftp' then /var/log/sftp.log
+          & stop
+
+    - name: "Create sftp log"
+      become: true
+      ansible.builtin.file:
+        name: /var/log/sftp.log
+        state: touch
+
+    - name: "Setup log rotation"
+      become: true
+      ansible.builtin.copy:
+        dest: /etc/logrotate.d/sftp
+        content: >-
+          /var/log/sftp.log
+          {
+                  weekly
+                  missingok
+                  rotate 52
+                  compress
+                  delaycompress
+                  notifempty
+                  create 640 root adm
+          }
+
+    - name: Enable SELinux for STP Servers
+      become: true
+      ansible.posix.selinux:
+        policy: targeted
+        state: '{{ selinux_mode }}'
+      notify:
+        - reboot
+        - "create selinx type enforcement file"
+        - "compile type enforcement file and load the corresponding policy file"
+        - Restart_sshd
+
+#################
+##### Play3 #####
+#################
+- name: "Play3 SAP App configuration"
+  hosts: interface_hosts:!sftp_interface
+  gather_facts: false
+  tags:
+  - play3
+
+  vars:
+    aws_efs_file_system_id: "{{ efs_usr_sap_trans_fsid | default(omit,true) }}"
+    azure_nfs_storage_account: "{{ spr_azure_customer_storage_account|default(omit,true) }}"
+    azure_nfs_name: "{{ spr_azure_customer_sftp_file_share|default(omit,true) }}"
+    gcp_filestore_name: "{{ spr_gcp_filestore_name | default(omit,true) }}"
+    nfs_file_system_ip: "{{ nfs_usr_sap_trans_ip | default(omit,true) }}"
+    nfs_directory: "{{ spr_interfaces_efs_mount }}"
+
+  pre_tasks:
+    - name: "Retrieve ec2 metadata"
+      amazon.aws.ec2_metadata_facts:
+      when: cloud_provider == "aws"
+
+  tasks:
+    - name: "Create sftp and sapsys group"
+      become: true
+      ansible.builtin.group:
+        name: "{{ item.name }}"
+        gid: "{{ item.gid }}"
+      loop:
+        - name: sftp
+          gid: "{{ user_sftp_id }}"
+        - name: sapsys
+          gid: "{{ user_sapsys_id }}"
+
+    - name: "Create sftp user"
+      become: true
+      ansible.builtin.user:
+        name: "{{ user_sftp_name }}"
+        group: sftp
+        groups: sapsys
+        append: true
+        comment: "SFTP User"
+        expires: -1
+        create_home: false
+        uid: "{{ user_sftp_id }}"
+
+    - name: "Mount SFTP NFS"
+      ansible.builtin.include_role:
+        name: nfs
+      vars:
+        nfs_sync: true
+        nfs_dictionary:
+          usr_sap_interface:
+            path: "/usr/sap/interfaces"
+            owner: "{{ user_sftp_name }}"
+            group: sftp
+            src: >-
+              {%- if cloud_provider == "aws" -%}      {{ aws_efs_file_system_id }}.efs.{{ ansible_ec2_placement_region }}.amazonaws.com
+              {%- elif cloud_provider == "azure" and cloud_partition == "usgovernment" -%}  {{ azure_nfs_storage_account }}.file.core.usgovcloudapi.net
+              {%- elif cloud_provider == "azure" and cloud_partition == "public" -%}  {{ azure_nfs_storage_account }}.file.core.windows.net
+              {%- elif cloud_provider == "gcp" -%}  {{ nfs_file_system_ip }}
+              {%- endif -%}
+            src_root: >-
+              {%- if cloud_provider == "aws" -%}      /{{ nfs_directory }}
+              {%- elif cloud_provider == "azure" -%}  /{{ azure_nfs_storage_account }}/{{ azure_nfs_name }}/{{ nfs_directory }}
+              {%- elif cloud_provider == "gcp" -%}  /{{ gcp_filestore_name }}/{{ nfs_directory }}
+              {%- endif -%}
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Mount Azure blob containers"
+  gather_facts: false
+  hosts: cloud_azure:&managed_sftp_blobs
+  become: false
+  tags:
+  - play4
+  - blobfuse
+  vars:
+    azure_storage_account: "{{ spr_azure_customer_sftp_storage_account }}"
+    #spr_customer_sftp_object_container is a shared varible for all clouds
+    #s3 bucket/cloud storage bucket/azure blob container
+    sftp_object_container: "{{ spr_customer_sftp_object_container }}"
+    sftp_mountdir: /usr/sap/interfaces
+    blobfuse_temp_dir: /mnt/resource/blobfusetmp
+    blobfuse_config_file: /mnt/fuse_connection.cfg
+
+  tasks:
+  - name: "Configure Azure Repositories from S3"
+    ansible.builtin.include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: ['azure']
+
+  - name: Install blobfuse related yum packages
+    become: true
+    ansible.builtin.yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - fuse
+      - blobfuse
+
+  - name: Create blobfuse config file
+    become: true
+    copy:
+      dest: "{{blobfuse_config_file}}"
+      #previously used access_key which is a good solution as what happens if we rotate the key from protal?
+      #change to managed system identity instead
+      #blobEndpoint is only required for sovereignty clouds
+      #for MSI to work, VM should be assinged role "Storage Blob Data Contributor" not "Storage Account Contributor"
+      #we can create custom role for the corresponding VMs
+      content:  |
+        accountName {{azure_storage_account}}
+        authType MSI
+        containerName {{sftp_object_container}}
+        {% if cloud_provider == "azure" and cloud_partition == "usgovernment" %}
+        blobEndpoint {{azure_storage_account}}.blob.core.usgovcloudapi.net
+        {% endif %}
+      mode: '0600'
+
+  #ansible_mounts doesn't include fuse mounts
+  - name: "Detect whether {{sftp_mountdir}} is mounted or not with findmnt"
+    ansible.builtin.shell: findmnt {{sftp_mountdir}}
+    failed_when: false
+    register: mnt_status
+
+  - name: "Mount azure blob container"
+    become: true
+    ansible.builtin.shell: |
+      #create temp folder for blobfuse
+      mkdir {{blobfuse_temp_dir}} -p
+      chown root:root {{blobfuse_temp_dir}}
+      #create mount dir
+      mkdir {{sftp_mountdir}} -p
+      blobfuse {{sftp_mountdir}} --tmp-path={{blobfuse_temp_dir}}  --config-file={{blobfuse_config_file}} -o attr_timeout=400 -o entry_timeout=400 -o negative_timeout=120 -o allow_other
+    when: mnt_status.rc == 1 #if it is not mounted
+
+  - name: Update fstab with blobfuse mount
+    become: true
+    lineinfile:
+      path: /etc/fstab
+      line: blobfuse {{sftp_mountdir}} fuse defaults,_netdev,--tmp-path={{blobfuse_temp_dir}},--config-file={{blobfuse_config_file}},--log-level=LOG_DEBUG,allow_other 0 0
+      state: present
+
+#################
+##### Play5 #####
+#################
+- name: "Play5: Mount AWS S3 bucket"
+  gather_facts: false
+  hosts: cloud_aws:&managed_sftp_blobs
+  tags:
+  - play5
+  - s3fuse
+  vars:
+    #spr_customer_sftp_object_container is a shared varible for all clouds
+    #s3 bucket/cloud storage bucket/azure blob container
+    sftp_object_container: "{{ spr_customer_sftp_object_container }}"
+    sftp_mountdir: /usr/sap/interfaces
+
+  tasks:
+  - name: "Configure Repositories from S3"
+    ansible.builtin.include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: ['epel']
+
+  #yum 8.6 repo has the dependent fuse packages while in <8.6 these are missing
+  - name: Install s3fuse related yum packages
+    become: true
+    ansible.builtin.yum:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - s3fs-fuse
+
+  #ansible_mounts doesn't include fuse mounts
+  - name: "Detect whether {{sftp_mountdir}} is mounted or not with findmnt"
+    ansible.builtin.shell: findmnt {{sftp_mountdir}}
+    failed_when: false
+    register: mnt_status
+
+  - name: "Mount aws s3 bucket"
+    become: true
+    ansible.builtin.shell: |
+      mkdir {{sftp_mountdir}} -p
+      s3fs {{sftp_object_container}} {{sftp_mountdir}} -o allow_other -o iam_role=auto
+    when: mnt_status.rc == 1 #if it is not mounted
+
+  - name: Update fstab with s3fs mount
+    become: true
+    lineinfile:
+      path: /etc/fstab
+      line: s3fs#{{sftp_object_container}} {{sftp_mountdir}} fuse allow_other,use_cache=/tmp,iam_role=auto 0 0
+      state: present
+
+#################
+##### Play6 #####
+#################
+- name: "Play6: Setup ClamAV"
+  hosts: interface_hosts
+  gather_facts: false
+  become: false
+  tags:
+  - play6
+  - clamav
+  any_errors_fatal: yes
+
+  tasks:
+  - name: "Configure Repositories from S3"
+    ansible.builtin.include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: ['base', 'epel']
+
+
+  - name: "Update clamav configuration"
+    include_role:
+      name: clamav
+    vars:
+      clamav_create_cron_schedule: true
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    ansible.builtin.debug:
+      msg: "Of the world as we know it"
+...

@@ -1,0 +1,15 @@
+---
+# Description: Molecule converge.yml playbook used to run an Ansible role in a testing scenario.
+
+  - name: Converge
+    hosts: all
+    gather_facts: true
+    become: true
+    tasks:
+
+      - name: Run the 'rhel8-disa-stig' role to configure DISA STIGs
+        include_role:
+          name: rhel8-disa-stig
+        vars:
+          application_preset_selection: base
+...

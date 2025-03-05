@@ -1,0 +1,104 @@
+---
+# Synopsis: Sets up prerequities for managing network files share on a linux machine
+# Inputs:
+#   nfs_dictionary - dictionary of network file shares to configure
+#   nfs_enable_cloudwatch_logging - flag to to enable the CloudWatch Logs feature in amazon-efs-utils
+
+  - name: Check for EFS access point mounts
+    set_fact:
+      nfs_amazon_access_point_enable_local: true
+    when:
+      - item.value.access_point_id is defined
+      - item.value.access_point_id | length > 0
+    loop: '{{ query("dict", nfs_dictionary) }}'
+
+  - name: Set flag for whether to enable access points utilities
+    set_fact:
+      nfs_amazon_access_point_enable: '{{ nfs_amazon_access_point_enable_local | default(false) }}'
+
+  - name: Make sure that NFSv4 client is installed
+    package:
+      state: present
+      name: "{{ 'nfs-common' if (ansible_os_family | lower == 'debian') else 'nfs-utils' }}"
+    become: true
+
+  - name: Block - Setup AWS EFS helper tool
+    block:
+
+      - name: Install AWS EFS helper tool package dependencies
+        package:
+          state: present
+          name: stunnel
+
+      - name: Block - Retrieve pre-built AWS EFS helper tool from S3
+        block:
+
+          - name: Set AWS EFS helper tool file extension based on OS distribution
+            set_fact:
+              nfs_aws_efs_utils_suffix: '{{ ".deb" if ansible_os_family | lower == "debian" else ".rpm" }}'
+
+          ### TODO: leverage Ansible module when botocore issue are resolved
+          # - name: Get AWS EFS helper tool from S3
+          #   aws_s3:
+          #     bucket: '{{ nfs_aws_efs_utils_s3_bucket }}'
+          #     object: '{{ nfs_aws_efs_utils_s3_path }}'
+          #     dest: /tmp/{{ nfs_aws_efs_utils_s3_path.split("/")[-1] }}{{ nfs_aws_efs_utils_suffix }}
+          #     mode: get
+
+          - name: Get AWS EFS helper tool from S3
+            shell: |
+              /usr/local/bin/aws s3api get-object \
+                --bucket {{ nfs_aws_efs_utils_s3_bucket }} \
+                --key {{ nfs_aws_efs_utils_s3_path }} \
+                /tmp/{{ nfs_aws_efs_utils_s3_path.split("/")[-1] }}{{ nfs_aws_efs_utils_suffix }}
+            become: yes
+
+          - name: Install the AWS EFS helper tool on RedHat
+            yum:
+              name: /tmp/{{ nfs_aws_efs_utils_s3_path.split("/")[-1] }}{{ nfs_aws_efs_utils_suffix }}
+              disable_gpg_check: yes
+            when: ansible_os_family | lower == "redhat"
+
+          - name: Install the AWS EFS helper tool on Debian
+            apt:
+              deb: /tmp/{{ nfs_aws_efs_utils_s3_path.split("/")[-1] }}{{ nfs_aws_efs_utils_suffix }}
+            when: ansible_os_family | lower == 'debian'
+
+        when:
+          - nfs_aws_efs_utils_s3_bucket is defined
+          - nfs_aws_efs_utils_s3_bucket | length > 0
+      # End Block - Install AWS EFS helper tool
+
+      - name: Install AWS EFS helper tool package dependency via package manager
+        package:
+          state: present
+          name: amazon-efs-utils
+        when:
+          - nfs_aws_efs_utils_s3_bucket is undefined
+          - nfs_aws_efs_utils_s3_bucket is none
+          - nfs_aws_efs_utils_s3_bucket | length < 1
+
+      - name: Enable CloudWatch logging in efs-utils.conf
+        ansible.builtin.replace:
+          path: /etc/amazon/efs/efs-utils.conf
+          regexp: ^\[cloudwatch-log\]\s*#?\s*enabled\s*=\s*true
+          replace: '[cloudwatch-log]\nenabled = true'
+        when: nfs_enable_cloudwatch_logging is defined and nfs_enable_cloudwatch_logging
+
+      - name: Enable FIPS-mode for stunnel in efs-utils.conf
+        ansible.builtin.replace:
+          path: /etc/amazon/efs/efs-utils.conf
+          regexp: ^fips_mode_enabled\s*=\s*false
+          replace: fips_mode_enabled = true
+        when: efs_enable_fips | default(false) | bool
+
+      - name: Restart EFS mount helper (if logging enabled)
+        service:
+          name: amazon-efs-mount-watchdog
+          state: restarted
+        when: nfs_enable_cloudwatch_logging is defined and nfs_enable_cloudwatch_logging
+
+    when: nfs_amazon_access_point_enable | bool
+    become: true
+  # End Block - Setup AWS EFS utilites
+...

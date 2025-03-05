@@ -1,0 +1,18 @@
+---
+  - name: Verify
+    hosts: all
+    gather_facts: false
+    tasks:
+
+      - name: Verify Firewalld is disabled
+        block:
+          - name: Get output of status check
+            shell: firewall-cmd --state
+            ignore_errors: yes
+            register: output
+          - name: Ensure firewalld is not running
+            assert:
+              that: output.stderr == "not running"
+              success_msg: success, firewalld disabled
+              fail_msg: fail, firewalld still running
+...

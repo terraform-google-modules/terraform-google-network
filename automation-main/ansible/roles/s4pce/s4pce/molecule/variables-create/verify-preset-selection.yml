@@ -1,0 +1,15 @@
+---
+- name: "Generate role dynamic variables"
+  include_role:
+    name: s4pce
+    tasks_from: general/variables-create.yml
+  vars:
+    s4pce_variables_create_nodetype: "{{ item.s4pce_variables_create_nodetype }}"
+    s4pce_variables_create_productname: "{{ item.s4pce_variables_create_productname }}"
+
+- name: "Validate Generated Variables"
+  assert:
+    that:
+      - s4pce_firewall_preset_selection == item.expected_fw
+      - s4pce_cw_preset_selection == item.expected_cw
+...

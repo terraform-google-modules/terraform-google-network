@@ -1,0 +1,36 @@
+---
+cwa_package: amazon-cloudwatch-agent
+cwa_install_path: /opt/aws/amazon-cloudwatch-agent
+cwa_agent_ctl: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl
+cwa_package_gpg: https://s3.amazonaws.com/amazoncloudwatch-agent/assets/amazon-cloudwatch-agent.gpg
+cwa_package_gpg_id: D58167303B789C72
+
+cwa_common_config_file: '{{ cwa_install_path }}/etc/common-config.toml'
+cwa_agent_config_file: '{{ cwa_temp_path }}/amazon-cloudwatch-agent.json'
+cwa_agent_log_file: '{{ cwa_install_path }}/logs/amazon-cloudwatch-agent.log'
+
+cwa_logrotate_config_file: /etc/logrotate.d/aws-cwa
+cwa_logrotate_daemon: logrotate
+
+cwa_agent_profile_path: /root/.aws
+cwa_agent_profile_config_file: '{{ cwa_agent_profile_path }}/config'
+cwa_agent_profile_credentials_file: '{{ cwa_agent_profile_path }}/credentials'
+
+cwa_dependencies_packages:
+  - collectd
+
+cwa_dependencies_packages_rhel8:
+  - collectd-python
+  - collectd-curl
+
+cwa_global_downloads_timeout: 240
+cwa_global_downloads_retries: 5
+cwa_global_downloads_delay: 2
+
+cwa_temp_path: /tmp
+
+# Conditional variables
+cwa_use_credentials: "{{ true|bool if cwa_agent_mode == 'onPremise' else false|bool }}"
+cwa_use_proxy: '{{ true|bool if cwa_http_proxy is defined and cwa_http_proxy|length > 0 else false|bool }}'
+cwa_use_conf_json_template: '{{ false|bool if cwa_conf_json_file_content is defined and cwa_conf_json_file_content|length > 0 else true|bool }}'
+...

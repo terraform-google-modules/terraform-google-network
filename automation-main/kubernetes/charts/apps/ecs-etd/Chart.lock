@@ -1,0 +1,9 @@
+dependencies:
+- name: ecs-etds
+  repository: oci://harbor.dev.ste.dev.scs.sap/helm-chart-museum
+  version: 2.13.0
+- name: etd-logcollector
+  repository: oci://harbor.dev.ste.dev.scs.sap/helm-chart-museum
+  version: 1.0.12
+digest: sha256:1c8a7aa72b0623efccd72d22a62c36b13222384c454bb23719abd39381f2f73a
+generated: "2024-12-19T00:18:46.678495-05:00"

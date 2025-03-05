@@ -1,0 +1,61 @@
+---
+# Synopsis: Sets up incron backups
+# Inputs:
+#   - incron_setup_sid : (provided by playbook) SAP ID of the system
+#   - incron_setup_release_number : Major release number.  Used in naming the backup location.
+#   - incron_setup_bucket_name : Where the backups will be moved to
+#   - incron_setup_hostname : Hostname for the backup filepath
+#   - incron_setup_suffix: Used in incron file path naming
+# Outputs: Configured file in incron.d (named after major release number)
+# Comments: N/A
+
+- name: "Create backup folders"
+  file:
+    path: "{{ item }}"
+    group: "sapsys"
+    state: directory
+    mode: 0754
+    owner: "{{ incron_setup_sid|lower }}adm"
+  become: true
+  loop:
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB02/backup/data/SYSTEMDB"
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB02/backup/data/DB_{{ incron_setup_sid|upper }}"
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB02/backup/log/SYSTEMDB"
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB02/backup/log/DB_{{ incron_setup_sid|upper }}"
+
+- name: "Setup incron.d file"
+  template:
+    dest: "/etc/incron.d/{{ incron_setup_release_number}}.incron"
+    src: "provisioning/ibp-incron.j2"
+  vars:
+    ibp_incron_sid: "{{ incron_setup_sid }}"
+    ibp_incron_release_number: "{{ incron_setup_release_number }}"
+    ibp_incron_bucket_name: "{{ incron_setup_bucket_name }}"
+    ibp_incron_hostname: "{{ incron_setup_hostname }}"
+    ibp_incron_suffix: "{{ incron_setup_suffix }}"
+  become: true
+
+- name: "Restart the incron service"
+  service:
+    name: incrond
+    state: restarted
+  become: true
+
+- name: "Pausing for 10 seconds"
+  pause:
+    seconds: 10
+
+- name: "Create backup test files"
+  copy:
+    dest: "{{ item }}/backup_test.txt"
+    group: "sapsys"
+    content: "hello world"
+    mode: 0640
+    owner: "{{ incron_setup_sid|lower }}adm"
+  become: true
+  loop:
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB02/backup/data/SYSTEMDB"
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB02/backup/data/DB_{{ incron_setup_sid|upper }}"
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB02/backup/log/SYSTEMDB"
+  - "/hana/backups/{{ incron_setup_sid|upper }}/HDB02/backup/log/DB_{{ incron_setup_sid|upper }}"
+...

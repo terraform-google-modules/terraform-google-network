@@ -1,0 +1,20 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "SNSPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "sns:ListSubscriptionsByTopic",
+                "sns:SetSubscriptionAttributes",
+                "sns:Publish",
+                "sns:CreateTopic",
+                "sns:ListTopics",
+                "sns:SetTopicAttributes",
+                "sns:Subscribe",
+                "sns:ConfirmSubscription"
+            ],
+            "Resource": ${jsonencode(sns_topic_arn)}
+        }
+    ]
+}

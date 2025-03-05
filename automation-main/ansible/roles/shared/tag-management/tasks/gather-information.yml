@@ -1,0 +1,192 @@
+---
+# Synopsis: This task list connects to the instances defined in the supplied
+# inventory, as well as queries AWS and compiles that information together
+# to create variables for automatically generating certain tags.
+# inputs:
+#   - All of the tags defined in defaults.yml and the readme.md
+# are used in this task list.
+
+  - name: Retrieve the ec2 metadata for private ip addresses
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+    ec2_instance_info:
+      region: '{{ aws_region }}'
+      filters:
+        private-ip-address: '{{ inventory_hostname }}'
+    register: ec2_facts_private_output
+    when: aws_ip_address | lower != 'public'
+
+  - name: Retrieve the ec2 metadata for public ip addresses
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+    ec2_instance_info:
+      region: '{{ aws_region }}'
+      filters:
+        ip-address: '{{ inventory_hostname }}'
+    register: ec2_facts_public_output
+    when: aws_ip_address | lower == 'public'
+
+  - name: Retrieve ec2 metadata
+    ec2_metadata_facts:
+
+  - name: Retrieve the ec2 metadata for instance ids
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+    ec2_instance_info:
+      region: '{{ aws_region }}'
+      instance_ids: '{{ ansible_ec2_instance_id }}'
+    register: ec2_facts_instance_output
+
+  - name: Consolidating instance metadata to a single fact
+    set_fact:
+      ec2_facts_consolidated: '{{ ec2_facts_private_output | combine(ec2_facts_public_output) | combine(ec2_facts_instance_output) }}'
+
+  - name: Obtain OS release information for each system
+    shell: grep "PRETTY_NAME" /etc/os-release | cut -d '"' -f2
+    register: os_release_output
+
+  - name: Obtain domain status for each system
+    shell: /usr/sbin/realm list --name-only
+    register: realm_output
+    ignore_errors: true
+
+  - name: Check whether the '/etc/ns2-release' file exists
+    ansible.builtin.stat:
+      path: /etc/ns2-release
+    register: stat_ns2_release_file_output
+
+  - name: Check whether the '/etc/scs-release' file exists
+    ansible.builtin.stat:
+      path: /etc/scs-release
+    register: stat_scs_release_file_output
+
+  - name: Determine which image release file to use ('/etc/ns2-release' or '/etc/scs-release')
+    ansible.builtin.set_fact:
+      custom_image_release_file: "{{ '/etc/ns2-release' if (stat_ns2_release_file_output.stat.exists | bool) else '/etc/scs-release' }}"
+    when: (stat_ns2_release_file_output.stat.exists | bool) or (stat_scs_release_file_output.stat.exists | bool)
+
+  - name: Obtain original AMI release for each system
+    shell: grep image_name {{ custom_image_release_file }} | cut -d '"' -f2
+    register: custom_image_release_output
+    when:
+      - custom_image_release_file is defined
+
+  - name: Set fact for the custom image release if it was obtained successfully
+    ansible.builtin.set_fact:
+      custom_image_release: '{{ custom_image_release_output.stdout }}'
+    when:
+      - custom_image_release_output is defined
+      - custom_image_release_output.stdout | length > 0
+
+  - name: Retrieve the AMI metadata for each system
+    delegate_to: '{{ "localhost" if (aws_tag_delegate_local | bool) else omit }}'
+    ec2_ami_info:
+      region: '{{ aws_region }}'
+      image_ids: '{{ ec2_facts_consolidated.instances[0].image_id }}'
+    register: ec2_ami_output
+
+  - name: Set Facts using Gathered Information for Green AMIs
+    set_fact:
+      aws_tag_image: '{{ ec2_ami_output.images[0].tags.Name  }}'
+    when:
+      - custom_image_release is not defined
+      - ec2_ami_output.images[0].name is defined
+      - '"import" in ec2_ami_output.images[0].name'
+
+  - name: Set Facts using Gathered Information for Golden AMI with Local Artifacts
+    set_fact:
+      aws_tag_image: '{{ custom_image_release_output.stdout }}'
+    when:
+      - custom_image_release is defined
+
+  - name: Set Facts using Gathered Information for Golden AMIs without Local Artifacts
+    set_fact:
+      aws_tag_image: '{{ ec2_ami_output.images[0].name }}'
+    when:
+      - custom_image_release is not defined
+      - ec2_ami_output.images[0].name is defined
+
+  - name: Set Facts using Gathered Information for Revoked AMIs without Local Artifacts
+    set_fact:
+      aws_tag_image: untagged
+    when: aws_tag_image is not defined
+
+  - name: Set Facts using Gathered Information
+    set_fact:
+      aws_tag_name: '{{ ec2_facts_consolidated.instances[0].tags.Name }}'
+      aws_instance_id: '{{ ec2_facts_consolidated.instances[0].instance_id }}'
+      aws_tag_account_id: '{{ ec2_facts_consolidated.instances[0].network_interfaces[0].owner_id }}'
+      aws_tag_availability_zone: '{{ ec2_facts_consolidated.instances[0].placement.availability_zone }}'
+      aws_tag_operating_system: '{{ os_release_output.stdout }}'
+
+  # There are certain tags that can be defined at run time, but may already have values
+  # set on the instance. So these variables store those values for comparison.
+  - name: Setting Facts for Existing Values of User Defined Tags
+    set_fact:
+      aws_tag_business_current: "{{ ec2_facts_consolidated.instances[0].tags.Business | default('') }}"
+      aws_tag_description_current: "{{ ec2_facts_consolidated.instances[0].tags.Description | default('') }}"
+      aws_tag_product_name_current: "{{ ec2_facts_consolidated.instances[0].tags.ProductName | default('') }}"
+      aws_tag_environment_current: "{{ ec2_facts_consolidated.instances[0].tags.Environment | default('') }}"
+      aws_tag_hostname_current: "{{ ec2_facts_consolidated.instances[0].tags.Hostname | default('') }}"
+      aws_tag_patch_group_current: "{{ ec2_facts_consolidated.instances[0].tags['Patch Group'] | default('') }}"
+      aws_tag_build_user_current: "{{ ec2_facts_consolidated.instances[0].tags.BuildUser | default('') }}"
+      aws_tag_db_type_current: "{{ ec2_facts_consolidated.instances[0].tags.DBType | default('') }}"
+      aws_tag_landscape_current: "{{ ec2_facts_consolidated.instances[0].tags.Landscape | default('') }}"
+      aws_tag_node_current: "{{ ec2_facts_consolidated.instances[0].tags.Node | default('') }}"
+      aws_tag_customer_current: "{{ ec2_facts_consolidated.instances[0].tags.Customer | default('') }}"
+      aws_tag_provision_date_current: "{{ ec2_facts_consolidated.instances[0].tags.ProvisionDate | default('') }}"
+      aws_tag_generated_by_current: "{{ ec2_facts_consolidated.instances[0].tags.GeneratedBy | default('') }}"
+      aws_tag_managed_by_current: "{{ ec2_facts_consolidated.instances[0].tags.ManagedBy | default('') }}"
+
+  - name: Getting List of Disks Attached to Instance
+    set_fact:
+      aws_instance_disk_list: '{{ ec2_facts_consolidated.instances[0].block_device_mappings }}'
+
+  - name: Obtain current SAP System Identifier (SID)
+    find:
+      paths: /usr/sap
+      patterns: ^([A-Z0-9])([A-Z0-9])([A-Z0-9])$
+      use_regex: yes
+      file_type: directory
+    register: current_sid_output
+    when: >
+      aws_tag_force_sap | bool or
+      aws_tag_image is search("SAP") or
+      aws_tag_image is search("HANA")
+
+  - name: Set Facts for SID using Gathered Information
+    set_fact:
+      aws_tag_sid: '{{ current_sid_output.files[0].path.split("/")[-1] }}'
+    when: >
+      current_sid_output and
+      (
+        current_sid_output.matched is defined and
+        current_sid_output.matched > 0
+      )
+
+  - name: Get Current User
+    become: false
+    local_action: command whoami
+    register: current_username
+
+  - name: Setting build_user to Current User When build_user Is Not Defined
+    set_fact:
+      aws_tag_build_user: '{{ current_username.stdout  }}'
+    when: >
+      current_username.stdout != 'root' and
+      current_username.stdout != 'ec2-user' and
+      (
+        aws_tag_build_user is undefined or
+        aws_tag_build_user == ''
+      )
+
+  - name: Setting Platform tag based on Windows OS family
+    set_fact:
+      aws_tag_platform: licensed
+    when: ansible_facts.os_family == "Windows"
+
+  - name: Setting Platform tag based on Linux OS family
+    set_fact:
+      aws_tag_platform: unlicensed
+    when: ansible_facts.os_family != "Windows"
+
+# TODO: determine the provision date
+# TODO: add logic to update tag with "not joined to a domain" when realm_output is blank
+...

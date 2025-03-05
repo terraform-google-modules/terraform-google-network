@@ -1,0 +1,13 @@
+[Unit]
+Description=Clam AntiVirus database updater timer
+Documentation=man:freshclam(1) man:freshclam.conf(5) https://www.clamav.net/documents/
+
+[Timer]
+OnCalendar='*-*-* *:00/30:00'
+Persistent=true
+Unit=clamav@freshclam.service
+FixedRandomDelay=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

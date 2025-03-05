@@ -1,0 +1,53 @@
+---
+# Fetches the software from an S3 bucket and installs it directly
+#
+# Inputs:
+#   vector_version
+#   vector_s3_binaries_url (fetch from bucket + path + vector_major_version / vector_file_name)
+
+# Added for backward compatibility
+  - name: Extract Vector major version
+    ansible.builtin.set_fact:
+      vector_major_version: '{{ vector_version.split("-")[0] | default("0.19.0") }}'
+
+  - name: Set Vector file name if OS is RPM
+    ansible.builtin.set_fact:
+      vector_file_name: vector-{{ vector_major_version }}-1.x86_64.rpm
+    when:
+      - ansible_os_family | lower == 'redhat' or ansible_os_family | lower == 'suse'
+
+  - name: Set Vector file name if OS is apt
+    ansible.builtin.set_fact:
+      vector_file_name: vector-{{ vector_major_version }}-amd64.deb
+    when:
+      - ansible_os_family | lower == 'debian'
+
+  - name: Validate we have valid file name
+    ansible.builtin.assert:
+      that:
+        - vector_file_name is defined
+      fail_msg: Unable to create a valid vector_file_name, are you running on RHEL or Ubuntu?
+
+  - name: Download file from S3 bucket
+    amazon.aws.aws_s3:
+      bucket: '{{ vector_s3_binaries_url.replace("s3://","").split("/")[0] }}'
+      object: /{{ vector_s3_binaries_url.replace("s3://","").split("/")[1:] | join("/") }}/{{ vector_major_version }}/{{ vector_file_name }}
+      dest: /tmp/{{ vector_file_name }}
+      mode: get
+  - name: Install the Vector GPG key
+    ansible.builtin.include_tasks: install-gpg-key.yml
+
+  - name: Install Vector RPM
+    ansible.builtin.package:
+      name: /tmp/{{ vector_file_name }}
+      state: present
+    become: true
+    when: ansible_os_family | lower == "redhat" or ansible_os_family | lower == 'suse'
+
+  - name: Install Vector deb
+    ansible.builtin.apt:
+      name: /tmp/{{ vector_file_name }}
+      state: present
+    become: true
+    when: ansible_os_family | lower == "debian"
+...

@@ -1,0 +1,79 @@
+---
+# Synopsis: Does a software start of HANA DB
+# Inputs:
+#   - spr_hana_start_sid : (provided by playbook) SAP ID of the system
+# Outputs: Started HANA DB
+# Comments: N/A
+- name: "Run sapstartsrv"
+  become: true
+  shell: >
+     export LD_LIBRARY_PATH=/usr/sap/HP4/HDB00/exe; /usr/sap/{{ spr_sid|upper }}/HDB00/exe/sapstartsrv pf=/usr/sap/{{ spr_sid|upper }}/SYS/profile/HP4_HDB00_{{ spr_hostname }} -reg
+  args:
+    executable: '/bin/bash'
+
+- name: "Start HANA DB"
+  become: true
+  become_user: "{{ spr_hana_start_sid|lower }}adm"
+  shell: '/usr/sap/{{ spr_hana_start_sid|upper}}/HDB00/HDB start'
+  failed_when: false
+
+- name: "Get Process list"
+  shell: '/usr/sap/{{ spr_hana_start_sid|upper }}/HDB00/exe/sapcontrol -nr 00 -function GetProcessList'
+  become: true
+  become_user: "{{ spr_hana_start_sid|lower }}adm"
+  failed_when: false
+  changed_when: false
+  register: hdb_process_output
+
+- name: "Check if HANA DB is already started"
+  assert:
+    that: |
+        'GRAY' not in hdb_process_output.stdout and
+        'YELLOW' not in hdb_process_output.stdout
+    fail_msg: HANA DB not fully up. Starting in next block
+    success_msg: "Hana DB is already started. Skipping next block"
+  changed_when: false
+  failed_when: false
+
+- name: "BLOCK: Start HANA DB"
+  block:
+  - name: "Start HANA DB"
+    shell: '/usr/sap/{{ spr_hana_start_sid|upper}}/HDB00/HDB start'
+    failed_when: false
+
+  - name: "Wait for process to start"
+    shell: '/usr/sap/{{ spr_hana_start_sid|upper }}/SYS/exe/uc/linuxx86_64/sapcontrol -nr 00 -function GetProcessList'
+    failed_when: false
+    environment:
+      LD_LIBRARY_PATH: "/usr/sap/{{ spr_hana_start_sid|upper }}/SYS/exe/uc/linuxx86_64"
+    changed_when: false
+    register: hdb_poststart_process_output
+    retries: 10
+    delay: 10
+    until: |
+      'GRAY' not in hdb_poststart_process_output.stdout and
+      'YELLOW' not in hdb_poststart_process_output.stdout
+
+  - name: "Get Process list after start"
+    shell: '/usr/sap/{{ spr_hana_start_sid|upper }}/HDB00/exe/sapcontrol -nr 00 -function GetProcessList'
+    failed_when: false
+    changed_when: false
+    register: hdb_poststart_process_output
+
+  - name: "Validate HANA DB Start"
+    assert:
+      that: "'GRAY' not in hdb_poststart_process_output.stdout and 'YELLOW' not in hdb_poststart_process_output.stdout"
+      fail_msg: |
+        "HANA DB did not fully start"
+        {{ hdb_poststart_process_output.stdout }}
+      success_msg: HANA DB Started
+
+  - name: "Output post-start processes"
+    debug:
+      var: hdb_poststart_process_output.stdout_lines
+
+  when: "'GRAY' in hdb_process_output.stdout or 'YELLOW' in hdb_process_output.stdout"
+  become: true
+  become_user: "{{ spr_hana_start_sid|lower }}adm"
+  # End "BLOCK: Start HANA DB"
+...

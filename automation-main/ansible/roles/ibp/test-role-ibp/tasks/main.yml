@@ -1,0 +1,5 @@
+---
+- name: Validates path for {{ role_name }}
+  assert:
+    that:
+      - "'roles/ibp' in role_path"

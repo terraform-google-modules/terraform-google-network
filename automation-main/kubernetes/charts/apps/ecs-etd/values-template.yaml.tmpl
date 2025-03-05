@@ -1,0 +1,331 @@
+{{ $envConfig := (datasource "envConfig")  }}
+customer: customerName
+customerVpcCidr: <CIDR>
+gardener:
+  project: {{ .Env.projectName }}
+  shootName: {{ $envConfig.shootName }}
+  baseDomain: {{ .Env.gardenerBaseDomain }}
+  shootVpcCidr: {{ .Env.shootCidrBlock }}
+awsAccountID: "{{ .Env.accountID }}"
+awsPartition: {{ .Env.awsPartition }}
+awsRegion: {{ $envConfig.region }}
+vaultBasePath: {{ $envConfig.vaultBasePath }}
+envBaseDomain: {{ $envConfig.envBaseDomain }}
+providerConfigRef:
+  name: aws-provider-config
+
+velero:
+  backupNamespace: "velero"
+  schedule: true
+  excludedNamespaces: [""]
+  cronData: "0 5 * * *"
+  ttl: "72h0m0s"
+
+ecs-etds:
+  # Global overrrides for the ETD containers
+  initContainerVersions:
+    # renovate: ds=docker repository=alpine
+    alpine: {{ $envConfig.initAlpineVersion }}
+    # renovate: ds=docker repository=bitnami/kubectl
+    bitnamiKubectl: {{ $envConfig.initBitnamiKubectlVersion }}
+
+  image:
+    pullPolicy: Always
+    pullSecret: dockerconfig
+    repository: {{ $envConfig.etdsRegistry }}
+
+  # Stage to deploy prod must be available before dev can be deployed
+  etdStage: prd # dev or prod
+  sid: <ETD_SID>
+
+  customLabels: {}
+
+  scaling:
+    logcollector:
+      replicas: 3
+    logLearner:
+      replicas: 3
+    transporter:
+      replicas: 3
+    normalizer:
+      replicas: 3
+    hanaWriter:
+      replicas: 3
+
+  monitoring:
+    metricsPort: 8090
+
+  hanaEndpoints:
+    xsClassic:
+  #    tenantFqdn: vh<CID><SIDofTenant>db<NN>.<region>.hec.<customer.com>ifTenantAliasWasConfigured
+      tenantFqdn: <HANA_HOSTNAME>
+  #    port: 43<instanceNumber>
+      port: 4300
+      keystore:
+        certificate: "<HANA_P12>"
+  #      password: <fromPassVault>
+        password: <HANA_P12_PASS>
+    jdbc:
+  #    fqdn: vh<CID><SIDofTenant>db<NN>.<region>.hec.<customer.com>
+      fqdn: <HANA_HOSTNAME>
+  #    port: 3<instanceNumber>41ifJustOneTenant
+      port: 30041
+      keystore:
+        certificate: "<HANA_P12>"
+  #      password: <fromPassVault>
+        password: <HANA_P12_PASS>
+
+  backupSecrets: true
+
+  kafka:
+    # Kafka bootstrap server
+    # Service FQDN my-svc.my-namespace.svc.cluster.local
+    serviceFqdn: etd-kf-kafka-bootstrap.etd-kafka-prd-<ETD_SID>.svc.cluster.local
+    listenerPort: 9093
+  #  etdProdSid: <SIDofTenant>
+    etdProdSid: <ETD_SID>
+  # ETD Streaming per pod configuration
+
+  coldStorage:
+    enable: true
+    storage:
+      retentionDays: 365
+      blobContainerSize: 1000Gi
+      storageAccountRegion: {{ $envConfig.region }}
+      storageAccountReplicationLevel: ""
+      storageAccountResourceGroup: ""
+      clusterResourceGroup: ""
+      clusterSubnet: ""
+      clusterVnet: ""
+    currentLogs:
+      diskSize: 10Gi
+      storageClass: cephfs-sc
+    image:
+      name: etd_coldstorage
+      tag: {{ $envConfig.etd_coldstorage }}
+    securityContext: {}
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 256Mi
+      limits:
+          memory: 2458Mi
+    credentials:
+  #    password: Gardener1!
+      password: <CS_PASS>
+      username: ETD_DATA_COMMITTER
+
+  logCollector:
+    image:
+      name: etd_logcollector
+      tag: {{ $envConfig.etd_logcollector }}
+    inBound:
+      storage:
+        diskSize: 32Gi
+        storageClass: cephfs-sc
+      securityContext: {}
+      resources:
+        requests:
+          cpu: 1000m
+          memory: 1024Mi
+        limits:
+          memory: 9830Mi
+
+  #  logCollectorAlias: <desiredname>.<clustername>.cs.hec.<customer.com>
+    logCollectorAlias: customer-lc.cs.basedomain
+    keystore:
+      certificate: "<LC_P12>"
+      password: <LC_P12_PASS>
+    credentials:
+      userName: ETDEXTR
+      shaHash: <LC_PASS>
+      # password: QwerRewq123
+      # shaHash: 7e70cccbef477d34180e5ebf7b4c234a350f6867ef235a8a09903758ab3f637f
+
+  hanaWriter:
+    # replication:
+    #   enable: false
+    #   resources:
+    #     requests:
+    #       cpu: 10m
+    #       memory: 128Mi
+    #   securityContext: {}
+    image:
+      name: etd_kafka_2_hana
+      tag: {{ $envConfig.etd_kafka_2_hana }}
+    securityContext: {}
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 2458Mi
+    credentials:
+  #    password: Gardener1!
+      password: <HW_PASS>
+      username: ETD_DATA_COMMITTER
+
+  logLearner:
+    enable: true
+    image:
+      name: etd_loglearner
+      tag: {{ $envConfig.etd_loglearner }}
+    securityContext: {}
+    resources:
+      requests:
+        cpu: 500m
+        memory: 128Mi
+      limits:
+        memory: 1229Mi
+    credentials:
+  #    password: Gardener1!
+      password: <LL_PASS>
+      username: ETD_STREAMING_LOGLEARNER
+
+  normalizer:
+    image:
+      name: etd_normalizer
+      tag: {{ $envConfig.etd_normalizer }}
+    securityContext: {}
+    resources:
+      requests:
+        cpu: 2000m
+        memory: 256Mi
+      limits:
+        memory: 2458Mi
+    credentials:
+  #    password: Gardener1!
+      password: <NM_PASS>
+      username: ETD_STREAMING_NORMALIZER
+
+  transporter:
+    image:
+      name: etd_transporter
+      tag: {{ $envConfig.etd_transporter }}
+    securityContext: {}
+    resources:
+      requests:
+        cpu: 500m
+        memory: 256Mi
+      limits:
+        memory: 2458Mi
+
+kafka:
+  enabled: false
+  etdProdSid: <ETD_SID>
+  scaling:
+    replicas: 3
+
+  network:
+    desiredListernerPort: 9093
+
+  certificates:
+    renewalDays: 1
+    validityDays: 1095
+    generateCertificateAuthority: true
+
+  kafkaVersion: {{ $envConfig.kafkaVersion }}
+
+  config:
+    logRetentionHours: 72
+
+  storage:
+    kafka:
+      perReplica:
+        diskSize: 256Gi
+        storageClass: default
+    zookeeper:
+      perReplica:
+        diskSize: 10Gi
+        storageClass: default
+
+  kafka:
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 1000m
+      limits:
+        memory: 4915Mi
+        cpu: 2500m
+
+  zookeeper:
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 500m
+      limits:
+        memory: 1229Mi
+        cpu: 1500m
+        
+  customLabels: {}
+  
+etd-logcollector:
+  logcollectorOutboundEnabled: false
+  image:
+    pullPolicy: Always
+    pullSecret: dockerconfig
+    repository: {{ $envConfig.etdsRegistry }}
+    name: etd_logcollector
+    tag: "{{ $envConfig.etd_logcollector }}"
+
+  backupSecrets: true
+
+  inBound:
+    enabled: false
+
+  outBound:
+    enabled: true
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 1024Mi
+      limits:
+        memory: 9830Mi
+    securityContext: {}
+    monitoring:
+      metricsPort: 8090
+    storage:
+      diskSize: 32Gi
+      storageClass: default
+
+    truststore:
+      cert: asdf
+      password: asdf
+
+    odataS4: []
+    # - sid: tstbasic
+    #   fqdn: test.sap.com    # S4HANA_CLOUD_HOSTNAME
+    #   username: testuser
+    #   password: testpassword
+    # - sid: tstoauth
+    #   fqdn: test.sap.com
+    #   uaaUrl: asdf
+
+    odataC4C: []
+    # - fqdn: test.sap.com    # S4HANA_CLOUD_HOSTNAME
+    #   username: testuser
+    #   password: testpassword
+
+    btp: []
+    # - uaaUrl: asdf
+    #   clientId: asdf
+    #   clientSecret: asdf
+    #   auditLogUrl: asdf             # CF || NEO(customer provides the region and the rest of the URL is fix -  ask for the URL)
+    # - accountId: asdf               # NEO
+    #   uaaUrl: https://api.<region>.hana.ondemand.com
+    #   clientId: asdf
+    #   clientSecret: asdf
+    #   auditLogUrl: https://api.<region>.hana.ondemand.com
+    #   logcollectorName: lc
+
+    db:              # SAP Commerce Hybris
+    # - hostname: asdf
+    #   port: 12345
+    #   username: asdf
+    #   password: asdf
+
+  kafka:
+    serviceFqdn: etd-kf-kafka-bootstrap.etd-kafka-prd-<ETD_SID>.svc.cluster.local
+    listenerPort: 9093
+    certCopy: false
+

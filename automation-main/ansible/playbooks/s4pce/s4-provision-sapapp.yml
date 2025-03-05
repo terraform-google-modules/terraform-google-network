@@ -1,0 +1,38 @@
+---
+# Playbook Name: s4-provision-hana.yml
+# Synopsis: Provisions a new instance to be a hana database server
+# Description: Calls the S4-Provisioning role. Sets up Host file, Validates source, and set up a hana database instance
+# Prerequisites:
+#   - Ansible v2.9+
+#   - VM created from Hana Image
+#   - Correct Volume sizing and attachments.  See https://gitlab.core.sapns2.us/s4-cpids-dev/s4/blob/master/S4-Infrastructure-Setup.md
+# Dependencies: N/A
+# Variables:
+#   - db_ipaddress: Private IP Address of the Database Server
+#   - sapapp_ipaddress: Private IP Address of the SAP Application Server
+#   - extract_hana_tar_files: (true|false) True will provision the Database from Tar Extract.  False will use preloaded Disks.
+#   - sid : SAP ID of the Database Landscape
+#   - sidadm_uid: UID of the sidadm
+# Example:
+#    ansible-playbook s4-provision-hana.yml -i 192.168.0.1, -e db_ipaddress='10.0.0.1' -e sapapp_ipaddress='10.0.0.2' -e extract_hana_tar_files=true -e sid=br1 -e sidadm_uid=2117
+# Authors: Louis Lee, Matt Bittner
+# Version: 2.9-000002
+# Modified: 2020-02-27
+#           2020-09-04 - Removed relative paths in include_role
+# Comments: N/A
+
+- hosts: all
+  become: true      # Almost every operation in this playbook/role will require root access
+  vars:
+    db_ipaddress: 10.128.16.12
+    sapapp_ipaddress: 10.128.16.13
+    sid: 'br1'
+    sidadm_uid: '2117'
+
+  tasks:
+  - name: Run ibp-provisioning role
+    include_role:
+      name: s4-provisioning
+      allow_duplicates: yes
+      tasks_from: s4-sapapp-provision.yml
+...

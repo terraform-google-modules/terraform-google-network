@@ -1,0 +1,9 @@
+---
+# handlers file for bastion
+  - name: remove pip
+    package:
+      state: absent
+      name: python3-pip
+    when: remove_pip | bool
+    become: true
+...

@@ -1,0 +1,1165 @@
+---
+# Defaults file for the 'repository-management' role.
+
+# Whether to enable the repositories that are selected via the 'application_preset_selection' variable.
+repo_enable: false
+
+# Whether to disable the repositories that are selected via the 'application_preset_selection' variable.
+repo_disable: false
+
+# Whether to remove all repositories and repository files that were setup by this Ansible role.
+repo_delete: false
+
+# Whether to force the re-downloading of the repository file and the re-enabling of the repositories within it.
+# NOTE: Any repositories within the repository file that were previously enabled will not be re-enabled unless specified via
+#       the 'application_preset_selection' variable.
+repo_force: false
+
+# Whether to download the latest OS minor version repository file instead of release locking to the current OS minor version.
+# NOTE: Setting this variable to true and then updating all packages will result in the system being upgraded to the latest OS minor version.
+repo_latest: false
+
+# Whether or not to purge old repository files when downloading a new one
+repo_delete_old: false
+
+# Override the `ansible_distribution_version` to explicit release lock version
+repo_release_lock:
+
+# Whether or not to pull the release lock version from EC2 tag `ReleaseLock`
+repo_release_lock_from_ec2_tag: false
+
+# Whether to delegate tasks to get EC2 instance tags to localhost or run from remote
+repo_release_lock_from_ec2_tag_delegate_local: true
+
+# The preset list of repositories to enable/disable that is listed under 'repository_list[ <operating_system> ]'
+# NOTE: Multiple presets can be passed into this variable as a list. For example: -e "application_preset_selection=['base','epel','hana']"
+# NOTE: If defining the 'application_preset_selection' variable via extra vars, make sure to enclose it in double quotes ("") as demonstrated above.
+application_preset_selection: [base]
+
+# Whether to dynamically get the list of repositories to enable/disable via the 'application_preset_selection' value that
+# was used to create the image that this system was created from.
+# NOTE: This feature keys off of the 'application_preset_selection' value that is stored in the '/etc/ns2-release' or '/etc/scs-release' file.
+automatic_preset_selection: false
+
+# A list of repository servers to download the repository file from.
+# NOTE: The role will download the repository file from the first available server listed here, meaning the order of this variable matters.
+# NOTE: This list should match the entries in the 'repo_dns_list' variable within the 'repository-synchronization-yum/vars/main.yml' file.
+repo_dns_list:
+  - http://patchserver # for SHC
+  - http://reposerver # for SHC
+  - https://yum.repositories.sapns2.us # https compatible due to going through AWS CloudFront
+  - https://apt.repositories.sapns2.us
+  - https://zypper.repositories.sapns2.us # DNS record does not exist currently I believe
+  - http://us-east-1.repositories.sapns2.us.s3-website.us-east-1.amazonaws.com
+  - http://us-east-2.repositories.sapns2.us.s3-website.us-east-2.amazonaws.com
+  - http://us-west-2.repositories.sapns2.us.s3-website.us-west-2.amazonaws.com
+  - http://ca-central-1.repositories.sapns2.us.s3-website.ca-central-1.amazonaws.com
+  - http://us-gov-west-1.repositories.sapns2.us.s3-website.us-gov-west-1.amazonaws.com
+  - http://us-gov-east-1.repositories.sapns2.us.s3-website.us-gov-east-1.amazonaws.com
+
+# A dictionary for each operating system containing preset lists of repositories to enable/disable.
+repository_list:
+  sles_12:
+    sp3:
+      base:
+        - SLES12-SP3-Pool
+        - SLES12-SP3-Updates
+      all:
+        - SLES12-SP3-Pool
+        - SLES12-SP3-Updates
+    sp4:
+      base:
+        - SLES12-SP4-LTSS-Updates
+        - SLES12-SP4-Pool
+        - SLES12-SP4-Updates
+      all:
+        - SLES12-SP4-LTSS-Updates
+        - SLES12-SP4-Pool
+        - SLES12-SP4-Updates
+    sp5:
+      base:
+        - SLES12-SP5-Pool
+        - SLES12-SP5-Updates
+      all:
+        - SLES12-SP5-Pool
+        - SLES12-SP5-Updates
+
+  sles_15:
+    sp1:
+      base:
+        - SLE-Module-Basesystem15-SP1-Pool
+        - SLE-Module-Basesystem15-SP1-Updates
+      all:
+        - SLE-Module-Basesystem15-SP1-Pool
+        - SLE-Module-Basesystem15-SP1-Updates
+        - SLE-Module-Containers15-SP2-Pool
+        - SLE-Module-Containers15-SP2-Updates
+        - SLE-Module-Packagehub-Subpackages15-SP1-Pool
+        - SLE-Module-Packagehub-Subpackages15-SP1-Updates
+        - SLE-Module-Public-Cloud15-SP1-Pool
+        - SLE-Module-Public-Cloud15-SP1-Updates
+        - SLE-Module-Server-Applications15-SP1-Pool
+        - SLE-Module-Server-Applications15-SP1-Updates
+        - SLE-Product-SLES15-SP1-Pool
+        - SLE-Product-SLES15-SP1-Updates
+        - SUSE-PackageHub-15-SP1-Backports-Pool
+        - SUSE-PackageHub-15-SP1-Pool
+      gardener-shoot:
+        - SLE-Module-Basesystem15-SP1-Pool
+        - SLE-Module-Basesystem15-SP1-Updates
+    sp2:
+      base:
+        - SLE-Module-Basesystem15-SP2-Pool
+        - SLE-Module-Basesystem15-SP2-Updates
+        - SLE-Module-Packagehub-Subpackages15-SP2-Pool
+        - SLE-Module-Packagehub-Subpackages15-SP2-Updates
+        - SLE-Module-Public-Cloud15-SP2-Pool
+        - SLE-Module-Public-Cloud15-SP2-Updates
+        - SLE-Module-Server-Applications15-SP2-Pool
+        - SLE-Module-Server-Applications15-SP2-Updates
+        - SLE-Product-SLES15-SP2-LTSS-Updates
+        - SLE-Product-SLES15-SP2-Pool
+        - SLE-Product-SLES15-SP2-Updates
+        - SUSE-PackageHub-15-SP2-Backports-Pool
+        - SUSE-PackageHub-15-SP2-Pool
+      all:
+        - SLE-Module-Basesystem15-SP2-Pool
+        - SLE-Module-Basesystem15-SP2-Updates
+        - SLE-Module-Containers15-SP2-Pool
+        - SLE-Module-Containers15-SP2-Updates
+        - SLE-Module-Packagehub-Subpackages15-SP2-Pool
+        - SLE-Module-Packagehub-Subpackages15-SP2-Updates
+        - SLE-Module-Public-Cloud15-SP2-Pool
+        - SLE-Module-Public-Cloud15-SP2-Updates
+        - SLE-Module-Server-Applications15-SP2-Pool
+        - SLE-Module-Server-Applications15-SP2-Updates
+        - SLE-Product-SLES15-SP2-LTSS-Updates
+        - SLE-Product-SLES15-SP2-Pool
+        - SLE-Product-SLES15-SP2-Updates
+        - SUSE-PackageHub-15-SP2-Backports-Pool
+        - SUSE-PackageHub-15-SP2-Pool
+      gardener-shoot:
+        - SLE-Module-Basesystem15-SP2-Pool
+        - SLE-Module-Basesystem15-SP2-Updates
+      chost:
+        - SLE-Module-Basesystem15-SP2-Pool
+        - SLE-Module-Basesystem15-SP2-Updates
+        - SLE-Module-Containers15-SP2-Pool
+        - SLE-Module-Containers15-SP2-Updates
+        - SLE-Module-Packagehub-Subpackages15-SP2-Pool
+        - SLE-Module-Packagehub-Subpackages15-SP2-Updates
+        - SLE-Module-Public-Cloud15-SP2-Pool
+        - SLE-Module-Public-Cloud15-SP2-Updates
+        - SLE-Module-Server-Applications15-SP2-Pool
+        - SLE-Module-Server-Applications15-SP2-Updates
+        - SLE-Product-SLES15-SP2-LTSS-Updates
+        - SLE-Product-SLES15-SP2-Pool
+        - SLE-Product-SLES15-SP2-Updates
+        - SUSE-PackageHub-15-SP2-Backports-Pool
+        - SUSE-PackageHub-15-SP2-Pool
+    sp3:
+      base:
+        - SLE-Module-Basesystem15-SP3-Pool
+        - SLE-Module-Basesystem15-SP3-Updates
+      all:
+        - SLE-Module-Basesystem15-SP3-Pool
+        - SLE-Module-Basesystem15-SP3-Updates
+        - SLE-Module-Containers15-SP3-Pool
+        - SLE-Module-Containers15-SP3-Updates
+        - SLE-Module-Packagehub-Subpackages15-SP3-Pool
+        - SLE-Module-Packagehub-Subpackages15-SP3-Updates
+        - SLE-Module-Public-Cloud15-SP3-Pool
+        - SLE-Module-Public-Cloud15-SP3-Updates
+        - SLE-Module-Server-Applications15-SP3-Pool
+        - SLE-Module-Server-Applications15-SP3-Updates
+        - SLE-Product-SLES15-SP3-Pool
+        - SLE-Product-SLES15-SP3-Updates
+        - SUSE-PackageHub-15-SP3-Backports-Pool
+        - SUSE-PackageHub-15-SP3-Pool
+      gardener-shoot:
+        - SLE-Module-Basesystem15-SP3-Pool
+        - SLE-Module-Basesystem15-SP3-Updates
+    sp4:
+      base:
+        - SLE-Module-Basesystem15-SP4-Pool
+        - SLE-Module-Basesystem15-SP4-Updates
+      all:
+        - SLE-Module-Basesystem15-SP4-Pool
+        - SLE-Module-Basesystem15-SP4-Updates
+        - SLE-Module-Containers15-SP4-Pool
+        - SLE-Module-Containers15-SP4-Updates
+        - SLE-Module-Packagehub-Subpackages15-SP4-Pool
+        - SLE-Module-Packagehub-Subpackages15-SP4-Updates
+        - SLE-Module-Public-Cloud15-SP4-Pool
+        - SLE-Module-Public-Cloud15-SP4-Updates
+        - SLE-Module-Server-Applications15-SP4-Pool
+        - SLE-Module-Server-Applications15-SP4-Updates
+        - SLE-Product-SLES15-SP4-Pool
+        - SLE-Product-SLES15-SP4-Updates
+        - SUSE-PackageHub-15-SP4-Backports-Pool
+        - SUSE-PackageHub-15-SP4-Pool
+      gardener-shoot:
+        - SLE-Module-Basesystem15-SP4-Pool
+        - SLE-Module-Basesystem15-SP4-Updates
+    sp5:
+      base:
+        - SLE-Module-Basesystem15-SP5-Pool
+        - SLE-Module-Basesystem15-SP5-Updates
+        - SLE-Module-Packagehub-Subpackages15-SP5-Pool
+        - SLE-Module-Packagehub-Subpackages15-SP5-Updates
+        - SLE-Module-Public-Cloud15-SP5-Pool
+        - SLE-Module-Public-Cloud15-SP5-Updates
+        - SLE-Module-Server-Applications15-SP5-Pool
+        - SLE-Module-Server-Applications15-SP5-Updates
+        - SLE-Product-SLES15-SP5-Pool
+        - SLE-Product-SLES15-SP5-Updates
+        - SUSE-PackageHub-15-SP5-Backports-Pool
+        - SUSE-PackageHub-15-SP5-Pool
+      all:
+        - SLE-Module-Basesystem15-SP5-Pool
+        - SLE-Module-Basesystem15-SP5-Updates
+        - SLE-Module-Containers15-SP5-Pool
+        - SLE-Module-Containers15-SP5-Updates
+        - SLE-Module-Packagehub-Subpackages15-SP5-Pool
+        - SLE-Module-Packagehub-Subpackages15-SP5-Updates
+        - SLE-Module-Public-Cloud15-SP5-Pool
+        - SLE-Module-Public-Cloud15-SP5-Updates
+        - SLE-Module-Server-Applications15-SP5-Pool
+        - SLE-Module-Server-Applications15-SP5-Updates
+        - SLE-Product-SLES15-SP5-Pool
+        - SLE-Product-SLES15-SP5-Updates
+        - SUSE-PackageHub-15-SP5-Backports-Pool
+        - SUSE-PackageHub-15-SP5-Pool
+      gardener-shoot:
+        - SLE-Module-Basesystem15-SP5-Pool
+        - SLE-Module-Basesystem15-SP5-Updates
+      chost:
+        - SLE-Module-Basesystem15-SP5-Pool
+        - SLE-Module-Basesystem15-SP5-Updates
+        - SLE-Module-Containers15-SP5-Pool
+        - SLE-Module-Containers15-SP5-Updates
+        - SLE-Module-Packagehub-Subpackages15-SP5-Pool
+        - SLE-Module-Packagehub-Subpackages15-SP5-Updates
+        - SLE-Module-Public-Cloud15-SP5-Pool
+        - SLE-Module-Public-Cloud15-SP5-Updates
+        - SLE-Module-Server-Applications15-SP5-Pool
+        - SLE-Module-Server-Applications15-SP5-Updates
+        - SLE-Product-SLES15-SP5-Pool
+        - SLE-Product-SLES15-SP5-Updates
+        - SUSE-PackageHub-15-SP5-Backports-Pool
+        - SUSE-PackageHub-15-SP5-Pool
+
+  redhat_6:
+    base:
+      - rhel-6-server-rpms
+      - rhel-6-server-extras-rpms
+    all:
+      - rhel-6-server-rpms
+      - rhel-6-server-extras-rpms
+      - rhel-6-server-optional-rpms
+      - rhel-sap-hana-for-rhel-6-server-rpms
+      - rhel-sap-for-rhel-6-server-rpms
+      - rhel-ha-for-rhel-6-server-rpms
+      - rhel-6-server-rhn-tools-rpms
+      - rhel-6-server-rh-common-rpms
+    epel:
+      - epel
+      - rhel-6-server-rpms
+      - rhel-6-server-extras-rpms
+    ns2labs:
+      - rhel-6-server-rpms
+      - rhel-6-server-extras-rpms
+      - rhel-6-server-optional-rpms
+    qualtrics:
+      - rhel-6-server-rpms
+      - rhel-6-server-extras-rpms
+      - rhel-6-server-optional-rpms
+    hana:
+      - rhel-6-server-rpms
+      - rhel-6-server-extras-rpms
+    sap:
+      - rhel-6-server-rpms
+      - rhel-6-server-extras-rpms
+    openvpn:
+      - rhel-6-server-rpms
+      - rhel-6-server-extras-rpms
+
+  redhat_7:
+    base:
+      - rhel-7-server-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+      - rhel-7-server-optional-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-els-optional-debug-rpms
+      - rhel-7-server-els-optional-rpms
+      - rhel-7-server-els-rpms
+      - rhel-7-server-els-source-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-ha-for-rhel-7-server-els-rpms
+    all:
+      - rhel-sap-hana-for-rhel-7-server-rpms
+      - rhel-sap-hana-for-rhel-7-server-eus-rpms
+      - rhel-sap-for-rhel-7-server-rpms
+      - rhel-sap-for-rhel-7-server-eus-rpms
+      - rhel-ha-for-rhel-7-server-rpms
+      - rhel-ha-for-rhel-7-server-eus-rpms
+      - rhel-7-server-ansible-2-rpms
+      - rhel-7-server-rpms
+      - rhel-7-server-optional-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-eus-rhn-tools-rpms
+      - rhel-7-server-eus-optional-rpms
+      - rhel-7-server-e4s-rpms
+      - rhel-7-server-e4s-optional-rpms
+      - rhel-ha-for-rhel-7-server-e4s-rpms
+      - rhel-sap-for-rhel-7-server-e4s-rpms
+      - rhel-sap-hana-for-rhel-7-server-e4s-rpms
+      - rhel-7-server-els-optional-debug-rpms
+      - rhel-7-server-els-optional-rpms
+      - rhel-7-server-els-rpms
+      - rhel-7-server-els-source-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-ha-for-rhel-7-server-els-rpms
+      - rhel-sap-for-rhel-7-server-els-rpms
+      - rhel-sap-hana-for-rhel-7-server-els-rpms
+      - rhel-sap-hana-for-rhel-7-server-els-source-rpms
+      - azure-cli
+      - docker-ce-stable
+      - docker-ce-edge
+    epel:
+      - epel
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+    ns2labs:
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-optional-rpms
+      - rhel-7-server-eus-optional-rpms
+      - rhel-7-server-ansible-2-rpms
+    qualtrics:
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-optional-rpms
+      - rhel-7-server-eus-optional-rpms
+      - rhel-7-server-ansible-2-rpms
+    hana:
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-e4s-rpms
+      - rhel-ha-for-rhel-7-server-rpms
+      - rhel-ha-for-rhel-7-server-eus-rpms
+      - rhel-ha-for-rhel-7-server-e4s-rpms
+      - rhel-sap-hana-for-rhel-7-server-rpms
+      - rhel-sap-hana-for-rhel-7-server-eus-rpms
+      - rhel-sap-hana-for-rhel-7-server-e4s-rpms
+      - rhel-7-server-ansible-2-rpms
+      - rhel-7-server-els-optional-debug-rpms
+      - rhel-7-server-els-optional-rpms
+      - rhel-7-server-els-rpms
+      - rhel-7-server-els-source-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-ha-for-rhel-7-server-els-rpms
+      - rhel-sap-for-rhel-7-server-els-rpms
+      - rhel-sap-hana-for-rhel-7-server-els-rpms
+      - rhel-sap-hana-for-rhel-7-server-els-source-rpms
+    sap:
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-e4s-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-optional-rpms
+      - rhel-7-server-eus-optional-rpms
+      - rhel-7-server-e4s-optional-rpms
+      - rhel-ha-for-rhel-7-server-rpms
+      - rhel-ha-for-rhel-7-server-eus-rpms
+      - rhel-ha-for-rhel-7-server-e4s-rpms
+      - rhel-sap-for-rhel-7-server-rpms
+      - rhel-sap-for-rhel-7-server-eus-rpms
+      - rhel-sap-for-rhel-7-server-e4s-rpms
+      - rhel-7-server-ansible-2-rpms
+      - rhel-7-server-els-optional-debug-rpms
+      - rhel-7-server-els-optional-rpms
+      - rhel-7-server-els-rpms
+      - rhel-7-server-els-source-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-ha-for-rhel-7-server-els-rpms
+      - rhel-sap-for-rhel-7-server-els-rpms
+      - rhel-sap-hana-for-rhel-7-server-els-rpms
+      - rhel-sap-hana-for-rhel-7-server-els-source-rpms
+    openvpn:
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+    nessus:
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+    azure:
+      - azure-cli
+    docker:
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+      - docker-ce-stable
+      - docker-ce-edge
+    kubernetes:
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+      - docker-ce-stable
+      - docker-ce-edge
+
+  redhat_8:
+    base:
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      # Supplemental is roughly equivalent to the extras repository from rhel7
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+    all:
+      - rhel-8-for-x86_64-appstream-e4s-rpms
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-e4s-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-highavailability-e4s-rpms
+      - rhel-8-for-x86_64-highavailability-eus-rpms
+      - rhel-8-for-x86_64-highavailability-rpms
+      - rhel-8-for-x86_64-sap-solutions-e4s-rpms
+      - rhel-8-for-x86_64-sap-solutions-eus-rpms
+      - rhel-8-for-x86_64-sap-solutions-rpms
+      - rhel-8-for-x86_64-sap-netweaver-e4s-rpms
+      - rhel-8-for-x86_64-sap-netweaver-eus-rpms
+      - rhel-8-for-x86_64-sap-netweaver-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - codeready-builder-for-rhel-8-x86_64-eus-rpms
+      - codeready-builder-for-rhel-8-x86_64-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+      - epel
+      - epel-modular
+      - azure-cli
+      - packages-microsoft-com-prod
+      - docker-ce-stable
+      - docker-ce-edge
+    epel:
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - codeready-builder-for-rhel-8-x86_64-eus-rpms
+      - codeready-builder-for-rhel-8-x86_64-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+      - epel
+      - epel-modular
+    sap:
+      - rhel-8-for-x86_64-appstream-e4s-rpms
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-e4s-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-sap-solutions-e4s-rpms
+      - rhel-8-for-x86_64-sap-solutions-eus-rpms
+      - rhel-8-for-x86_64-sap-solutions-rpms
+      - rhel-8-for-x86_64-sap-netweaver-e4s-rpms
+      - rhel-8-for-x86_64-sap-netweaver-eus-rpms
+      - rhel-8-for-x86_64-sap-netweaver-rpms
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - rhel-8-for-x86_64-highavailability-rpms
+      - rhel-8-for-x86_64-highavailability-e4s-rpms
+      - rhel-8-for-x86_64-highavailability-eus-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+    hana:
+      - rhel-8-for-x86_64-appstream-e4s-rpms
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-e4s-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-sap-solutions-e4s-rpms
+      - rhel-8-for-x86_64-sap-solutions-eus-rpms
+      - rhel-8-for-x86_64-sap-solutions-rpms
+      - rhel-8-for-x86_64-sap-netweaver-e4s-rpms
+      - rhel-8-for-x86_64-sap-netweaver-eus-rpms
+      - rhel-8-for-x86_64-sap-netweaver-rpms
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - rhel-8-for-x86_64-highavailability-rpms
+      - rhel-8-for-x86_64-highavailability-e4s-rpms
+      - rhel-8-for-x86_64-highavailability-eus-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+    openvpn:
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+    docker:
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+      - docker-ce-stable
+      - docker-ce-edge
+    kubernetes:
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+      - docker-ce-stable
+      - docker-ce-edge
+    nessus:
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+    ns2labs:
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+    qualtrics:
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+    azure:
+      - rhel-8-for-x86_64-appstream-eus-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-eus-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-supplementary-eus-rpms
+      - rhel-8-for-x86_64-supplementary-rpms
+      - ansible-2-for-rhel-8-x86_64-rpms
+      - azure-cli
+      - packages-microsoft-com-prod
+
+  redhat_9:
+    base:
+      - rhel-9-for-x86_64-appstream-eus-rpms
+      - rhel-9-for-x86_64-appstream-rpms
+      - rhel-9-for-x86_64-baseos-eus-rpms
+      - rhel-9-for-x86_64-baseos-rpms
+      - rhel-9-for-x86_64-supplementary-eus-rpms
+      - rhel-9-for-x86_64-supplementary-rpms
+    all:
+      - rhel-9-for-x86_64-appstream-e4s-rpms
+      - rhel-9-for-x86_64-appstream-eus-rpms
+      - rhel-9-for-x86_64-appstream-rpms
+      - rhel-9-for-x86_64-baseos-e4s-rpms
+      - rhel-9-for-x86_64-baseos-eus-rpms
+      - rhel-9-for-x86_64-baseos-rpms
+      - rhel-9-for-x86_64-highavailability-e4s-rpms
+      - rhel-9-for-x86_64-highavailability-eus-rpms
+      - rhel-9-for-x86_64-highavailability-rpms
+      - rhel-9-for-x86_64-sap-solutions-e4s-rpms
+      - rhel-9-for-x86_64-sap-solutions-eus-rpms
+      - rhel-9-for-x86_64-sap-solutions-rpms
+      - rhel-9-for-x86_64-sap-netweaver-e4s-rpms
+      - rhel-9-for-x86_64-sap-netweaver-eus-rpms
+      - rhel-9-for-x86_64-sap-netweaver-rpms
+      - rhel-9-for-x86_64-supplementary-rpms
+      - rhel-9-for-x86_64-supplementary-eus-rpms
+      - codeready-builder-for-rhel-9-x86_64-eus-rpms
+      - codeready-builder-for-rhel-9-x86_64-rpms
+      - epel
+      - epel-modular
+      - azure-cli
+      - packages-microsoft-com-prod
+      - docker-ce-stable
+      - docker-ce-edge
+    epel:
+      - rhel-9-for-x86_64-appstream-eus-rpms
+      - rhel-9-for-x86_64-appstream-rpms
+      - rhel-9-for-x86_64-baseos-eus-rpms
+      - rhel-9-for-x86_64-baseos-rpms
+      - rhel-9-for-x86_64-supplementary-eus-rpms
+      - rhel-9-for-x86_64-supplementary-rpms
+      - codeready-builder-for-rhel-9-x86_64-eus-rpms
+      - codeready-builder-for-rhel-9-x86_64-rpms
+      - epel
+      - epel-modular
+    sap:
+      - rhel-9-for-x86_64-appstream-e4s-rpms
+      - rhel-9-for-x86_64-appstream-eus-rpms
+      - rhel-9-for-x86_64-appstream-rpms
+      - rhel-9-for-x86_64-baseos-e4s-rpms
+      - rhel-9-for-x86_64-baseos-eus-rpms
+      - rhel-9-for-x86_64-baseos-rpms
+      - rhel-9-for-x86_64-sap-solutions-e4s-rpms
+      - rhel-9-for-x86_64-sap-solutions-eus-rpms
+      - rhel-9-for-x86_64-sap-solutions-rpms
+      - rhel-9-for-x86_64-sap-netweaver-e4s-rpms
+      - rhel-9-for-x86_64-sap-netweaver-eus-rpms
+      - rhel-9-for-x86_64-sap-netweaver-rpms
+      - rhel-9-for-x86_64-supplementary-eus-rpms
+      - rhel-9-for-x86_64-supplementary-rpms
+      - rhel-9-for-x86_64-highavailability-rpms
+      - rhel-9-for-x86_64-highavailability-e4s-rpms
+      - rhel-9-for-x86_64-highavailability-eus-rpms
+    hana:
+      - rhel-9-for-x86_64-appstream-e4s-rpms
+      - rhel-9-for-x86_64-appstream-eus-rpms
+      - rhel-9-for-x86_64-appstream-rpms
+      - rhel-9-for-x86_64-baseos-e4s-rpms
+      - rhel-9-for-x86_64-baseos-eus-rpms
+      - rhel-9-for-x86_64-baseos-rpms
+      - rhel-9-for-x86_64-sap-solutions-e4s-rpms
+      - rhel-9-for-x86_64-sap-solutions-eus-rpms
+      - rhel-9-for-x86_64-sap-solutions-rpms
+      - rhel-9-for-x86_64-sap-netweaver-e4s-rpms
+      - rhel-9-for-x86_64-sap-netweaver-eus-rpms
+      - rhel-9-for-x86_64-sap-netweaver-rpms
+      - rhel-9-for-x86_64-supplementary-eus-rpms
+      - rhel-9-for-x86_64-supplementary-rpms
+      - rhel-9-for-x86_64-highavailability-rpms
+      - rhel-9-for-x86_64-highavailability-e4s-rpms
+      - rhel-9-for-x86_64-highavailability-eus-rpms
+    openvpn:
+      - rhel-9-for-x86_64-appstream-eus-rpms
+      - rhel-9-for-x86_64-appstream-rpms
+      - rhel-9-for-x86_64-baseos-eus-rpms
+      - rhel-9-for-x86_64-baseos-rpms
+      - rhel-9-for-x86_64-supplementary-eus-rpms
+      - rhel-9-for-x86_64-supplementary-rpms
+    docker:
+      - rhel-9-for-x86_64-appstream-eus-rpms
+      - rhel-9-for-x86_64-appstream-rpms
+      - rhel-9-for-x86_64-baseos-eus-rpms
+      - rhel-9-for-x86_64-baseos-rpms
+      - rhel-9-for-x86_64-supplementary-eus-rpms
+      - rhel-9-for-x86_64-supplementary-rpms
+      - docker-ce-stable
+      - docker-ce-edge
+    kubernetes:
+      - rhel-9-for-x86_64-appstream-eus-rpms
+      - rhel-9-for-x86_64-appstream-rpms
+      - rhel-9-for-x86_64-baseos-eus-rpms
+      - rhel-9-for-x86_64-baseos-rpms
+      - rhel-9-for-x86_64-supplementary-eus-rpms
+      - rhel-9-for-x86_64-supplementary-rpms
+      - docker-ce-stable
+      - docker-ce-edge
+    azure:
+      - rhel-9-for-x86_64-appstream-eus-rpms
+      - rhel-9-for-x86_64-appstream-rpms
+      - rhel-9-for-x86_64-baseos-eus-rpms
+      - rhel-9-for-x86_64-baseos-rpms
+      - rhel-9-for-x86_64-supplementary-eus-rpms
+      - rhel-9-for-x86_64-supplementary-rpms
+      - azure-cli
+      - packages-microsoft-com-prod
+
+  amazon_2018:
+    base:
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+    all:
+      - epel
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+    epel:
+      - epel
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+
+  amazon_2:
+    base:
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+    all:
+      - epel
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+    epel:
+      - epel
+      - rhel-7-server-rpms
+      - rhel-7-server-eus-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ansible-2-rpms
+
+  ubuntu_18:
+    base:
+      - default bionic-security main restricted universe multiverse
+      - default bionic-updates main restricted universe multiverse
+      - default bionic-backports main restricted universe multiverse
+      - fips bionic main
+      - fips-updates bionic main
+      - ansible bionic main
+    all:
+      - default bionic-security main restricted universe multiverse
+      - default bionic-updates main restricted universe multiverse
+      - default bionic-backports main restricted universe multiverse
+      - fips bionic main
+      - fips-updates bionic main
+      - ansible bionic main
+    openvpn:
+      - default bionic-security main restricted universe multiverse
+      - default bionic-updates main restricted universe multiverse
+      - default bionic-backports main restricted universe multiverse
+      - fips bionic main
+      - fips-updates bionic main
+      - ansible bionic main
+    docker:
+      - default bionic-security main restricted universe multiverse
+      - default bionic-updates main restricted universe multiverse
+      - default bionic-backports main restricted universe multiverse
+      - fips bionic main
+      - fips-updates bionic main
+      - ansible bionic main
+    kubernetes:
+      - default bionic-security main restricted universe multiverse
+      - default bionic-updates main restricted universe multiverse
+      - default bionic-backports main restricted universe multiverse
+      - fips bionic main
+      - fips-updates bionic main
+      - ansible bionic main
+    gardener-shoot:
+      - default bionic-security main restricted universe multiverse
+      - default bionic-updates main restricted universe multiverse
+      - default bionic-backports main restricted universe multiverse
+      - fips bionic main
+      - fips-updates bionic main
+      - ansible bionic main
+    azure:
+      - default bionic-security main restricted universe multiverse
+      - default bionic-updates main restricted universe multiverse
+      - default bionic-backports main restricted universe multiverse
+      - fips bionic main
+      - fips-updates bionic main
+      - ansible bionic main
+
+  ubuntu_20:
+    base:
+      - default focal-security main restricted universe multiverse
+      - default focal-updates main restricted universe multiverse
+      - default focal-backports main restricted universe multiverse
+      - fips focal main
+      - fips-updates focal main
+      - ansible focal main
+    all:
+      - default focal-security main restricted universe multiverse
+      - default focal-updates main restricted universe multiverse
+      - default focal-backports main restricted universe multiverse
+      - fips focal main
+      - fips-updates focal main
+      - ansible focal main
+    openvpn:
+      - default focal-security main restricted universe multiverse
+      - default focal-updates main restricted universe multiverse
+      - default focal-backports main restricted universe multiverse
+      - fips focal main
+      - fips-updates focal main
+      - ansible focal main
+    docker:
+      - default focal-security main restricted universe multiverse
+      - default focal-updates main restricted universe multiverse
+      - default focal-backports main restricted universe multiverse
+      - fips focal main
+      - fips-updates focal main
+      - ansible focal main
+    kubernetes:
+      - default focal-security main restricted universe multiverse
+      - default focal-updates main restricted universe multiverse
+      - default focal-backports main restricted universe multiverse
+      - fips focal main
+      - fips-updates focal main
+      - ansible focal main
+    gardener-shoot:
+      - default focal-security main restricted universe multiverse
+      - default focal-updates main restricted universe multiverse
+      - default focal-backports main restricted universe multiverse
+      - fips focal main
+      - fips-updates focal main
+      - ansible focal main
+    btp:
+      - default focal-security main restricted universe multiverse
+      - default focal-updates main restricted universe multiverse
+      - default focal-backports main restricted universe multiverse
+      - fips focal main
+      - fips-updates focal main
+      - ansible focal main
+    azure:
+      - default focal-security main restricted universe multiverse
+      - default focal-updates main restricted universe multiverse
+      - default focal-backports main restricted universe multiverse
+      - fips focal main
+      - fips-updates focal main
+      - ansible focal main
+    freeradius:
+      - default focal-security main restricted universe multiverse
+      - default focal-updates main restricted universe multiverse
+      - default focal-backports main restricted universe multiverse
+      - fips focal main
+      - fips-updates focal main
+      - ansible focal main
+      - freeradius focal main
+
+  ubuntu_22:
+    base:
+      - default jammy-security main restricted universe multiverse
+      - default jammy-updates main restricted universe multiverse
+      - default jammy-backports main restricted universe multiverse
+      - fips-updates jammy main
+      - ansible jammy main
+    all:
+      - default jammy-security main restricted universe multiverse
+      - default jammy-updates main restricted universe multiverse
+      - default jammy-backports main restricted universe multiverse
+      - fips-updates jammy main
+      - ansible jammy main
+    openvpn:
+      - default jammy-security main restricted universe multiverse
+      - default jammy-updates main restricted universe multiverse
+      - default jammy-backports main restricted universe multiverse
+      - fips-updates jammy main
+      - ansible jammy main
+    docker:
+      - default jammy-security main restricted universe multiverse
+      - default jammy-updates main restricted universe multiverse
+      - default jammy-backports main restricted universe multiverse
+      - fips-updates jammy main
+      - ansible jammy main
+    kubernetes:
+      - default jammy-security main restricted universe multiverse
+      - default jammy-updates main restricted universe multiverse
+      - default jammy-backports main restricted universe multiverse
+      - fips-updates jammy main
+      - ansible jammy main
+    btp:
+      - default jammy-security main restricted universe multiverse
+      - default jammy-updates main restricted universe multiverse
+      - default jammy-backports main restricted universe multiverse
+      - fips-updates jammy main
+      - ansible jammy main
+    gardener-shoot:
+      - default jammy-security main restricted universe multiverse
+      - default jammy-updates main restricted universe multiverse
+      - default jammy-backports main restricted universe multiverse
+      - fips-updates jammy main
+      - ansible jammy main
+    freeradius:
+      - default jammy-security main restricted universe multiverse
+      - default jammy-updates main restricted universe multiverse
+      - default jammy-backports main restricted universe multiverse
+      - fips-updates jammy main
+      - ansible jammy main
+      - freeradius jammy main
+    azure:
+      - default jammy-security main restricted universe multiverse
+      - default jammy-updates main restricted universe multiverse
+      - default jammy-backports main restricted universe multiverse
+      - fips-updates jammy main
+      - ansible jammy main
+      - freeradius jammy main
+
+# A dictionary of operating systems who's values are a list of repositories that don't exist for that operating system.
+# Since these repositories don't exist for the given operating system, they will be automatically disabled by the role.
+# For example, the 'rhel-7-server-eus-rpms' repository does not exist for RHEL 7.9, so it will be disabled so that it
+# doesn't cause errors when yum is ran.
+nonexistent_repositories:
+  redhat_7.8:
+    - rhel-7-server-eus-rpms
+    - rhel-7-server-eus-rhn-tools-rpms
+    - rhel-7-server-eus-optional-rpms
+    - rhel-ha-for-rhel-7-server-eus-rpms
+    - rhel-sap-for-rhel-7-server-eus-rpms
+    - rhel-sap-hana-for-rhel-7-server-eus-rpms
+    - rhel-7-server-e4s-rpms
+    - rhel-7-server-e4s-optional-rpms
+    - rhel-ha-for-rhel-7-server-e4s-rpms
+    - rhel-sap-for-rhel-7-server-e4s-rpms
+    - rhel-sap-hana-for-rhel-7-server-e4s-rpms
+  redhat_7.9:
+    - rhel-7-server-eus-rpms
+    - rhel-7-server-eus-rhn-tools-rpms
+    - rhel-7-server-eus-optional-rpms
+    - rhel-ha-for-rhel-7-server-eus-rpms
+    - rhel-sap-for-rhel-7-server-eus-rpms
+    - rhel-sap-hana-for-rhel-7-server-eus-rpms
+    - rhel-7-server-e4s-rpms
+    - rhel-7-server-e4s-optional-rpms
+    - rhel-ha-for-rhel-7-server-e4s-rpms
+    - rhel-sap-for-rhel-7-server-e4s-rpms
+    - rhel-sap-hana-for-rhel-7-server-e4s-rpms
+  redhat_8.3:
+    - rhel-8-for-x86_64-appstream-eus-rpms
+    - rhel-8-for-x86_64-baseos-eus-rpms
+    - rhel-8-for-x86_64-supplementary-eus-rpms
+    - rhel-8-for-x86_64-appstream-e4s-rpms
+    - rhel-8-for-x86_64-baseos-e4s-rpms
+    - rhel-8-for-x86_64-highavailability-e4s-rpms
+    - rhel-8-for-x86_64-sap-solutions-e4s-rpms
+    - rhel-8-for-x86_64-sap-netweaver-e4s-rpms
+    - rhel-8-for-x86_64-highavailability-eus-rpms
+    - rhel-8-for-x86_64-sap-solutions-eus-rpms
+    - rhel-8-for-x86_64-sap-netweaver-eus-rpms
+    - codeready-builder-for-rhel-8-x86_64-eus-rpms
+  redhat_8.5:
+    - rhel-8-for-x86_64-appstream-eus-rpms
+    - rhel-8-for-x86_64-baseos-eus-rpms
+    - rhel-8-for-x86_64-supplementary-eus-rpms
+    - rhel-8-for-x86_64-appstream-e4s-rpms
+    - rhel-8-for-x86_64-baseos-e4s-rpms
+    - rhel-8-for-x86_64-highavailability-e4s-rpms
+    - rhel-8-for-x86_64-sap-solutions-e4s-rpms
+    - rhel-8-for-x86_64-sap-netweaver-e4s-rpms
+    - rhel-8-for-x86_64-highavailability-eus-rpms
+    - rhel-8-for-x86_64-sap-solutions-eus-rpms
+    - rhel-8-for-x86_64-sap-netweaver-eus-rpms
+    - codeready-builder-for-rhel-8-x86_64-eus-rpms
+  redhat_8.7:
+    - rhel-8-for-x86_64-appstream-eus-rpms
+    - rhel-8-for-x86_64-baseos-eus-rpms
+    - rhel-8-for-x86_64-supplementary-eus-rpms
+    - rhel-8-for-x86_64-appstream-e4s-rpms
+    - rhel-8-for-x86_64-baseos-e4s-rpms
+    - rhel-8-for-x86_64-highavailability-e4s-rpms
+    - rhel-8-for-x86_64-sap-solutions-e4s-rpms
+    - rhel-8-for-x86_64-sap-netweaver-e4s-rpms
+    - rhel-8-for-x86_64-highavailability-eus-rpms
+    - rhel-8-for-x86_64-sap-solutions-eus-rpms
+    - rhel-8-for-x86_64-sap-netweaver-eus-rpms
+    - codeready-builder-for-rhel-8-x86_64-eus-rpms
+  redhat_8.10:
+    - rhel-8-for-x86_64-appstream-eus-rpms
+    - rhel-8-for-x86_64-baseos-eus-rpms
+    - rhel-8-for-x86_64-supplementary-eus-rpms
+    - rhel-8-for-x86_64-appstream-e4s-rpms
+    - rhel-8-for-x86_64-baseos-e4s-rpms
+    - rhel-8-for-x86_64-highavailability-e4s-rpms
+    - rhel-8-for-x86_64-sap-solutions-e4s-rpms
+    - rhel-8-for-x86_64-sap-netweaver-e4s-rpms
+    - rhel-8-for-x86_64-highavailability-eus-rpms
+    - rhel-8-for-x86_64-sap-solutions-eus-rpms
+    - rhel-8-for-x86_64-sap-netweaver-eus-rpms
+    - codeready-builder-for-rhel-8-x86_64-eus-rpms
+  redhat_9.1:
+    - rhel-9-for-x86_64-appstream-eus-rpms
+    - rhel-9-for-x86_64-baseos-eus-rpms
+    - rhel-9-for-x86_64-supplementary-eus-rpms
+    - rhel-9-for-x86_64-appstream-e4s-rpms
+    - rhel-9-for-x86_64-baseos-e4s-rpms
+    - rhel-9-for-x86_64-highavailability-e4s-rpms
+    - rhel-9-for-x86_64-sap-solutions-e4s-rpms
+    - rhel-9-for-x86_64-sap-netweaver-e4s-rpms
+    - rhel-9-for-x86_64-highavailability-eus-rpms
+    - rhel-9-for-x86_64-sap-solutions-eus-rpms
+    - rhel-9-for-x86_64-sap-netweaver-eus-rpms
+    - codeready-builder-for-rhel-9-x86_64-eus-rpms
+
+# A dictionary for each operating system containing the latest available OS minor version.
+# NOTE: When the 'repo_latest' variable is set to true, the repo file for the latest OS minor version listed here will be used.
+latest_os_versions:
+  redhat_6: '6.10'
+  redhat_7: '7.9'
+  redhat_8: '8.10'
+  redhat_9: '9.4'
+  sles_15: '15.5'
+  ubuntu_18: bionic
+  ubuntu_20: focal
+  ubuntu_22: jammy
+
+# A list of Apt repository signing keys to enable on Debian-based systems.
+repo_apt_signing_keys:
+  - name: Launchpad PPA for ubuntu-advantage
+    keyname: ubuntu-advantage
+    public_key: |
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
+
+      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
+      5PWi/YMXleL8jD8NwK6eBIkbcBkd
+      =oQ86
+      -----END PGP PUBLIC KEY BLOCK-----
+
+  - name: Launchpad PPA for Ansible, Inc.
+    keyname: ansible
+    public_key: |
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
+
+      mQINBFOXbTABEADKLcY3MYZyHIiCEu8cQ+0UzxZolTYZf8xZ06/d8xzUW/UBPTLV
+      x/40IzWJEZU87GCYVXUhdYXECrFQKQOOEWQswBxOt26/g0nIrU0edZ9cCZ9o9+ZO
+      sKDcScWNxWeclLr2+YHdmX9eph+2p+zIPmhNJaaWV6/bSo1fBi7ganZFRAc13zO8
+      jtQsYyIeoAFwjt1vbk9CifdFhEchRVbwvZYhZDWfBZjhZ15UOunjo47gEkpK0PsW
+      HY5N3/c75pGMwMTCjHMKno6KFzhdKLaz/QgbNnpy1aMkA/LITeU6Pgg6iqofrSY3
+      Fx73MCAb8EEytvSV/65wztKzexHjGYxhm5ygoET5tPyXciX0+XzojkZAHzUEeT5z
+      4kgL6OLyn+JQAyRDNnOJEkYmvwQveZuUjsYUkgc5DJdg6w7lTgQHWObOENpXls3B
+      DnphA4DJyc0PQODCxdSZo4ZXMLn5lE/0qvAJ6g/wntY/ee/vRKwy9iDMOWQvihTI
+      Y/L70/TnE4qZdaNbOJEvW59LT6GBTrcU1MX2fS5hU/mQa2CNixSVZG98rba3tfNa
+      LDDNqivkcxtWryEWd0giBzzUS+MhtxhHm77YgxNVyyFn8bXb25/W+Jq+VvWWx2KD
+      3ZwVD37X8wIBRLVozoH0jHVW7jKTnf2z+D6FCM+pVlm8zV1upXbHbdaRqwARAQAB
+      tB9MYXVuY2hwYWQgUFBBIGZvciBBbnNpYmxlLCBJbmMuiQI4BBMBAgAiBQJTl20w
+      AhsDBgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAAKCRCTxKP9e7nDZwzdD/9yFq+3
+      ptLyWP1JN3RXsvTIJLhhjOqMMJCOocV0G3slHeUtdIDmvd2RaS8PeFNSd9QFbUzk
+      a7pBXec3a7kgEVorty2/+cZSpEVHT26oAbJnoH7E1YGii8bbnk9LqOCF/nLpasEq
+      PKqtVzXz+vGB7G0ox8qmRm6JynrMeLBftYemxJ8e4fii6APJxE6FPz/AvgcN3BtB
+      guseFwcga6lGcmp0JLofGhTbejfS9dW9bnCFJBtRfzUVd+Cb8aYuzV5zgCJgqOBJ
+      Hf0L6xDwn8UuzRfi0MWzEskuC/KxUJqVHMuTaLdrSeP1/czompetbsSHTfDklf/p
+      4EbSM9VqZFiKr17we0LdigAEv2JnL2Qj0oN3eRNU0sDJ3kZvh5qhnteNgSRM/el0
+      Sly+34CRZzX25vd+pOTgwK6VFx3wvWfqn3pVNT9ASNalhogFXuBY2ukYJaiUTPsS
+      R4+KHiD3eIhWyayBGP+GRvGb5dVC29k4CjLvQM9lISmZrrxGmMGoV9S1dh7siZYE
+      CaVW0nKI95d6bBHaKH1g5HJ7NEsVTwf8LRY/FFpLsEPVw4HNVqqqwhuJnSW70WQ3
+      blh0RIX/+z9hAla+M0kix7r0lS89ZBdTgwPuiCrkPRpoxi06ah/Q62uP3ZN4+dew
+      1sBZdaC9kaKdOOWTqArVnaPObQgUUJFhY9wUsA==
+      =qlCh
+      -----END PGP PUBLIC KEY BLOCK-----
+
+  - name: Microsoft GPG public key
+    keyname: microsoft
+    public_key: |
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
+      Version: GnuPG v1.4.7 (GNU/Linux)
+
+      mQENBFYxWIwBCADAKoZhZlJxGNGWzqV+1OG1xiQeoowKhssGAKvd+buXCGISZJwT
+      LXZqIcIiLP7pqdcZWtE9bSc7yBY2MalDp9Liu0KekywQ6VVX1T72NPf5Ev6x6DLV
+      7aVWsCzUAF+eb7DC9fPuFLEdxmOEYoPjzrQ7cCnSV4JQxAqhU4T6OjbvRazGl3ag
+      OeizPXmRljMtUUttHQZnRhtlzkmwIrUivbfFPD+fEoHJ1+uIdfOzZX8/oKHKLe2j
+      H632kvsNzJFlROVvGLYAk2WRcLu+RjjggixhwiB+Mu/A8Tf4V6b+YppS44q8EvVr
+      M+QvY7LNSOffSO6Slsy9oisGTdfE39nC7pVRABEBAAG0N01pY3Jvc29mdCAoUmVs
+      ZWFzZSBzaWduaW5nKSA8Z3Bnc2VjdXJpdHlAbWljcm9zb2Z0LmNvbT6JATUEEwEC
+      AB8FAlYxWIwCGwMGCwkIBwMCBBUCCAMDFgIBAh4BAheAAAoJEOs+lK2+EinPGpsH
+      /32vKy29Hg51H9dfFJMx0/a/F+5vKeCeVqimvyTM04C+XENNuSbYZ3eRPHGHFLqe
+      MNGxsfb7C7ZxEeW7J/vSzRgHxm7ZvESisUYRFq2sgkJ+HFERNrqfci45bdhmrUsy
+      7SWw9ybxdFOkuQoyKD3tBmiGfONQMlBaOMWdAsic965rvJsd5zYaZZFI1UwTkFXV
+      KJt3bp3Ngn1vEYXwijGTa+FXz6GLHueJwF0I7ug34DgUkAFvAs8Hacr2DRYxL5RJ
+      XdNgj4Jd2/g6T9InmWT0hASljur+dJnzNiNCkbn9KbX7J/qK1IbR8y560yRmFsU+
+      NdCFTW7wY0Fb1fWJ+/KTsC4=
+      =J6gs
+      -----END PGP PUBLIC KEY BLOCK-----
+
+## FreeRADIUS public key source - https://packages.inkbridgenetworks.com/pgp/packages.networkradius.com.asc
+  - name: FreeRADIUS
+    keyname: freeradius
+    public_key: |
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
+
+      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
+      =cYNw
+      -----END PGP PUBLIC KEY BLOCK-----
+...

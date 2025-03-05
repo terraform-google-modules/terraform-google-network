@@ -1,0 +1,19 @@
+/*
+  Description: Terraform variables for module run; The variables in this file are specifically for testing executions of the terraform module
+  Comments:
+    - Run the terraform module with this command: terraform apply -var-file=terraform.tfvars.testing
+    - Destroy the terraform module with this command: terraform destroy -var-file=terraform.tfvars.testing
+*/
+
+
+aws_region          = "us-gov-west-1"
+build_user          = "test-user"      # User id of individual executing terraform; must be defined for auditing purposes.
+aws-iam-user-object     = {
+  name              = "iam-testuser1"
+  policy_list       = [
+    "arn:aws-us-gov:iam::aws:policy/AmazonEC2ReadOnlyAccess",
+    "arn:aws-us-gov:iam::aws:policy/AmazonS3ReadOnlyAccess"
+  ],
+  group_list        = [ "Test-Group" ],
+  tag_company       =  "TestCompany1"
+}

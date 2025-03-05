@@ -1,0 +1,118 @@
+---
+# Description: Rebuild HANA DB with tars
+# Inputs:
+#   - hana_rebuild_sid : SAP ID assigned to the server instance
+#   - hana_rebuild_hostname: Hostname to be set
+#   - hana_rebuild_extraction_list : List of tars to extract
+#   - hana_rebuild_saphostagent_source : path to the SAPHOSTAGENT install files (version unique)
+#   - hana_rebuild_default_password : Default password used for system accounts
+# Outputs: Configured and running IBP HANA system
+# Comments: N/A
+
+- name: Get EC2 Metadata
+  ec2_metadata_facts:
+  register: ec2_metadata
+
+- name: Validate environment
+  include_tasks: general/directories-validate.yml
+  vars:
+    folder_path: "{{ item }}"
+  loop:
+  - "{{ hana_rebuild_saphostagent_source }}"
+
+- name: Disable Firewall
+  service:
+    name: firewalld
+    enabled: false
+    state: stopped
+  become: true
+
+- name: Set the Hostname
+  hostname:
+    name: "{{ hana_rebuild_hostname }}"
+  become: true
+
+- name: Ensure Sapsys group has GID of 79
+  group:
+    name: sapsys
+    state: present
+    gid: 79
+    local: yes
+  become: true
+
+- name: "Create {{hana_rebuild_sid|lower}}adm SAP System Administrator"
+  user:
+    name: "{{hana_rebuild_sid|lower}}adm"
+    comment: "SAP HANA Database System Administrator"
+    create_home: yes
+    home: "/usr/sap/{{hana_rebuild_sid|upper}}/home"
+    uid: "1001"
+    group: "79"
+    shell: /bin/csh
+    state: present
+  become: true
+
+- name: "Create sapadm user account"
+  user:
+    name: "sapadm"
+    create_home: yes
+    home: "/home/sapadm"
+    uid: "20202"
+    group: "79"
+    shell: /bin/bash
+    state: present
+  become: true
+
+- name: "Create folder structure"
+  file:
+    path: "{{ item }}"
+    group: "sapsys"
+    state: directory
+    mode: 0755
+    owner: "{{ hana_rebuild_sid|lower }}adm"
+  become: true
+  loop:
+    - "/hana/data/{{ hana_rebuild_sid|upper }}"
+    - "/hana/log/{{ hana_rebuild_sid|upper }}"
+    - "/hana/shared/{{ hana_rebuild_sid|upper }}"
+    - "/hana/backups/{{ hana_rebuild_sid|upper }}/HDB02/backup/data"
+    - "/hana/backups/{{ hana_rebuild_sid|upper }}/HDB02/backup/log"
+
+- name: "Start Extracting HANA Tars"
+  shell: "cat {{ item }} | tar -zpxvf - -C /"
+  become: true
+  loop: "{{ hana_rebuild_extraction_list }}"
+  async: 14400 # set async timeout to 4 hours
+  poll: 0
+  register: hanatarextract_status
+
+- name: "Wait for Hana Tar Extraction to finish"
+  async_status:
+    jid: "{{ item.ansible_job_id }}"
+  become: true
+  register: job_result
+  until: job_result.finished
+  delay: 60  # Check every 60 seconds. Adjust as you like.
+  retries: 240  # Retry for 4 hours
+  loop: "{{ hanatarextract_status.results }}"
+
+- name: Run the SAP Host Agent Setup script
+  command: "./saphostexec -install"
+  args:
+    chdir: "{{ hana_rebuild_saphostagent_source }}"
+  become: true
+
+- name: Reset sapadm password
+  user:
+    name: sapadm
+    update_password: always
+    password: "{{ hana_rebuild_default_password }}"
+  become: true
+
+- name: Reset {{ hana_rebuild_sid|lower }}adm password
+  user:
+    name: "{{ hana_rebuild_sid|lower }}adm"
+    update_password: always
+    password: "{{ hana_rebuild_default_password }}"
+  become: true
+...

@@ -1,0 +1,25 @@
+### Changes since release v2024.10.0
+- !72 Update hostagent source to sps65
+- !71 Update solman default main folder
+- !67 Update spr role defaults to point the new GBTR release
+- !61 Update spr role defaults to point the new CRM release
+- !65 Contributing Guide Update
+- !66 Add Hadolint to Precommit
+- !60 Add boto to container workspace and make Containers MultiPlatform
+- !53 update attp default main folder
+- !62 Update the Repo's Pipeline Runners/Tags
+- !58 Update spr-provisioning variables to use latest s4hana foundation release
+- !43 update gts default main folder
+- !45 Upgrade saprouter and update `router-install` task to not require to specifying base filename
+- !47 Module for bastions bootstrapped with docker.
+- !55 Update General Workspace Containers with Ansible SAP LIB Collection
+- !48 PCE Advanced Options in PCE Root modules
+- !54 Bugfix IBP Customer Backup Plan Output
+- !51 Auto-generate release notes
+- !52 i743694_fixed_typo_for_backup_selection_code_block
+- !50 Add clamav-update to excluded packages
+- !49 Update automatic cicd labels
+- !36 Fix: Add Bobj installation support for RHEL 9 OS
+- !32 i868402-path fix and doc updates
+- !29 docker updates
+- !25 i744710 gts ed4hana 2023 SPS01 to SPS03

@@ -1,0 +1,123 @@
+---
+# Synopsis: Enables or disables SELinux.
+# Inputs:
+#   - selinux_policy_package : The package name of the SELinux policy.
+#   - selinux_set_state : The enforcing state that SELinux should be set to. Valid options are 'disabled', 'permissive', or 'enforcing'.
+#   - selinux_set_policy : The policy to apply to SELinux.
+#
+# Outputs:
+#   - Enables or disables SELinux.
+
+  - name: Get the current SELinux state
+    shell: getenforce
+    become: true
+    register: selinux_getenforce_results
+    changed_when: false
+    check_mode: false
+
+  - name: Set fact for the current SELinux state
+    set_fact:
+      selinux_current_state: '{{ selinux_getenforce_results.stdout | lower }}'
+
+  - name: Install the desired policy package
+    package:
+      name: '{{ selinux_policy_package }}'
+      state: present
+    become: true
+
+  - name: Set SELinux package dependencies
+    set_fact:
+      selinux_package_dependencies:
+        redhat7:
+          - policycoreutils-python
+        redhat8:
+          - policycoreutils-python-utils
+          - python3-policycoreutils
+        redhat9:
+          - policycoreutils-python-utils
+
+  - name: Install SELinux related dependencies
+    package:
+      name: '{{ item }}'
+      state: present
+    loop: '{{ selinux_package_dependencies[(ansible_os_family | lower) + ansible_distribution_major_version] }}'
+    become: true
+
+  - name: Set the SELinux state and policy
+    selinux:
+      state: '{{ selinux_set_state }}'
+      policy: '{{ selinux_set_policy }}'
+    become: true
+    register: selinux_state_results
+    notify: reboot_system_if_required
+
+  - name: Determine whether the system uses grub or grub2
+    stat:
+      path: /boot/grub2/grub.cfg
+    register: grub_version_results
+    become: true
+
+  - name: Set the grub.conf path locations based on the grub version
+    set_fact:
+      grub_conf_etc_path: "{{ '/etc/grub2.cfg' if grub_version_results.stat.exists | bool else '/etc/grub.conf' }}"
+      grub_conf_boot_path: "{{ '/boot/grub2/grub.cfg' if grub_version_results.stat.exists | bool else '/boot/grub/grub.conf' }}"
+
+# NOTE: The order of the 'console=' values in grub.conf must be modified due to a bug. See: https://forums.aws.amazon.com/thread.jspa?threadID=270142
+
+  - name: Change order of 'console=' values in grub.conf
+    replace:
+      path: '{{ item }}'
+      regexp: (^.*)console=tty1(.*)console=ttyS0(.*)
+      replace: \1console=ttyS0\2console=tty1\3
+    become: true
+    loop:
+      - '{{ grub_conf_etc_path }}'
+      - '{{ grub_conf_boot_path }}'
+
+  - name: Enable SELinux in grub.conf
+    replace:
+      path: '{{ item }}'
+      regexp: selinux=0
+      replace: selinux=1 security=selinux
+    register: selinux_enable_results
+    notify: reboot_system_if_required
+    become: true
+    when: selinux_current_state == 'disabled' and selinux_set_state != 'disabled'
+    loop:
+      - '{{ grub_conf_etc_path }}'
+      - '{{ grub_conf_boot_path }}'
+
+  - name: Enforce that SELinux is enable via kernel commandline
+    command: grubby --args="selinux=1 security=selinux" --update-kernel=ALL
+    notify: reboot_system_if_required
+    become: true
+    when: selinux_current_state == 'disabled' and selinux_set_state != 'disabled'
+
+  - name: Disable SELinux in grub.conf
+    replace:
+      path: '{{ item }}'
+      regexp: selinux=1 security=selinux
+      replace: selinux=0
+    register: selinux_disable_results
+    notify: reboot_system_if_required
+    become: true
+    when: selinux_current_state != 'disabled' and selinux_set_state == 'disabled'
+    loop:
+      - '{{ grub_conf_etc_path }}'
+      - '{{ grub_conf_boot_path }}'
+
+  - name: Enforce that SELinux is disabled via kernel commandline
+    command: grubby --args="selinux=0" --remove-args "security" --update-kernel=ALL
+    notify: reboot_system_if_required
+    become: true
+    when: selinux_current_state != 'disabled' and selinux_set_state == 'disabled'
+
+  - name: Relabel the filesystem for SELinux
+    file:
+      path: /.autorelabel
+      owner: root
+      group: root
+      state: touch
+    become: true
+    when: selinux_current_state == 'disabled' and selinux_set_state != 'disabled'
+...

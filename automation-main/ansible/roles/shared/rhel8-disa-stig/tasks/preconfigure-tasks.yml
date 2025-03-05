@@ -1,0 +1,134 @@
+---
+# Synopsis: Runs some tasks that must be ran before the STIGs.
+# Inputs:
+#   - application_preset_selection: The STIG variable mapping to apply STIGs for. Should be a list of variable files.
+# Outputs:
+#   - ansible_facts.packages: (dict) Ansible facts for the installed packages.
+#   - system_user_accounts_results: (list) A list of system user accounts (UIDs less than 1000).
+#   - system_groups_results: (list) A list of system groups (GIDs less than 1000).
+#   - non_system_user_accounts_results: (list) A list of interactive user accounts (UIDs greater than 999).
+#   - non_system_groups_results: (list) A list of interactive user groups (GIDs greater than 999).
+#   - Creates and enables the 'custom/disa-stig' auditd/authselect profile.
+#   - Ensures that the '/var/log' logical volume is correctly configured in '/etc/fstab'.
+#   - Removes a broken auditd rule.
+
+  - name: "[Preconfigure] - Include the variables files for the '{{ application_preset_selection }}' application preset selection"
+    include_vars: '{{ item }}'
+    loop: "{{ product_stig_map[ application_preset_selection | default('none', true) | lower ] }}"
+
+  - name: '[Preconfigure] - Gather facts regarding the installed packages'
+    package_facts:
+      manager: auto
+
+  - name: '[Preconfigure] - Get a list of system user accounts'
+    shell: "awk -F: '($3<1000){print $1}' /etc/passwd"
+    become: true
+    changed_when: false
+    register: system_user_accounts_results
+
+  - name: '[Preconfigure] - Get a list of system groups'
+    shell: "awk -F: '($3<1000){print $1}' /etc/group"
+    become: true
+    changed_when: false
+    register: system_groups_results
+
+  - name: '[Preconfigure] - Get a list of non-system user accounts'
+    shell: "awk -F: '($3>=1000)&&($7 !~ /nologin/){print $1}' /etc/passwd"
+    become: true
+    changed_when: false
+    register: non_system_user_accounts_results
+
+  - name: '[Preconfigure] - Get a list of non-system groups'
+    shell: "awk -F: '($3>=1000)&&($1!=\"nobody\"){print $1}' /etc/group"
+    become: true
+    changed_when: false
+    register: non_system_groups_results
+
+  - name: "[Preconfigure] - Fix an issue in '/etc/fstab' specific to '/var/log'"
+    lineinfile:
+      state: present
+      path: /etc/fstab
+      regexp: ^(\/dev\/mapper\/vg_root-lv_log\s*)\/var\/log\/?(\s*.*)$
+      line: \1/var/log\2
+      backrefs: true
+      create: false
+    become: true
+
+  - name: '[Preconfigure] - Remove an invalid auditd rule'
+    lineinfile:
+      state: absent
+      path: /etc/audit/rules.d/audit.rules
+      line: -a always,exit -F path=/usr/lib/openssh/ssh-keysign -F perm=x -F auid>=1000 -F auid!=unset -k privileged-ssh
+      create: true
+    become: true
+    notify:
+      - service auditd restart
+
+  - name: "[BLOCK] - [Preconfigure] - Create the 'disa-stig' authselect profile"
+    block:
+
+      - name: '[Preconfigure] - Ensure that authselect is installed'
+        package:
+          state: present
+          name: authselect
+        become: true
+
+      - name: "[Preconfigure] - Check whether the 'disa-stig' authselect profile exists"
+        shell: authselect list | grep 'custom/disa-stig'
+        become: true
+        changed_when: false
+        failed_when: disa_stig_profile_exists_results.rc not in [0, 1]
+        register: disa_stig_profile_exists_results
+
+      - name: "[Preconfigure] - Create the 'disa-stig' authselect profile from the 'sssd' profile"
+        command: authselect create-profile disa-stig -b sssd
+        become: true
+        when: disa_stig_profile_exists_results.rc == 1
+
+      - name: "[Preconfigure] - Check whether the 'disa-stig' authselect profile is enabled"
+        shell: authselect current | grep '^Profile ID.*custom/disa-stig$'
+        become: true
+        changed_when: false
+        failed_when: disa_stig_profile_enabled_results.rc not in [0, 1]
+        register: disa_stig_profile_enabled_results
+
+      - name: "[Preconfigure] - Enable the 'disa-stig' authselect profile"
+        command: authselect select custom/disa-stig with-mkhomedir --force
+        become: true
+        when: disa_stig_profile_enabled_results.rc == 1
+
+    when: >-
+      DISA_STIG_RHEL_08_010130 | bool or
+      DISA_STIG_RHEL_08_010160 | bool or
+      DISA_STIG_RHEL_08_020010 | bool or
+      DISA_STIG_RHEL_08_020012 | bool or
+      DISA_STIG_RHEL_08_020014 | bool or
+      DISA_STIG_RHEL_08_020016 | bool or
+      DISA_STIG_RHEL_08_020018 | bool or
+      DISA_STIG_RHEL_08_020020 | bool or
+      DISA_STIG_RHEL_08_020022 | bool or
+      DISA_STIG_RHEL_08_020025 | bool or
+      DISA_STIG_RHEL_08_020026 | bool or
+      DISA_STIG_RHEL_08_020100 | bool or
+      DISA_STIG_RHEL_08_020220 | bool or
+      DISA_STIG_RHEL_08_020331 | bool or
+      DISA_STIG_RHEL_08_020332 | bool or
+      DISA_STIG_RHEL_08_020340 | bool
+    tags:
+      - DISA-STIG-RHEL-08-010130
+      - DISA-STIG-RHEL-08-010160
+      - DISA-STIG-RHEL-08-020010
+      - DISA-STIG-RHEL-08-020012
+      - DISA-STIG-RHEL-08-020014
+      - DISA-STIG-RHEL-08-020016
+      - DISA-STIG-RHEL-08-020018
+      - DISA-STIG-RHEL-08-020020
+      - DISA-STIG-RHEL-08-020022
+      - DISA-STIG-RHEL-08-020025
+      - DISA-STIG-RHEL-08-020026
+      - DISA-STIG-RHEL-08-020100
+      - DISA-STIG-RHEL-08-020220
+      - DISA-STIG-RHEL-08-020331
+      - DISA-STIG-RHEL-08-020332
+      - DISA-STIG-RHEL-08-020340
+...

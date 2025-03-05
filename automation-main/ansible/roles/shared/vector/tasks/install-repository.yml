@@ -1,0 +1,130 @@
+---
+# Install Vector from the package repositories
+
+  - name: BLOCK - Red Hat
+    become: true
+    when:
+      - ansible_os_family | lower == "redhat"
+    block:
+      - name: Add DNF repository for Vector
+        ansible.builtin.yum_repository:
+          name: vector
+          description: Vector
+          baseurl: https://yum.vector.dev/stable/vector-0/$basearch
+          enabled: true
+          repo_gpgcheck: true
+          gpgcheck: true
+          gpgkey:
+            - https://keys.datadoghq.com/DATADOG_RPM_KEY_CURRENT.public
+            - https://keys.datadoghq.com/DATADOG_RPM_KEY_B01082D3.public
+            - https://keys.datadoghq.com/DATADOG_RPM_KEY_FD4BF915.public
+
+  - name: BLOCK - Suse
+    become: true
+    when:
+      - ansible_os_family | lower == "suse"
+    block:
+      - name: Add DNF repository for Vector
+        ansible.builtin.zypper_repository:
+          name: vector
+          repo: https://yum.vector.dev/stable/vector-0/$basearch
+          state: present
+
+  - name: BLOCK - Debian
+    become: true
+    when:
+      - ansible_os_family | lower == "debian"
+    block:
+      - name: Install GPG key
+        ansible.builtin.include_tasks: install-gpg-key.yml
+
+      - name: Add apt repository
+        ansible.builtin.apt_repository:
+          repo: deb [signed-by=/usr/share/keyrings/datadog-archive-keyring.gpg] https://apt.vector.dev stable vector-0
+          filename: vector
+
+# Define vector_name if the OS is readhat and vector_version is not blank string
+  - name: Derive vector package name - Redhat
+    become: true
+    when:
+      - ansible_os_family | lower == "redhat"
+      - vector_version | length > 0
+    ansible.builtin.set_fact:
+      vector_name: vector-{{ vector_version }}
+
+# Define vector_name if the OS is debian and vector_version is not blank string
+  - name: Derive vector package name - Debian / Suse
+    become: true
+    when:
+      - ansible_os_family | lower == "debian" or ansible_os_family | lower == "suse"
+      - vector_version | length > 0
+    ansible.builtin.set_fact:
+      vector_name: vector={{ vector_version }}
+
+# Idea provided by Curtis Hoffman
+# ===============================
+# To better handle version persistence dnf have version lock plugin
+# Also used the dnf module to better handle downgrades for systems supporting dnf
+# We are using this feature for systems which support dnf packages
+  - name: DNF Install versionlock
+    when:
+      - ansible_pkg_mgr | lower == "dnf"
+    ansible.builtin.dnf:
+      name: python3-dnf-plugin-versionlock
+      state: latest
+    become: true
+
+  - name: DNF lock version of Vector if specified
+    when:
+      - ansible_pkg_mgr | lower == "dnf"
+      - vector_version | length > 0
+    command: /usr/bin/dnf versionlock add '{{ vector_name }}'
+    become: true
+
+  - name: DNF Install Vector
+    when:
+      - ansible_pkg_mgr | lower == "dnf"
+    ansible.builtin.dnf:
+      allow_downgrade: true
+      name: '{{ vector_name | default("vector") }}'
+      state: latest
+    become: true
+
+  - name: DNF release version locks of Vector
+    when:
+      - ansible_pkg_mgr | lower == "dnf"
+      - vector_version | length == 0
+    command: /usr/bin/dnf versionlock delete vector*
+    become: true
+
+# Remove package in vector_version is set, instead of blankly removing the package
+# Only for non-dnf systems
+# NOTE: The ansible's package module does not downgrade if newer version in installed on OS
+  - name: Conditionally Downgrade Vector
+    when:
+      - vector_version | length > 0
+      - ansible_pkg_mgr | lower != "dnf"
+    package:
+      name: vector
+      state: absent
+    become: true
+
+  - name: Install Vector for Suse
+    zypper:
+      name: '{{ vector_name | default("vector") }}'
+      disable_gpg_check: true
+    become: true
+    when:
+      - ansible_os_family | lower == "suse"
+
+# Install the vector package provided in vector_name else install latest
+# Only for non-dnf systems
+  - name: Install Vector
+    when:
+      - ansible_pkg_mgr | lower != "dnf"
+      - ansible_os_family | lower == "redhat" or ansible_os_family | lower == "debian"
+    package:
+      name: '{{ vector_name | default("vector") }}'
+      state: latest
+    become: true
+...

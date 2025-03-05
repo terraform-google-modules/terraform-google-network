@@ -1,0 +1,63 @@
+---
+tests:
+  - name: gcp:activity:1
+    inputs:
+      - insert_at: gcp_project_logs
+        type: log
+        log_fields:
+          message: '{"protoPayload":{"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"billing-export-bigquery@system.gserviceaccount.com"},"requestMetadata":{"requestAttributes":{},"destinationAttributes":{}},"serviceName":"bigquery.googleapis.com","methodName":"google.cloud.bigquery.v2.TableService.UpdateTable","authorizationInfo":[{"resource":"projects/s4-cre-pce/datasets/cre_pce_cost_export/tables/gcp_billing_export_v1_01E04F_95897E_B3EF03","permission":"bigquery.tables.update","granted":true,"resourceAttributes":{}}],"resourceName":"projects/s4-cre-pce/datasets/cre_pce_cost_export/tables/gcp_billing_export_v1_01E04F_95897E_B3EF03","metadata":{"@type":"type.googleapis.com/google.cloud.audit.BigQueryAuditMetadata","tableChange":{"reason":"TABLE_UPDATE_REQUEST","table":{"tableName":"projects/s4-cre-pce/datasets/cre_pce_cost_export/tables/gcp_billing_export_v1_01E04F_95897E_B3EF03","updateTime":"2022-09-29T20:28:17.719Z","schemaJson":"{\n  \"fields\":
+            [{\n    \"name\": \"billing_account_id\",\n    \"type\": \"STRING\",\n    \"mode\": \"NULLABLE\"\n  }, {\n    \"name\": \"service\",\n    \"type\":
+            \"RECORD\",\n    \"mode\": \"NULLABLE\",\n    \"schema\": {\n      \"fields\": [{\n        \"name\": \"id\",\n        \"type\": \"STRING\",\n        \"mode\":
+            \"NULLABLE\"\n      }, {\n        \"name\": \"description\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }]\n    }\n  },
+            {\n    \"name\": \"sku\",\n    \"type\": \"RECORD\",\n    \"mode\": \"NULLABLE\",\n    \"schema\": {\n      \"fields\": [{\n        \"name\":
+            \"id\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"description\",\n        \"type\": \"STRING\",\n        \"mode\":
+            \"NULLABLE\"\n      }]\n    }\n  }, {\n    \"name\": \"usage_start_time\",\n    \"type\": \"TIMESTAMP\",\n    \"mode\": \"NULLABLE\"\n  }, {\n    \"name\":
+            \"usage_end_time\",\n    \"type\": \"TIMESTAMP\",\n    \"mode\": \"NULLABLE\"\n  }, {\n    \"name\": \"project\",\n    \"type\": \"RECORD\",\n    \"mode\":
+            \"NULLABLE\",\n    \"schema\": {\n      \"fields\": [{\n        \"name\": \"id\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      },
+            {\n        \"name\": \"number\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"name\",\n        \"type\":
+            \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"labels\",\n        \"type\": \"RECORD\",\n        \"mode\": \"REPEATED\",\n        \"schema\":
+            {\n          \"fields\": [{\n            \"name\": \"key\",\n            \"type\": \"STRING\",\n            \"mode\": \"NULLABLE\"\n          },
+            {\n            \"name\": \"value\",\n            \"type\": \"STRING\",\n            \"mode\": \"NULLABLE\"\n          }]\n        }\n      },
+            {\n        \"name\": \"ancestry_numbers\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"ancestors\",\n        \"type\":
+            \"RECORD\",\n        \"mode\": \"REPEATED\",\n        \"schema\": {\n          \"fields\": [{\n            \"name\": \"resource_name\",\n            \"type\":
+            \"STRING\",\n            \"mode\": \"NULLABLE\"\n          }, {\n            \"name\": \"display_name\",\n            \"type\": \"STRING\",\n            \"mode\":
+            \"NULLABLE\"\n          }]\n        }\n      }]\n    }\n  }, {\n    \"name\": \"labels\",\n    \"type\": \"RECORD\",\n    \"mode\": \"REPEATED\",\n    \"schema\":
+            {\n      \"fields\": [{\n        \"name\": \"key\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\":
+            \"value\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }]\n    }\n  }, {\n    \"name\": \"system_labels\",\n    \"type\":
+            \"RECORD\",\n    \"mode\": \"REPEATED\",\n    \"schema\": {\n      \"fields\": [{\n        \"name\": \"key\",\n        \"type\": \"STRING\",\n        \"mode\":
+            \"NULLABLE\"\n      }, {\n        \"name\": \"value\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }]\n    }\n  },
+            {\n    \"name\": \"location\",\n    \"type\": \"RECORD\",\n    \"mode\": \"NULLABLE\",\n    \"schema\": {\n      \"fields\": [{\n        \"name\":
+            \"location\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"country\",\n        \"type\":
+            \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"region\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      },
+            {\n        \"name\": \"zone\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }]\n    }\n  }, {\n    \"name\": \"export_time\",\n    \"type\":
+            \"TIMESTAMP\",\n    \"mode\": \"NULLABLE\"\n  }, {\n    \"name\": \"cost\",\n    \"type\": \"FLOAT\",\n    \"mode\": \"NULLABLE\"\n  }, {\n    \"name\":
+            \"currency\",\n    \"type\": \"STRING\",\n    \"mode\": \"NULLABLE\"\n  }, {\n    \"name\": \"currency_conversion_rate\",\n    \"type\": \"FLOAT\",\n    \"mode\":
+            \"NULLABLE\"\n  }, {\n    \"name\": \"usage\",\n    \"type\": \"RECORD\",\n    \"mode\": \"NULLABLE\",\n    \"schema\": {\n      \"fields\":
+            [{\n        \"name\": \"amount\",\n        \"type\": \"FLOAT\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"unit\",\n        \"type\":
+            \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"amount_in_pricing_units\",\n        \"type\": \"FLOAT\",\n        \"mode\":
+            \"NULLABLE\"\n      }, {\n        \"name\": \"pricing_unit\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }]\n    }\n  },
+            {\n    \"name\": \"credits\",\n    \"type\": \"RECORD\",\n    \"mode\": \"REPEATED\",\n    \"schema\": {\n      \"fields\": [{\n        \"name\":
+            \"name\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"amount\",\n        \"type\": \"FLOAT\",\n        \"mode\":
+            \"NULLABLE\"\n      }, {\n        \"name\": \"full_name\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\":
+            \"id\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"type\",\n        \"type\": \"STRING\",\n        \"mode\":
+            \"NULLABLE\"\n      }]\n    }\n  }, {\n    \"name\": \"invoice\",\n    \"type\": \"RECORD\",\n    \"mode\": \"NULLABLE\",\n    \"schema\": {\n      \"fields\":
+            [{\n        \"name\": \"month\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }]\n    }\n  }, {\n    \"name\": \"cost_type\",\n    \"type\":
+            \"STRING\",\n    \"mode\": \"NULLABLE\"\n  }, {\n    \"name\": \"adjustment_info\",\n    \"type\": \"RECORD\",\n    \"mode\": \"NULLABLE\",\n    \"schema\":
+            {\n      \"fields\": [{\n        \"name\": \"id\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\":
+            \"description\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"mode\",\n        \"type\":
+            \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"type\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }]\n    }\n  },
+            {\n    \"name\": \"tags\",\n    \"type\": \"RECORD\",\n    \"mode\": \"REPEATED\",\n    \"schema\": {\n      \"fields\": [{\n        \"name\":
+            \"key\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\": \"value\",\n        \"type\": \"STRING\",\n        \"mode\":
+            \"NULLABLE\"\n      }, {\n        \"name\": \"inherited\",\n        \"type\": \"BOOLEAN\",\n        \"mode\": \"NULLABLE\"\n      }, {\n        \"name\":
+            \"namespace\",\n        \"type\": \"STRING\",\n        \"mode\": \"NULLABLE\"\n      }]\n    }\n  }]\n}","createTime":"2022-06-28T01:51:57.881Z"}}}},"insertId":"k8ymddznm0","resource":{"type":"bigquery_dataset","labels":{"project_id":"s4-cre-pce","dataset_id":"cre_pce_cost_export"}},"timestamp":"2022-10-12T18:36:54.424975Z","severity":"NOTICE","logName":"projects/s4-cre-pce/logs/cloudaudit.googleapis.com%2Factivity","receiveTimestamp":"2022-10-12T18:36:55.032182044Z"}'
+
+    outputs:
+      - extract_from: gcp_proto__enriched_out
+        conditions:
+          - type: vrl
+            source: |
+              assert_eq!(.metadata.sourcetype, "gcp:cloudaudit")
+              assert_eq!(.metadata.custom.index.suffix, "gcp")
+              assert_eq!(.metadata.source, "123456789012:global:activity")
+              assert_eq!(.metadata.custom.gcp.log_name, "projects/s4-cre-pce/logs/cloudaudit.googleapis.com/activity")
+...

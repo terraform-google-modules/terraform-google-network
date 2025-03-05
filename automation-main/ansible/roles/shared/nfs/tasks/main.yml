@@ -1,0 +1,86 @@
+---
+# Synopsis: Performs the installation and/or configuration of linux network file share (NFS) volumes
+# Inputs:
+#   nfs_dictionary - dictionary of network file shares to configure
+#   nfs_remove_all - flag to toggle feature to remove all network file shares on/off
+#   nfs_sync       - flag to synchronize nfs shares from nfs_dictionary to remote state
+
+  - name: Fail check for supported shared file system state
+    fail:
+      msg: "[ERROR]: Missing mandatory passed variable 'nfs_dictionary'. Please refer to README documentation on the different means to pass variable sets\
+        \ to the automation."
+    when: >
+      nfs_dictionary is undefined or
+      nfs_dictionary is none or
+      nfs_dictionary.keys() | length < 1
+
+  - name: Check if filesystem dns name resolves
+    getent:
+      database: hosts
+      key: '{{ item.value.src }}'
+      fail_key: no
+    loop: "{{ query('dict', nfs_dictionary) }}"
+    when:
+      - item.value.src is defined
+      - item.value.src | length > 0
+      - item.value.src[:3] == "fs-"
+    register: nfs_dns_resolve_output
+
+  - name: Set fact for whether filesystem dns name resolves
+    set_fact:
+      nfs_dns_resolve_status: >-
+        {{
+          nfs_dns_resolve_status | default({}, true) | combine({
+            item.item.key : 'true' if (
+              item.ansible_facts.getent_hosts[item.item.value.src] is undefined
+            ) else 'false'
+          })
+        }}
+    no_log: true
+    loop: '{{ nfs_dns_resolve_output.results | default([], true) }}'
+
+  - name: Perform dependencies check
+    include_tasks: dependency-check.yml
+
+  - name: Perform setup
+    include_tasks: setup.yml
+    when: not (nfs_remove_all | bool)
+
+  - name: Initialize internal variable for caching nfs changes
+    set_fact:
+      nfs_change_cache: {}
+
+  - name: Remove network file shares
+    include_tasks: remove.yml
+    loop: "{{ query('dict', nfs_dictionary) }}"
+    when: >
+      nfs_remove_all | bool or
+      nfs_sync | bool or
+      (
+        item.value.state is defined and
+        item.value.state == "absent"
+      )
+
+  - name: Configure network file shares
+    include_tasks: configure.yml
+    loop: "{{ query('dict', nfs_dictionary) }}"
+    when:
+      - (not (nfs_remove_all | bool) or nfs_sync | bool )
+      - ( item.value.state is undefined or item.value.state == "present" )
+
+  - name: Update sssd home directory
+    lineinfile:
+      path: /etc/sssd/sssd.conf
+      line: override_homedir = {{ nfs_set_sssd_home }}
+      regexp: ^override_homedir
+    become: true
+    notify: Restart_sssd
+    when:
+      - nfs_set_sssd_home is defined
+      - not (nfs_set_sssd_home is none)
+      - nfs_set_sssd_home | length > 0
+
+  - name: Display changes to shared file systems
+    debug:
+      msg: "{{ nfs_change_cache if nfs_change_cache.keys() | length > 0 else 'NO CHANGES.' }}"
+...

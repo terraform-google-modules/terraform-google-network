@@ -1,0 +1,10 @@
+---
+# List of router-specific log groups
+# When 'router' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_router:
+  - file_path: /usr/sap/saprouter/log/saprouter-*.log
+    log_group_name: /usr/sap/saprouter/log
+    timestamp_format: '%a %b %d %Y %H:%M:%S:%f'
+  - file_path: /usr/sap/saprouter/trace/saprouter-*.trc
+    log_group_name: /usr/sap/saprouter/trace
+...

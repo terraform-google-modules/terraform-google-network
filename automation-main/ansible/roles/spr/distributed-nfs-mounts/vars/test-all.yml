@@ -1,0 +1,3 @@
+# Test Mount
+distributed_nfs_mounts_test_app_mounts_efs: true
+distributed_nfs_mounts_test_staging_mount_efs: true

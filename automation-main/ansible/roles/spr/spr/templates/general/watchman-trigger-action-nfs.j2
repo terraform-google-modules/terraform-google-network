@@ -1,0 +1,16 @@
+#
+# Description: Replication action for watchman trigger
+# rsync flags:
+#   -a ==  -rlptgoD (recurse, link, permission, timestamp, group, owner, device/special)
+#   -p (Permissions) is an issue. The source does not have sufficient group permissions to write/modify the files on the target
+#   this is resolved by using the '--rsync-path' option coupled with the sudoers.d modification from above
+date
+echo "Detected changes in $@"
+ps -fe | grep rsync | grep {{ spr_watchman_configure_target_folder }}  >> /dev/null
+if [[ $? != 0 ]]
+then
+sudo rsync -avhqz -e 'ssh -q' --log-file=/var/log/app_replication.txt {{ spr_watchman_configure_target_folder }} replication_partner:{{ spr_watchman_configure_target_folder | dirname }} --rsync-path="sudo rsync"
+else
+  echo "Another Rsync is running at `date`" >> /tmp/Rsync.txt
+fi
+echo ""

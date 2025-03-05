@@ -1,0 +1,32 @@
+---
+  - name: '[Port Monitor] - Include the vars file for the requested profile: {{ profile | replace("_", "-") }}'
+    ansible.builtin.include_vars:
+      file: "{{lookup('first_found', params)}}"
+    vars:
+      params:
+        files:
+          - '{{ profile | replace("_", "-") }}.yml'
+          - notfound.yml
+        paths:
+          - vars/ports
+
+  - name: BLOCK - Only write file to disk if variable net_ports has items
+    when:
+      - net_ports is defined
+      - net_ports | length > 0
+    become: true
+    block:
+      - name: '[Port Monitor] - Write the port monitoring rules to disk for {{ profile | replace("_", "-") }}'
+        ansible.builtin.template:
+          src: monitor-ports.conf.j2
+          dest: /etc/telegraf/telegraf.d/monitor-ports-{{ profile | replace("_", "-") }}.conf
+          selevel: s0
+          seuser: system_u
+          setype: etc_t
+          serole: object_r
+          owner: root
+          group: root
+          mode: '0644'
+        notify:
+          - restart telegraf
+...

@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "2.2",
+  "assumeRole": "{{AutomationAssumeRole}}",
+  "description": "RegisterNessusAgent",
+  "parameters": {
+    "NessusRegistrationKey": {
+      "default": "${ nessus_registration_key }",
+      "type": "String",
+      "description": "(Required) The Nessus registration key allows the Nessus Agent to authenticate to the Nessus Manager."
+    },
+    "NessusManagerAddress": {
+      "default": "${ nessus_manager_address }",
+      "type": "String",
+      "description": "(Required) The IP address or fully qualified domain name (FQDN) address of the Nessus Manager."
+    },
+    "NessusAgentGroup": {
+      "default": "${ nessus_agent_group }",
+      "type": "String",
+      "description": "(Required) The Nessus Agent group is required to scan this instance. The group name must match exactly (case-sensitive) as it appears in the Nessus Manager."
+    },
+    "NessusPort": {
+      "default": "8834",
+      "type": "String",
+      "description": "(Required) The Nessus Manager port for the Nessus Agent to communicate on e.g., \"8834\"."
+    },
+    "OfflineRegistration": {
+      "default": "--offline-install",
+      "type": "String",
+      "description": "(Optional) Additional parameter to allow Nessus Agent registration even if it is offline. If the agent cannot connect to the Nessus Manager, it retries every hour. If the agent can connect to the Nessus Manager but the link fails, it retries every 24 hours e.g., \"--offline-install\"."
+    },
+    "AutomationAssumeRole": {
+      "default": "",
+      "type": "String",
+      "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf."
+    }
+  },
+  "mainSteps": [
+    {
+      "action": "aws:runShellScript",
+      "name": "RegisterNessusAgentOnLinux",
+      "precondition": {
+        "StringEquals": [
+          "platformType",
+          "Linux"
+        ]
+      },
+      "inputs": {
+        "runCommand": [
+          "#!/bin/bash",
+          "NESSUSAGENT_REGISTRATION_LOG=\"logger -t nessus-agent-registration -s\"",
+          "NESSUSCLI_COMMAND=\"/opt/nessus_agent/sbin/nessuscli\"",
+          "if [[ $(/usr/bin/id -u) -ne 0 ]]; then",
+          "    $NESSUSAGENT_REGISTRATION_LOG \"You are not running as the root user.  Please try again with root privileges to install the Nessus Agent.\"",
+          "    exit 1",
+          "fi",
+          "if ! $NESSUSCLI_COMMAND > /dev/null 2>&1; then",
+          "    $NESSUSAGENT_REGISTRATION_LOG \"The Nessus Agent is not installed on this host.\"",
+          "    exit 1",
+          "fi",
+          "$NESSUSAGENT_REGISTRATION_LOG \"Registering the Nessus Agent...\"",
+          "$NESSUSCLI_COMMAND agent unlink",
+          "sleep 1",
+          "$NESSUSCLI_COMMAND agent link --groups=\"{{ NessusAgentGroup }}\" --host=\"{{ NessusManagerAddress }}\" --key=\"{{ NessusRegistrationKey }}\" --port=\"{{ NessusPort }}\" {{ OfflineRegistration }}",
+          "rc=$?",
+          "if [[ $rc != 0 ]]; then",
+          "    $NESSUSAGENT_REGISTRATION_LOG \"The nessuscli agent link command failed to run properly.\"",
+          "    exit 1",
+          "fi",
+          "service nessusagent restart",
+          "rc=$?",
+          "if [[ $rc != 0 ]]; then",
+          "    $NESSUSAGENT_REGISTRATION_LOG \"Failed to restart the Nessus Agent service.\"",
+          "    exit 1",
+          "fi",
+          "exit 0"
+        ]
+      }
+    },
+    {
+      "action": "aws:runPowerShellScript",
+      "name": "RegisterNessusAgentOnWindows",
+      "precondition": {
+        "StringEquals": [
+          "platformType",
+          "Windows"
+        ]
+      },
+      "inputs": {
+        "runCommand": [
+          "$NESSUSCLI_COMMAND=\"$env:programfiles\\Tenable\\Nessus Agent\\nessuscli.exe\"",
+          "if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] \"Administrator\"))",
+          "{",
+          "   Write-Warning \"You are not running as an Administrator. Please try again with admin privileges.\"",
+          "   exit 1",
+          "}",
+          "if (-NOT (Test-Path $NESSUSCLI_COMMAND))",
+          "{",
+          "   Write-Warning \"The Nessus Agent is not installed on this host.\"",
+          "   exit 1",
+          "}",
+          "$env:LogPath = \"$env:appdata\\Nessus\\Agent\\installer\"",
+          "if (-NOT (Test-Path -LiteralPath $env:LogPath))",
+          "{",
+          "     New-Item -path $env:LogPath -type directory",
+          "}",
+          "Start-Transcript -path \"$env:LogPath\\nessus_agent_register.log\" -append",
+          "echo \"$(Get-Date -format T) - Nessus Agent registration started\"",
+          "echo \"$(Get-Date -format T) - Unregister Exit Code:\" (Start-Process -FilePath \"$NESSUSCLI_COMMAND\" -ArgumentList \"agent unlink\" -Wait -PassThru ).ExitCode ",
+          "Start-Sleep -s 1",
+          "echo \"$(Get-Date -format T) - Registration Exit Code:\" (Start-Process -FilePath \"$NESSUSCLI_COMMAND\" -ArgumentList \"agent link --groups=`\"{{ NessusAgentGroup }}`\" --host=`\"{{ NessusManagerAddress }}`\" --port=`\"{{ NessusPort }}`\" --key=`\"{{ NessusRegistrationKey }}`\" {{ OfflineRegistration }}\" -Wait -PassThru ).ExitCode ",
+          "echo \"$(Get-Date -format T) - Restart Nessus Agent Status:\" (Restart-Service \"Tenable Nessus Agent\" -PassThru).Status ",
+          "echo \"$(Get-Date -format T) - Nessus Agent Registration Finished\"",
+          "Stop-Transcript",
+          "echo \"$(Get-Date -format T) - Nessus Agent Registration Script Finished\""
+        ]
+      }
+    }
+  ]
+}

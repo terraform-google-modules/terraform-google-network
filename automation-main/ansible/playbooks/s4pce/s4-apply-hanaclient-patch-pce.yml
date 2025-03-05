@@ -1,0 +1,125 @@
+---
+# Playbook Name: s4-apply-hanaclient-patch-pce.yml
+# Description: Apply HANA Client patch on target HANA Databases
+# Dependencies:
+#   - Ansible v2.9+
+#   - sudo capability or root privileges on target machine
+# Variables:
+#   - TASK:
+# Example:
+#   Execution on remote systems using the any inventory host file
+#     ansible-playbook -i <PATH-TO-INVENTORY> s4-apply-hanaclient-patch-pce.yml -kK
+#
+# Authors: Naresh Awasthi
+# Version: 2.9-000003
+# Modified: 2023-03-29 - Initial playbook creation
+#           2023-04-05 - Included task to show HDBSQL version before patch
+#           2023-04-06 - Renamed apply_hanaclient_patch_pce.yml to s4-apply-hanaclient-patch-pce.yml
+#           2023-04-11 - Removed become: true and become_use: {{ sid | lower }}adm at global level and included at task level. Also changed become: yes to become: true
+# Comments: |
+#
+#
+
+
+- hosts: all
+  gather_facts: false
+
+  vars:
+    group_var: "sapsys"
+    owner_var: "{{ sid | lower }}adm"
+    hdb_var: "HDB"
+    a_timestamp: "{{ timestamp.stdout }}"
+
+  vars_prompt:
+    - name: STAGING_DIR
+      prompt: Enter path location for patch staging [/staging/HANA_CLIENT_PATCH_2.67/SAP_HANA_CLIENT]
+      unsafe: true
+      private: false
+
+  tasks:
+    - name: Get a timestamp
+      ansible.builtin.command: date +%Y%m%d%H%M%S
+      register: timestamp
+
+    - name: Check if user exists
+      ansible.builtin.shell: "cat /etc/passwd | grep {{ owner_var }}: | awk -F: '{print $1}' "
+      register: chk_user_exists
+
+    - name: Fail if user does not exist
+      ansible.builtin.fail:
+        msg: "user {{ owner_var }} does not exist. Exiting"
+      when: chk_user_exists.stdout != owner_var
+
+    - name: Check user home dir
+      ansible.builtin.shell: "cat /etc/passwd | grep {{ owner_var }}: | awk -F: '{print $6}' "
+      register: chk_user_homedir
+
+    - name: Get home_dir value
+      ansible.builtin.set_fact:
+        home_dir: "{{ chk_user_homedir.stdout }}"
+
+    - name: Check if {{ STAGING_DIR }}/hdbinst exists
+      ansible.builtin.stat:
+        path: "{{ STAGING_DIR }}/hdbinst"
+      register: stat_result
+
+    - name: Fail if {{ STAGING_DIR }}/hdbinst does not exist
+      ansible.builtin.fail:
+        msg: "{{ STAGING_DIR }}/hdbinst does not exist. Exiting..."
+      when: not stat_result.stat.exists
+      become: true
+      become_user: "{{ sid | lower }}adm"
+
+    - name: Get current version of hdbsql before the patch
+      ansible.builtin.shell: ". {{ home_dir }}/.bashrc && /usr/sap/{{ sid | upper }}/hdbclient/hdbsql -v | grep HDBSQL"
+      register: show_version_before_patch
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "{{ sid | lower }}adm"
+
+    - name: Display current version of hdbsql before the patch
+      ansible.builtin.debug:
+        var: show_version_before_patch.stdout_lines
+
+    - name: Apply HANA Client patches
+      ansible.builtin.shell: |
+       cd {{ STAGING_DIR }}
+       ./hdbinst --path /usr/sap/{{ sid | upper }}/hdbclient -b >>/var/tmp/apply-hanaclient-patch-pce_log_{{ a_timestamp }}.txt 2>&1
+       if [ "$?" -ne "0" ]; then
+          echo "Failed to apply Client patch. Exiting..."
+          exit 1
+       fi
+       chown -R {{ sid | lower }}adm:sapsys /usr/sap/{{ sid | upper }}/hdbclient >>/var/tmp/apply-hanaclient-patch-pce_log_{{ a_timestamp }}.txt 2>&1
+
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "root"
+      register: apply_patch
+      async: 30000
+      poll: 30
+
+    - name: Check current version of hdbsql after the patch
+      ansible.builtin.shell: ". {{ home_dir }}/.bashrc && /usr/sap/{{ sid | upper }}/hdbclient/hdbsql -v | grep HDBSQL"
+      register: show_version_after_patch
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "{{ sid | lower }}adm"
+
+    - name: Display current version of hdbsql after the patch
+      ansible.builtin.debug:
+        var: show_version_after_patch.stdout_lines
+
+    - name: Get last 20 lines of log files contents
+      ansible.builtin.shell: "tail -20 /var/tmp/apply-hanaclient-patch-pce_log_{{ a_timestamp }}.txt;"
+      register: cat_output
+      args:
+        executable: /bin/bash
+      become: true
+      become_user: "root"
+
+    - name: Display last 20 lines of log files contents
+      ansible.builtin.debug:
+        var: cat_output.stdout_lines

@@ -1,0 +1,19 @@
+---
+tests:
+  - name: sap.bobj.logging.serverconfig::1
+    inputs:
+      - insert_at: sap_bobj_logging_server_config_metadata
+        type: log
+        log_fields:
+          file: /usr/sap/1/sap_bobj/logging/serverconfig2_2.log
+          message: |
+            Tue Apr 06 2021 23:13:46 GMT+0000 (UTC) Warning: No user name supplied. Setting user name and password to default.
+    outputs:
+      - extract_from: sap_logs__out
+        conditions:
+          - type: vrl
+            source: |
+              assert!(!exists(.err), "error field is present")
+              assert!(is_timestamp(.timestamp))
+              assert_eq!("2021-04-06T23:13:46Z", to_string!(.timestamp), "timestamp parsing incorrect")
+...

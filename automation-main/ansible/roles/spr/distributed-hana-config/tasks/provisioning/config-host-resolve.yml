@@ -1,0 +1,20 @@
+- name: "Set system_replication_hostname_resolution on db"
+  become: true
+  become_user: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | lower }}adm"
+  community.sap_libs.sap_hdbsql:
+    sid: "{{ distributed_hana_config_sap_hana_hsr_hana_sid | upper }}"
+    instance: "{{ distributed_hana_config_local_sap_hana_hsr_hana_instance_number }}"
+    password: "{{ distributed_hana_config_sap_hana_hsr_hana_db_system_password }}"
+    database: SYSTEMDB
+    user: SYSTEM
+    query: ["ALTER SYSTEM ALTER CONFIGURATION ('global.ini', 'SYSTEM') SET ('{{ hana_query.section }}', '{{ hana_query.option }}') = '{{ hana_query.value }}' WITH RECONFIGURE;"]
+  loop:
+    - section: system_replication_hostname_resolution
+      option: "{{ distributed_hana_config_sap_hana_hsr_primary_ip }}"
+      value: "{{ distributed_hana_config_sap_hana_hsr_hana_primary_hostname }}"
+    - section: system_replication_hostname_resolution
+      option: "{{ distributed_hana_config_sap_hana_hsr_secondary_ip }}"
+      value: "{{ distributed_hana_config_sap_hana_hsr_hana_secondary_hostname }}"
+  loop_control:
+    loop_var: hana_query
+

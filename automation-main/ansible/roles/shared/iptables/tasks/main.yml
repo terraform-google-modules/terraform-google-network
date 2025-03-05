@@ -1,0 +1,36 @@
+---
+# Synopsis: Runs tasks involving iptables.
+# Inputs:
+#   - dynamic_preset_selection : true to dynamically determine application type and set 'firewall_preset_selection' value.
+#   - iptables_configure_rules : true to configure rules for iptables based on the provided 'firewall_preset_selection' value.
+#   - iptables_remove : true to remove the iptables-services package and service from the system.
+#
+# Outputs:
+#   - Installs, configures, or removes the iptables service.
+
+  - name: Configure iptables
+    block:
+      - name: Install the iptables service for {{ ansible_os_family | lower }} systems
+        ansible.builtin.include_tasks: '{{ ansible_os_family | lower }}/setup.yml'
+
+      - name: Get application variant dynamically
+        ansible.builtin.include_tasks: get-application.yml
+        when:
+          - dynamic_preset_selection | bool
+          - iptables_configure_rules | bool
+
+      - name: Get the ports to use in the iptables rules
+        ansible.builtin.include_tasks: get-ports.yml
+        when: iptables_configure_rules | bool
+
+      - name: Configure the iptables rules for {{ ansible_os_family | lower }} systems
+        ansible.builtin.include_tasks: '{{ ansible_os_family | lower }}/configure.yml'
+        when: iptables_configure_rules | bool
+
+    when: iptables_remove | bool == false
+  # End Block - Configure iptables
+
+  - name: Remove iptables and its rules for {{ ansible_os_family | lower }} systems
+    ansible.builtin.include_tasks: '{{ ansible_os_family | lower }}/remove.yml'
+    when: iptables_remove | bool
+...

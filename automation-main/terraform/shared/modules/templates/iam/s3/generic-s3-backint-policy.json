@@ -1,0 +1,30 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "Backint1",
+			"Effect": "Allow",
+			"Action": [
+				"s3:GetBucketPolicyStatus",
+				"s3:ListBucket",
+				"s3:GetBucketAcl",
+				"s3:GetBucketLocation",
+				"s3:GetBucketPolicy"
+			],
+			"Resource": [
+				"${ s3_bucket_arn }/*",
+				"${ s3_bucket_arn }"
+			]
+		},
+		{
+			"Sid": "Backint0",
+			"Effect": "Allow",
+			"Action": [
+				"s3:PutObject",
+				"s3:GetObject",
+				"s3:PutObjectTagging"
+			],
+			"Resource": "${ s3_bucket_arn }/*"
+		}
+	]
+}

@@ -1,0 +1,83 @@
+---
+
+# Playbook Name: s4pce-interface-efs-mount.yml
+# Synopsis: Mounts EFS volume access point on instance using spr_landscape values
+# Prerequisites:
+#   - Ansible v2.9+
+# Dependencies: N/A
+# Variables:
+#   - aws_efs_file_system_id: AWS EFS Id to mount. This requires the use of route53 for DNS.
+#   - aws_efs_access_point_id: AWS EFS Access Point ID
+#
+# Example:
+#   This will mount the EFS on the guest host where Route53 is present
+#   ansible-playbook s4pce-interface-efs-mount.yml -e 'efs_file_system_id=fs-111111' -e 'aws_efs_access_point_id=fsap-111111' -i hosts,
+#
+#
+# Author: Lance Wray
+# Version: 2.9-000001
+# Modified: 2022-04-11 - Created
+# Comments:
+
+- hosts: all
+  gather_facts: true
+  vars:
+    aws_efs_file_system_id: ""
+    aws_efs_access_point_id: ""
+
+  tasks:
+  - name: Retrieve ec2 metadata
+    ec2_metadata_facts:
+
+  - name: "Configure Base Repositories from S3"
+    include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: ['base']
+
+  - name: Install make and rpm-build
+    package:
+      name:
+        - make
+        - rpm-build
+      state: present
+    become: true
+
+  - name: Clone efs-utils repo
+    git:
+      repo: https://github.com/aws/efs-utils
+      dest: /tmp/efs-utils
+    become: true
+
+  - name: Install AWS efs-utils
+    shell: |
+      make rpm
+      yum -y install build/amazon-efs-utils*rpm
+    args:
+      chdir: /tmp/efs-utils
+    become: true
+
+  - name: Mount the /usr/sap/trans
+    include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        temp:
+          path: /usr/sap/interfaces
+          src: "{{ aws_efs_file_system_id }}.efs.{{ ansible_ec2_placement_region }}.amazonaws.com"
+          access_point_id: "{{ aws_efs_access_point_id }}"
+
+  - name: Uninstall make and rpm-build
+    yum:
+      name:
+        - make
+        - rpm-build
+      state: absent
+      autoremove: true
+    become: true
+
+  - name: Cleanup /tmp/efs-utils
+    file:
+      path: /tmp/efs-utils
+      state: absent

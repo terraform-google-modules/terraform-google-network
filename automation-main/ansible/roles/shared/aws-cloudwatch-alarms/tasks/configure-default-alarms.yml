@@ -1,0 +1,209 @@
+---
+# Synopsis: Main set of tasks for installing and configuring disk metrics for cloudwatch on ec2 instances.
+# Inputs:
+#   - aws_topic_name: the name of the aws SNS topic.
+#   - cw_preset_selection: Preset selection used when installing SNS. Default to a blank value, if left
+#     blank, this role will automatically try to determine which preset selection to use.
+#   - cw_alert_threshold_cpu: Threshold on which alerts will start being sent for CPU usage
+#   - cw_alert_threshold_memory: Threshold on which alerts will start being sent for memory usage
+#   - cw_install_metrics: Flag to enable/disable custom metric gathering, used to not set Alarms if false
+# Outputs
+#   - Cloudwatch alarms for autorecovery, CPU, and memory for the cs_instance
+#   - Cloudwatch alarms based off the application type, monitoring ports, availability log (if present for SAP instances),
+#       and URL availability for CPIDS and WebDispatcher, specifically.
+
+# Alarm creation for autorecovering an EC2 instance if failed. By default, it will notify the
+# SNS topic of the recovery, as well as automatically recover the instance, similar to the Terraform
+# code for deployments.
+  - name: Create CloudWatch EC2 Auto-Recovered Instance Alert
+    ec2_metric_alarm:
+      state: present
+      region: '{{ ansible_ec2_placement_region }}'
+      name: state_recovery_{{ alarm_name }}
+      metric: StatusCheckFailed_System
+      namespace: AWS/EC2
+      statistic: Maximum
+      comparison: GreaterThanOrEqualToThreshold
+      threshold: 1.0
+      period: 60
+      evaluation_periods: 3
+      unit: Count
+      description: >-
+        {% if customer_id is defined and sid is defined %}
+        Monitors system state of {{ ansible_ec2_instance_id }} for {{ customer_id }} sid: {{ sid|upper }}
+        {% else %}
+        Monitors system state of {{ ansible_ec2_instance_id }} and attempts to recover if failed
+        {% endif %}
+      dimensions: {InstanceId: '{{ ansible_ec2_instance_id }}'}
+      alarm_actions: ['arn:{{ansible_ec2_services_partition}}:automate:{{ansible_ec2_placement_region}}:ec2:recover', 'arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{
+            ansible_ec2_instance_identity_document_accountid }}:{{aws_topic_name}}']
+      ok_actions: ['arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ ansible_ec2_instance_identity_document_accountid }}:{{aws_topic_name}}']
+    delegate_to: localhost
+
+# Create CPU alert for requested percentage of CPU utilization and notify SNS topic when the
+# average over 300 seconds (5 minutes) is above that percentage. Defaults to 95% CPU utilization.
+  - name: Create CloudWatch CPU Alarm
+    ec2_metric_alarm:
+      state: '{% if cw_install_metrics == true %}present{% else %}absent{% endif %}'
+      name: cpu_percentage_{{ alarm_name }}
+      metric: cpu_usage_system
+      namespace: CWAgent
+      statistic: Average
+      comparison: GreaterThanOrEqualToThreshold
+      threshold: '{{ cw_alert_threshold_cpu }}'
+      period: 300
+      evaluation_periods: 1
+      region: '{{ ansible_ec2_placement_region }}'
+      unit: Percent
+      description: This will alarm when CPU utilization is above {{ cw_alert_threshold_cpu }}%.
+      dimensions: {InstanceId: '{{ ansible_ec2_instance_id }}', cpu: cpu-total}
+      alarm_actions: ['arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ ansible_ec2_instance_identity_document_accountid }}:{{aws_topic_name}}']
+      ok_actions: ['arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ ansible_ec2_instance_identity_document_accountid }}:{{aws_topic_name}}']
+    delegate_to: localhost
+
+# Create memory alert for requested percentage of memory utilization and notify SNS topic when the
+# average over 300 seconds (5 minutes) is above that percentage. Defaults to 90% memory utilization.
+  - name: Create CloudWatch Memory Alarm
+    ec2_metric_alarm:
+      state: '{% if cw_install_metrics == true %}present{% else %}absent{% endif %}'
+      name: memory_percentage_{{ alarm_name }}
+      metric: mem_used_percent
+      namespace: CWAgent
+      statistic: Average
+      comparison: GreaterThanOrEqualToThreshold
+      threshold: '{{ cw_alert_threshold_memory }}'
+      unit: Percent
+      period: 300
+      evaluation_periods: 1
+      region: '{{ ansible_ec2_placement_region }}'
+      description: This will alarm when memory utilization is above {{ cw_alert_threshold_memory }}%.
+      dimensions: {InstanceId: '{{ ansible_ec2_instance_id }}'}
+      alarm_actions: ['arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ ansible_ec2_instance_identity_document_accountid }}:{{aws_topic_name}}']
+      ok_actions: ['arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ ansible_ec2_instance_identity_document_accountid }}:{{aws_topic_name}}']
+    delegate_to: localhost
+
+# Need to set a fact so the alarm creation can loop through each port passed
+  - name: Set fact for port list
+    set_fact:
+      alarm_ports: ports_{{ cw_preset_selection }}
+
+
+  - name: 'BLOCK: SAP Port monitoring'
+    when: |
+      cw_preset_selection in [
+        'cpids',
+        'webdispatcher',
+        'sap',
+        'ibp_hana',
+        'hana',
+        'bobj',
+        'lumira',
+        'sapapp_abap',
+        'sapapp_java',
+        'base',
+      ]
+      and business_value != 's4'
+    block:
+      - name: Get the system's instance number if present
+        shell: find /usr/sap/ -maxdepth 2 | grep -E '^/usr/sap/[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]/(DVEBMGS|HDB|W|D|J|G)[0-9][0-9]$' | sed -r 's|^/usr/sap/.*([0-9][0-9])$|\1|'
+        register: system_instance_number_results
+        changed_when: false
+        become: true
+      - name: Set the system's instance number as a fact
+        set_fact:
+          system_instance_number: '{{ system_instance_number_results.stdout }}'
+        when: system_instance_number_results is defined and system_instance_number_results.stdout | length == 2 and cw_install_metrics
+
+    # Set Cloudwatch alarm for monitoring the application's ports
+      - name: Create port monitoring alarms
+        ec2_metric_alarm:
+          state: '{% if cw_install_metrics == true %}present{% else %}absent{% endif %}'
+          name: port_{{ item }}_{{ alarm_name }}
+          metric: collectd_tcpconns_value
+          namespace: CWAgent
+          statistic: Average
+          comparison: LessThanThreshold
+          threshold: '1' #Setting to 1, as the application should always be listening
+          unit: Count
+          period: 300
+          evaluation_periods: 1
+          region: '{{ ansible_ec2_placement_region }}'
+          description: This will alarm when required application port {{ item }} is not listening.
+          dimensions: {InstanceId: '{{ ansible_ec2_instance_id }}', instance: '{{ item }}-local', type_instance: LISTEN, type: tcp_connections}
+          alarm_actions: ['arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ansible_ec2_instance_identity_document_accountid}}:{{aws_topic_name}}']
+          ok_actions: ['arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ ansible_ec2_instance_identity_document_accountid
+                }}:{{aws_topic_name}}']
+        delegate_to: localhost
+        loop: "{{ lookup('vars',alarm_ports) | string | lower | replace('nn', system_instance_number | default ('00', true)) | replace('nx', '%02d' | format(system_instance_number\
+          \ | default ('01', true) | int + 1 ) | int) }}"
+
+    # Create Cloudwatch alarm for the availability log on SAP systems. Will alarm when "Unavailable" is
+    #   written to the individual log file on the system. The location is programmatically detected and ingested
+    #   in the Collectd Ansible role and placed within the Collectd configuration.
+      - name: Create availability log alarm
+        ec2_metric_alarm:
+          state: '{% if cw_install_metrics == true %}present{% else %}absent{% endif %}'
+          name: availability_log_{{ alarm_name }}
+          metric: collectd_tail_value
+          namespace: CWAgent
+          statistic: Average
+          comparison: GreaterThanThreshold
+          threshold: '0' #Setting to 0, as the application should always be listening and not writing Unavailable
+          period: 300
+          unit: Count
+          evaluation_periods: 1
+          region: '{{ ansible_ec2_placement_region }}'
+          description: This will alarm when the availability log of the system has written 'Unavailable'
+          dimensions: {InstanceId: '{{ ansible_ec2_instance_id }}', type: counter, type_instance: available}
+          alarm_actions: ['arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ansible_ec2_instance_identity_document_accountid}}:{{aws_topic_name}}']
+          ok_actions: ['arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ ansible_ec2_instance_identity_document_accountid
+                }}:{{aws_topic_name}}']
+        delegate_to: localhost
+### End "BLOCK: SAP Port monitoring"
+
+# Create Cloudwatch alarm for CPIDS when it is returning a status code other than 200
+# Supplies a template JSON file to create the CloudWatch alarm.
+# Note this isn't possible natively due to Ansible's ec2_metric_alarm not supporting an
+# uncreated metric. Supplying an array for the metrics parameter isn't an option either.
+# Also, as of current testing, the expression ID must be "e1".
+  - name: Create CPIDS and Web Dispatcher URL Availability alarms
+    command: >
+      aws cloudwatch put-metric-alarm --metrics='{{ lookup('template', 'curl-cloudwatch-metric.json.j2') | to_json }}'
+      --alarm-description "This will alarm when the {{ cw_preset_selection | upper }} URL is not available"
+      --alarm-name "url_available_{{ alarm_name }}" --evaluation-periods 1
+      --comparison-operator GreaterThanThreshold --threshold 0.0 --treat-missing-data breaching
+      --alarm-actions "arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ansible_ec2_instance_identity_document_accountid}}:{{aws_topic_name}}"
+      --ok-actions "arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ansible_ec2_instance_identity_document_accountid}}:{{aws_topic_name}}"
+    delegate_to: localhost
+    when: cw_preset_selection == "cpids" or cw_preset_selection == "webdispatcher" and business_value != 's4' and cw_install_metrics
+
+# Only way to delete existing URL alarms on disabled custom metrics flag
+  - name: Delete CPIDS and Web Dispatcher URL Availability alarms if custom metrics are disabled
+    command: >
+      aws cloudwatch delete-alarms --alarm-names "url_available_{{ alarm_name }}"
+    delegate_to: localhost
+    when: cw_install_metrics == false
+
+# Create cloudwatch alarm that tests for inactive hosts
+# Host is deemed inactive if it is inaccessible for 15 minutes or more.
+# This cannot be performed by the ansible resource since it does not support the `--treat-missing-data` flag
+# Note 03/03/2023 : Host inactive alarm triggering after 15 minutes or more is too long
+#                   Changing alarm to trigger with in 3 minutes if down for 3 data points
+  - name: Create Instance Inactivity Alarm
+    command: >
+      aws cloudwatch put-metric-alarm
+      --alarm-name "instance_inactivity_{{ alarm_name }}"
+      --alarm-description "Monitors system state of {{ ansible_ec2_instance_id }} and alert if inactive for 3 minutes."
+      --namespace "AWS/EC2"
+      --metric-name "StatusCheckFailed_Instance"
+      --period 60
+      --evaluation-periods 3
+      --statistic "Maximum"
+      --threshold "1.0"
+      --comparison-operator GreaterThanOrEqualToThreshold
+      --treat-missing-data breaching
+      --dimensions "Name=InstanceId,Value={{ ansible_ec2_instance_id }}"
+      --alarm-actions "arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ ansible_ec2_instance_identity_document_accountid }}:{{aws_topic_name}}"
+      --ok-actions "arn:{{ansible_ec2_services_partition}}:sns:{{ansible_ec2_placement_region}}:{{ansible_ec2_instance_identity_document_accountid}}:{{aws_topic_name}}"
+    delegate_to: localhost
+...

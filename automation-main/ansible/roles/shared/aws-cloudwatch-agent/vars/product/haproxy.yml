@@ -1,0 +1,7 @@
+---
+# When 'haproxy' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_haproxy:
+  - file_path: /var/log/haproxy.log
+    log_group_name: /var/log/maillog
+    timestamp_format: '%b %d %H:%M:%S'
+...

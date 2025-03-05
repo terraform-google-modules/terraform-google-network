@@ -1,0 +1,26 @@
+# Mounted NFS Permissions should be 755 to ensure that SIDADM can access resources without causing elevation error.
+# Example:
+# become_user: sidadm
+# become: true
+# This causes an error as temp files written by root are not accesible by sidadm.
+- name: "Run Test Suite"
+  block:
+  - name: "Check ALL Staging Path"
+    ansible.builtin.include_tasks: "{{ item }}"
+    loop:
+      - tests/path-exists.yml
+      - tests/path-perm.yml
+    vars:
+      distributed_nfs_mounts_test_paths: ["/staging"]
+      distributed_nfs_mounts_test_permission: "755"
+    when: distributed_nfs_mounts_test_staging_mount_efs
+
+  - name: "Check APP EFS-HA and /usr/sap/trans Path"
+    ansible.builtin.include_tasks: "{{ item }}"
+    loop:
+      - tests/path-exists.yml
+      - tests/path-perm.yml
+    vars:
+      distributed_nfs_mounts_test_paths: ["/usr/sap/trans", "/efs/ha-app"]
+      distributed_nfs_mounts_test_permission: "755"
+    when: distributed_nfs_mounts_test_app_mounts_efs

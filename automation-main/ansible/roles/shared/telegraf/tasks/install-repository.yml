@@ -1,0 +1,65 @@
+---
+# Install Telegraf from the package repositories
+# Note 02/17/2023 : As per telegraf document https://github.com/influxdata/telegraf/blob/master/README.md#package-repository
+#                   Using gpgkey https://repos.influxdata.com/influxdata-archive_compat.key vs https://repos.influxdata.com/influxdb2.key
+#                   It solves the issue of "GPG check FAILED"
+#                   FIXIT: debian gpgkey should be using https://repos.influxdata.com/influxdata-archive_compat.key
+
+  - name: BLOCK - Red Hat
+    become: true
+    when:
+      - ansible_os_family | lower == "redhat"
+    block:
+      - name: Add DNF repository for Telegraf
+        ansible.builtin.yum_repository:
+          name: telegraf
+          description: InfluxDB Repository - RHEL $releasever
+          baseurl: https://repos.influxdata.com/rhel/$releasever/$basearch/stable
+          gpgcheck: yes
+          gpgkey:
+            - https://repos.influxdata.com/influxdata-archive_compat.key
+          sslcacert: /etc/pki/tls/certs/ca-bundle.crt
+          sslverify: yes
+
+  - name: BLOCK - Suse
+    become: true
+    when:
+      - ansible_os_family | lower == "suse"
+    block:
+      - name: Add DNF repository for Telegraf
+        ansible.builtin.zypper_repository:
+          name: go
+          repo: https://download.opensuse.org/repositories/devel:/languages:/go/SLE_{{ ansible_distribution_major_version }}_SP{{ ansible_distribution_release
+            }}
+          state: present
+
+  - name: BLOCK - Debian
+    become: true
+    when:
+      - ansible_os_family | lower == "debian"
+    block:
+      - name: Install GPG key
+        ansible.builtin.include_tasks: install-gpg-key.yml
+
+      - name: Add apt repository
+        ansible.builtin.apt_repository:
+          repo: deb https://repos.influxdata.com/{{ ansible_distribution | lower }} {{ ansible_distribution_release | lower }} stable
+          filename: telegraf
+
+  - name: Install Telegraf Suse
+    zypper:
+      name: telegraf
+      state: latest
+      disable_gpg_check: true
+    become: true
+    when:
+      - ansible_os_family | lower == "suse"
+
+  - name: Install Telegraf Red Hat / Debian
+    package:
+      name: telegraf
+      state: latest
+    become: true
+    when:
+      - ansible_os_family | lower == "redhat" or ansible_os_family | lower == "debian"
+...

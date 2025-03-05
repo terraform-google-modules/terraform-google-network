@@ -1,0 +1,284 @@
+---
+# Synopsis: Installs and starts the SAC Agent
+# Inputs:
+#       spr_app_install_product: Name of the product to install.
+#       spr_app_install_source: File path to the location of the sac agent Media directory.
+#       spr_sapcar_executable_source: File path to the location of SAPCAR executable.
+# Outputs: Installs and starts SAC Agent.
+# Inputs: Apache tomcat version, SAPJVM SAR, C4AGENT ZIP, Java Connector ZIP
+# If SAPJVM version changes to 9, please update the JINJA template (provisioning/tomcat-service.j2) to reflect it
+#
+# Inputs                : Current values                 : Variable name
+# apache tomcat version : 9.0.91                         : {{ apache_version }}
+# SAPJVM SAR:           : SAPJVM8_99-80000202.SAR        : {{ jvm_sar }}
+# C4AGENT ZIP:          : C4AAGENT409_0-80000881.ZIP     : {{ c4agent_zip }}
+# JCO ZIP:              : sapjco31P_10-70004517.zip       : {{ jco_zip }}
+# Please make a note, jco_zip variable points to zip file name instead of manually extracting the ZIP and then use jco_tgz variable to point to JCO file. It eliminates the manual step.
+
+- name: Set apache_version
+  set_fact:
+    apache_version: '9.0.91'
+
+- name: Set jvm_sar
+  set_fact:
+    jvm_sar: 'SAPJVM8_99-80000202.SAR'
+
+- name: Set c4agent_zip
+  set_fact:
+    c4agent_zip: 'C4AAGENT409_0-80000881.ZIP'
+
+# Eliminate the two step process to one. Use the ZIP file directly
+- name: Set jco_zip
+  set_fact:
+    jco_zip: 'sapjco31P_10-70004517.zip'
+
+- name: "Create the user sacagent"
+  become: true
+  ansible.builtin.user:
+    name: sacagent
+    group: sapsys
+
+- name: Create the SAPJVM directory
+  become: true
+  ansible.builtin.file:
+    path: /usr/sap/analyticscloudagent/SAPJVM
+    owner: sacagent
+    group: sapsys
+    state: directory
+
+- name: Create the APACHE-TOMCAT directory
+  become: true
+  ansible.builtin.file:
+    path: /usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}
+    owner: sacagent
+    group: sapsys
+    state: directory
+
+- name: Create the C4Agent directory
+  become: true
+  ansible.builtin.file:
+    path: /usr/sap/analyticscloudagent/C4Agent
+    owner: sacagent
+    group: sapsys
+    state: directory
+
+- name: Create the SAPJCO directory
+  become: true
+  ansible.builtin.file:
+    path: /usr/sap/analyticscloudagent/SAPJCO
+    owner: sacagent
+    group: sapsys
+    state: directory
+
+#START "BLOCK: Install JVM"
+- name: "BLOCK: Install JVM"
+  block:
+  - name: "Save JVM file to /usr/sap/analyticscloudagent/SAPJVM/"
+    become: true
+    copy:
+      dest: '/usr/sap/analyticscloudagent/SAPJVM/'
+      src: "{{ spr_app_install_source }}/SAPJVM/{{ jvm_sar }}"
+      force: yes
+      remote_src: yes
+
+  - name: Install JVM
+    become: true
+    shell: "{{ spr_sapcar_executable_source }} -xvf {{ jvm_sar }} -manifest SIGNATURE.smf"
+    args:
+        chdir: '/usr/sap/analyticscloudagent/SAPJVM/'
+#END "BLOCK: Install JVM"
+
+- name: Update sacagent's bashrc file
+  become: true
+  become_user: sacagent
+  ansible.builtin.lineinfile:
+    path: /home/sacagent/.bashrc
+    regexp: '^User'
+    insertafter: '^# User Specific Environment'
+    line: 'export JRE_HOME=/usr/sap/analyticscloudagent/SAPJVM/sapjvm_8'
+
+- name: Update sacagent's bashrc file
+  become: true
+  become_user: sacagent
+  ansible.builtin.lineinfile:
+    path: /home/sacagent/.bashrc
+    regexp: '^User'
+    insertafter: '^# User Specific Environment'
+    line: 'export JAVA_HOME=/usr/sap/analyticscloudagent/SAPJVM/sapjvm_8'
+
+# START "BLOCK: APACHE TOMCAT"
+- name: "BLOCK: APACHE TOMCAT"
+  block:
+  - name: Copy the APACHE TOMCAT installation files to /usr/sap
+    become: true
+    ansible.builtin.copy:
+      src: "{{ spr_app_install_source }}/APACHE-TOMCAT-{{ apache_version }}/"
+      dest: /usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/
+      owner: sacagent
+      group: sapsys
+      remote_src: yes
+
+# general/tar-extract.yml extracts to / path instead of specific path
+# This will allow extraction to specific target directory
+
+  - name: Extract the APACHE TOMCAT Deployer tars
+    become: true
+    shell: "tar -xvf ./apache-tomcat-{{ apache_version }}-deployer.tar.gz"
+    args:
+      chdir: "/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/"
+
+# Added feature of extracting the tomcat tars instead of manually extracting  them first in EFS folder
+  - name: Extract the APACHE TOMCAT tars
+    become: true
+    shell: "tar -xvf ./apache-tomcat-{{ apache_version }}.tar.gz"
+    args:
+      chdir: "/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/"
+
+# After extraction, making sure all files are owned by sacagent user
+  - name: Change the ownership of all files for Apache
+    become: true
+    shell: "chown -R sacagent:sapsys ./* "
+    args:
+      chdir: "/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/"
+
+  - name: Update the contents of the APACHE TOMCAT user file
+    become: true
+    no_log: true
+    copy:
+      dest: /usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}/conf/tomcat-users.xml
+      owner: sacagent
+      group: sapsys
+      content: |
+        <?xml version='1.0' encoding='utf-8'?>
+        <tomcat-users>
+            <role rolename="manager-gui"/>
+            <role rolename="admin-gui"/>
+            <role rolename="Services"/>
+            <user username="guiadmin" password="{{ standard_deployment_password }}" roles="manager-gui,admin-gui"/>
+            <user username="sacadmin" password="{{ standard_deployment_password }}" roles="Services"/>
+        </tomcat-users>
+
+  - name: Configure APACHE TOMCAT manager access
+    become: true
+    xml:
+      path: /usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}/webapps/manager/META-INF/context.xml
+      # pointig to the correct xpath. /Valve does not exists. It is /Context/Valve
+      xpath: /Context/Valve
+      state: absent
+
+  - name: "Extract C4Agent archive"
+    become: true
+    ansible.builtin.unarchive:
+      src: "{{ spr_app_install_source }}/C4Agent/{{ c4agent_zip }}"
+      dest: '/usr/sap/analyticscloudagent/C4Agent'
+      owner: sacagent
+      group: sapsys
+      remote_src: true
+
+  - name: "Copy the C4Agent .war files to the APACHE TOMCAT webapp directory"
+    become: true
+    ansible.builtin.copy:
+      src: '/usr/sap/analyticscloudagent/C4Agent/C4A_AGENT.war'
+      dest: '/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}/webapps/'
+      owner: sacagent
+      group: sapsys
+      remote_src: yes
+    failed_when: false
+
+# Eliminated the copy step for JCO Zip to target directory first. It extracts directly to target directory
+  - name: "Extract JCO archive"
+    become: true
+    ansible.builtin.unarchive:
+      src: "{{ spr_app_install_source }}/SAPJCO/{{ jco_zip }}"
+      dest: '/usr/sap/analyticscloudagent/SAPJCO'
+      owner: sacagent
+      group: sapsys
+      remote_src: true
+
+  - name: Extract the JCO files
+    become: true
+    # Extract all tgz files
+    shell: "tar -xvf /usr/sap/analyticscloudagent/SAPJCO/*.tgz"
+    args:
+      chdir: '/usr/sap/analyticscloudagent/SAPJCO/'
+
+  - name: Copy the JCO files to the APACHE TOMCAT lib directory
+    become_user: sacagent
+    become: true
+    ansible.builtin.copy:
+      src: '/usr/sap/analyticscloudagent/SAPJCO/sapjco3.jar'
+      dest: '/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}/lib/'
+      owner: sacagent
+      group: sapsys
+      remote_src: yes
+
+  - name: Copy the JCO files to the APACHE TOMCAT lib directory
+    become: true
+    become_user: sacagent
+    ansible.builtin.copy:
+      src: '/usr/sap/analyticscloudagent/SAPJCO/libsapjco3.so'
+      dest: '/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}/lib/'
+      owner: sacagent
+      group: sapsys
+      remote_src: yes
+# END "BLOCK: TOMCAT"
+
+- name: "Make required files executable"
+  become: true
+  shell: "chmod +x *.sh"
+  args:
+    chdir: '/usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}/bin'
+
+- name: "Create apache-tomcat-{{ apache_version }} logs directory"
+  become: true
+  become_user: sacagent
+  file:
+    path: /usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}/logs/
+    state: directory
+
+- name: "Create apache-tomcat-{{ apache_version }} log file"
+  become: true
+  become_user: sacagent
+  file:
+    path:  /usr/sap/analyticscloudagent/APACHE-TOMCAT-{{ apache_version }}/apache-tomcat-{{ apache_version }}/logs/catalina.out
+    state: touch
+
+# Create Tomcat Service and Start the service
+# Below code has been added to allow starting the tomcat from Ansible instead of manually starting or stopping by logging into terminal session
+
+- name: update /etc/systemd/system/tomcat.service file using JINJA Template
+  template:
+    dest: /etc/systemd/system/tomcat.service
+    src: provisioning/tomcat-service.j2
+    backup: yes
+  become: yes
+
+- name: Reload systemd for reading new service definition
+  systemd:
+    daemon_reload: yes
+  become: yes
+
+- name: Enable Tomcat service
+  systemd:
+    name: tomcat
+    enabled: yes
+  become: yes
+
+- name: Start Tomcat service
+  systemd:
+    name: tomcat
+    state: started
+  become: yes
+
+# Let us check the tomcat status now
+- name: Get Tomcat service Status
+  become: true
+  shell: "systemctl status tomcat"
+  register: tomcat_status
+
+- name: Display Tomcat Status
+  debug:
+    var: tomcat_status
+
+
+...

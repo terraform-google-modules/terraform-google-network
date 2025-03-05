@@ -1,0 +1,22 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowListBucket",
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetBucketLocation",
+                "s3:List*"
+            ],
+            "Resource": ${jsonencode(arn_list)}
+        },
+        {
+            "Sid": "AllowReadBucket",
+            "Effect": "Allow",
+            "Action": [
+                "s3:Get*"
+            ],
+            "Resource": ${jsonencode([for arn in arn_list : "${arn}/*"])}
+        }
+    ]
+}

@@ -1,0 +1,155 @@
+---
+# Playbook Name: s4-all-start-sapapp.yml
+# Synopsis: Starts the S4 SapApp
+# Description: Standalone playbook that starts the S4 SAP Application
+# Prerequisites:
+#   - Ansible v2.9+
+#   - Functional S4 SapApp Install
+# Dependencies: N/A
+# Variables in the host_file:
+#   sid : SAP ID of the SAP App Landscape
+#   ascs_instance_number : ASCS number
+# Example:
+#   Stops the Hana Dabase remotely
+#    ansible-playbook s4-stops-hana -i host_file -kK
+#    host_file format:
+#       192.168.0.1 sid=br1 ascs_instance_number=01
+# Authors: Louis Lee,
+# Version: 2.9-000002
+# Modified: 2020-02-27 - Created
+#           2023-04-10 - Removed become: true globally and updated tasks
+#
+# Comments: N/A
+
+- hosts: all
+  gather_facts: true
+
+  tasks:
+    - name: "Save App Hostname"
+      ansible.builtin.set_fact:
+        sapapphostname: "{{ ansible_hostname }}"
+
+    - name: Display App Hostname
+      ansible.builtin.debug:
+        var: sapapphostname
+
+    - name: "Run sapstartsrv for ASCS"
+      ansible.builtin.command: "/usr/sap/{{ sid | upper }}/ASCS{{ ascs_instance_number }}/exe/sapstartsrv pf=/usr/sap/{{ sid | upper }}/SYS/profile/{{ sid | upper }}_ASCS{{ ascs_instance_number }}_{{ sapapphostname }} -D -u {{ sid | lower }}adm"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      register: sapstartsrv_output
+
+    - name: "Check if /usr/sap/<SID>/D00 exists"
+      ansible.builtin.stat:
+        path: "/usr/sap/{{ sid | upper }}/D00"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      register: D00
+
+    - name: "Run sapstartsrv for D00"
+      ansible.builtin.command: "/usr/sap/{{ sid | upper }}/D00/exe/sapstartsrv pf=/usr/sap/{{ sid | upper }}/SYS/profile/{{ sid | upper }}_D00_{{ sapapphostname }} -D -u {{ sid | lower }}adm"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      register: sapstartsrv_output
+      when: D00.stat.exists
+
+    - name: "Check if /usr/sap/<SID>/DVEBMGS00 exists"
+      ansible.builtin.stat:
+        path: "/usr/sap/{{ sid | upper }}/DVEBMGS00"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      register: DVEBMGS00
+
+    - name: "Run sapstartsrv for DVEBMGS00"
+      ansible.builtin.command: "/usr/sap/{{ sid | upper }}/DVEBMGS00/exe/sapstartsrv pf=/usr/sap/{{ sid | upper }}/SYS/profile/{{ sid | upper }}_DVEBMGS00_{{ sapapphostname }} -D -u {{ sid | lower }}adm"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      register: sapstartsrv_output
+      when: DVEBMGS00.stat.exists
+
+    - name: "Get saphostagent status"
+      ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -status"
+      become: true
+      become_user: "root"
+      register: saphostagent_status
+      failed_when: "'FAILED' in saphostagent_status.stderr"
+      changed_when: false
+
+    - name: "Display saphostagent status"
+      ansible.builtin.debug:
+        var: saphostagent_status.stderr_lines
+
+    - name: "BLOCK - Start saphostagent"
+      when: "'saphostexec stopped' in saphostagent_status.stderr"
+      block:
+        - name: "Start saphostagent as root"
+          ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -restart"
+          become: true
+          become_user: "root"
+
+        - name: "Get saphostagent status"
+          ansible.builtin.command: "/usr/sap/hostctrl/exe/saphostexec -status"
+          become: true
+          become_user: "root"
+          register: saphostagent_statusblock
+          failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+          changed_when: false
+
+        - name: "Display saphostagent status"
+          ansible.builtin.debug:
+            var: saphostagent_statusblock.stderr_lines
+      # End "BLOCK - Start saphostagent"
+
+    - name: "Check HDB connectivity with R3trans"
+      ansible.builtin.command: "R3trans -d"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      register: r3trans_output
+      retries: 3
+      delay: 10
+      until: "'R3trans finished (0000).' in r3trans_output.stdout"
+
+    - name: "Display R3trans results"
+      ansible.builtin.debug:
+        var: r3trans_output.stdout_lines
+
+    - name: "Start SAP ASCS with sapcontrol on SAPApp"
+      ansible.builtin.command: "sapcontrol -nr {{ ascs_instance_number }} -function Start"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      failed_when: "'Start\nOK' not in sapappstart01_output.stdout"
+      register: sapappstart01_output
+
+    - name: "SAPApp Start output"
+      ansible.builtin.debug:
+        var: sapappstart01_output
+
+    - name: "Start SAP ABAP with sapcontrol on SAPApp"
+      ansible.builtin.command: "sapcontrol -nr 00 -function Start"
+      become: true
+      become_user: "{{ sid | lower }}adm"
+      become_flags: '-i'
+      failed_when: "'Start\nOK' not in sapappstart00_output.stdout"
+      register: sapappstart00_output
+
+    - name: "SAPApp Start output"
+      ansible.builtin.debug:
+        var: sapappstart00_output
+
+    - name: "Get sidadm processes"
+      ansible.builtin.command: "ps -fu {{ sid | lower }}adm"
+      become: true
+      failed_when: "'FAILED' in sidadmin_processes.stderr"
+      register: sidadmin_processes
+
+    - name: "Show sidadm processes"
+      ansible.builtin.debug:
+        var: sidadmin_processes.stdout_lines
+...

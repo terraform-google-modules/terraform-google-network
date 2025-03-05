@@ -1,0 +1,38 @@
+---
+# defaults file for ibp
+# This is the default password for all new systems.  This will be changed after the handover to ops.
+default_password: "$6$mysecretsalt$QnOlMXKWMP5nKWqS87jsnmsfI2ed94jgknWvgjprfptg1inYHk1RkgccAzHs2Phuczo.7PPsOqfG1GmMiG9gg1"
+
+# hostfile variables
+## MANDATORY VALUE hostfile_fqdn: 'ibp.cre-EXAMPLE_REGION.scs.internal'
+all_incoming_connections_to_wdisp: False
+
+# common efs path to pull tars from
+ibp_staging_hana: '/staging/ibp/Build'
+ibp_staging_sap: '/staging/ibp/Build'
+localsecurestore_uninstall_source: '/staging/ibp/Build/LOCALSECURESTORE/uninstall'
+localsecurestore_install_source: '/staging/ibp/Build/LOCALSECURESTORE/install'
+
+
+# disaster recovery variables
+sqlcmd_folder: '/staging/ibp/Build/SQL-Statements'
+replication_pair: [] # Intentionally blank to initialize the variable
+
+# CPIDS variables
+happic_file_path: '/usr/sap/dsod_package/kotyo/warfile/WEB-INF/classes/happic.application.prod.dsod.0_1.properties'
+
+# Removed for updating the automation script - it is not required for new CPIDS upgrade process
+# as per https://jira.tools.sap/browse/SCSTE-933 (see the comments in SCSTE-935 as well)
+# tomcat_file_path: '/usr/sap/dsod_package/archive/LJS_0.5.4/config_master/org.eclipse.gemini.web.tomcat/default-server.xml'
+
+# Inventory create variables
+efs_usrsaptrans_ip: '' # Blank placeholder value for customers without usrsaptrans efs
+production_sid: ''
+staging_sid: ''
+instance_name_list: []
+ibpdb_ip_list: []
+ibpapp_ip_list: []
+production_ip_list: []
+staging_ip_list: []
+test_ip_list: []
+...

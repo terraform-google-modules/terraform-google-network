@@ -1,0 +1,110 @@
+---
+# Playbook Name: s4pce-domain-join.yml
+# Description: Joins S4/Hana Private Cloud Edition Instances to  Active Directory (AD) domain
+#     This playbook is specifically designed to join S4PCE systems to Active Directory with appropriate RBAC enforcements
+#     It is designed to work the with S4PCE ansible inventories and only requires input for the domain_password and domain_environment
+# Prerequisites:
+# - Ansible v2.9+
+# - AWS CLI v1.16+
+# - ec2-key of New Instances
+# Dependencies:
+# - repository-management ansible role
+# - domain-join ansible role
+# Variables:
+#   domain_password: The credentials for the AD Account
+#   domain_fqdn: The fully qualified domain name
+# Example:
+#   Normal remote execution. domain_password and domain_fqdn will be prompted:
+#     ansible-playbook ibp-domain-join.yml -u ec2-user --private-key <PRIVATEKEY>"
+#
+# Example:
+#   Remote execution using extra-vars to suppress prompts:
+#     ansible-playbook ibp-domain-join.yml -u ec2-user --private-key <PRIVATEKEY>" -e domain_password="<DOMAIN JOINER PASSWORD>" -e domain_environment="cre"
+#
+# Authors: Louis Lee, Neelima Gummadi
+# Version: 2.9-000006
+# Modified: 2021-01-25 - Created
+#           2021-02-12 - Correct domain group names
+#           2021-02-13 - Update to support new Repo-Management role
+#           2021-11-09 - Add USC defaults support
+#           2022-04-14 - Add hs defaults support
+#           2022-07-28 - Add fed defaults support
+#           2023-11-13 - Add support for CIE & DOD
+# Comments:
+#     This playbook is designed to work with the s4pce ansible inventory
+
+  - hosts: all
+    become: true  #required to install dependencies
+    gather_facts: true
+    vars_prompt:
+      - name: domain_password
+        prompt: What is the password of the domain joiner account?
+        unsafe: yes
+        private: yes
+
+      - name: domain_environment
+        prompt: Which domain to join? (cre, usc, hs, fed, dod)
+        private: no
+        default: cre
+
+    vars:
+      domain_force_join: false
+
+    pre_tasks:
+      - name: Fail on invalid Domain Environment
+        fail:
+          msg: You provided an invalid domain. Must be (cre, usc, hs, fed, dod)
+        when: domain_environment not in ['cre','usc','hs','fed', 'dod']
+
+      - name: Configure Base Repositories from S3
+        include_role:
+          name: repository-management
+        vars:
+          repo_enable: 'true'
+          application_preset_selection: base
+
+      - name: Set domain specific facts for {{ domain_environment | upper }}
+        set_fact:
+          domain_fqdn: directory.{{ domain_environment }}.sapns2.internal
+          domain_sudo_group: sg_sms_s4_pce_os_sudo
+          domain_login_group: sg_sms_s4_pce_os_login
+        when: >
+          domain_environment == 'cre' or
+          domain_environment == 'usc' or
+          domain_environment == 'hs'
+
+      - name: Set domain specific facts for {{ domain_environment | upper }}
+        set_fact:
+          domain_fqdn: directory.{{ domain_environment }}.sapns2.internal
+          domain_sudo_group: sg_sms_s4_fedciv_os_sudo
+          domain_login_group: sg_sms_s4_fedciv_os_login
+        when: >
+          domain_environment == 'fed'
+
+      - name: Set domain specific facts for {{ domain_environment | upper }}
+        set_fact:
+          domain_fqdn: directory.fed.sapns2.internal
+          domain_sudo_group: sg_sms_s4_dod_os_sudo
+          domain_login_group: sg_sms_s4_dod_os_login
+        when: >
+          domain_environment == 'dod'
+
+    tasks:
+      - name: Domain Join
+        include_role:
+          name: domain-join
+        vars:
+          domain_user: svc_domain_joiner
+          domain_dns1: ''
+          domain_dns2: ''
+          domain_set_dns: false
+          domain_set_hostname: true
+          domain_restrict_ssh: true
+
+    post_tasks:
+      - name: This is the end
+        delegate_to: localhost
+        run_once: true
+        debug:
+          msg: Of the world as we know it
+...

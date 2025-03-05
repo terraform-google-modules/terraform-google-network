@@ -1,0 +1,18 @@
+{{ $ecs_etd := ( index .Values "ecs-etds") }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include ".helpers_override.fullname" . }}-pod-monitor
+  labels:
+    {{- include ".helpers_override.labels" $ | nindent 4 }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - ecs-etd-{{ .Values.customer }}
+  podMetricsEndpoints:
+    - interval: 30s
+      port: metrics
+      scrapeTimeout: 10s
+  selector:
+    matchLabels:
+      sid: {{ $ecs_etd.sid }}

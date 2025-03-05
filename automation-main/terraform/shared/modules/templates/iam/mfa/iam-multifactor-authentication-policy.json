@@ -1,0 +1,85 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowAllUsersToListAccounts",
+            "Effect": "Allow",
+            "Action": [
+                "iam:ListUsers",
+                "iam:ListAccountAliases",
+                "iam:GetAccountSummary"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowUserToSeeAndManageOwnAccountInfo",
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetInstanceProfile",
+                "iam:UpdateLoginProfile",
+                "iam:GetLoginProfile",
+                "iam:GetRole",
+                "iam:GetUser",
+                "iam:ChangePassword",
+                "iam:EnableMFADevice",
+                "iam:ResyncMFADevice"
+            ],
+            "Resource": "arn:${partition == null ? "aws-us-gov" : partition}:iam::*:user/$${aws:username}"
+        },
+        {
+            "Sid": "AllowIndividualUserToListTheirOwnMFA",
+            "Effect": "Allow",
+            "Action": [
+                "iam:ListVirtualMFADevices",
+                "iam:ListMFADevices"
+            ],
+            "Resource": [
+                "arn:${partition == null ? "aws-us-gov" : partition}:iam::*:mfa/*",
+                "arn:${partition == null ? "aws-us-gov" : partition}:iam::*:user/$${aws:username}"
+            ]
+        },
+        {
+            "Sid": "AllowIndividualUserToManageTheirOwnMFA",
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreateVirtualMFADevice",
+                "iam:DeleteVirtualMFADevice",
+                "iam:DeactivateMFADevice",
+                "iam:RequestSmsMfaRegistration",
+                "iam:FinalizeSmsMfaRegistration",
+                "iam:EnableMFADevice",
+                "iam:ResyncMFADevice",
+                "sts:GetSessionToken"
+            ],
+            "Resource": [
+                "arn:${partition == null ? "aws-us-gov" : partition}:iam::*:mfa/$${aws:username}",
+                "arn:${partition == null ? "aws-us-gov" : partition}:iam::*:user/$${aws:username}"
+            ]
+        },
+        {
+            "Sid": "BlockAnyAccessOtherThanAboveUnlessSignedInWithMFA",
+            "Effect": "Deny",
+            "Condition": {
+                "BoolIfExists": {
+                    "aws:MultiFactorAuthPresent": "false"
+                }
+            },
+            "Resource": "*",
+            "NotAction": [
+                "iam:CreateVirtualMFADevice",
+                "iam:DeleteVirtualMFADevice",
+                "iam:DeactivateMFADevice",
+                "iam:RequestSmsMfaRegistration",
+                "iam:FinalizeSmsMfaRegistration",
+                "iam:EnableMFADevice",
+                "iam:ResyncMFADevice",
+                "iam:ListMFADevices",
+                "iam:ListVirtualMFADevices",
+                "iam:GetUser",
+                "iam:ListUsers",
+                "iam:ChangePassword",
+                "sts:GetSessionToken"
+            ]
+        }
+    ]
+}

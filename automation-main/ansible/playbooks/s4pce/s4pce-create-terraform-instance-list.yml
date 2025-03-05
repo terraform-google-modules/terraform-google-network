@@ -1,0 +1,36 @@
+---
+
+# Playbook Name: s4pce-create-terraform-instance-list.yml
+# Description: Generates list of instances for terraform to create.
+# Dependencies:
+#   - Ansible v2.9+
+#   - S4 Build Spec (Ansible Inventory)
+# Variables:
+#   s4pce_terraform_instance_list_location : Output location of the terraform input list file
+# Example:
+#   Generating a terraform list file:
+#     ansible-playbook s4pce-create-terraform-instance-list.yml -i </PATH-TO/S4PCE-INVENTORY-FILE>
+#
+# Authors: Louis Lee
+# Version: 2.9-000001
+# Modified: 2021-01-22 - Created playbook
+# Comments: N/A
+
+- hosts: all
+  gather_facts: false
+  any_errors_fatal: yes
+
+  vars_prompt:
+  - name: s4pce_terraform_instance_list_location
+    prompt: "File to write output to"
+    private: no
+    default: '/tmp/instances.auto.tfvars'
+
+  tasks:
+  - name: "Generate terraform instance list"
+    include_role:
+      name: s4pce
+      allow_duplicates: yes
+    vars:
+      s4pce_terraform_instance_list: true
+...

@@ -1,0 +1,234 @@
+---
+# Synopsis: Provision IBP App
+# Inputs:
+#   - sapapp_tar_source - path to the source tar folder (version unique)
+#   - saphostagent_source - path to the SAPHOSTAGENT install files (version unique)
+#   - backend_sid - SAP ID assigned to the server instance
+# Outputs: Configured and running base IBP App system
+# Comments: N/A
+
+- name: Get EC2 Metadata
+  ec2_metadata_facts:
+  register: ec2_metadata
+
+- name: Validate environment
+  include_tasks: general/directories-validate.yml
+  vars:
+    folder_path: "{{ item }}"
+  loop:
+  - "{{ ibp_staging_sap }}/Scripts"
+  - "{{ ibp_staging_sap }}/SWPM"
+  - "{{ sapapp_tar_source }}"
+  - "{{ saphostagent_source }}"
+
+- name: Set the Hostname
+  hostname:
+    name: "{{ ibp_hostname }}"
+  become: true
+
+- name: Ensure Sapsys group has GID of 79
+  group:
+    name: sapsys
+    state: present
+    gid: 79
+    local: yes
+  become: true
+
+- name: Copy Scripts folder into working directory
+  copy:
+    dest: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}"
+    src: "{{ ibp_staging_sap }}/Scripts/"
+    directory_mode: yes
+    remote_src: yes
+  become: true
+
+- name: Rename files
+  copy:
+    dest: "{{ item.new_name }}"
+    src: "{{ item.original_name }}"
+    remote_src: yes
+  become: true
+  loop:
+  - original_name: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/about.txt.modified"
+    new_name: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/about.txt"
+  - original_name: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/parameterCS.txt.modified"
+    new_name: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/parameterCS.txt"
+  - original_name: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/parameterCI.txt.modified"
+    new_name: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/parameterCI.txt"
+
+- name: Set package compat map
+  set_fact:
+    compat_package_map:
+      RedHat8: compat-sap-c++-11.x86_64
+      RedHat9: compat-sap-c++-13.x86_64
+
+- name: Get Specific compat package
+  set_fact:
+    compat_package: "{{ compat_package_map[ansible_distribution + ansible_distribution_major_version] }}"
+
+- name: Install the hana package dependencies
+  package:
+    name: '{{ item }}'
+    state: present
+  become: true
+  loop:
+    - "{{ compat_package }}"
+    - tuned-profiles-sap
+    - libstdc++.so.6
+
+# Generally bad practice so we should move this elsewhere. Leaving this now for testing
+- name: Ensure compat packages are linked
+  ansible.builtin.include_tasks: general/compat-link.yml
+
+- name: Make sure csrebuild_2.sh is executable
+  file:
+    path: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/csrebuild_2.sh"
+    mode: +x
+  become: true
+
+- name: Make sure SWPM sapinst is executable
+  file:
+    path: "{{ ibp_staging_sap }}/SWPM/sapinst"
+    mode: +x
+  become: true
+
+- name: Modify csrebuild_2.sh with local values
+  lineinfile:
+    path: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/csrebuild_2.sh"
+    state: present
+    regexp: "{{ item.regex }}"
+    backup: yes
+    line: "{{ item.string }}"
+  become: true
+  loop:
+  - regex: "^ABOUTPATH="
+    string: "ABOUTPATH={{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}"
+  - regex: "^SCRIPTPATH="
+    string: "SCRIPTPATH={{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}"
+  - regex: "^InstallPath="
+    string: "InstallPath=$release"
+  - regex: "^SWPM="
+    string: "SWPM={{ ibp_staging_sap }}/SWPM"
+
+- name: Remove all press any key user prompts
+  replace:
+    path: "{{ item }}"
+    regexp: '^\s*read anything(.*)'
+    replace: '# read anything \1'
+    backup: yes
+  become: true
+  loop:
+  - "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/csrebuild_2.sh"
+  - "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/cirebuild_2.sh"
+
+- name: Run the csrebuild_2 Setup script
+  command: "./csrebuild_2.sh {{ backend_sid|upper }} ibpdb-{{ backend_sid|lower }} {{ sapapp_tar_source }} ibpapp01-{{ backend_sid|lower }}"
+  args:
+    chdir: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/"
+  become: true
+
+- name: Make make sure cirebuild_2.sh is executable
+  file:
+    path: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/cirebuild_2.sh"
+    mode: +x
+  become: true
+
+- name: Modify cirebuild_2.sh with local values
+  lineinfile:
+    path: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/cirebuild_2.sh"
+    state: present
+    regexp: "{{ item.regex }}"
+    backup: yes
+    line: "{{ item.string }}"
+  become: true
+  loop:
+  - regex: "^ABOUTPATH="
+    string: "ABOUTPATH={{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}"
+  - regex: "^SCRIPTPATH="
+    string: "SCRIPTPATH={{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}"
+  - regex: "^SWPM="
+    string: "SWPM={{ ibp_staging_sap }}/SWPM"
+
+- name: Run the central instance Setup script
+  command: "./cirebuild_2.sh {{ backend_sid|upper }} ibpdb-{{ backend_sid|lower }} ibpapp01-{{ backend_sid|lower }}"
+  args:
+    chdir: "{{ ibp_staging_sap }}/working/{{ ec2_metadata.ansible_facts.ansible_ec2_instance_id }}/"
+  become: true
+
+- name: Stop CS instance 01
+  shell: "sapcontrol -nr 01 -function StopSystem"
+  become: yes
+  become_user: "{{ backend_sid|lower }}adm"
+  become_flags: '-i'
+
+- name: Start CS instance 01
+  shell: "sapcontrol -nr 01 -function StartSystem"
+  become: yes
+  become_user: "{{ backend_sid|lower }}adm"
+  become_flags: '-i'
+
+- name: Start CI instance 00
+  shell: "sapcontrol -nr 00 -function StartSystem"
+  become: yes
+  become_user: "{{ backend_sid|lower }}adm"
+  become_flags: '-i'
+
+- name: Get SapApp Processes
+  shell: "ps -ef | grep {{ backend_sid|lower }}adm | grep 'ms.*\\|enq.*'"
+  become: yes
+  become_user: "{{ backend_sid|lower }}adm"
+  # become_flags: '-i'
+  register: processes
+
+- name: Display {{ backend_sid|lower }} Status
+  debug:
+    var: processes.stdout_lines
+
+- name: Check execute mode on saphostexec
+  file:
+    path: "{{ saphostagent_source }}/saphostexec"
+    mode: 'u+x'
+  become: true
+
+- name: Run the SAP Host Agent Setup script
+  command: "./saphostexec -install"
+  args:
+    chdir: "{{ saphostagent_source }}"
+  become: true
+
+- name: Get hdbuserstore list
+  shell: "hdbuserstore list"
+  become: yes
+  become_user: "{{ backend_sid|lower }}adm"
+  become_flags: '-i'
+  register: hdbuserstore_list
+
+- name: Display hdbuserstore Results
+  debug:
+    var: hdbuserstore_list.stdout_lines
+
+- name: R3 Trans Connection Test
+  shell: "R3trans -d"
+  become: yes
+  become_user: "{{ backend_sid|lower }}adm"
+  become_flags: '-i'
+  register: r3trans_output
+
+- name: Display connection test results
+  debug:
+    var: r3trans_output.stdout_lines
+
+- name: Reset sapadm password
+  user:
+    name: sapadm
+    update_password: always
+    password: "{{ default_password }}"
+  become: true
+
+- name: Reset {{ backend_sid|lower }}adm password
+  user:
+    name: "{{ backend_sid|lower }}adm"
+    update_password: always
+    password: "{{ default_password }}"
+  become: true
+...

@@ -1,0 +1,31 @@
+---
+# Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+  - name: Verify
+    hosts: all
+    gather_facts: false
+
+    tasks:
+
+      - name: Get the Azure CLI version
+        shell: az --version
+        register: azure_version_results
+        become: true
+
+      - name: Display the full Azure CLI version information
+        debug:
+          var: azure_version_results.stdout
+
+      - name: Display the full Azure CLI version information
+        stat:
+          path: ~/.azure
+        register: azure_directory_results
+        become: true
+
+      - name: Ensure Azure directory exists
+        assert:
+          that:
+            - azure_directory_results.stat.exists
+          fail_msg: fail, Azure directory does not exist
+          success_msg: success, Azure directory does exist
+...

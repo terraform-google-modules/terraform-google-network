@@ -1,0 +1,118 @@
+---
+# Synopsis: Provision cpids
+# Inputs:
+#   - cpids_rebuild_profile_tars : path to the cpids source folder (version unique)
+#   - cpids_rebuild_profile_saphostagent_source - path to the SAPHOSTAGENT install files (version unique)
+#   - cpids_rebuild_profile_hostname:
+#   - cpids_rebuild_profile_sidadm:
+# Outputs: Configured and running base IBP cpids system
+# Comments: N/A
+
+- name: Get EC2 Metadata
+  ec2_metadata_facts:
+  register: ec2_metadata
+
+- name: Validate environment
+  include_tasks: general/directories-validate.yml
+  vars:
+    folder_path: "{{ item }}"
+  loop: "{{ cpids_rebuild_profile_tars + [cpids_rebuild_profile_saphostagent_source] | list}}"
+
+- name: Set the Hostname
+  hostname:
+    name: '{{ cpids_rebuild_profile_hostname }}'
+  become: true
+
+- name: Ensure Sapsys group has GID of 79
+  group:
+    name: sapsys
+    state: present
+    gid: 79
+    local: yes
+  become: true
+
+- name: Create n01adm SAP System Administrator
+  user:
+    name: "n01adm"
+    comment: "SAP System Administrator"
+    create_home: yes
+    home: "/usr/sap/N01/home"
+    uid: 1002
+    group: 79
+    shell: /bin/sh
+    state: present
+  become: true
+
+- name: Extract cpids tars
+  become: true
+  ignore_errors: true
+  unarchive:
+    src: "{{ item }}"
+    dest: "/"
+    remote_src: yes
+    list_files: no
+  loop: "{{ cpids_rebuild_profile_tars }}"
+
+- name: Check execute mode on saphostexec
+  become: true
+  file:
+    path: "{{ cpids_rebuild_profile_saphostagent_source }}/saphostexec"
+    mode: 'u+x'
+
+- name: Run the SAP Host Agent Setup script
+  become: true
+  command: "./saphostexec -install"
+  args:
+    chdir: "{{ cpids_rebuild_profile_saphostagent_source }}"
+
+- name: Restart SAP Host Agent
+  become: true
+  command: "./saphostexec -restart"
+  args:
+    chdir: "/usr/sap/hostctrl/exe"
+  register: results_restart_saphostagent
+
+- name: Show SAP Host Agent Status
+  debug:
+    var: results_restart_saphostagent.stderr_lines
+
+- name: Reset sapadm password
+  become: true
+  user:
+    name: sapadm
+    update_password: always
+    password: "{{ default_password }}"
+
+- name: Reset n01adm password
+  become: true
+  user:
+    name: "n01adm"
+    update_password: always
+    password: "{{ default_password }}"
+
+- name: Add exports to .bashrc
+  lineinfile:
+    path: ~/.bashrc
+    state: present
+    regexp: "{{ item.regex }}"
+    line: "{{ item.string }}"
+  become: yes
+  loop:
+  - regex: "^export JAVA_HOME="
+    string: 'export JAVA_HOME=/usr/sap/dsod_package/sapmachine-jdk'
+  - regex: "^export PATH="
+    string: 'export PATH=$JAVA_HOME/bin:.:$PATH'
+
+- name: Get n01adm environment
+  shell: env
+  become: yes
+  become_user: "n01adm"
+  become_flags: '-i'
+  register: results_environment
+  failed_when: false #this user has a different python version in PATH, ignore this error: Fatal Python error: Py_Initialize: Unable to get the locale encoding
+
+- name: Display n01adm environment when verbosity >= 1
+  debug:
+    var: results_environment.stdout_lines
+    verbosity: 1
+...

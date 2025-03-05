@@ -1,0 +1,58 @@
+{{ $ecs_etd := ( index .Values "ecs-etds") }}
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: ecs-etd-{{ .Values.customer }}
+  namespace: ecs-etd-{{ .Values.customer }}
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromCIDRSet:
+        - cidr: {{ .Values.customerVpcCidr }}
+    - fromCIDRSet:
+        - cidr: {{ .Values.gardener.shootVpcCidr }}
+    - fromEndpoints:
+        - matchLabels:
+            sid: {{ $ecs_etd.sid }}
+    - fromEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: '10443'
+        - ports:
+            - port: '9095'
+    - fromEntities:
+        - cluster
+      toPorts:
+        - ports:
+            - port: '9095'
+        - ports:
+            - port: '10443'
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            k8s:app.kubernetes.io/name: kafka
+            io.kubernetes.pod.namespace: etd-kafka-{{ $ecs_etd.etdStage }}-{{ $ecs_etd.sid }}
+      toPorts:
+        - ports:
+            - port: "9093"
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+    - toCIDRSet:
+        - cidr: {{ .Values.customerVpcCidr }}
+    - toEndpoints:
+        - matchLabels:
+            sid: {{ $ecs_etd.sid }}
+    - toFQDNs:
+        - matchName: api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.internal.{{ .Values.gardener.baseDomain }}
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: api.{{ .Values.gardener.shootName }}.{{ .Values.gardener.project }}.shoot.{{ .Values.gardener.baseDomain }}
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP

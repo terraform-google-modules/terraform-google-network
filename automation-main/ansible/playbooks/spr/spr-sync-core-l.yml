@@ -1,0 +1,51 @@
+---
+# Playbook Name: spr-sync-core-l.yml
+# Description: Sync all product-line directories on the spr-dev-g staging EFS to the us-east-2.spr.repositories.sapns2.us bucket
+# Prerequisites:
+#   - Ansible v2.9
+#   - us-east-2.spr.repositories.sapns2.us bucket write access
+# Variables:
+# Example:
+#   The following will sync spr content from the local machine's /staging directory to the us-east-2.spr.repositories.sapns2.us bucket
+#     ansible-playbook spr-sync-core-l.yml -i localhost,
+# Authors: Lance Wray
+# Version: 2.9-000001
+# Modified: 2021-07-29 - Created
+# Comments: None
+
+- hosts: all
+  vars:
+    AWS_ACCESS_KEY: ''
+    AWS_SECRET_KEY: ''
+
+  tasks:
+
+  - name: Get list of of product-line objects
+    shell: ls /staging/
+    register: product_line_directories
+    become: true
+
+  - name: Sync each product-line directory
+    shell: aws s3 sync /staging/{{ item }} s3://us-east-2.spr.repositories.sapns2.us/staging/{{ item }}
+    async: 864000 # 24h
+    poll: 0
+    loop: '{{ product_line_directories.stdout_lines }}'
+    register: product_line_sync
+    become: true
+    environment:
+      AWS_ACCESS_KEY_ID: "{{ AWS_ACCESS_KEY }}"
+      AWS_SECRET_ACCESS_KEY: "{{ AWS_SECRET_KEY }}"
+      AWS_REGION: 'us-east-2'
+
+  - name: Wait for all product lines to sync
+    async_status:
+      jid: "{{ item.ansible_job_id }}"
+    register: product_line_sync_status
+    until: product_line_sync_status.finished
+    retries: 1000
+    delay: 300
+    loop: "{{ product_line_sync.results }}"
+    become: true
+    failed_when: product_line_sync_status.failed and "[Errno 21] Is a directory" not in product_line_sync_status.stderr and "[Errno 20] Not a directory" not in product_line_sync_status.stderr
+
+...

@@ -1,0 +1,4 @@
+# Test Disk Creation - APP only (non-HA and non-SDDR)
+distributed_calculate_disks_test_app_swap: true
+distributed_calculate_disks_test_app_sapmnt: true
+distributed_calculate_disks_test_usr_sap: true

@@ -1,0 +1,154 @@
+---
+# Synopsis: Installs ClamAV and optionally sets up a cron job.
+# Inputs:
+#   - clamav_create_cron_schedule : Whether to setup a cron job to run ClamAV scans.
+#   - clamav_remove_cron_schedule : Whether to remove the ClamAV cron job.
+#   - clamav_targeted_scan_script : Whether to setup additional script that can use used to perform ClamAV
+#                                   scans on-demand against a target path on the filesystem
+#   - clamav_initialize_database : Whether to initialize ClamAV database on-demand as a parf of role configuration
+#   - clamav_schedule_database_refresh : Whether to schedule via cron regular ClamAV database refreshes independent of performing any scans
+#
+# Outputs:
+#   - Places the 'clamrun.sh' script on the system and creates or removes a cron job.
+#   - (Optional) Places the 'clamrun-targeted.sh' script on the system for on-demand virus scanning
+
+# Workaround for RHEL 9 FIPS compatability
+  - name: Add fips_enable.so package on RHEL 9 systems
+    block:
+      - name: Create a temporary file with base64-compressed data
+        copy:
+          content: '{{ clamav_package_fips_base64 | b64decode }}'
+          dest: /tmp/data.bin.bz2
+
+      - name: Decompress the bzip2 file
+        command: bzip2 -d -k /tmp/data.bin.bz2
+
+      - name: Move /tmp/data.bin to /lib/fips_enable.so
+        command: mv /tmp/data.bin /lib/fips_enable.so
+
+      - name: Update file permissions on /lib/fips_enable.so
+        file:
+          path: /lib/fips_enable.so
+          mode: 0755
+        become: true
+
+      - name: Clean up temporary files
+        file:
+          path: /tmp/data.bin.bz2
+          state: absent
+    become: true
+    when:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution_major_version is version ('9')
+
+  - name: Install the clamav package and its dependencies for RHEL 8.6 and above
+    ansible.builtin.yum:
+      name:
+        - clamav
+        - clamav-update
+      enablerepo: epel
+      state: present
+      lock_timeout: 300
+    register: clamav_yum_install_result
+    retries: 1
+    delay: 60
+    become: true
+    until: clamav_yum_install_result.failed == false
+    when:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution_major_version is version ('7') or ansible_distribution_version is version ('8.6', '>=') or ansible_distribution_major_version
+        is version ('9')
+
+# TODO: Deprecate either DNF or YUM task with updated conditionals when RHEL 8.5 is dropped
+
+  - name: Installing ClamAV package and its dependencies for RHEL 8.1 to 8.5 due to libjson-c.so.4 missing dependency
+    ansible.builtin.dnf:
+      name:
+        - clamav
+        - clamav-update
+      enablerepo: epel
+      state: present
+      lock_timeout: 300
+      nobest: true
+    register: clamav_dnf_install_result
+    retries: 1
+    delay: 60
+    become: true
+    until: clamav_dnf_install_result.failed == false
+    when:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution_version is version('8.1', '>=')
+      - ansible_distribution_version is version('8.5', '<=')
+
+  - name: Validate ClamAV package is installed for RHEL 8.1 to 8.5
+    ansible.builtin.command: dnf list installed clamav
+    when:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution_version is version('8.1', '>=')
+      - ansible_distribution_version is version('8.5', '<=')
+
+  - name: Install the clamav package and its dependencies for Ubuntu or SLES
+    ansible.builtin.package:
+      name: clamav
+      state: present
+    register: clamav_debian_install_result
+    retries: 1
+    delay: 60
+    become: true
+    until: clamav_debian_install_result.failed == false
+    when:
+      - ansible_distribution == 'Ubuntu' or ansible_distribution == 'SLES'
+
+  - name: Install the clamd package and its dependencies for RHEL
+    ansible.builtin.yum:
+      name:
+        - clamd
+      enablerepo: epel
+      state: present
+      lock_timeout: 300
+    register: clamd_yum_install_result
+    retries: 1
+    delay: 60
+    become: true
+    until: clamd_yum_install_result.failed == false
+    when:
+      - clamd_enable | bool == true
+      - ansible_os_family == 'RedHat'
+
+  - name: Install the clamd package and its dependencies for Ubuntu
+    ansible.builtin.package:
+      name:
+        - clamav-daemon
+      state: present
+    register: clamav_clamd_install_result
+    retries: 1
+    delay: 60
+    become: true
+    until: clamav_clamd_install_result.failed == false
+    when:
+      - clamd_enable | bool == true
+      - ansible_distribution == 'Ubuntu'
+
+
+# TODO: Figure out why we are disabling freshclam on Ubuntu for script-based execution
+
+  - name: Stop and disable freshclam service
+    ansible.builtin.service:
+      name: clamav-freshclam
+      state: stopped
+      enabled: false
+    become: true
+    when: ansible_distribution == 'Ubuntu' and clamd_enable | bool == false
+
+  - name: Update clamav-freshclam.service to use LD_PRELOAD of fips_enable.so package on RHEL 9
+    ini_file:
+      path: /usr/lib/systemd/system/clamav-freshclam.service
+      section: Service
+      option: Environment
+      value: LD_PRELOAD=/lib/fips_enable.so
+    become: true
+    notify: reload clamav-freshclam service
+    when:
+      - ansible_os_family == 'RedHat'
+      - ansible_distribution_major_version is version ('9')
+...

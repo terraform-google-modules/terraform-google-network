@@ -1,0 +1,81 @@
+---
+# Synopsis: Does a hard start of HANA DB
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+# Outputs: Started HANA DB
+# Comments: N/A
+
+- name: "Get saphostagent status"
+  command: "/usr/sap/hostctrl/exe/saphostexec -status"
+  become: true
+  register: saphostagent_status
+  failed_when: "'FAILED' in saphostagent_status.stderr"
+  changed_when: false
+
+- name: "Display saphostagent status"
+  debug:
+    var: saphostagent_status.stderr_lines
+
+- name: "BLOCK - Start saphostagent"
+  block:
+  - name: "Start saphostagent as root"
+    command: "/usr/sap/hostctrl/exe/saphostexec -restart"
+    become: true
+
+  - name: "Get saphostagent status"
+    command: "/usr/sap/hostctrl/exe/saphostexec -status"
+    become: true
+    register: saphostagent_statusblock
+    failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+    changed_when: false
+
+  - name: "Display saphostagent status"
+    debug:
+      var: saphostagent_statusblock.stderr_lines
+  when: saphostagent_status.stderr == 'saphostexec stopped '
+  #End "BLOCK - Start saphostagent"
+
+- name: "Get process list"
+  shell: 'sapcontrol -nr 02 -function GetProcessList'
+  args:
+    executable: '/bin/csh'
+  become: true
+  become_method: sudo
+  become_user: "{{ sid|lower }}adm"
+  failed_when: false
+  changed_when: false
+  register: hdb_process_output
+
+- name: "Start Hana DB"
+  shell: "/usr/sap/{{ sid|upper }}/HDB02/HDB start"
+  become: true
+  become_user: "{{ sid|lower }}adm"
+  register: hdbstart_output
+
+- name: "Get Hana DB status"
+  shell: "/usr/sap/{{ sid|upper }}/HDB02/HDB info"
+  become: yes
+  become_user: "{{ sid|lower }}adm"
+  register: hdbinfo
+  when: "'GRAY' in hdb_process_output.stdout or 'YELLOW' in hdb_process_output.stdout"
+
+- name: "Display HDB Status"
+  debug:
+    var: hdbinfo.stdout_lines
+  when: "'GRAY' in hdb_process_output.stdout or 'YELLOW' in hdb_process_output.stdout"
+
+- name: "Get process list"
+  shell: 'sapcontrol -nr 02 -function GetProcessList'
+  args:
+    executable: '/bin/csh'
+  become: true
+  become_method: sudo
+  become_user: "{{ sid|lower }}adm"
+  failed_when: "'GRAY' in hdb_process_output.stdout or 'YELLOW' in hdb_process_output.stdout"
+  changed_when: false
+  register: hdb_process_output
+
+- name: "Display process list"
+  debug:
+    var: hdb_process_output.stdout_lines
+...

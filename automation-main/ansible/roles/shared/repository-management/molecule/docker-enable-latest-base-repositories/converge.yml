@@ -1,0 +1,16 @@
+---
+# Description: Molecule converge.yml playbook used to run an Ansible role in a testing scenario.
+
+  - name: Converge
+    hosts: all
+    gather_facts: true
+    tasks:
+
+      - name: Run the 'repository-management' role with the 'base' preset
+        include_role:
+          name: repository-management
+        vars:
+          application_preset_selection: [base]
+          repo_enable: true
+          repo_latest: true
+...

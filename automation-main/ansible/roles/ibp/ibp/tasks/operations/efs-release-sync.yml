@@ -1,0 +1,32 @@
+---
+# Synopsis: Syncs all release files from the staging S3 buckets to a target EFS drive.
+# Inputs:
+# Outputs: Sync all current releases to a staging EFS drive.
+# Comments:
+#     Just pretend the `s3_sync` task doesn't exist, because it might as well not.
+
+- name: Validate staging efs is mounted
+  stat:
+    path: /staging
+  register: path
+  failed_when: path is not defined or path.stat.exists == false
+
+- name: Sync IBP files from S3
+  shell:
+    cmd: " /usr/local/bin/aws s3 sync --region us-gov-west-1 s3://sap-ibp-artifacts/staging/ibp/Build . "
+    chdir: "/staging/ibp/Build"
+  become: yes
+
+- name: Sync Web Dispatcher files from S3
+  shell:
+    cmd: " /usr/local/bin/aws s3 sync --region us-gov-west-1 s3://sap-ibp-artifacts/staging/webdispatcher/Build . "
+    chdir: "/staging/webdispatcher/Build"
+  become: yes
+
+- name: Sync CPIDS files from S3
+  shell:
+    cmd: " /usr/local/bin/aws s3 sync --region us-gov-west-1 s3://sap-cpi-ds-artifacts/staging/cpids/Build . "
+    chdir: "/staging/cpids/Build"
+  become: yes
+
+...

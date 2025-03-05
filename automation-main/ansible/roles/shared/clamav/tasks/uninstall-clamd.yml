@@ -1,0 +1,44 @@
+---
+# Synopsis: Removes ClamAV daemon from the system
+# Inputs:
+#   - N/A
+#
+# Outputs:
+#   - Removes ClamAV daemon from the system
+
+  - name: Stop clamav-daemon service
+    ansible.builtin.service:
+      name: clamav-daemon.service
+      enabled: false
+      state: stopped
+      daemon_reload: true
+    become: true
+
+  - name: Stop and disable freshclam service
+    ansible.builtin.service:
+      name: clamav-freshclam.service
+      state: stopped
+      enabled: false
+    become: true
+
+  - name: Remove the clamav package and its dependencies
+    ansible.builtin.package:
+      name:
+        - clamav
+        - clamav-update
+      state: absent
+    become: true
+
+  - name: Remove clam.d directory and scan.conf
+    ansible.builtin.file:
+      path: /etc/clamd.d
+      state: absent
+    become: true
+
+  - name: Remove systemd override directory and execstart configuration for clamd
+    ansible.builtin.file:
+      path: /etc/systemd/system/clamd.service.d/
+      state: absent
+    become: true
+    when: ansible_facts.service_mgr == "systemd"
+...

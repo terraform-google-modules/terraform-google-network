@@ -1,0 +1,37 @@
+---
+# Synopsis: Installs ClamAV, sets up a cron job, and runs a scan.
+# Inputs:
+#   - clamav_remove : Whether to remove ClamAV from the system.
+#   - clamd_enable: Wether to install ClamAV as a daemon
+#   - clamav_run_scan: Wether to conduct a scan
+# Outputs:
+#   - Installs or removes ClamAV from the system
+#   - Starts clamd service
+#   - Conducts adhoc ClamAV scan of the system
+
+  - name: Install ClamAV Packages
+    ansible.builtin.include_tasks: install-clamav.yml
+    when: clamav_remove | bool == false
+
+  - name: Configure ClamAV Script
+    ansible.builtin.include_tasks: configure-clamav.yml
+    when: clamav_remove | bool == false
+
+# TODO: Validate support for SLE for daemon-based execution
+
+  - name: Configure ClamAV Daemon
+    ansible.builtin.include_tasks: configure-clamd.yml
+    when: clamd_enable | bool == true
+
+  - name: Conduct Adhoc ClamAV Scan
+    ansible.builtin.include_tasks: scan.yml
+    when: clamav_run_scan | bool == true
+
+  - name: Remove ClamAV Script
+    ansible.builtin.include_tasks: uninstall-clamav.yml
+    when: clamav_remove | bool == true
+
+  - name: Remove ClamAV Daemon
+    ansible.builtin.include_tasks: uninstall-clamd.yml
+    when: clamd_enable | bool == false and clamav_remove | bool == true
+...

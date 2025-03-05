@@ -1,0 +1,71 @@
+---
+# List of sap-specific log groups
+# When 'sap' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_sapapp_java:
+  - file_path: /usr/sap/*/j2ee/cluster/log/system/server_*.log
+    log_group_name: /usr/sap/log/j2ee-server-log
+  - file_path: /usr/sap/*/J*/j2ee/cluster/server*/log/defaultTrace_*.trc
+    log_group_name: /usr/sap/log/j2ee-server-defaultTrace
+  - file_path: /usr/sap/*/J*/j2ee/cluster/server*/log/applications_*.log
+    log_group_name: /usr/sap/log/j2ee-server-application-log
+  - file_path: /usr/sap/*/J*/j2ee/cluster/server*/log/system/configChanges_*.log
+    log_group_name: /usr/sap/log/j2ee-server-configchanges-log
+  - file_path: /usr/sap/*/J*/j2ee/cluster/server*/log/system/database_*.log
+    log_group_name: /usr/sap/log/j2ee-server-database-log
+  - file_path: /usr/sap/*/J*/j2ee/cluster/server*/log/system/enterprise_services_*.log
+    log_group_name: /usr/sap/log/j2ee-enterprise-services-log
+  - file_path: /usr/sap/*/J*/j2ee/cluster/server*/log/system/security_*.log
+    log_group_name: /usr/sap/log/j2ee-server-security-log
+  - file_path: /usr/sap/*/J*/j2ee/cluster/server*/log/system/security_audit_*.log
+    log_group_name: /usr/sap/log/j2ee-server-security-audit-log
+  - file_path: /usr/sap/*/J*/j2ee/cluster/server*/log/system/server_*.log
+    log_group_name: /usr/sap/log/j2ee-server-log
+  - file_path: /usr/sap/*/J*/j2ee/cluster/server*/log/system/userinterface_*.log
+    log_group_name: /usr/sap/log/j2ee-server-userinterface-log
+  - file_path: /usr/sap/*/J*/j2ee/cluster/server*/log/system/httpaccess/responses_*.trc
+    log_group_name: /usr/sap/log/j2ee-server-httpaccess-trace
+  - file_path: /usr/sap/*/J*/work/available.log
+    log_group_name: /usr/sap/log/j2ee-available-log
+  - file_path: /usr/sap/*/J*/work/dev_bootstrap
+    log_group_name: /usr/sap/log/j2ee-bootstrap-log
+  - file_path: /usr/sap/*/J*/work/dev_deployment
+    log_group_name: /usr/sap/log/j2ee-dev-deployment-log
+  - file_path: /usr/sap/*/J*/work/dev_icm
+    log_group_name: /usr/sap/log/j2ee-dev-icm-log
+  - file_path: /usr/sap/*/J*/work/dev_icm_sec
+    log_group_name: /usr/sap/log/j2ee-dev-icm-sec-log
+  - file_path: /usr/sap/*/J*/work/dev_jstart
+    log_group_name: /usr/sap/log/j2ee-dev-icm-jstart-log
+  - file_path: /usr/sap/*/J*/work/dev_sapstart
+    log_group_name: /usr/sap/log/j2ee-dev-sapstart
+  - file_path: /usr/sap/*/J*/work/dev_server*
+    log_group_name: /usr/sap/log/j2ee-dev-server-log
+  - file_path: /usr/sap/*/J*/work/jstart.jvm
+    log_group_name: /usr/sap/log/j2ee-jstart-jvm-log
+  - file_path: /usr/sap/*/J*/work/jvm_bootstrap.out
+    log_group_name: /usr/sap/log/j2ee-jvm-bootstrap-log
+  - file_path: /usr/sap/*/J*/work/jvm_deployment.out
+    log_group_name: /usr/sap/log/j2ee-jvm-deployment-log
+  - file_path: /usr/sap/*/J*/work/jvm_server*.out
+    log_group_name: /usr/sap/log/j2ee-jvm-server-log
+  - file_path: /usr/sap/*/J*/work/log_bootstrap.*.log
+    log_group_name: /usr/sap/log/j2ee-log-bootstrap-log
+  - file_path: /usr/sap/*/J*/work/sapcpe_*.*
+    log_group_name: /usr/sap/log/j2ee-sapcpe-log
+  - file_path: /usr/sap/*/J*/work/sapstart.log
+    log_group_name: /usr/sap/log/j2ee-sapstart-log
+  - file_path: /usr/sap/*/J*/work/sapstartsrv.log
+    log_group_name: /usr/sap/log/j2ee-sapstart-log
+  - file_path: /usr/sap/*/J*/work/std_bootstrap.out
+    log_group_name: /usr/sap/log/j2ee-std-bootstrap-log
+  - file_path: /usr/sap/*/J*/work/std_deployment.out
+    log_group_name: /usr/sap/log/j2ee-std-deployment-log
+  - file_path: /usr/sap/*/J*/work/stderr*
+    log_group_name: /usr/sap/log/j2ee-stderr-log
+  - file_path: /usr/sap/*/J*/work/std_icm.out
+    log_group_name: /usr/sap/log/j2ee-std-icm-log
+  - file_path: /usr/sap/*/J*/work/stdout*
+    log_group_name: /usr/sap/log/j2ee-stdout-log
+  - file_path: /usr/sap/*/J*/work/std_server*.out
+    log_group_name: /usr/sap/log/j2ee-std-server-log
+...

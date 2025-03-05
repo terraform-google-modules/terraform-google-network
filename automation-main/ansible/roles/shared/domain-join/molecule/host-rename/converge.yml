@@ -1,0 +1,31 @@
+---
+# Block for handling system rename before and after domain join. Ensures original hostname is restore if domain join fails.
+  - name: Converge
+    hosts: all
+    vars:
+      test_hostname: testdomainjoinblock
+    tasks:
+      - name: Save Original Hostname
+        set_fact:
+          original_hostname: '{{ test_hostname }}'
+
+      - name: BLOCK - Rename system, join domain, restore original hostname.
+        block:
+          - name: Change hostname
+            command: nsenter --target 1 --uts hostname 1
+            become: true
+      #This will always fail during molecule testing
+          - name: Join system to domain with realmd
+            command: echo '{{ domain_password }}' | /usr/sbin/realm join {{ '--computer-name ' + machine_id if ansible_distribution_version != '16.04' }}  -v
+              -U {{ domain_user }} {{ domain_fqdn }}
+            when: realmlist_output.stdout == ''
+            become: true
+            no_log: true                        ##### Set this to false for debugging
+            failed_when: false
+
+        always:
+          - name: Restore original hostname
+            command: hostname {{ original_hostname }}
+            become: true
+# End BLOCK - "Rename system, join domain, restore original hostname."
+...

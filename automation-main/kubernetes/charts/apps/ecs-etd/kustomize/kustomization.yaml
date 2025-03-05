@@ -1,0 +1,133 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- all.yaml
+
+patches:
+  - path: cs-storageClass.yaml
+    target:
+      kind: StorageClass
+      name: ".*ecs-etd-cw-bl-csi"
+  - path: lc-service.yaml
+    target:
+      kind: Service
+      name: ".*ecs-etd-lc-ib-lb"
+  - path: sts-pvc.yaml
+    target:
+      kind: StatefulSet
+      name: "(.*lc-ib-lb$|.*-cw$|.*lc-ob$)"
+  - path: sts-sa.yaml
+    target:
+      kind: StatefulSet
+      name: "(.*-cw$)"
+  - path: sts-lc-ib-jwt.yaml
+    target:
+      kind: StatefulSet
+      name: "(.*lc-ib-lb$)"
+  - path: sts-lc-ob-jwt.yaml
+    target:
+      kind: StatefulSet
+      name: "(.*lc-ob$)"
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: env-cm
+      fieldPath: data.sid
+    targets:
+      - select:
+          kind: Deployment
+        fieldPaths:
+          - spec.template.metadata.labels.sid 
+        options:
+          create: true
+      - select:
+          kind: StatefulSet
+        fieldPaths:
+          - spec.template.metadata.labels.sid 
+        options:
+          create: true
+      - select:
+          kind: Job
+        fieldPaths:
+          - metadata.labels.sid 
+        options:
+          create: true
+  - source:
+      kind: ConfigMap
+      name: env-cm
+      fieldPath: data.avpConfig
+    targets:
+      - select:
+          kind: Secret
+        fieldPaths:
+          - metadata.annotations.[avp.kubernetes.io/path]
+        reject:
+          - name: dockerconfig
+          - name: rt53-credentials
+          - name: logcollector-jwt-token-prd
+        options:
+          create: true
+  - source:
+      kind: ConfigMap
+      name: env-cm
+      fieldPath: data.volumeName
+    targets:
+      - select:
+          kind: PersistentVolumeClaim
+        fieldPaths:
+          - spec.volumeName
+        options:
+          create: true
+  - source:
+      kind: ConfigMap
+      name: env-cm
+      fieldPath: data.stsStorageClassNameCs
+    targets:
+      - select:
+          kind: StatefulSet
+        fieldPaths:
+          - spec.volumeClaimTemplates.0.spec.storageClassName
+  - source:
+      kind: ConfigMap
+      name: env-cm
+      fieldPath: data.bucketName
+    targets:
+      - select:
+          kind: StorageClass
+        fieldPaths:
+          - parameters.bucketName
+        options:
+          create: true
+  - source:
+      kind: ConfigMap
+      name: env-cm
+      fieldPath: data.region
+    targets:
+      - select:
+          kind: StorageClass
+        fieldPaths:
+          - parameters.region
+        options:
+          create: true
+  - source:
+      kind: ConfigMap
+      name: env-cm
+      fieldPath: data.mountOptions
+    targets:
+      - select:
+          kind: StorageClass
+        fieldPaths:
+          - mountOptions
+        options:
+          create: true
+  - source:
+      kind: ConfigMap
+      name: env-cm
+      fieldPath: data.initContainer
+    targets:
+      - select:
+          kind: StatefulSet
+        fieldPaths:
+          - spec.template.spec.initContainers.0.image

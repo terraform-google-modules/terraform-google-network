@@ -1,0 +1,206 @@
+---
+# Playbook Name: ibp-upgrade-prep
+# Synopsis: Download the appropriate IBP upgrade files for the most up to date upgrade available in our s3://sap-ibp-artifacts/ibp_repo/Patches
+# Description: Download files the S3 bucket in a new directory. Delete all files older than a certain date the user enters. Create a sub directory for IBPAFL / HANAAFL to be unzipped when required for the upgrade.
+# Prerequisites:
+#   - Ansible v2.9+
+#   - AWS permissions to upload to S3 Bucket for patches files download
+#   - SAPCAR for unzipping
+# Dependencies: N/A
+# Variables:
+#   - ipaddress_target : IP address of the instance the playbook will be directed to
+#   - staging_location : The staging location for the directory creation + file downloader
+#   - release_name : Name of the name directory under the {{ staging_location }}
+#   - ibpafl_version : ibp AFL version (located in the IBP repo ibp-dev -> releases)
+#   - hanaafl_version : HANA AFL version (located in the IBP repo ibp-dev -> releases)
+#   - days_since_upload : The date range from days_since_upload till today of files to keep on S3 (typically the amount of time since the last upgrade is a safe amount)
+#
+# Example:
+#   How to run ibp-upgrade-prep from the IBP-dev bastion:
+#     ansible-playbook -u ixxxxx -k ibp-upgrade-prep.yml
+#
+# Authors: Sean-Thomas Saloom
+# Version: 2.9-000001
+# Modified: 2021-07-20 - Created
+#
+# Comments:
+#
+
+
+- name: Obtain information and metadata
+  hosts: localhost
+  gather_facts: false
+
+  vars_prompt:
+
+  - name: ipaddress_target
+    prompt: "What is the targets ip address?"
+    private: no
+
+  - name: release_name
+    prompt: "What is the release_name of the upgrade? (HFCxx-EPxx)"
+    private: no
+
+  - name: ibpafl_version
+    prompt: "What is the ibpafl patch version? (IMDB_IBPAFL10_055_15- would be patch version: 10_055_15 or press enter if not applicable )"
+    private: no
+    default: "none"
+
+  - name: hanaafl_version
+    prompt: "What is the hana patch version? (IMDB_AFL20_055_1- would be patch version: 20_055_1 or press enter if not applicable)"
+    private: no
+    default: "none"
+
+  - name: days_since_upload
+    prompt: "How many days since the last IBP upgrade? (3 days would be 3d, 1 week would be 1w)"
+    private: no
+
+  vars:
+    staging_location: '/staging/ibp/Upgrade'
+
+
+  tasks:
+  - name: "Confirm values before proceeding"
+    pause:
+      prompt: |
+
+          Target: {{ ipaddress_target }}
+          Release name : {{ release_name }}
+          IBP Afl version : {{ ibpafl_version }}
+          HANA Afl version : {{ hanaafl_version }}
+          Days since the upgrade files have been uploaded: {{ days_since_upload }}
+
+  - name: "Check if {{ staging_location }}/{{ release_name }} exists"
+    stat:
+      path: "{{ staging_location }}/{{ release_name }}"
+    register: destination_cpids
+
+  - name: "Fail if destination folder already exists"
+    fail:
+      msg: "Destination folder already exists! Please remove the destination folder and rerun script."
+    when: destination_cpids.stat.exists == true
+
+  - name: "Create {{ staging_location }}/{{ release_name }}"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}"
+      state: directory
+    become: true
+
+  - name: "Create {{ staging_location }}/{{ release_name }}/IBAFL"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}/IBPAFL"
+      state: directory
+    when: ibpafl_version != "none"
+    become: true
+
+  - name: "Create {{ staging_location }}/{{ release_name }}/AFL"
+    file:
+      path: "{{ staging_location }}/{{ release_name }}/AFL"
+      state: directory
+    when: hanaafl_version != "none"
+    become: true
+
+  - name: Download the patches repo to the newly created release directory
+    shell:
+      cmd: aws s3 cp s3://sap-ibp-artifacts/ibp_repo/Patches/ {{ staging_location }}/{{ release_name }}/ --recursive --sse
+    become: true
+
+  - name: Recursively find files older than {{ days_since_upload }} in {{ staging_location }}/{{ release_name }}
+    find:
+      paths: "{{ staging_location }}/{{ release_name }}"
+      age: "{{ days_since_upload }}"
+    register: old_files
+
+  - name: Set requested_ibpafl_file
+    find:
+      paths: "{{ staging_location }}/{{ release_name }}"
+      patterns: "IMDB_IBPAFL{{ibpafl_version}}*"
+    register: requested_ibpafl_file
+    when: ibpafl_version != "none"
+
+  - name: Set requested_hanaafl_file
+    find:
+      paths: "{{ staging_location }}/{{ release_name }}"
+      patterns: "IMDB_AFL{{hanaafl_version}}*"
+    register: requested_hanaafl_file
+    when: hanaafl_version != "none"
+
+  - name: "Add target to ansible hosts"
+    add_host:
+      name: "{{ ipaddress_target }}"
+      groups:
+      - target
+      release_name: "{{ release_name }}"
+      staging_location: "{{ staging_location }}"
+      requested_ibpafl_file: "{{ requested_ibpafl_file }}"
+      ibpafl_version: "{{ ibpafl_version }}"
+      requested_hanaafl_file: "{{ requested_hanaafl_file }}"
+      hanaafl_version: "{{ hanaafl_version }}"
+
+  - name: "Copy IBPAFL Files to {{ staging_location }}/{{ release_name }}/IBAFL"
+    copy:
+      src: "{{ item.path }}"
+      dest: "{{ staging_location }}/{{ release_name }}/IBPAFL/"
+    with_items: "{{ requested_ibpafl_file.files }}"
+    become: true
+    when: ibpafl_version != "none"
+
+  - name: "Copy HANAAFL Files to {{ staging_location }}/{{ release_name }}/IBAFL"
+    copy:
+      src: "{{ item.path }}"
+      dest: "{{ staging_location }}/{{ release_name }}/AFL/"
+    with_items: "{{ requested_hanaafl_file.files }}"
+    become: true
+    when: hanaafl_version != "none"
+
+  - name: Set temp_ibpafl_file variable
+    find:
+      paths: "{{ staging_location }}/{{ release_name }}"
+      patterns: "IMDB_IBPAFL*"
+    register: temp_ibpafl_file
+
+  - name: Set temp_hanaafl_file variable
+    find:
+      paths: "{{ staging_location }}/{{ release_name }}"
+      patterns: "IMDB_IBPAFL*"
+    register: temp_hanaafl_file
+
+  - name: Remove older files
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items:
+    - "{{ old_files.files }}"
+    - "{{ temp_ibpafl_file.files }}"
+    - "{{ temp_hanaafl_file.files }}"
+    become: true
+
+- name: Unsar IBPAFL and HANAAFL files
+  hosts: target
+  gather_facts: false
+
+  tasks:
+
+  - name: set requested_ibpafl_file_name
+    set_fact:
+      requested_ibpafl_file_name: "{{ requested_ibpafl_file.files.0.path | basename }}"
+    when: ibpafl_version != "none"
+
+  - name: set requested_hanaafl_file_name
+    set_fact:
+      requested_hanaafl_file_name: "{{ requested_hanaafl_file.files.0.path | basename }}"
+    when: hanaafl_version != "none"
+
+  - name: Unsar IBPAFL
+    shell:
+      cmd: /usr/sap/hostctrl/exe/SAPCAR -manifest SIGNATURE.mf -xvf {{ requested_ibpafl_file_name }}
+      chdir: "{{ staging_location }}/{{ release_name }}/IBPAFL"
+    when: ibpafl_version != "none"
+    become: true
+
+  - name: Unsar HANAAFL
+    shell:
+      cmd: /usr/sap/hostctrl/exe/SAPCAR -manifest SIGNATURE.mf -xvf {{ requested_hanaafl_file_name }}
+      chdir: "{{ staging_location }}/{{ release_name }}/AFL"
+    when: hanaafl_version != "none"
+    become: true

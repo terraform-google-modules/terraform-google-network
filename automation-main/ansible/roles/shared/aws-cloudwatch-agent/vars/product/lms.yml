@@ -1,0 +1,13 @@
+---
+# List of lms_app log groups we want to capture
+# When 'lms_app' is passed as the application_preset_selection, this group will be substituted for 'logs'
+logs_lms_app:
+  - file_path: /local/customers/plateau/plateau-talent-management/logs/TMS-*.log
+    log_group_name: /local/customers/plateau/plateau-talent-management/logs/TMS
+  - file_path: /local/customers/plateau/plateau-talent-management/logs/tomcat-access*.log
+    log_group_name: /local/customers/plateau/plateau-talent-management/logs/tomcat-access
+  - file_path: /local/customers/plateau/plateau-talent-management/logs/tomcat.2*.log
+    log_group_name: /local/customers/plateau/plateau-talent-management/logs/tomcat
+  - file_path: /usr/local/optier/data/corefirst/logs/*.log*
+    log_group_name: /usr/local/optier/data/corefirst/logs
+...

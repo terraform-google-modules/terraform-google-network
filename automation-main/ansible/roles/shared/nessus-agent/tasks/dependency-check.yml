@@ -1,0 +1,87 @@
+---
+# Synopsis: Validates all automation dependencies
+# Inputs:
+#   nessus_s3_bucket_name - Name of the AWS S3 bucket containing the Nessus Agent packages
+#   nessus_s3_bucket_path - Path within the S3 bucket to the folder containing the Nessus Agent packages
+#   nessus_manager_address - URI to the Tenable Nessus Manager
+#   nessus_registration_key - Tenable manager registration key
+#   nessus_agent_group - Nessus Scanner scan group name
+#   binary_location - Location of Nessus Agent binaries. Possible values of "aws_s3" or "local". Defaults to "aws_s3"
+#   binary_local_folder - Full local Ansible controller path to folder containing the Nessus Agent binaries e.g. "/tmp/nessus_agent_binaries"
+
+  - name: Fail check for invalid variable value - binary_location
+    fail:
+      msg: "[ERROR]: Invalid value '{{ binary_location }}' for passed variable 'binary_location'. Please refer to README documentation."
+    when: >
+      binary_location is not defined or
+      binary_location is none or
+      binary_location | length < 1 or
+      (
+        binary_location != "aws_s3" and
+        binary_location != "local"
+      )
+
+  - name: Fail check for invalid variable value - binary_local_folder
+    fail:
+      msg: "[ERROR]: Missing passed variable 'binary_local_folder'. Please refer to README documentation on the different means to pass variable sets to\
+        \ the automation."
+    when: >
+      binary_location == "local" and
+      (
+        binary_local_folder is not defined or
+        binary_local_folder is none or
+        binary_local_folder | length < 1
+      )
+
+  - name: '[BLOCK] - AWS S3 Tenable binaries bucket dependency checks.'
+    block:
+
+      - name: Fail check for missing mandatory variable - nessus_s3_bucket_name
+        fail:
+          msg: "[ERROR]: Missing mandatory passed variable 'nessus_s3_bucket_name'. Please refer to README documentation on the different means to pass\
+            \ variable sets to the automation."
+        when: >
+          nessus_s3_bucket_name is not defined or
+          nessus_s3_bucket_name is none or
+          nessus_s3_bucket_name | length < 1
+
+      - name: Fail check for missing mandatory variable - nessus_s3_bucket_path
+        fail:
+          msg: "[ERROR]: Missing mandatory passed variable 'nessus_s3_bucket_path'. Please refer to README documentation on the different means to pass\
+            \ variable sets to the automation."
+        when: >
+          nessus_s3_bucket_path is not defined or
+          nessus_s3_bucket_path is none or
+          nessus_s3_bucket_path | length < 1
+
+    when: binary_location == "aws_s3"
+    # End "[BLOCK] - AWS S3 Tenable binaries bucket dependency checks."
+
+  - name: Fail check for missing mandatory variable - nessus_manager_address
+    fail:
+      msg: "[ERROR]: Missing mandatory passed variable 'nessus_manager_address'. Please refer to README documentation on the different means to pass variable\
+        \ sets to the automation."
+    when: >
+      nessus_manager_address is not defined or
+      nessus_manager_address is none or
+      nessus_manager_address | length < 1
+
+  - name: Fail check for missing mandatory variable - nessus_registration_key
+    fail:
+      msg: "[ERROR]: Missing mandatory passed variable 'nessus_registration_key'. Please refer to README documentation on the different means to pass variable\
+        \ sets to the automation."
+    when: >
+      nessus_registration_key is not defined or
+      nessus_registration_key is none or
+      nessus_registration_key | length < 1
+
+  - name: Fail check for missing mandatory variable - nessus_agent_group
+    fail:
+      msg: "[ERROR]: Missing mandatory passed variable 'nessus_agent_group'. Please refer to README documentation on the different means to pass variable\
+        \ sets to the automation."
+    when: >
+      nessus_agent_group is not defined or
+      nessus_agent_group is none or
+      nessus_agent_group | length < 1
+
+...

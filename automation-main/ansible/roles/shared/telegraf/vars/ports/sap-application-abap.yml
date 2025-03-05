@@ -1,0 +1,82 @@
+---
+net_ports:
+  - name: sapapp_abap_sap_sapdpnn
+    host: localhost
+    port: 32nn
+    protocol: tcp
+    application: sapapp_abap
+    service: sapdp
+    description: SAP ABAP GUI for Windows and Java (sapapp_abap:32<NN>)
+
+  - name: sapapp_abap_sapgwnn
+    host: localhost
+    port: 33nn
+    protocol: tcp # Maybe udp?
+    application: sapapp_abap
+    service: sapgw
+    description: SAP ABAP Gateway CPIC and RFC communication (sapapp_abap:33<NN>)
+
+  - name: sapapp_abap_sapmsSID
+    host: localhost
+    port: 36nn
+    protocol: tcp
+    application: sapapp_abap
+    service: sapmsSID
+    description: SAP ABAP Message Server (sapapp_abap:36<NN>)
+
+  - name: sapapp_abap_sapgwNNs
+    host: localhost
+    port: 48nn
+    protocol: tcp
+    application: sapapp_abap
+    service: sapgwNNs
+    description: SNC secured for CPIC and RFC communication (sapapp_abap:48<NN>)
+
+  - name: sapapp_abap_icm_http
+    host: localhost
+    port: 80nn
+    protocol: tcp
+    application: sapapp_abap
+    service: icm_http
+    description: SAP ABAP ICM HTTP (sapapp_abap:80<NN>)
+
+  - name: sapapp_abap_http_messageserver
+    host: localhost
+    port: 81nn
+    protocol: tcp
+    application: sapapp_abap
+    service: messageserver
+    description: SAP ABAP HTTP Message Server (sapapp_abap:81<NN>)
+
+  - name: sapapp_abap_icm_https
+    host: localhost
+    port: 443nn
+    protocol: tcp
+    application: sapapp_abap
+    service: icm_https
+    description: SAP ABAP ICM HTTPS (sapapp_abap:443<NN>)
+
+  - name: sapapp_abap_https_messageserver
+    host: localhost
+    port: 444nn
+    protocol: tcp
+    application: sapapp_abap
+    service: messageservers
+    description: SAP ABAP HTTPS Message Server (sapapp_abap:444<NN>)
+
+  - name: sapapp_abap_sapctrl
+    host: localhost
+    port: 5nn13
+    protocol: tcp
+    application: sapapp_abap
+    service: sapctrl
+    description: SAP APP Central Services (SCS and ASCS) (sapapp_abap:5<NN>13)
+
+  - name: sapapp_abap_sapctrls
+    host: localhost
+    port: 5nn14
+    protocol: tcp
+    application: sapapp_abap
+    service: sapctrls
+    description: SAP APP Central Services (SCS and ASCS) (sapapp_abap:5<NN>14)
+...

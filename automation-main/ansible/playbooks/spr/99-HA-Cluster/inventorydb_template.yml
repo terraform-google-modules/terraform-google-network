@@ -1,0 +1,61 @@
+---
+# Synopsis: CRE-S4PCE Inventory
+# Inputs: N/A
+# Outputs: N/A
+# Comments: Be sure to include the defaults.yml as an additional inventory.
+
+all:
+  hosts:
+  children:
+    dbservers:
+      hosts: # Populate with the inventory key of the appropriate Database Hosts
+        EXAMPLE_HOST1:
+        EXAMPLE_HOST2:
+      vars:
+        sap_hana_hsr_hana_sid: "" # HANA DB SID
+        sap_hana_hsr_hana_instance_number: "00" # This will always stay as default
+        sap_hana_hsr_hana_db_system_password: "" # HANA System password
+        sap_hana_hsr_hana_primary_hostname: "" # Custom Hostname of the Primary DB
+        sap_hana_hsr_hana_secondary_hostname: "" # Custom Hostname of the Secondary DB
+        sap_hana_hsr_primary_ip: "" # IP Address of the Primary DB
+        sap_hana_hsr_secondary_ip: "" # IP Address of the Secondary DB
+        sap_hana_hsr_rep_mode: "sync" #This will always stay as default
+        sap_hana_hsr_oper_mode: "logreplay" #This will always stay as default
+
+        #pacemaker defaults
+        sap_hana_ha_pacemaker_stonith_name: "stonith_hana"                     # This will always stay as default
+        sap_hana_ha_pacemaker_cluster_name: "hana_cluster"                     # This will always stay as default
+        sap_ha_pacemaker_cluster_hadr_provider_path: "/hana/shared/myhooks"    # This will always stay as default
+        sap_ha_pacemaker_cluster_hadr_provider_name: "SAPHanaSR"               # This will always stay as default
+        sap_hana_ha_pacemaker_configure_firewall: false       # This will always stay as default
+
+        #setup-pacemaker-ha-cluster-hana.yml
+        sap_hana_ha_pacemaker_hacluster_password: "" # HANA System password
+        sap_hana_ha_pacemaker_node1: ns2hp4db                 # this should be the custom hostname of the primary db
+        sap_hana_ha_pacemaker_node2: ns2hp4dbha               # this should be the custom hostname of the secondary db
+        sap_hana_ha_pacemaker_node1_fqdn: EXAMPLE_HOST1.FQDN  # this should be the custom fqdn of the primary db
+        sap_hana_ha_pacemaker_node2_fqdn: EXAMPLE_HOST2.FQDN  # this should be the custom fqdn of the secondary db
+        aws_region: "us-gov-west-1"                           # AWS Region
+
+        #configure-pacemaker-ha-cluster-hana.yml
+        sap_hana_ha_pacemaker_hana_sid: ""                        # SID of the Primary DB
+        sap_hana_ha_pacemaker_hana_instance_number: "00"          # This will always stay as default
+        sap_hana_ha_pacemaker_cluster_oip: 10.239.9.0             # Assigned OIP of the DB
+        customer_vpc_route_table_id_1a: rtb-########1             # Value from Terraform Layer-HA
+        customer_vpc_route_table_id_1b: rtb-########2             # Value from Terraform Layer-HA
+        customer_vpc_route_table_id_1c: rtb-########3             # Value from Terraform Layer-HA
+
+    dbprimary:
+      vars:
+        sap_hana_hsr_role: "primary" #This will always stay as default
+        sap_hana_hsr_alias: "DC1" #This will always stay as default
+      hosts:
+        EXAMPLE_HOST1:
+          spr_hostname: "" # Custom Hostname of the Primary DB
+    dbsecondary:
+      vars:
+        sap_hana_hsr_role: "secondary" #This will always stay as default
+        sap_hana_hsr_alias: "DC2" #This will always stay as default
+      hosts:
+        EXAMPLE_HOST2:
+          spr_hostname: "" # Custom Hostname of the Primary DB

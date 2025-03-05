@@ -1,0 +1,162 @@
+---
+# Synopsis: SPR Default Values
+# Inputs: N/A
+# Outputs: N/A
+# Comments: Include this defaults by specifying multiple inventories during execution
+#
+
+all:
+  hosts:
+  vars:
+    ### AWS Storage Variables
+#    efs_staging_ip: 'x.x.x.x'
+#    efs_usr_sap_trans_fsid: 'efs-x'
+    ### End AWS Storage Variables
+
+    ### Azure Storage Variables. Leave blank when not in use.
+    spr_azure_resource_group: ''
+    spr_azure_staging_storage_account: ''
+    spr_azure_staging_file_share: ''
+    spr_azure_customer_storage_account: ''
+    spr_azure_customer_file_share: ''
+    spr_azure_backup_storage_account: ''
+    spr_azure_backup_container: ''
+    spr_azure_customer_sftp_file_share: ''
+    ### End Azure Storage Variables
+
+    # Application Provisioning Variables
+    spr_domain: test.internal
+    spr_application_source: '{{ spr_application_source_list[ spr_productname | lower ] }}'
+    spr_file_instkey: '{{ spr_file_instkey_list[ spr_productname | lower ] }}'
+    spr_db_source: '{{ spr_db_source_list[ spr_productname | lower ] }}'
+    spr_file_ini_params: '{{ spr_file_ini_params_list[ spr_productname |lower ]}}'
+    spr_file_install_rsp_xml: '{{ spr_file_install_rsp_xml_list[ spr_productname | lower ] }}'
+    spr_file_install_rsp: '{{ spr_file_install_rsp_list[ spr_productname | lower ]}}'
+    spr_aas_source: '{{ spr_aas_source_list[ spr_productname | lower ]}}'
+    spr_file_swpm_sapinst: >-
+      {%- if spr_nlb_ports|default('') in [
+          default_ports_java,default_ports_ads,default_ports_contentserver,default_ports_optimizer,
+        ] -%}      {{ spr_swpm_sapinst_java }}
+      {%- else -%} {{ spr_swpm_sapinst_abap }}
+      {%- endif -%}
+    default_ports_abap: ['3601', '3200', '3202', '3298', '3300', '4800', '8000', '8001', '44300', '50001']
+    default_ports_java: ['3298', '8000', '8101', '8200', '8210', '8220', '8230', '44300', '50000', '50001', '50004']
+    default_ports_bobj: ['6400', '6405', '6410', '8080', '8443']
+    default_ports_bobj_bip: ['6400', '6405', '6410', '8080', '8443']
+    default_ports_lumira: ['6400', '6401', '6405', '6410']
+    default_ports_dataservices: ['3500', '4000', '4001', '4010', '4011', '4012', '4013', '5001', '8005', '8080', '8443']
+    default_ports_ads: ['3601', '3200', '3300', '4800', '4801', '8000', '44300', '3298', '50000', '50001']
+    default_ports_information_steward: ['5005', '6576', '8080', '8443']
+    default_ports_cloudconnector: ['8443']
+    default_ports_sac_agent: ['8443', '8080']
+    default_ports_webdispatcher: ['8000', '44300', '44301', '44302', '44303']
+    default_ports_hana_ee: ['8000', '4300', '30006', '30015', '30033']
+    default_ports_plc: ['8000', '4300', '30006', '30015', '30033', '51040']
+    default_ports_dpagent: ['5050', '5051']
+    default_ports_nginx_public: ['443']
+    default_ports_opentext: ['8080', '8090']
+    default_ports_iq: ['4282', '4283', '4992', '4998']
+    default_ports_enable_now: ['8080', '8090', '8443']
+    default_ports_convergent_charging: ['2000', '2100', '8443', '9100', '9180']
+    default_ports_database: ['30015']
+    default_ports_contentserver: ['1091']
+    default_ports_optimizer: []
+
+
+    # Terraform Variables
+    tag_customdomain: '{{ spr_domain }}'
+    tag_customhostname: '{{ spr_hostname }}'
+    # End Terraform Variables
+
+  children:
+### Reserved group names
+    # Reserved values that will become groupings for different instances and variables
+    # Unless you have a deep understanding of ansible, do not add anything underneath here.
+    #programmatic groups
+    replication_source:
+    replication_destination:
+    #landscapes
+    prd:
+    qas:
+    dev:
+    sbx:
+    trn:
+    dr:
+    #nodetype
+    agent:
+    app:
+    db:
+    #applicationtype
+    pas:
+    aas:
+
+    #productname_application_singletenant
+    access_control:
+    access_control_s4hana:
+    ads:
+    attp:
+    bobj:
+    bobj_bip:
+    bw4hana:
+    bw4hana_addons:
+    bw4hana_bpc:
+    bwnetweaver:
+    car:
+    convergent_charging:
+    convergent_mediation:
+    cors:
+    data_warehouse:
+    etd:
+    hana_ee:
+    ehp7_erp:
+    ehp8_erp:
+    fiori_carab:
+    fiori_fes:
+    frun:
+    gbtr:
+    gts:
+    gts_ed4hana:
+    ilm:
+    information_steward:
+    iq:
+    lama_ent_java:
+    lumira:
+    mii:
+    nwjava:
+    payroll:
+    platform_edition:
+    plc:
+    po:
+    portal:
+    s4hana_addons:
+    s4hana_foundation:
+    s4hana_livecache:
+    s4hana:
+    scm:
+    slt:
+    srm:
+    sso:
+    tm:
+
+    #productname_application_multitenant
+    solman_abap:
+    solman_hdb:
+    solman_java:
+    crm:
+
+    #productname_non_application
+    non_spr:
+    apache_ftp:
+    cloudconnector:
+    contentserver:
+    cpids_agent:
+    data_services:
+    dpagent:
+    hanacockpit:
+    optimizer:
+    opentext:
+    router:
+    sac_agent:
+    sftp_interface:
+    webdispatcher:
+...

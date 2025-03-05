@@ -1,0 +1,235 @@
+---
+# Playbook Name: s4pce-configure-saprouter.yml
+# Description: Configures a saprouter as provisioned in spr-provisioning.yml
+# Dependencies:
+#   - Ansible v2.9.19+
+#
+# Variables:
+#
+# Example:
+#    ansible-playbook s4pce-configure-saprouter.yml -i defaults.yml -i inventory.yml
+# Authors: David Nolan
+# Version: 2.9-000001
+# Modified: 2022-08-31 - Created
+#
+# Comments:
+#
+#   Play Tags:
+#     play0 information gathering               : Check for requirements, fail if missing
+#     play1 hostname validation                 : Make sure hostname matches naming standard
+#     play2 add user                            : Create admin user for sap router
+#     play3 create directories                  : Create required directories
+#     play4 copy files andchange permissions    : Copy files and change permissions
+#     play5 update rtradm bashrc                : Add environment variables to rtradm user bashrc file
+#     playEND always                            : End of the playbook
+
+
+#################
+##### Play0 #####
+#################
+  - name: 'Play0: Information Gathering'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play0
+      - always
+
+    vars:
+      saprouter_media_path: '/staging/product-line/SAP_NetWeaver/SAPROUTER/SAPROUTER_7.53/Media'
+
+    tasks:
+      - name: "Dynamic Group Assignment"
+        group_by:
+          key: "{{ item }}"
+        when: "item != 'undefined'"
+        loop:
+        - "{{ spr_nodetype|default('undefined')|lower }}"
+        - "{{ spr_landscape|default('undefined')|lower }}"
+        - "{{ spr_productname|default('undefined')|lower }}"
+      - name: See if saprouttab exists
+        stat:
+          path: "/usr/sap/saprouter/saprouttab"
+        register: file_saproutetab
+      - name: Fail if saprouttab doesn't exist
+        fail:
+          msg: The file saprouttab is missing.
+        when: file_saproutetab.stat.exists == false
+      - name: See if saprouter media exists
+        stat:
+          path: "{{ saprouter_media_path }}"
+        register: dir_saproutermedia
+      - name: Fail if saprouter media doesn't exist
+        fail:
+          msg: "The directory {{ saprouter_media_path }} is missing."
+        when: dir_saproutermedia.stat.exists == false
+
+
+
+#################
+##### Play1 #####
+#################
+  - name: 'Play1: Hostname validation'
+    hosts: router
+    gather_facts: true
+    become: false
+    tags:
+      - play1
+      - hostname
+
+    tasks:
+      - name: Fail if the hostname does not meet naming convention
+        fail:
+          msg: hostname does not mat naming convention
+        when: ansible_hostname is not match("[cs][0-9][0-9][0-9]app01rtr")
+
+
+#################
+##### Play2 #####
+#################
+  - name: 'Play2: Add user'
+    hosts: router
+    gather_facts: false
+    become: false
+    tags:
+      - play2
+      - adduser
+
+    tasks:
+      - name: add saprouter user
+        become: true
+        ansible.builtin.user:
+          name: "rtradm"
+          group: sapsys
+          groups: sapsys
+          append: true
+          comment: "SAPRouter Administrator"
+          expires: -1
+          create_home: true
+          uid: "1001"
+          shell: "/bin/csh"
+          home: "/home/rtradm"
+          password: "$6$jsnmsfI2ed94$y25mynFH3Pybf4FTrAAgukZacquVMPeso3OjzFMlVh5120SEi2JeTX3ye/hf6tYhBqyH2hWpR9m36BHEE18Ee0"
+        register: create_user_output
+
+
+#################
+##### Play3 #####
+#################
+  - name: 'Play3: create directories'
+    hosts: router
+    become: false
+    tags:
+      - play3
+      - createdirs
+
+    tasks:
+      - name: Create /usr/sap/saprouter/access-control
+        become: true
+        ansible.builtin.file:
+          path: "/usr/sap/saprouter/access-control"
+          state: directory
+          mode: '0644'
+      - name: Create /usr/sap/saprouter/log
+        become: true
+        ansible.builtin.file:
+          path: "/usr/sap/saprouter/log"
+          state: directory
+          mode: '0644'
+      - name: Create /usr/sap/saprouter/trace
+        become: true
+        ansible.builtin.file:
+          path: "/usr/sap/saprouter/trace"
+          state: directory
+          mode: '0644'
+
+
+#################
+##### Play4 #####
+#################
+  - name: 'Play4: copy files, change permissions, check defaults'
+    hosts: router
+    become: false
+    tags:
+      - play4
+      - copyfiles
+
+    vars:
+      saprouter_media_path: '/staging/product-line/SAP_NetWeaver/SAPROUTER/SAPROUTER_7.53/Media'
+
+    tasks:
+      - name: copy saprouttab to /usr/sap/saprouter/access-control
+        become: true
+        ansible.builtin.copy:
+          src: /usr/sap/saprouter/saprouttab
+          dest: /usr/sap/saprouter/access-control/saprouttab
+          remote_src: yes
+      - name: delete original saprouttab
+        become: true
+        ansible.builtin.file:
+          path: /usr/sap/saprouter/saprouttab
+          state: absent
+      - name: copy saprouter media to /usr/sap/saprouter
+        become: true
+        ansible.builtin.copy:
+          src: "{{ saprouter_media_path }}"
+          dest: /usr/sap/saprouter/
+          remote_src: yes
+      - name: change ownership of /usr/sap/saprouter
+        become: true
+        ansible.builtin.file:
+          path: /usr/sap/saprouter
+          state: directory
+          recurse: yes
+          owner: rtradm
+          group: sapsys
+      - name: check default values in saprouttab
+        become: true
+        ansible.builtin.lineinfile:
+          path: /usr/sap/saprouter/access-control/saprouttab
+          regexp: '^D '
+          line: "D * * * *"
+
+
+#################
+##### Play5 #####
+#################
+  - name: 'Play5: update bashrc for rtradm'
+    hosts: router
+    become: false
+    tags:
+      - play5
+      - updatebash
+
+    tasks:
+      - name: add SECURDIR variable
+        become: true
+        ansible.builtin.lineinfile:
+          path: /home/rtradm/.bashrc
+          line: 'export SECUDIR=/usr/sap/saprouter'
+          create: yes
+      - name: add SNC_LIB variable
+        become: true
+        ansible.builtin.lineinfile:
+          path: /home/rtradm/.bashrc
+          line: 'export SNC_LIB=/usr/sap/saprouter/libsapcrypto.so'
+
+###################
+##### PlayEND #####
+###################
+  - name: 'PlayEND: End of playbook'
+    hosts: all
+    gather_facts: false
+    become: false
+    tags:
+      - play-end
+      - always
+      - the-end
+
+    tasks:
+      - name: This is the end
+        delegate_to: localhost
+        run_once: true
+        debug:
+          msg: Of the world as we know it
+...

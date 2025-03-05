@@ -1,0 +1,48 @@
+---
+# Playbook Name: spr-mount-storage-gateway-nfs.yml
+# Description: This playbook will mount a storage gateway file share to some specified path
+# Prerequisites:
+#   - AWS S3 File Gateway with file share available and reachable from the host(s)
+# Dependencies: N/A
+# Variables: # TODO: Add storage gateway DNS option instead of having to use the IP?
+#   spr_storage_gateway_endpoint              : Endpoint (IP address or DNS) of the storage gateway
+#   spr_storage_gateway_file_share_name       : Name of the storage gateway file share to be mounted
+#   spr_storage_gateway_file_share_mount_path : Path on the target host on which the storage gateway file share will be mounted
+# Example:
+#   ansible-playbook spr-mount-storage-gateway-nfs.yml -i inventory.yml -k
+# Authors: Nick Martinez
+# Version: 2.16-000001
+# Modified: 2024-06-12 - Created
+# Comments: |
+#   Tags:
+#     play1 always    : Mount Storage Gateway NFS
+
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Mount Storage Gateway NFS"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play1
+  - always
+
+  tasks:
+    - name: "Enable repositories"
+      include_role:
+        name: repository-management
+      vars:
+        repo_enable: true
+        application_preset_selection: ['base']
+
+    - name: "Mount Storage Gateway NFS"
+      ansible.builtin.include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          sgw_nfs:
+            path: "{{ spr_storage_gateway_file_share_mount_path }}"
+            src: "{{ spr_storage_gateway_endpoint }}"
+            src_root: "{{ spr_storage_gateway_file_share_name }}"
+...

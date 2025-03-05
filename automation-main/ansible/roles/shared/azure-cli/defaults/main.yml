@@ -1,0 +1,9 @@
+---
+# defaults file for azure-cli
+
+# Whether or not to install the azure-cli on the target system
+install_cli: true
+
+# Whether or not to remove the azure-cli from the target system
+remove_cli: false
+...

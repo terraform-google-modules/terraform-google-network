@@ -1,0 +1,127 @@
+---
+# File Name: ibp-ansible-inventory-template.yml
+# Synopsis: Ansible inventory to be used with all IBP playbooks
+# Comment:
+#   - Documenation Header moved to bottom of file to preserve line numbers for Operational Runbooks.
+all:
+  hosts:
+  vars:
+    efs_staging_ip: 'EXAMPLE_1.2.3.4'
+    efs_usrsaptrans_ip: 'EXAMPLE_2.3.4.5'
+    saphostagent_source: '/staging/ibp/Build/___EXAMPLE_RELEASE_NAME___/SAPHOSTAGENT'
+    aws_region: '___YOUR-AWS-REGION___'
+    customer_number: 'EXAMPLE_99'
+    input_hostfile_fqdn: '___EXAMPLE.IBP.REGION.SCS.INTERNAL___'
+    ### Post Provisioning Variables
+    #### Postfix
+    input_postfix_relay_smtp_address: '___MAIL.RELAY.FROM.IBP.MANAGEMENT.INTERNAL___'
+    input_postfix_relay_smtp_port: '25'
+
+    #### Nessus
+    input_nessus_manager_address: '___NESSUS.MANAGER.FROM.SMS.INTERNAL___'
+    input_nessus_agent_group: '___DEFINED-FROM-SMS-IBP___'
+    input_nessus_s3_bucket_aws_region: '___DEFINED-FROM-SMS-REGION___'
+    input_nessus_s3_bucket_name: '___DEFINED-FROM-SMS-NESSUS-INSTALL-BUCKET___'
+    input_nessus_s3_bucket_path: 'media/tenable'
+
+  children:
+### Product Groups
+    webdispatcher:
+      hosts:
+        EXAMPLE_3.4.5.6:
+      vars:
+        webdispatcher_tar_source: '/staging/webdispatcher/Build/___EXAMPLE_RELEASE_NAME___'
+    cpids:
+      hosts:
+        EXAMPLE_4.5.6.7:
+      vars:
+        cpids_tar_source: '/staging/cpids/Build/___EXAMPLE_RELEASE_NAME___'
+        cpids_alb_cname: 'customer00xx.cpi-ds.___EXAMPLE.FQDN.INTERNAL___'
+    ibpapp:
+      hosts:
+        EXAMPLE_5.6.7.8:
+        EXAMPLE_6.7.8.9:
+    ibpdb:
+      hosts:
+        EXAMPLE_7.8.9.10:
+        EXAMPLE_8.9.10.11:
+### Landscape Groups
+    dataservices:
+      children:
+        webdispatcher:
+        cpids:
+      vars:
+    staging:
+      hosts:
+        EXAMPLE_6.7.8.9:
+        EXAMPLE_8.9.10.11:
+      vars:
+        hana_tar_source: '/staging/ibp/Build/___EXAMPLE_RELEASE_NAME___/DB'
+        sapapp_tar_source: '/staging/ibp/Build/___EXAMPLE_RELEASE_NAME___/APP'
+        sid: EXAMPLE_N14
+        suffix: 'stg'
+    test:
+      hosts:
+
+      vars:
+        hana_tar_source: '/staging/ibp/Build/___EXAMPLE_RELEASE_NAME___/DB'
+        sapapp_tar_source: '/staging/ibp/Build/___EXAMPLE_RELEASE_NAME___/APP'
+        sid:
+        suffix: 'tst'
+    production:
+      hosts:
+        EXAMPLE_5.6.7.8:
+        EXAMPLE_7.8.9.10:
+      vars:
+        hana_tar_source: '/staging/ibp/Build/___EXAMPLE_RELEASE_NAME___/DB'
+        sapapp_tar_source: '/staging/ibp/Build/___EXAMPLE_RELEASE_NAME___/APP'
+        sid: EXAMPLE_N16
+        suffix: 'prd'
+    disaster_recovery:
+      hosts:
+
+      vars:
+        hana_tar_source: '/staging/ibp/Build/___EXAMPLE_RELEASE_NAME___/DB'
+        sapapp_tar_source: '/staging/ibp/Build/___EXAMPLE_RELEASE_NAME___/APP'
+        suffix: 'prd-dr'
+        sid:
+...
+# Prerequisites:
+# - Ansible v2.9+
+# - Necessary Ansible playbooks and roles
+# Dependencies:
+# Variables:
+#   - efs_staging_ip: IP Address of the staging EFS to be mounted.
+#   - efs_usrsaptrans_ip: IP Address of the /usr/sap/trans EFS to be mounted.
+#   - saphostagent_source: Source for SAP Host Agent install files
+#   - webdispatcher_tar_source: Source of the Webdispatcher tar files.
+#   - hana_tar_source: Source of the Hana tar files. **This should be different depending on prod or non-prod**
+#   - sapapp_tar_source: Source of the IBPApp tar files. **This should be different depending on prod or non-prod**
+#   - cpids_tar_source: Source of the CPI-DS tar files
+#   - aws_region: The AWS region that the systems operate in.
+#   - customer_number: Use by DNS Hostfile creation
+#   - input_hostfile_fqdn: This is the FQDN (suffix) that will be attached to any hostfile entries.
+#   - input_postfix_relay_smtp_address: The postfix relay address. Found from STS Management
+#   - input_postfix_relay_smtp_port: The postfix relay port. Found from STS Management
+#   - input_nessus_manager_address: Nessus manager address. Please ask SMS for details.
+#   - input_nessus_agent_group: Nessus agent group. Please ask SMS for details.
+#   - input_nessus_s3_bucket_aws_region: Nessus S3 bucket region. Please ask SMS for details.
+#   - input_nessus_s3_bucket_name: Nessus S3 bucket name. Please ask SMS for details.
+#   - input_nessus_s3_bucket_path: Nessus S3 bucket path. Please ask SMS for details.
+
+# Authors: Louis Lee
+# Version: 2024-12-16
+# Modified: 2020-03-17 - Created
+#           2020-05-14 - added entry for the cpids cname
+#           2024-12-04 - Removed Hardcoded Regions, Aligned on Styles.
+#           2024-12-16 - Added input_hostfile_fqdn for internal fqdn used in hostfiles.
+# Comments:
+#   Instructions:
+#     1. Update EFS IP address accordingly.
+#     2. Update all tar sources to the latest versions (not used yet)
+#     3. Update the customer_number (not used yet)
+#     4. Add the host ip address to the appropriate location.
+#         4a. Host should be added once under a product group: (webdispatcher, cpids, ipbapp, ibpdb)
+#         4b. Host should be added once under a landscape group: (dataservices, production, staging, test, disaster_recovery )
+#     5. Update the SIDs under each landscape.
+#

@@ -1,0 +1,91 @@
+---
+# Playbook Name: spr-hostfile.yml
+# Description: This playbook creates custom hostnames
+# Dependencies:
+# - Ansible v2.9+
+# - SPR Role
+# Variables:
+# Example:
+# ansible-playbook spr-hostfile.yml -i defaults.yml -i inventory.yml
+# Modified:
+# Authors: Louis Lee
+
+# Version: 2.9-000001
+# Modified:
+#           2023-07-13 - Creation
+# Comments: |
+#
+#   Tags:
+#     play0 always                          : Dynamic group assignment
+#     play1 hostnames hostfiles             : Prepare hostnames and hostfiles
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+
+  - name: "Dynamic Group Assignment for app servers"
+    group_by:
+      key: "{{ item }}"
+    when: inventory_hostname in groups.app
+    loop:
+    - "{%- if (
+          (( inventory_hostname | regex_replace('^.+app(?P<node>\\d\\d).*$', '\\g<node>')) == \"01\" )
+        ) -%} pas
+        {%- else -%} aas
+        {%- endif -%}"
+
+  - name: Set corresponding PAS server fact on AAS servers
+    set_fact:
+      pas_server: '{{ item }}'
+    loop: "{{ hostvars[inventory_hostname]['groups']['pas'] }}"
+    when:
+      - groups.aas is defined
+      - inventory_hostname in groups.aas
+      - (item | regex_replace('(app\\d\\d)', 'app')) == (inventory_hostname | regex_replace('(app\\d\\d)', 'app'))
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Set Hostnames and Host Files"
+  gather_facts: false
+  hosts: all
+  tags:
+  - play1
+  - hostnames
+  - hostfiles
+
+  vars:
+    hotfix_gcp_hostname: false
+  tasks:
+  - name: "Set the host file"
+    include_role:
+      name: spr
+      allow_duplicates: yes
+      tasks_from: provisioning/hostfile-install.yml
+
+  - name: "Set the Hostname"
+    become: true
+    hostname:
+      name: "{{ spr_hostname|lower }}"
+
+  - name: "remove gcp hostname reset shell script"
+    when: hotfix_gcp_hostname|bool
+    become: true
+    shell: rm -rf /etc/dhcp/dhclient.d/google_hostname.sh
+    ignore_errors: true

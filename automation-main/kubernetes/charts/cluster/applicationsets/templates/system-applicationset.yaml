@@ -1,0 +1,89 @@
+{{- range .Values.systemApplicationset.appsets }}
+{{- if .enabled }}
+{{- $appset := . }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ $appset.name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: '{{ $.Values.gitlabRepoUrl }}'
+        revision: '{{ $.Values.targetBranchName }}'
+        directories:
+          {{- if $appset.vaultPlugin }}
+          {{- range $.Values.systemApplicationset.avpDeployments }}
+          - path: "{{ $appset.repoPath }}/{{ . }}"
+          {{- end }}
+          {{- else }}
+          - path: "{{ $appset.repoPath }}/*"
+          {{- range $.Values.systemApplicationset.avpDeployments }}
+          - path: "{{ $appset.repoPath }}/{{ . }}"
+            exclude: true
+          {{- end }}
+          {{- end }}
+  ignoreApplicationDifferences:
+    - jsonPointers:
+        - /spec/syncPolicy
+  template:
+    metadata:
+      name: '{{ $appset.baseName }}'
+      labels:
+        appsetType: system
+        appsetGroup: '{{ $appset.appsetGroup }}'
+      annotations:
+        argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true
+        argocd.argoproj.io/manifest-generate-paths: .
+    spec:
+      project: default
+      source:
+        repoURL: '{{ $.Values.gitlabRepoUrl }}'
+        targetRevision: '{{ $.Values.targetBranchName }}'
+        path: '{{ $appset.sourcePath }}'
+      {{- if $appset.vaultPlugin }}
+        plugin:
+          name: argocd-vault-plugin-overlay
+          env:
+            - name: HELM_VALUE_FILE
+              value: 'values.yaml'
+      {{- else }}
+        helm:
+          valueFiles:
+            - values.yaml
+      {{- end }}
+      destination:
+        server: 'https://kubernetes.default.svc'
+        namespace: '{{ $appset.nameSpace }}'
+      ignoreDifferences:
+        - kind: "*"
+          group: "*"
+          jqPathExpressions:
+            - .metadata.labels
+      syncPolicy:
+        automated:
+          prune: false
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+        syncOptions:
+          {{- if $appset.syncOptions.CreateNamespace }}
+          - CreateNamespace={{ $appset.syncOptions.CreateNamespace }}
+          {{- end }}
+          {{- if $appset.syncOptions.ServerSideApply }}
+          - ServerSideApply={{ $appset.syncOptions.ServerSideApply }}
+          {{- end }}
+          {{- if $appset.syncOptions.ApplyOutOfSyncOnly }}
+          - ApplyOutOfSyncOnly={{ $appset.syncOptions.ApplyOutOfSyncOnly }}
+          {{- end }}
+          - RespectIgnoreDifferences=true
+{{- end }}
+{{- end }}

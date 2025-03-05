@@ -1,0 +1,46 @@
+- name: "{{ inventory_hostname }} has {{ (ansible_facts.memtotal_mb/1000)|round|int }}GB of system memory"
+  ansible.builtin.set_fact:
+    distributed_calculate_disks_ram_size: "{{ (ansible_facts.memtotal_mb/1000)|round|int }}"
+
+# Ensures that custom_volume_map is empty to add new devices
+- name: "Initialize custom_volume_map"
+  ansible.builtin.set_fact:
+    distributed_calculate_disks_output_custom_volume_map:
+
+- name: "Calculate hana_shared_size and hana_log_size"
+  ansible.builtin.set_fact:
+    distributed_calculate_disks_hana_shared_size: >-
+        {% if distributed_calculate_disks_ram_size|int < 1000 %} {{ distributed_calculate_disks_ram_size|int }}
+        {% else %} 1000
+        {% endif %}
+    distributed_calculate_disks_hana_log_size: >-
+        {% if distributed_calculate_disks_ram_size|int < 2000 %} {{ (distributed_calculate_disks_ram_size|int / 2)|int  }}
+        {% else %} 1000
+        {% endif %}
+
+- name: "Hana Cockpit Shared Size"
+  when: spr_productname == "hanacockpit"
+  ansible.builtin.set_fact:
+    distributed_calculate_disks_hana_shared_size: '200'
+
+- name: "Add hana volumes to custom_volume_map"
+  ansible.builtin.set_fact:
+    distributed_calculate_disks_output_custom_volume_map: "{{ distributed_calculate_disks_output_custom_volume_map | combine(disk) }}"
+  loop:
+    - hana_data:
+        mount_point: '/hana/data'
+        size: "{{ distributed_calculate_disks_ram_size|int * 2 }}"
+    - hana_log:
+        mount_point: '/hana/log'
+        size: "{{ distributed_calculate_disks_hana_log_size|int }}"
+    - hana_shared:
+        mount_point: '/hana/shared'
+        size: "{{ distributed_calculate_disks_hana_shared_size|int }}"
+    - hana_backups:
+        mount_point: '/hana/backups'
+        size: "{{ distributed_calculate_disks_ram_size|int * 2 }}"
+    - usr_sap:
+        mount_point: '/usr/sap'
+        size: 50
+  loop_control:
+    loop_var: disk

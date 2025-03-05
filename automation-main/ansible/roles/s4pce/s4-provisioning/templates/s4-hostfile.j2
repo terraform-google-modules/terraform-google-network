@@ -1,0 +1,20 @@
+127.0.0.1       localhost.localdomain   localhost
+::1        localhost6.localdomain6   localhost6
+#=========================================================================================
+# S4 Customer{{customernumber}} host file created by Ansible
+#=========================================================================================
+#-----------------------------------------------------------------------------------------
+# Database Servers
+#=========================================================================================
+{% for server in database_servers %}
+# {{server}}
+{{ db_ipaddress }}    {{database_servers[server].hostname}}.{{ domain_fqdn }}   {{database_servers[server].hostname}}
+#-----------------------------------------------------------------------------------------
+{% endfor %}
+# Application Servers
+#=========================================================================================
+{% for server in application_servers %}
+# {{server}}
+{{ sapapp_ipaddress }}    {{application_servers[server].hostname}}.{{ domain_fqdn }}    {{application_servers[server].hostname}}
+#-----------------------------------------------------------------------------------------
+{% endfor %}

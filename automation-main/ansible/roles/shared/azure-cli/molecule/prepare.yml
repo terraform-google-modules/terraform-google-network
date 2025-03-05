@@ -1,0 +1,20 @@
+---
+# Description: Molecule prepare.yml playbook used to ensure that repositories are set up and locks are released.
+
+  - name: Prepare
+    hosts: all
+    gather_facts: true
+    tasks:
+
+      - name: Run the 'repository-management' role to enable the base, EPEL, and Azure repositories
+        include_role:
+          name: repository-management
+        vars:
+          repo_enable: true
+          application_preset_selection: [base, epel, azure]
+
+      - name: Wait for apt lock to release
+        wait_for:
+          timeout: 360
+        when: ansible_os_family | lower == "ubuntu"
+...

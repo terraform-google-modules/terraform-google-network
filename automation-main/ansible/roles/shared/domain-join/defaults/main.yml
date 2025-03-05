@@ -1,0 +1,25 @@
+---
+domain_user: ''                                 # (Required) The AD account with domain join privilege
+domain_password: ''                             # (Required) The credentials for the AD Account
+domain_sudo_group: ''                           # (Required) The Security group in AD that will be given Sudo rights
+domain_require_sudo_password: false             # (Optional) Set to true if you require users to provide password to sudo
+domain_fqdn: ''                                 # (Required) The fully qualified domain name
+domain_login_group: ''                          # (Optional) The Security group in AD that allows SSH Login. Only used when domain_restrict_ssh is also set to true
+domain_set_dns: false                           # (Optional) If true, then domain_dns1 and domain_dns2 will be set to the dns server in resolv.conf
+domain_dns1: ''                                 # (Optional) IP address of the primary AD DNS server
+domain_dns2: ''                                 # (Optional) IP address of the secondary AD DNS server
+domain_force_join: false                        # (Optional) If true, will leave any connected realm first.
+domain_set_hostname: false                      # (Optional) If true, then the hostname will be changed to the last 15 chars of the instance ID
+domain_restrict_ssh: false                      # (Optional) If true, then SSH logins will be restricted to ec2-user and the SSH group specified by domain_login_group
+domain_user_home_path: /home                    # (Optional) Folder to store domain user home directories
+domain_full_home_directories: false             # (Optional) Set to true to set domain user home directory paths to /user@domain as opposed to default of /user
+domain_chroot_home_directories: false           # (Optional) Set to true to set override_homedir without individual home directories (%u) for chroot environments
+domain_reset_cache: false                       # (Optional) Flag to set to ensure that the SSSD cache is emptied so that any new RBAC changes can get picked up immediately
+domain_log_level: 3                             # (Optional) SSSD log level
+custom_default_user:                            # (Optional) Specify a custom default user to preserve remote access to the system for during the domain-join process
+domain_krb5_store_password_if_offline:          # (Optional) Value to set the krb5_store_password_if_offline flag in the sssd config file; Valid options are 'True' and 'False'
+sssd_ignore_group_members: true                 # (Optional) If true, set ignore_group_members = True
+sssd_ldap_group_nesting_level:                  # (Optional) By default, use sssd default ldap_group_nesting_level of 2, otherwise use defined value
+remove_invalid_config_options: false            # (Optional) If true, remove invalid config options
+realm_no_log: true                              # (Optional) If true, then show results of realm join command
+...

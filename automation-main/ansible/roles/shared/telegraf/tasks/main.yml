@@ -1,0 +1,31 @@
+---
+# tasks file for telegraf
+
+  - name: Install telegraf from S3
+    ansible.builtin.include_tasks: install-s3.yml
+    when:
+      - telegraf_s3_binaries_url is defined
+      - telegraf_s3_binaries_url | length > 0
+
+  - name: Install Telegraf from package repository
+    ansible.builtin.include_tasks: install-repository.yml
+    when:
+      - telegraf_s3_binaries_url is undefined or telegraf_s3_binaries_url | length == 0
+
+  - name: Collect metadata for telegraf
+    ansible.builtin.include_tasks: metadata.yml
+
+  - name: Configure telegraf
+    ansible.builtin.include_tasks: configure.yml
+
+  - name: Update systemd configuration
+    ansible.builtin.include_tasks: systemd.yml
+
+  - name: Remove old debugging file that may exist
+    ansible.builtin.file:
+      path: /tmp/metrics.out
+      state: absent
+    become: true
+    notify:
+      - restart telegraf
+...

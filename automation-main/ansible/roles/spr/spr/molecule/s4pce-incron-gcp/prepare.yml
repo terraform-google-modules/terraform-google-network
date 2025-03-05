@@ -1,0 +1,25 @@
+---
+  - name: Prepare
+    hosts: all
+    gather_facts: false
+    become: true
+    tasks:
+      - name: Make sure python3 is installed
+        package:
+          name: python3
+          state: present
+
+      - name: Create Sapsys Group
+        group:
+          name: sapsys
+          gid: 79
+          state: present
+        become: true
+
+      - name: Create User
+        user:
+          name: hddadm
+          shell: /bin/bash
+          group: sapsys
+          state: present
+...

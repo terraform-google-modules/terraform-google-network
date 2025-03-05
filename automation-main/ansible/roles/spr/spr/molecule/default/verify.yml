@@ -1,0 +1,61 @@
+---
+# This file contains validation tests for various tasks from roles/spr/tasks/main.yml.
+
+- name: Validation tests for the SPR ansible role
+  hosts: all
+  gather_facts: false
+  tasks:
+
+  - name: Get the full hostname of the EC2 instance
+    shell: hostname -f
+    register: hostname_full_output
+
+  - name: Assert that the hostname is what is expected
+    assert:
+      that:
+        - hostname_full_output.stdout == "{{ spr_hostname|lower }}.{{ spr_domain|lower }}"
+      fail_msg: "fail, hostname is not correct"
+      success_msg: "success, hostname is correct"
+
+  - name: Get the contents of the hostfile
+    shell: cat /etc/hosts
+    register: etc_host_file_output
+
+  - name: Assert that the hostfile contains the hostname
+    assert:
+      that:
+        - etc_host_file_output.stdout.find("{{ spr_hostname|lower }}") != -1
+      fail_msg: "fail, hostfile does not contain hostname"
+      success_msg: "success, hostfile does contain hostname"
+
+  - name: Register the hostname as a variable
+    set_fact:
+      host_lower: "{{ spr_hostname|lower }}"
+
+  - name: Get stats on path /usr/sap
+    stat:
+      path: "/usr/sap"
+    register: usr_sap_path_results
+
+  - name: Validate that path checks function as expected
+    assert:
+      that: usr_sap_path_results.stat.size is not defined
+      fail_msg: "Failed: Path passes validation checks but does not actually exist."
+      success_msg: "Success: Path does not exist, this is expected behavior."
+
+# begin BLOCK: SAC agent
+  - name: create the sacagent user
+    become: true
+    user:
+      name: sacagent
+
+  - name: read the /etc/passwd file
+    shell: cat /etc/passwd
+    register: created_users_output
+
+  - name: validate that the user sacagent was created
+    assert:
+      that: created_users_output.stdout.find("sacagent") != -1
+
+# End block "Construct block device names"
+...

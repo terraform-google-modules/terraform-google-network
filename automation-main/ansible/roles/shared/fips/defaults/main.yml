@@ -1,0 +1,9 @@
+---
+# defaults file for fips
+
+# put the system into fips mode; defaults to true
+fips_mode_enabled: true
+
+# reboot instance after fips is enabled/disabled; defaults to false
+fips_reboot_host: false
+...

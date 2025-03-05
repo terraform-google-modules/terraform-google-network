@@ -1,0 +1,23 @@
+---
+# Description: Configures drivers and packages required for Azure CLI.
+# Inputs:
+#   - N/A
+# Outputs:
+#   - Installs and configures drivers and packages for Azure CLI in Ubuntu.
+
+  - name: Remove previous versions of Azure CLI
+    package:
+      state: absent
+      name: azure-cli
+    become: true
+
+  - name: Remove cached information from Azure locations
+    file:
+      path: '{{ item }}'
+      state: absent
+      force: true
+    loop:
+      - /root/.azure
+      - /home/cloud-user/.azure
+    become: true
+...

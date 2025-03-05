@@ -1,0 +1,22 @@
+# IMPORTANT DO NOT DELETE!!! SAPInstDes25Hash=$g0eZx0+XBkKv$8NqRhEbFLS0OsRayokJMghskIIIaVIaZ4c/SGra30gYqFHsxjAN69IRsZNXZFwPvb7JnTtxe/keuTNFb2hudoVFqka1ZfabW
+HDB_Schema_Check_Dialogs.schemaName = {{ app_schema_name }}
+HDB_Schema_Check_Dialogs.schemaPassword = des25(PtbAKN7jUbD/WtQDIdQhj1CKkA==)
+NW_AS.instanceNumber = 00
+NW_DI_Instance.virtualHostname = {{ custom_hostname }}
+NW_Delete_Sapinst_Users.removeUsers = true
+NW_GetMasterPassword.masterPwd = des25(vMx48CJ6FIHPufSfpuap+TQXfA==)
+NW_HDB_getDBInfo.dbhost = {{ db_virtual_hostname }}
+NW_HDB_getDBInfo.dbsid = {{ spr_db_first_tenant_sid | upper }}
+NW_HDB_getDBInfo.instanceNumber = 00
+NW_HDB_getDBInfo.systemPassword = des25(PatJeYHOsKMEkrCnPMcU0e6R/g==)
+NW_HDB_getDBInfo.systemid = {{ db_sid | upper }}
+NW_System.installSAPHostAgent = false
+NW_WPConfiguration.ciBtcWPNumber = 3
+NW_getLoadType.loadType = STD
+NW_readProfileDir.profileDir = /sapmnt/{{ sap_sid }}/profile
+nwUsers.sapsysGID = 79
+nwUsers.sidAdmUID = 20204
+NW_Unpack.igsExeSar = {{ download_basket }}/igsexe*.sar
+NW_Unpack.igsHelperSar = {{ download_basket }}/igshelper*.sar
+NW_Unpack.sapExeDbSar = {{ download_basket }}/SAPEXEDB*.SAR
+archives.downloadBasket =  {{ download_basket }}

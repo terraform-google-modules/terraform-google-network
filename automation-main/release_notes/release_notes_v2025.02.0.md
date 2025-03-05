@@ -1,0 +1,16 @@
+### Changes since release v2025.01.0
+- !133 IBP Standalone Playbook to setup InCron
+- !131 Bugfix: IBP Provisioning S3-discovery
+- !125 Azure Template edge-network Migration
+- !95 Add RHEL 9.2 support for IBP Provisioning
+- !123 Add inifile param variables for JAVA HA SSO
+- !126 Add Ubuntu support for s4pce-post-provision
+- !124 bug(dev-management): Fix directory_service route53 attribute reference
+- !99 update spr role defaults to use new `sso` release
+- !122 Terraform docs update
+- !103 Container Update 2025-01-15
+- !120 i577821-update-watchman-trigger-action-templates
+- !57 AWS QTM Module
+- !72 Update hostagent source to sps65
+- !67 Update spr role defaults to point the new GBTR release
+- !61 Update spr role defaults to point the new CRM release

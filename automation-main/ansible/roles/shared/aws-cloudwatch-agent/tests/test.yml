@@ -1,0 +1,20 @@
+---
+  - hosts: localhost
+    gather_facts: yes
+    become: true
+    vars:
+      aws_region: us-gov-west-1
+
+    tasks:
+      - name: Enabling epel
+        include_role:
+          name: repository-management
+        vars:
+          epel_repo: 'true'
+          repo_enable: 'true'
+
+
+      - name: Install AWS CloudWatch Agent
+        include_role:
+          name: aws-cloudwatch-agent
+...

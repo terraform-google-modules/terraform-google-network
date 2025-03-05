@@ -1,0 +1,74 @@
+{
+    "schemaVersion": "2.2",
+    "assumeRole": "{{AutomationAssumeRole}}",
+    "description": "InstallTrendAgent",
+    "parameters": {
+      "ManagerFQDN": {
+        "default": "${ trend_manager_address }",
+        "type": "String",
+        "description": "(Required) The Trend DSM FQDN."
+      },
+      "ActivationManagerPort": {
+        "default": "4120",
+        "type": "String",
+        "description": "(Required) Trend port used for agent activation"
+      },
+      "WindowsAgentURI": {
+        "default": "software/agent/Windows/x86_64/agent.msi",
+        "type": "String",
+        "description": "(Required) The URI of the Windows installation package."
+      },
+      "AutomationAssumeRole": {
+        "default": "",
+        "type": "String",
+        "description": "(Optional) The ARN of the role that allows Automation to perform the actions on your behalf."
+      }
+    },
+    "mainSteps": [
+      {
+        "action": "aws:runPowerShellScript",
+        "name": "InstallTrendAgentOnWindows",
+        "precondition": {
+          "StringEquals": [
+            "platformType",
+            "Windows"
+          ]
+        },
+        "inputs": {
+          "runCommand": [
+            "if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] \"Administrator\"))",
+            "{",
+            "   Write-Warning \"You are not running as an Administrator. Please try again with admin privileges.\"",
+            "   exit 1",
+            "}",
+            "if (Get-Process -Name ds* | Select-object *)",
+            "{",
+            "   echo \"Trend Agent is already running.\"",
+            "   exit 0",
+            "}",
+            "$env:LogPath = \"$env:appdata\\Trend\\Agent\\installer\"",
+            "if (-NOT (Test-Path -LiteralPath $env:LogPath))",
+            "{",
+            "     New-Item -path $env:LogPath -type directory",
+            "}",
+            "Start-Transcript -path \"$env:LogPath\\trend_agent_deploy.log\" -append",
+            "echo \"$(Get-Date -format T) - Trend Agent download started\"",
+            "echo \"$(Get-Date -format T) - Downloading Trend Agent Package\"",
+            "Invoke-WebRequest -Method GET -URI https://{{ManagerFQDN}}/{{WindowsAgentURI}} -Out $env:temp\\trend.msi",
+            "if ( (Get-Item \"$env:temp\\trend.msi\").length -eq 0 )",
+            "{",
+            "echo \"Failed to download the Trend Agent for Windows from Trend DSM server.\"",
+            " exit 1",
+            "}",
+            "echo \"$(Get-Date -format T) - Downloaded File Size:\" (Get-Item \"$env:temp\\trend.msi\").length",
+            "echo \"$(Get-Date -format T) - Trend Agent install started\"",
+            "echo \"$(Get-Date -format T) - Installer Exit Code:\" (Start-Process -FilePath msiexec -ArgumentList /i, $env:temp\\trend.msi,  /qn, ADDLOCAL=ALL, /l*v, `\"$env:LogPath\\trend_agent_install.log`\" -Wait -PassThru).ExitCode ",
+            "echo \"$(Get-Date -format T) - Agent Activation:\" (Start-Process -FilePath \"C:\\Windows\\System32\\cmd.exe\" -ArgumentList '/c \"C:\\Program Files\\Trend Micro\\Deep Security Agent\\dsa_control.cmd\" -a dsm://{{ManagerFQDN}}:{{ActivationManagerPort}}')",
+            "echo \"$(Get-Date -format T) - Trend Agent Deployment Finished\"",
+            "Stop-Transcript",
+            "echo \"$(Get-Date -format T) - Trend Agent Deployment Script Finished\""
+          ]
+        }
+      }
+    ]
+  }

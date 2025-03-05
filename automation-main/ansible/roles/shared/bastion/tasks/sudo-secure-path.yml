@@ -1,0 +1,36 @@
+---
+# Description: Adds a path to the sudoers secure path
+# Inputs:
+#   - sudo_secure_path_target : Target path to add to the suders secure_path
+# Outputs: Sudoers allowed to access secure path target
+# Comments: N/A
+
+# Note: I suck at regex
+  - name: Remove double quotes
+    become: true
+    replace:
+      path: /etc/sudoers
+      regexp: (^.*secure_path\s*=\s*)"?(.*?)"?$
+      replace: \1\2
+      backup: no
+      validate: visudo -c -f %s
+
+  - name: Ensure {{ sudo_secure_path_target }} is in sudo path
+    become: true
+    replace:
+      path: /etc/sudoers
+      regexp: (^.*secure_path((?!{{ sudo_secure_path_target}}).)*$)
+      replace: \1:{{ sudo_secure_path_target }}
+      backup: yes
+      validate: visudo -c -f %s
+
+# Note: I suck at regex
+  - name: Add back double quotes
+    become: true
+    replace:
+      path: /etc/sudoers
+      regexp: (^.*secure_path\s*=\s*)"?(.*?)"?$
+      replace: \1"\2"
+      backup: no
+      validate: visudo -c -f %s
+...

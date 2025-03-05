@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: extra-tools-cm
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-2"
+    helm.sh/hook: pre-install
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+data:
+  extra-tools.sh: |
+{{ .Files.Get "files/extra_tools.sh" | indent 4}}

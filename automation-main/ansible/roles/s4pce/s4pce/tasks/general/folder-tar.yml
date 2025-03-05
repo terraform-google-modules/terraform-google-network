@@ -1,0 +1,29 @@
+---
+# Description: Create a tar of selected folders
+# Inputs:
+#   - folder_tar_name: Name of the tar to create
+#   - folder_tar_paths: List folders to add to the tar
+# Outputs:
+# Comments:
+#  - Not using the ansible archive to be able to preserve full path names.
+
+- name: "Initialize {{ folder_tar_name }} Tar"
+  become: true
+  file:
+    path: "{{ folder_tar_name }}"
+    state: touch
+
+- name: "Add files to {{ folder_tar_name }} Tar"
+  shell: "/bin/tar -rvf {{ folder_tar_name }} {{ item }} "
+  become: true
+  # args:
+  #   warn: false
+  loop: "{{ folder_tar_paths }}"
+  ignore_errors: yes
+
+- name: "Compress {{ spr_sid|lower }}adm Tar"
+  become: true
+  shell: |
+    /bin/gzip {{ folder_tar_name }}
+    /bin/mv {{ folder_tar_name }}.gz {{ folder_tar_name }}
+...

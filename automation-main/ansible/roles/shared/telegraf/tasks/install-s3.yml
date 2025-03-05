@@ -1,0 +1,49 @@
+---
+# Fetches the software from an S3 bucket and installs it directly
+#
+# Inputs:
+#   telegraf_version
+#   telegraf_s3_binaries_url (fetch from bucket + path + telegraf_version / telegraf_file_name)
+
+
+  - name: Set Telegraf file name if OS is RPM
+    ansible.builtin.set_fact:
+      telegraf_file_name: telegraf-{{ telegraf_version }}-1.x86_64.rpm
+    when:
+      - ansible_os_family | lower == 'redhat' or ansible_os_family | lower == 'suse'
+
+  - name: Set Telegraf file name if OS is apt
+    ansible.builtin.set_fact:
+      telegraf_file_name: telegraf-{{ telegraf_version }}-amd64.deb
+    when:
+      - ansible_os_family | lower == 'debian'
+
+  - name: Validate we have valid file name
+    ansible.builtin.assert:
+      that:
+        - telegraf_file_name is defined
+      fail_msg: Unable to create a valid telegraf_file_name, are you running on RHEL or Ubuntu?
+
+  - name: Download file from S3 bucket
+    amazon.aws.aws_s3:
+      bucket: '{{ telegraf_s3_binaries_url.replace("s3://","").split("/")[0] }}'
+      object: /{{ telegraf_s3_binaries_url.replace("s3://","").split("/")[1:] | join("/") }}/{{ telegraf_version }}/{{ telegraf_file_name }}
+      dest: /tmp/{{ telegraf_file_name }}
+      mode: get
+  - name: Install the Telegraf GPG key
+    ansible.builtin.include_tasks: install-gpg-key.yml
+
+  - name: Install Telegraf RPM
+    ansible.builtin.package:
+      name: /tmp/{{ telegraf_file_name }}
+      state: present
+    become: true
+    when: ansible_os_family | lower == "redhat" or ansible_os_family | lower == 'suse'
+
+  - name: Install Telegraf deb
+    ansible.builtin.apt:
+      name: /tmp/{{ telegraf_file_name }}
+      state: present
+    become: true
+    when: ansible_os_family | lower == "debian"
+...

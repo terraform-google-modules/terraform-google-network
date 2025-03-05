@@ -1,0 +1,145 @@
+---
+# Synopsis: Provision Webdispatcher
+# Inputs:
+#   - webdispatcher_tar_source - path to the webdispatcher source folder (version unique)
+#   - saphostagent_source - path to the SAPHOSTAGENT install files (version unique)
+# Outputs: Configured and running base IBP Webdispatcher system
+# Comments: N/A
+
+- name: Get EC2 Metadata
+  ec2_metadata_facts:
+  register: ec2_metadata
+
+- name: Validate environment
+  include_tasks: general/directories-validate.yml
+  vars:
+    folder_path: "{{ item }}"
+  loop:
+  - "{{ webdispatcher_tar_source }}"
+  - "{{ saphostagent_source }}"
+
+- name: Set the Hostname
+  hostname:
+    name: '{{ ibp_hostname }}'
+  become: true
+
+- name: Ensure Sapsys group has GID of 79
+  group:
+    name: sapsys
+    state: present
+    gid: 79
+    local: yes
+  become: true
+
+- name: Set package compat map
+  set_fact:
+    compat_package_map:
+      RedHat8: compat-sap-c++-11.x86_64
+      RedHat9: compat-sap-c++-13.x86_64
+
+- name: Get Specific compat package
+  set_fact:
+    compat_package: "{{ compat_package_map[ansible_distribution + ansible_distribution_major_version] }}"
+
+- name: Install the hana package dependencies
+  package:
+    name: '{{ item }}'
+    state: present
+  become: true
+  loop:
+    - "{{ compat_package }}"
+    - libstdc++.so.6
+
+# Generally bad practice so we should move this elsewhere. Leaving this now for testing
+- name: Ensure compat packages are linked
+  ansible.builtin.include_tasks: general/compat-link.yml
+
+- name: Create n02adm SAP System Administrator
+  user:
+    name: "n02adm"
+    comment: "SAP System Administrator"
+    create_home: yes
+    home: "/home/n02adm"
+    uid: 1004
+    group: 79
+    shell: /bin/csh
+    state: present
+  become: true
+
+- name: Extract wdisp-n02adm-partaa files
+  unarchive:
+    src: "{{ webdispatcher_tar_source }}/webdispatcher-n02adm-partaa"
+    dest: "/"
+    remote_src: yes
+    list_files: no
+  become: true
+  ignore_errors: true
+
+- name: Extract wdisp-partaa files
+  unarchive:
+    src: "{{ webdispatcher_tar_source }}/webdispatcher-partaa"
+    dest: "/"
+    remote_src: yes
+    list_files: no
+  become: true
+  ignore_errors: true
+
+- name: Check execute mode on saphostexec
+  file:
+    path: "{{ saphostagent_source }}/saphostexec"
+    mode: 'u+x'
+  become: true
+
+- name: Run the SAP Host Agent Setup script
+  command: "./saphostexec -install"
+  args:
+    chdir: "{{ saphostagent_source }}"
+  become: true
+
+- name: Restart SAP Host Agent
+  command: "./saphostexec -restart"
+  args:
+    chdir: "/usr/sap/hostctrl/exe"
+  register: results_restart_saphostagent
+  become: true
+
+- name: Show SAP Host Agent Status
+  debug:
+    var: results_restart_saphostagent.stderr_lines
+
+- name: Reset sapadm password
+  user:
+    name: sapadm
+    update_password: always
+    password: "{{ default_password }}"
+  become: true
+
+- name: Reset n02adm password
+  user:
+    name: "n02adm"
+    update_password: always
+    password: "{{ default_password }}"
+  become: true
+
+- name: Get n02adm environment
+  shell: env
+  become: yes
+  become_user: "n02adm"
+  become_flags: '-i'
+  register: results_environment
+
+- name: Display n02adm environment
+  debug:
+    var: results_environment.stdout_lines
+
+- name: Run startsap as n02adm
+  shell: startsap
+  become: yes
+  become_user: "n02adm"
+  become_flags: '-i'
+  register: results_startsap
+
+- name: Display results_startsap
+  debug:
+    var: results_startsap.stdout_lines
+...

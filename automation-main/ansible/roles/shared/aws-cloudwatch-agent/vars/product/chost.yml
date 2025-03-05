@@ -1,0 +1,5 @@
+---
+# List of chost-specific log groups
+# TODO: No changes from default for now, add appropriate entries for chost
+logs_chost: []
+...

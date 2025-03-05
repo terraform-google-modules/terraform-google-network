@@ -1,0 +1,38 @@
+---
+# Synopsis: Switches primary DB in a HANA DB replication pair
+# Inputs:
+#   - sid : (provided by playbook) SAP ID of the system
+#   - hana_takeover_comment : Descriptive string for the takeover action
+# Outputs: The instance will become the new Primary HANA DB
+# Comments: This should be run on the HANA DB instance that will become the new primary.
+
+  - name: "Perform takeover"
+    shell: ./exe/hdbnsutil -sr_takeover --comment="{{ hana_takeover_comment | default(ansible_date_time.iso8601 + ' takeover') }}"
+    args:
+      executable: /bin/csh
+    become: true
+    become_user: "{{ sid|lower }}adm"
+    register: takeover_output
+    failed_when: |
+      'done' not in takeover_output.stdout and
+      'already primary site' not in takeover_output.stdout
+    changed_when: "'done' in takeover_output.stdout"
+
+  - name: "Display takeover results"
+    debug:
+      var: takeover_output.stdout_lines
+
+  - name: "Get replication status"
+    shell: "./exe/hdbnsutil -sr_state"
+    args:
+      executable: /bin/csh
+    become: true
+    become_user: "{{ sid|lower }}adm"
+    register: replication_status_output
+    failed_when: false
+    changed_when: false
+
+  - name: "Display replication status"
+    debug:
+      var: replication_status_output.stdout_lines
+...

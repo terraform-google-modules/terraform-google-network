@@ -1,0 +1,401 @@
+# Playbook Name: ibp-dr-rebuild.yml
+# Synopsis: Rebuilds the IBP App, CPIDS, and Webdispatcher servers in AZ2
+# Description: Under the assumption that AZ1 is gone, build the infrastructure in AZ2, and rebuild down servers from AMI. Provision and start new servers
+# Prerequisites:
+#   - Ansible v2.9+
+#   - Disaster Recovery Terraform
+#   - Terraform root module code for customer build
+#   - Terraform state file in S3 bucket for customer build
+#   - IBP Ansible Inventory File
+# Dependencies: N/A
+# Variables:
+#   - ami_ibpapp: AMI name to recover IBPApp from
+#   - ami_webdispatcher: AMI name to recover Webdispatcher from
+#   - ami_cpids: AMI to recover CPI-DS from
+#   - customer_terraform_environment: Path to the terraform root module of the customer. Should include the disaster recover module inside.
+#   - cpids_backup_path: Partial path inside the S3 backups bucket containing CPIDS backups. (ex. s3://<bucket name>/[PATH/TO/BACKUPS]/data)
+#   - cpids_backup_prefix: Prefix of the CPIDS full backups to recover from. (ex. [N01-PRIMARY-20200520]_databackup_0_1)
+#   - domain_password: Password for svc_domain_joiner
+#   - domain_fqdn: FQDN of the domain to join restored instances to.
+#
+# Example:
+#    ansible-playbook ibp-dr-rebuild.yml -k -i </PATH-TO/IBP-HOST-INVENTORY-FILE>'
+#
+# Authors: Louis Lee
+# Version: 2.9-000004
+# Modified: 2020-06-01 - Created
+#           2020-06-23 - Merged ibp-provision and ibp-operations roles to ibp role
+#           2020-07-06 - Update task and subfolder references
+#           2021-02-13 - Update to support new Repo-Management role
+# Comments:
+#   tags:
+#     play0 always : Gathers metadata, deploys new instances from ami, builds new route tables
+#     play1 : Set hostfiles, joins domain, set hostnames
+#     play2 : Provision DR SAPApp
+#     play3 : Provision DR Webdispatcher
+#     play4 : Provision DR CPI-DS
+#     play-end : End of playbook
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: "
+  hosts: localhost
+  connection: local
+
+  tags:
+    - always
+    - play0
+
+  vars_prompt:
+    - name: ami_ibpapp
+      prompt: 'What is the ami name of the latest IBP App to recover from?'
+      private: no
+
+    - name: ami_webdispatcher
+      prompt: 'What is the ami name of the latest Webdispatcher to recover from?'
+      private: no
+
+    - name: ami_cpids
+      prompt: 'What is the ami name of the latest CPIDS to recover from?'
+      private: no
+
+    - name: customer_terraform_environment
+      prompt: 'Local path to the customer terraform root module'
+      private: no
+      default: '/ns2-terraform/environments/ibp-production/ibp-test'
+
+    - name: cpids_backup_path
+      prompt: 'What is the path to the cpids backups on the S3 bucket (ex. s3://<bucket name>/[CPIDS-DSOD-1.2.34.5678/NS2CPIDS]/data) (ex. CPIDS-DSOD-x.x.xx.xxxx/NS2CPIDS )'
+      private: no
+
+    - name: cpids_backup_prefix
+      prompt: 'What is the prefix of the cpids file backups (ex. [N01-PRIMARY-20200520]_databackup_0_1) (ex. N01-PRIMARY-xxxxxx_)'
+      private: no
+
+    - name: domain_password
+      prompt: "What is the password of the domain joiner account?"
+      unsafe: yes
+      private: yes
+
+    - name: domain_fqdn
+      prompt: "What is the FQDN of the Domain to join?"
+      private: no
+      default: 'directory.cre.sapns2.internal'
+
+  vars:
+    ami_owner: '677692745833'
+
+  tasks:
+  - name: "Confirm values with (Y/y)"
+    pause:
+      prompt: |
+        You selected:
+
+        AMI Owner                             : {{ ami_owner }}
+        Restore IBP App from AMI              : {{ ami_ibpapp }}
+        Restore Webdispatcher from AMI        : {{ ami_webdispatcher }}
+        Restore CPIDS from AMI                : {{ ami_cpids }}
+        Location of the customer root module  : {{ customer_terraform_environment }}
+
+        Confirm values with (Y/y)
+    register: confirm_input
+
+  - name: "Fail if not confirmed"
+    fail:
+      msg: 'Input not confirmed.  Quitting now.'
+    when:
+    - confirm_input.user_input != 'Y'
+    - confirm_input.user_input != 'y'
+
+### Future scope: Build DR layer if missing
+### Future scope: Set values in dependencies.tf correctly.
+
+  - name: "Create {{ customer_terraform_environment }}/disaster-recovery/terraform.tfvars if missing. (do not overwrite existing)"
+    copy:
+      dest: "{{ customer_terraform_environment }}/disaster-recovery/terraform.tfvars"
+      src: "{{ customer_terraform_environment }}/disaster-recovery/terraform.tfvars.live"
+      force: no
+      remote_src: yes
+    register: copy_output
+
+  - name: "Add required values to new terraform.tfvars"
+    replace:
+      path: "{{ customer_terraform_environment }}/disaster-recovery/terraform.tfvars"
+      after: '\*/'
+      regexp: '(//|#|)\s*({{ item.name }}\s+=\s*)("")'
+      replace: '\2"{{ item.replace }}"'
+    loop:
+      - name: 'build_user'
+        replace: "{{ ansible_user_id }}"
+      - name: 'git_name'
+        replace: ''
+      - name: 'git_token'
+        replace: ''
+      - name: 'ami_cpids'
+        replace: "{{ ami_cpids }}"
+      - name: 'ami_webdispatcher'
+        replace: "{{ ami_webdispatcher }}"
+      - name: 'ami_ibpapp'
+        replace: "{{ ami_ibpapp }}"
+      - name: 'ami_owner'
+        replace: "{{ ami_owner }}"
+    when: copy_output.changed|bool
+
+  - name: "Run Terraform Blackbox"
+    terraform:
+      project_path: "{{ customer_terraform_environment }}/disaster-recovery"
+      state: present
+      force_init: true
+    register: terraform_output
+
+  - name: "Reassociate Subnets to DR Route table"
+    ec2_vpc_route_table:
+      vpc_id: "{{ terraform_output.outputs.vpc_id.value }}"
+      subnets:
+        - "{{ terraform_output.outputs.subnet_production_1b_id.value }}"
+        - "{{ terraform_output.outputs.subnet_dataservices_1b_id.value }}"
+      region: "{{ aws_region }}"
+      purge_subnets: false
+      purge_routes: false
+      route_table_id: "{{ terraform_output.outputs.route_table_nat_gateway_dr_id.value }}"
+      state: present
+      lookup: id
+
+  - name: "Add CPIDS-DR to ansible inventory"
+    add_host:
+      name: "{{ terraform_output.outputs.instance_cpids_dr.value.private_ip }}"
+      groups:
+        - cpids
+        - dataservices
+        - ansible_new_dr
+      domain_password: "{{ domain_password }}"
+      domain_fqdn: "{{ domain_fqdn }}"
+      cpids_backup_path: "{{ cpids_backup_path }}"
+      cpids_backup_prefix: "{{ cpids_backup_prefix }}"
+
+  - name: "Add Webdispatcher-DR to ansible inventory"
+    add_host:
+      name: "{{ terraform_output.outputs.instance_webdispatcher_dr.value.private_ip }}"
+      groups:
+        - webdispatcher
+        - dataservices
+        - ansible_new_dr
+      domain_password: "{{ domain_password }}"
+      domain_fqdn: "{{ domain_fqdn }}"
+
+  - name: "Add Production IBPApp-DR to ansible inventory"
+    add_host:
+      name: "{{ terraform_output.outputs.instance_production_ibpapp_dr.value.private_ip }}"
+      groups:
+        - ibpapp
+        - disaster_recovery
+        - ansible_new_dr
+      domain_password: "{{ domain_password }}"
+      domain_fqdn: "{{ domain_fqdn }}"
+      efs_ipaddress: "{{ terraform_output.outputs.efs_usr_sap_trans_1b.value.ip_address }}"
+
+###################
+##### Play0.5 #####
+###################
+- name: "Play0.5: Wait for new instances to come up"
+  hosts: ansible_new_dr
+  gather_facts: false
+  tags:
+    - play0
+    - always
+
+  tasks:
+  - name: "Wait for connection to new instances"
+    wait_for_connection:
+
+#################
+##### Play1 #####
+#################
+- name: "Play1: Set Host Files, hostnames, and Join the Domain"
+  hosts: ansible_new_dr
+  tags:
+    - play1
+
+  tasks:
+  - name: Configure Base Red Hat Repositories from S3
+    include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: 'base'
+
+  - name: "Force domain join"
+    include_role:
+      name: domain-join
+      apply:
+        become: true
+    vars:
+      domain_user: 'svc_domain_joiner'
+      domain_sudo_group: 'sg_ibp_os_sudo'
+      domain_login_group: 'sg_ibp_os_login'
+      domain_dns1: ''
+      domain_dns2: ''
+      domain_force_join: true
+      domain_set_dns: false
+      domain_set_hostname: true
+      domain_restrict_ssh: true
+
+  - name: "Force all notified handlers to run at this point, not waiting for normal sync points"
+    meta: flush_handlers
+
+  - name: "Generate role dynamic variables"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: general/variables-create.yml
+
+  - name: "Install DR Hostfile"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: disaster-recovery/dr-hostfile-install.yml
+
+  - name: "Change Hostname"
+    hostname:
+      name: "{{ ibp_hostname }}"
+    become: true
+
+  - name: "Set AWS Region to {{ aws_region }}"
+    shell: "/usr/local/bin/aws configure set region {{ aws_region }}"
+    become: yes
+
+#################
+##### Play2 #####
+#################
+- name: "Play2: Provision SAP Application"
+  hosts: ansible_new_dr:&ibpapp
+  tags:
+    - play2
+
+  tasks:
+  - name: "Provision SAPApp with DR settings"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: disaster-recovery/dr-sapapp-provision.yml
+    vars:
+      dr_sapapp_provision_efs_ipaddress: "{{ efs_ipaddress }}"
+
+  - name: "Hardstart SAPApp"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: operations/sapapp-hardstart.yml
+
+  - name: "Get SapApp status"
+    shell: "sapcontrol -nr 00 -function GetProcessList"
+    args:
+      executable: '/bin/csh'
+    failed_when: false
+    changed_when: false
+    register: hdb_poststart_process_output
+    become: true
+    become_user: "{{ sid|lower }}adm"
+
+#################
+##### Play3 #####
+#################
+- name: "Play3: Provision Webdispatcher"
+  hosts: ansible_new_dr:&webdispatcher
+  tags:
+    - play3
+
+  vars:
+    sid: 'n02'
+
+  tasks:
+  ##### Start Webdispatcher
+  - name: "Get saphostagent status"
+    command: "/usr/sap/hostctrl/exe/saphostexec -status"
+    become: true
+    register: saphostagent_status
+    failed_when: "'FAILED' in saphostagent_status.stderr"
+    changed_when: false
+
+  - name: "Display saphostagent status"
+    debug:
+      var: saphostagent_status.stderr_lines
+
+  - name: "BLOCK - Start saphostagent"
+    block:
+    - name: "Start saphostagent as root"
+      command: "/usr/sap/hostctrl/exe/saphostexec -restart"
+      become: true
+
+    - name: "Get saphostagent status"
+      command: "/usr/sap/hostctrl/exe/saphostexec -status"
+      become: true
+      register: saphostagent_statusblock
+      failed_when: "'FAILED' in saphostagent_statusblock.stderr"
+      changed_when: false
+
+    - name: "Display saphostagent status"
+      debug:
+        var: saphostagent_statusblock.stderr_lines
+    when: saphostagent_status.stderr == 'saphostexec stopped '
+    ### End "BLOCK - Start saphostagent"
+
+  - name: "Run startsap as {{ sid|lower }}adm"
+    shell: startsap
+    become: yes
+    become_user: "{{ sid|lower }}adm"
+    become_flags: '-i'
+    register: results_startsap
+
+  - name: "Display results_startsap"
+    debug:
+      var: results_startsap.stdout_lines
+
+
+#################
+##### Play4 #####
+#################
+- name: "Play4: Provision CPIDS"
+  hosts: ansible_new_dr:&cpids
+  gather_facts: true
+  environment:
+    JAVA_HOME: '/usr/sap/dsod_package/sapjvm_7'
+    PATH: '/sbin:/usr/sap/N01/HDB00/exe:/usr/sap/N01/HDB00:/usr/sap/dsod_package/sapjvm_7/bin:.:/usr/local/sbin:/usr/local/bin:{{ ansible_env.PATH }}:/root/bin'
+
+  tags:
+    - play4
+
+  vars:
+    temp_mount: '/mnt/temp_restore'
+    temp_mount_size: '500'
+    temp_restore_folder: "{{ temp_mount }}/temp_restore"
+
+  pre_tasks:
+  tasks:
+  - name: "Provision CPIDS"
+    include_role:
+      name: ibp
+      allow_duplicates: yes
+      tasks_from: disaster-recovery/dr-cpids-provision.yml
+    vars:
+      dr_cpids_provision_temp_mount_path: "{{ temp_mount }}"
+      dr_cpids_provision_temp_mount_size: "{{ temp_mount_size }}"
+      dr_cpids_provision_temp_restore_folder: "{{ temp_mount }}/temp_restore"
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    debug:
+      msg: "Of the world as we know it"

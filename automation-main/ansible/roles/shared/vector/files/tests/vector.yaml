@@ -1,0 +1,7 @@
+---
+# Set global options
+data_dir: /tmp/vector
+
+log_schema:
+  metadata_key: vector.metadata
+...

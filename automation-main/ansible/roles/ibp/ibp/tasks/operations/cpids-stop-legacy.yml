@@ -1,0 +1,83 @@
+# Stop ActiveMQ
+
+- name: Test ActiveMQ URI http://127.0.0.1:8161
+  uri:
+    url: "http://127.0.0.1:8161"
+  ignore_errors: yes
+  register: results_activemq_uri
+
+- name: Check if ActiveMQ is up.
+  assert:
+    that: results_activemq_uri.status != 200
+    fail_msg: ActiveMQ URI is up, stopping in next block
+    success_msg: ActiveMQ URI is down, skipping next block
+  changed_when: false
+  failed_when: false
+
+- name: "Block: Stop ActiveMQ"
+  when: results_activemq_uri.status == 200
+  become: true
+  block:
+  - name: Stop ActiveMQ
+    shell: /usr/sap/dsod_package/activemq/bin/activemq-admin stop
+    environment:
+      JAVA_HOME: '/usr/sap/dsod_package/sapjvm_7'
+      PATH: '/usr/sap/dsod_package/sapjvm_7/bin:.:/usr/local/sbin:/usr/local/bin:{{ ansible_env.PATH }}:/root/bin'
+
+  - name: Test ActiveMQ URI http://127.0.0.1:8161 Post Stop
+    uri:
+      url: "http://127.0.0.1:8161"
+      return_content: yes
+    register: results_activemq_uri_poststop
+    failed_when: false
+    changed_when: false
+
+  - name: "Validate ActiveMQ Stop"
+    assert:
+      that: "results_activemq_uri_poststop.status != 200"
+      fail_msg: |
+        ActiveMQ did not stop
+         {{ results_activemq_uri_poststop.content }}
+      success_msg: ActiveMQ Stopped
+  # End "Block: Stop ActiveMQ"
+
+# Stop LJS
+
+- name: Test if LJS is Stopped
+  become: true
+  shell: /usr/sap/dsod_package/DSOD_Server.sh checkStatus
+  register: DSOD_Server_checkStatus
+
+- name: "Check if LJS is already stopped"
+  assert:
+    that: DSOD_Server_checkStatus.stdout | regex_search('LJS_.*_Daemon is stopped.')
+    fail_msg: LJS not stopped. Stopping in next block
+    success_msg: "LJS is already stopped. Skipping next block"
+  changed_when: false
+  failed_when: false
+
+- name: "Block: Stop LJS"
+  when: DSOD_Server_checkStatus.stdout | regex_search('((?!LJS_.*_Daemon is stopped).)*')
+  # Breakdown of Regex as follows:
+  # ()* : Evaluate all matches of the paranthesis.
+  # (). : Include results of paranthesis plus any following character
+  # ?!  : Negative lookahead. The next evaluation is not true
+  # .*  : Any characters here.
+  become: true
+  block:
+  - name: Stop LJS
+    shell: /usr/sap/dsod_package/DSOD_Server.sh stop
+
+  - name: Test if LJS is Stopped
+    become: true
+    shell: /usr/sap/dsod_package/DSOD_Server.sh checkStatus
+    register: DSOD_Server_new_status
+
+  - name: Validate LJS Stop
+    assert:
+      that: DSOD_Server_new_status.stdout | regex_search('LJS_.*_Daemon is stopped.')
+      fail_msg: |
+        LJS did not stop
+        {{ DSOD_Server_new_status.stdout }}
+      success_msg: LJS Stopped
+  # End "Block: Stop LJS"

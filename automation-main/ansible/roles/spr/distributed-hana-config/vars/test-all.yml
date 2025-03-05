@@ -1,0 +1,2 @@
+# Test Hana Config - DB only
+distributed_hana_config_test_db_hana_sync: true

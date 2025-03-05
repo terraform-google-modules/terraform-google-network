@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "SQSListAll",
+          "Effect": "Allow",
+          "Action": [
+              "sqs:ListQueues"
+          ],
+          "Resource": "*"
+      },
+      {
+          "Sid": "SQSFullAccess",
+          "Effect": "Allow",
+          "Action": [
+              "sqs:GetQueueUrl",
+              "sqs:ReceiveMessage",
+              "sqs:DeleteMessage",
+              "sqs:GetQueueAttributes"
+          ],
+          "Resource": ${jsonencode(arn_list)}
+      }
+  ]
+}

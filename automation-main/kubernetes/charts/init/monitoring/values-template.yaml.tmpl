@@ -1,0 +1,476 @@
+{{ $envConfig := (datasource "envConfig")  }}
+providerConfigRef:
+  name: aws-provider-config
+
+awsAccountID: "{{ .Env.accountID }}"
+awsPartition: "{{ .Env.awsPartition }}"
+# TODO: Fix deriving FQDN for oidcProvider
+oidcProvider: "api.{{- $envConfig.shootName }}.{{ .Env.projectName }}.internal.gardener.preprod.sapns2.us"
+vaultBasePath: "{{ $envConfig.vaultBasePath }}"
+
+kube-prometheus-stack:
+  alertmanager:
+
+    alertmanagerSpec:
+      # replicas: 3
+      
+      nodeSelector:
+        worker.garden.sapcloud.io/group: system
+
+      resources:
+        limits:
+          cpu: 400m
+          memory: 512Mi
+        requests:
+          cpu: 200m
+          memory: 400Mi
+      
+      # storage:
+      #   volumeClaimTemplate:
+      #     spec:
+      #       storageClassName: default
+      #       accessModes: ["ReadWriteOnce"]
+      #       resources:
+      #         requests:
+      #           storage: 50Gi
+
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: alertmanager
+  grafana:
+    enabled: true
+
+    admin:
+      existingSecret: monitoring-grafana-admin-auth
+      userKey: admin-user
+      passwordKey: admin-password
+
+    grafana.ini:
+      analytics:
+        check_for_updates: true
+      grafana_net:
+        url: https://grafana.net
+      log:
+        mode: console
+      paths:
+        data: /var/lib/grafana/
+        logs: /var/log/grafana
+        plugins: /var/lib/grafana/plugins
+        provisioning: /etc/grafana/provisioning
+      server:
+        domain: grafana.{{- $envConfig.envBaseDomain }}
+        root_url: https://grafana.{{- $envConfig.envBaseDomain }}
+      auth.generic_oauth:
+        enabled: true
+        name: OAuth
+        client_id: $__file{/etc/secrets/monitoring-oidc/oidc_client_id}
+        client_secret: $__file{/etc/secrets/monitoring-oidc/oidc_client_secret}
+        api_url: $__file{/etc/secrets/monitoring-oidc/oidc_api_uri}
+        auth_url: $__file{/etc/secrets/monitoring-oidc/oidc_auth_uri}
+        token_url: $__file{/etc/secrets/monitoring-oidc/oidc_token_uri}
+        use_refresh_token: true
+        scopes: email
+
+    extraSecretMounts:
+      - name: monitoring-oidc
+        secretName: monitoring-oidc
+        defaultMode: 0440
+        mountPath: /etc/secrets/monitoring-oidc
+        readOnly: true
+
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        cert.gardener.cloud/purpose: managed
+        cert.gardener.cloud/secretname: grafana-tls
+        dns.gardener.cloud/class: garden
+        dns.gardener.cloud/ttl: '600'
+        dns.gardener.cloud/dnsnames: grafana.{{- $envConfig.envBaseDomain }}
+      hosts:
+        - grafana.{{- $envConfig.envBaseDomain }}
+      tls:
+        - secretName: grafana-tls
+          hosts:
+          - grafana.{{- $envConfig.envBaseDomain }}
+
+    additionalDataSources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://monitoring-loki-gateway:80/
+        jsonData:
+          timeout: 60
+          maxLines: 1000
+
+  prometheusOperator:
+    clusterDomain: cluster.local
+    addmissionWebhooks:
+      failurePolicy: IgnoreOnInstallOnly
+      annotations:
+        argocd.argoproj.io/hook: PreSync
+        argocd.argoproj.io/hook-delete-policy: HookSucceeded
+      deployment:
+        enabled: true
+        tls:
+          enabled: false
+        nodeSelector:
+          worker.garden.sapcloud.io/group: system
+        replicas: 3
+        serviceAccount:
+          automountServiceAccountToken: true
+          create: true
+          name: prometheusOperator
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+      patch:
+        nodeSelector:
+          worker.garden.sapcloud.io/group: system
+        annotations:
+          argocd.argoproj.io/hook: PreSync
+          argocd.argoproj.io/hook-delete-policy: HookSucceeded
+    nodeSelector:
+      worker.garden.sapcloud.io/group: system
+
+  prometheus:
+
+    prometheusSpec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: prometheus
+
+      nodeSelector:
+        worker.garden.sapcloud.io/group: system
+      
+      resources:
+        limits:
+          cpu: 400m
+          memory: 3Gi
+        requests:
+          cpu: 200m
+          memory: 400Mi
+
+      # storageSpec:
+      #  volumeClaimTemplate:
+      #    spec:
+      #      storageClassName: default
+      #      accessModes: ["ReadWriteOnce"]
+      #      resources:
+      #        requests:
+      #          storage: 50Gi
+
+      # Enable k8s service discovery across all namespaces
+      serviceMonitorSelectorNilUsesHelmValues: false
+      podMonitorSelectorNilUsesHelmValues: false
+      scrapeConfigSelectorNilUsesHelmValues: false
+      # Enable gathering prometheus rules from all namespaces
+      ruleSelectorNilUsesHelmValues: false
+      ruleSelector: {}
+      ruleNamespaceSelector: {}
+      serviceMonitorSelector: {}
+      scrapeConfigSelector: {}
+
+    # additionalPodMonitors:
+    #   - name: scrape-pods-in-all-namespaces
+    #     namespaceSelector:
+    #       any: true
+    #       matchNames: []
+    # additionalServiceMonitors:
+    #   - name: scrape-services-in-all-namespaces
+    #     namespaceSelector:
+    #       any: true
+    #       matchNames: []
+
+loki:
+  # There are 3 options:
+  # - SingleBinary: Loki is deployed as a single binary, useful for small installs typically without HA, up to a few tens of GB/day.
+  # - SimpleScalable: Loki is deployed as 3 targets: read, write, and backend. Useful for medium installs easier to manage than distributed, up to a about 1TB/day.
+  # - Distributed: Loki is deployed as individual microservices. The most complicated but most capable, useful for large installs, typically over 1TB/day.
+  # There are also 2 additional modes used for migrating between deployment modes:
+  # - SingleBinary<->SimpleScalable: Migrate from SingleBinary to SimpleScalable (or vice versa)
+  # - SimpleScalable<->Distributed: Migrate from SimpleScalable to Distributed (or vice versa)
+  # Note: SimpleScalable and Distributed REQUIRE the use of object storage.
+  deploymentMode: SimpleScalable
+
+  test:
+    enabled: false
+  lokiCanary:
+    enabled: false
+
+  global:
+    dnsService: "kube-dns"
+    region: {{ $envConfig.region }}
+    bucketName: loki-storage-{{- $envConfig.shootName }}
+
+  serviceAccount:
+    name: loki-storage-{{- $envConfig.shootName }}-sa
+    annotations:
+      eks.amazonaws.com/role-arn: >-
+        arn:{{ .Env.awsPartition }}:iam::{{ .Env.accountID }}:role/loki-storage-{{- $envConfig.shootName }}-role
+
+  loki:
+    auth_enabled: false
+
+    schemaConfig:
+      configs:
+        - from: "2023-01-05"
+          index:
+            period: 24h
+            prefix: index_
+          object_store: s3
+          schema: v13
+          store: tsdb
+
+    storage:
+      type: s3
+      bucketNames:
+        chunks: loki-storage-{{- $envConfig.shootName }}-chunks
+      s3:
+        s3: s3://{{ $envConfig.region }}
+
+    storage_config:
+      tsdb_shipper:
+        active_index_directory: /var/loki/tsdb-index
+        cache_location: /var/loki/tsdb-cache
+        cache_ttl: 24h
+        #index_gateway_client:
+          # only applicable if using microservices where index-gateways are independently deployed.
+          # This example is using kubernetes-style naming.
+          #server_address: dns:///index-gateway.monitoring.svc.cluster.local:9095
+      aws:
+        s3: s3://{{ $envConfig.region }}/loki-storage-{{- $envConfig.shootName }}-chunks
+
+    rulerConfig:
+      storage:
+        type: local
+        local:
+          directory: /rules
+
+    memcached:
+      chunk_cache:
+        enabled: false
+
+    query_scheduler:
+      # the TSDB index dispatches many more, but each individually smaller, requests. 
+      # We increase the pending request queue sizes to compensate.
+      max_outstanding_requests_per_tenant: 32768
+
+    querier:
+      # Each `querier` component process runs a number of parallel workers to process queries simultaneously.
+      # You may want to adjust this up or down depending on your resource usage
+      # (more available cpu and memory can tolerate higher values and vice versa),
+      # but we find the most success running at around `16` with tsdb
+      max_concurrent: 4
+
+    ingester:
+      chunk_encoding: snappy
+    tracing:
+      enabled: true
+
+  singleBinary:
+    replicas: 0
+
+  ingester:
+    replicas: 0
+  querier:
+    replicas: 0
+  queryFrontend:
+    replicas: 0
+  queryScheduler:
+    replicas: 0
+  distributor:
+    replicas: 0
+  compactor:
+    replicas: 0
+  indexGateway:
+    replicas: 0
+  bloomCompactor:
+    replicas: 0
+  bloomGateway:
+    replicas: 0
+
+alloy:
+  alloy:
+
+    mounts:
+      # -- Mount /var/log from the host into the container for log collection.
+      varlog: true
+      # -- Mount /var/lib/docker/containers from the host into the container for log
+      # collection.
+      dockercontainers: true
+
+    configMap:
+      content: |-
+        logging {
+            level  = "warn"
+            format = "logfmt"
+        }
+
+        local.file_match "node_logs" {
+          path_targets = [{
+              // Monitor syslog to scrape node-logs
+              __path__  = "/var/log/syslog",
+              job       = "node/syslog",
+              node_name = env("HOSTNAME"),
+              cluster   = "{{ $envConfig.shootName }}",
+          }]
+        }
+
+        // loki.source.file reads log entries from files and forwards them to other loki.* components.
+        // You can specify multiple loki.source.file components by giving them different labels.
+        loki.source.file "node_logs" {
+          targets    = local.file_match.node_logs.targets
+          forward_to = [loki.write.default.receiver]
+        }
+
+        discovery.kubernetes "pods" {
+            role = "pod"
+        }
+
+        discovery.relabel "pod_logs" {
+            targets = discovery.kubernetes.pods.targets
+
+            // Label creation - "namespace" field from "__meta_kubernetes_namespace"
+            rule {
+              source_labels = ["__meta_kubernetes_namespace"]
+              action = "replace"
+              target_label = "namespace"
+            }
+
+            // Label creation - "pod" field from "__meta_kubernetes_pod_name"
+            rule {
+              source_labels = ["__meta_kubernetes_pod_name"]
+              action = "replace"
+              target_label = "pod"
+            }
+
+            // Label creation - "container" field from "__meta_kubernetes_pod_container_name"
+            rule {
+              source_labels = ["__meta_kubernetes_pod_container_name"]
+              action = "replace"
+              target_label = "container"
+            }
+
+            // Label creation -  "app" field from "__meta_kubernetes_pod_label_app_kubernetes_io_name"
+            rule {
+              source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+              action = "replace"
+              target_label = "app"
+            }
+
+            // Label creation -  "job" field from "__meta_kubernetes_namespace" and "__meta_kubernetes_pod_container_name"
+            // Concatenate values __meta_kubernetes_namespace/__meta_kubernetes_pod_container_name
+            rule {
+              source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+              action = "replace"
+              target_label = "job"
+              separator = "/"
+              replacement = "$1"
+            }
+
+            // Label creation - "container" field from "__meta_kubernetes_pod_uid" and "__meta_kubernetes_pod_container_name"
+            // Concatenate values __meta_kubernetes_pod_uid/__meta_kubernetes_pod_container_name.log
+            rule {
+              source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+              action = "replace"
+              target_label = "__path__"
+              separator = "/"
+              replacement = "/var/log/pods/*$1/*.log"
+            }
+
+            // Label creation -  "container_runtime" field from "__meta_kubernetes_pod_container_id"
+            rule {
+              source_labels = ["__meta_kubernetes_pod_container_id"]
+              action = "replace"
+              target_label = "container_runtime"
+              regex = "^(\\S+):\\/\\/.+$"
+              replacement = "$1"
+            }
+          }
+
+          // loki.source.kubernetes tails logs from Kubernetes containers using the Kubernetes API.
+          loki.source.kubernetes "pod_logs" {
+            targets    = discovery.relabel.pod_logs.output
+            forward_to = [loki.process.pod_logs.receiver]
+          }
+
+          // loki.process receives log entries from other Loki components, applies one or more processing stages,
+          // and forwards the results to the list of receivers in the component’s arguments.
+          loki.process "pod_logs" {
+            stage.static_labels {
+                values = {
+                  cluster = "{{ $envConfig.shootName }}",
+                }
+            }
+
+            forward_to = [loki.write.default.receiver]
+        }
+
+        // loki.source.kubernetes_events tails events from the Kubernetes API and converts them
+        // into log lines to forward to other Loki components.
+        loki.source.kubernetes_events "cluster_events" {
+          job_name   = "integrations/kubernetes/eventhandler"
+          log_format = "logfmt"
+          forward_to = [
+            loki.process.cluster_events.receiver,
+          ]
+        }
+
+        // loki.process receives log entries from other loki components, applies one or more processing stages,
+        // and forwards the results to the list of receivers in the component’s arguments.
+        loki.process "cluster_events" {
+          forward_to = [loki.write.default.receiver]
+
+          stage.static_labels {
+            values = {
+              cluster = "{{ $envConfig.shootName }}",
+            }
+          }
+
+          stage.labels {
+            values = {
+              kubernetes_cluster_events = "job",
+            }
+          }
+        }
+
+        discovery.kubernetes "nodes" {
+            role = "node"
+        }
+
+        discovery.kubernetes "services" {
+            role = "service"
+        }
+
+        discovery.kubernetes "endpoints" {
+            role = "endpoints"
+        }
+
+        discovery.kubernetes "endpointslices" {
+            role = "endpointslice"
+        }
+
+        discovery.kubernetes "ingresses" {
+            role = "ingress"
+        }
+
+        loki.write "default" {
+            endpoint {
+                url = format(
+                    "http://monitoring-loki-gateway:80/loki/api/v1/push",
+                )
+            }
+        }

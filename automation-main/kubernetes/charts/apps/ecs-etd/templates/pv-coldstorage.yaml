@@ -1,0 +1,26 @@
+{{ $ecs_etd := ( index .Values "ecs-etds") }}
+{{- if and $ecs_etd.coldStorage.enable (eq $ecs_etd.etdStage "prd") }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include ".helpers_override.fullname" . }}-cw-bl-pv
+  labels:
+    {{- include ".helpers_override.labels" $ | nindent 4 }}
+spec:
+  storageClassName: {{ include ".helpers_override.fullname" . }}-cw-bl-csi
+  capacity:
+    storage: {{ $ecs_etd.coldStorage.storage.blobContainerSize }}
+  accessModes:
+    - ReadWriteMany # supported options: ReadWriteMany / ReadOnlyMany
+  mountOptions:
+    - allow-delete
+    - endpoint-url https://s3.{{ .Values.awsRegion }}.amazonaws.com
+    - region {{ .Values.awsRegion }}
+  csi:
+    driver: s3.csi.aws.com # required
+    volumeHandle: s3-csi-driver-volume
+    volumeAttributes:
+      bucketName: {{ include ".helpers_override.fullname" . }}-cw-bl-bucket
+      authenticationSource: pod
+      stsRegion: {{ $ecs_etd.coldStorage.storage.storageAccountRegion }}
+{{- end }}

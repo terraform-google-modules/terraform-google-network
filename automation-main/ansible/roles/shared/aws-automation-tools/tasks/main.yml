@@ -1,0 +1,75 @@
+---
+# Synopsis: Calls other tasks for aws-automation-tools
+# Inputs:
+#   - aws_automation_instance_cleanup : 'yes' to delete instances
+#   - aws_automation_cron_setup : 'yes' to setup cron jobs on cron box
+#   - aws_automation_vpc_create : 'yes' to setup new vpc.  Currently requires boto profile to run
+#     - vpc_vars : The vars file to use for VPC creation. Defaults to create-vpc-vars.yml
+#   - aws_automation_instance_rename : 'yes' to rename all 'Test-' instances to 'test-'
+#   - aws_automation_instance_shutdown: Yes to trigger shutdown of test instances
+#   - aws_automation_shutdown_spr: Yes to trigger shutdown of spr instances
+#   - aws_automation_start_spr: Yes to start spr instances
+#   - aws_automation_image_delete : 'yes' to delete old AMIs
+#   - aws_automation_volume_delete : 'yes' to delete old volumes
+#
+# Outputs:
+#   - aws_automation_instance_cleanup : deletes old 'test-' instances
+#   - aws_automation_cron_setup : configures cronbox
+#   - aws_automation_vpc_create : creates a new vpc based on vars file
+#   - aws_automation_instance_rename : normalizes 'test-' instance names
+#   - aws_automation_instance_shutdown: Shutdown any test instances at 0300 UTC
+#   - aws_automation_shutdown_spr: Shutdown any spr instances at 0200 UTC
+#   - aws_automation_start_spr: Start spr instances
+#   - aws_automation_volume_delete: Deletes old volumes
+#   - aws_automation_image_delete: Deletes old AMIs
+
+  - name: Install boto via Pip
+    pip:
+      name: boto
+    when: ansible_distribution == 'RedHat' and ansible_distribution_major_version == '8'
+
+  - name: Delete 'test-' instances created before {{ search_date }}
+    include_tasks: instance-delete.yml
+    when: aws_automation_instance_cleanup|bool
+
+  - name: Configure Cron Server
+    include_tasks: cronbox-setup.yml
+    when: aws_automation_cronbox_setup|bool
+
+  - name: Create Project VPC
+    block:
+      - name: Get new VPC Information
+        include_vars: "{{ vpc_vars | default('create-vpc-vars.yml') }}"
+
+      - name: Create VPC {{ vpc_name }} in CIDR {{ vpc_cidr_block }}
+        include_tasks: create-vpc.yml
+    when: aws_automation_vpc_create|bool
+
+  - name: Create Directory Service
+    include_tasks: put-some-taskfile-here.yml
+    when: aws_automation_directory_create|bool
+
+  - name: Normalize AWS tag names on all test instances every night at 0310 UTC / 2310 ET
+    include_tasks: rename-instances.yml
+    when: aws_automation_instance_rename|bool
+
+  - name: Shutdown all test instances every night at 0300 UTC / 2300 ET
+    include_tasks: shutdown-instances.yml
+    when: aws_automation_instance_shutdown|bool
+
+  - name: Shutdown all spr instances every Friday at 0200 UTC / 2200 ET
+    include_tasks: shutdown-spr-instances.yml
+    when: aws_automation_shutdown_spr|bool
+
+  - name: Start all spr instances every Monday morning at 1100 UTC / 0600 ET
+    include_tasks: start-spr-instances.yml
+    when: aws_automation_start_spr|bool
+
+  - name: Delete old volumes
+    include_tasks: volume-delete.yml
+    when: aws_automation_volume_delete|bool
+
+  - name: Delete old AMIs
+    include_tasks: image-delete.yml
+    when: aws_automation_image_delete|bool
+...

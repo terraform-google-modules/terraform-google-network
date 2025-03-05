@@ -1,0 +1,128 @@
+# Synopsis: Provisions java-stack-based SAP applications
+# Inputs:
+#   spr_app_install_source: Source folder for the application install binaries
+#   spr_app_install_file_ini_params: Location of the input parameters file
+#   spr_app_install_file_instkey: Location of the instkey.pkey file
+#   spr_app_install_file_swpm_sapinst: Location of the SWPM Sapinst
+#   spr_app_install_hostname: Hostname of the application
+#   spr_app_install_sid: Target SID of the instance
+#   spr_app_install_db_sid: Target SID of the database associated with this application
+#   spr_app_install_product: Product to install
+# Outputs:
+# Comments:
+
+- name: "Remove /tmp/sapinst_instdir"
+  become: true
+  file:
+    path: '/tmp/sapinst_instdir'
+    state: absent
+
+- name: "Extract {{ spr_app_install_product }} tars"
+  include_tasks: general/tar-extract.yml
+  vars:
+    spr_tar_extract_list:
+      - "{{ spr_app_install_source }}/usr-sap.tgz-*"
+      - "{{ spr_app_install_source }}/sapmnt.tgz-*"
+    spr_tar_extract_overwrite: false
+    spr_tar_extract_async: false
+
+# START "BLOCK: sapinst"
+- name: "BLOCK: sapinst"
+  block:
+      - name: "Create /tmp/{{ spr_app_install_product }}"
+        file:
+          path: '/tmp/{{ spr_app_install_product }}'
+          state: directory
+
+      - name: "Save Configuration Files to /tmp/{{ spr_app_install_product }}"
+        become: true
+        copy:
+          dest: '/tmp/{{ spr_app_install_product }}/'
+          src: "{{ item }}"
+          force: yes
+          remote_src: yes
+        loop_control:
+          label: "Saving /tmp/{{ spr_app_install_product }}/{{ item | basename }}"
+        loop:
+          - "{{ spr_app_install_file_ini_params }}"
+          - "{{ spr_app_install_file_instkey }}"
+
+      - name: "Update inifile.params values"
+        become: true
+        ini_file:
+          path: "/tmp/{{ spr_app_install_product }}/{{ spr_app_install_file_ini_params.split('/')[-1] }}"
+          create: no
+          section: null
+          option: "{{ item.name }}"
+          value: '{{ item.value }}'
+          no_extra_spaces: true
+        loop_control:
+          label: "Modifying value of {{ item.name }} to {{ item.value }} in {{ spr_app_install_file_ini_params }}"
+        loop:
+          - { name: 'storageBasedCopy.fqdn', value: '{{ spr_app_install_domain }}' }
+          - { name: 'storageBasedCopy.instanceList', value: '{{ instance_list[ spr_app_install_product ] }}' }
+          - { name: 'storageBasedCopy.sapmnt', value: '/sapmnt' }
+          - { name: 'storageBasedCopy.hdb.changeTenantName', value: 'false' }
+          - { name: 'storageBasedCopy.sidSource', value: 'G00' }
+          - { name: 'storageBasedCopy.sidTarget', value: '{{ spr_app_install_sid|upper }}' }
+          - { name: 'storageBasedCopy.dbHostSource', value: '{{ spr_app_install_db_hostname }}' }
+          - { name: 'storageBasedCopy.dbHostTarget', value: '{{ spr_app_install_db_hostname }}' }
+          - { name: 'storageBasedCopy.dbSidSource', value: '{{ spr_app_install_db_sid|upper }}' }
+          - { name: 'storageBasedCopy.dbSidTarget', value: '{{ spr_app_install_db_sid|upper }}' }
+          - { name: 'storageBasedCopy.dbTenantTarget', value: '{{ spr_app_install_db_sid|upper }}' }
+          - { name: 'storageBasedCopy.sidAdmPassword', value: '{{ standard_deployment_password }}' }
+        when: "spr_app_install_product != 'solman_java'"
+        no_log: true
+
+      - name: "Update inifile.params values"
+        become: true
+        ini_file:
+          path: "/tmp/{{ spr_app_install_product }}/{{ spr_app_install_file_ini_params.split('/')[-1] }}"
+          create: no
+          section: null
+          option: "{{ item.name }}"
+          value: '{{ item.value }}'
+          no_extra_spaces: true
+        loop_control:
+          label: "Modifying value of {{ item.name }} to {{ item.value }} in {{ spr_app_install_file_ini_params }}"
+        loop:
+          - { name: 'storageBasedCopy.fqdn', value: '{{ spr_app_install_domain }}' }
+          - { name: 'storageBasedCopy.instanceList', value: '{{ instance_list[ spr_app_install_product ] }}' }
+          - { name: 'storageBasedCopy.sapmnt', value: '/sapmnt' }
+          - { name: 'storageBasedCopy.hdb.changeTenantName', value: 'false' }
+          - { name: 'storageBasedCopy.sidSource', value: 'G02' }
+          - { name: 'storageBasedCopy.sidTarget', value: '{{ spr_app_install_sid|upper }}' }
+          - { name: 'storageBasedCopy.dbHostSource', value: '{{ spr_app_install_db_hostname }}' }
+          - { name: 'storageBasedCopy.dbHostTarget', value: '{{ spr_app_install_db_hostname }}' }
+          - { name: 'storageBasedCopy.dbSidSource', value: '{{ spr_app_install_db_sid|upper }}' }
+          - { name: 'storageBasedCopy.dbSidTarget', value: '{{ spr_app_install_db_sid|upper }}' }
+          - { name: 'storageBasedCopy.dbTenantTarget', value: '{{ spr_app_install_db_sid|upper }}' }
+          - { name: 'storageBasedCopy.sidAdmPassword', value: '{{ standard_deployment_password }}' }
+        when: "spr_app_install_product == 'solman_java'"
+        no_log: true
+
+      - name: "Ensure sapinst is executable"
+        become: true
+        file:
+          path: "{{ spr_app_install_file_swpm_sapinst }}"
+          state: file
+          mode: a+x
+
+      - name: "Execute SAPInst"
+        become: true
+        shell: >-
+          {{ spr_app_install_file_swpm_sapinst }}
+          SAPINST_INPUT_PARAMETERS_URL=/tmp/{{ spr_app_install_product }}/{{ spr_app_install_file_ini_params.split('/')[-1] }}
+          SAPINST_EXECUTE_PRODUCT_ID=NW_StorageBasedCopy
+          SAPINST_SKIP_DIALOGS=true
+          SAPINST_START_GUISERVER=false
+        args:
+          chdir: '/'
+
+      - name: "Remove /tmp/{{ spr_app_install_product }}"
+        become: true
+        file:
+          path: '/tmp/{{ spr_app_install_product }}'
+          state: absent
+# END "BLOCK: sapinst"
+...

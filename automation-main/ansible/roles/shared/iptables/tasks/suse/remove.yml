@@ -1,0 +1,73 @@
+---
+# Synopsis: Removes the iptables-services package and service from the system, removing all iptables rules as well.
+# Inputs:
+#   - N/A
+#
+# Outputs:
+#   - Removes the iptables-services package and restores the logrotate rule for '/var/log/journal' to its default state.
+
+  - name: Remove the journal logrotate configuration file
+    ansible.builtin.file:
+      path: /etc/logrotate.d/journal
+      state: absent
+    become: true
+
+  - name: Remove the logrotate cron job for messages
+    ansible.builtin.cron:
+      name: Run logrotate for journalctl
+      state: absent
+    become: true
+
+  - name: Suse 15 remove iptables configuration with firewalld
+    block:
+      - name: Remove ANSILBE_MANGED chain
+        ansible.builtin.include_tasks: common/remove-common.yml
+
+      - name: Unmask the firewalld service
+        ansible.builtin.service:
+          name: firewalld
+          masked: false
+        become: true
+
+      - name: Parse out any persistent ANSILBE_MANGED iptables rules to be removed
+        ansible.builtin.shell: cat /etc/sysconfig/iptables | grep 'ANSIBLE_MANAGED'
+        become: true
+        register: iptables_remove_persistent_rules
+
+      - name: Remove persistent ANSILBE_MANGED iptables rules
+        ansible.builtin.lineinfile:
+          path: /etc/sysconfig/iptables
+          line: '{{ item }}'
+          state: absent
+        loop: '{{ iptables_remove_persistent_rules.stdout_lines }}'
+        become: true
+    when: ansible_distribution_major_version == '15'
+
+  - name: Suse 12 remove iptables configurations with SuSEfirewall2
+    block:
+      - name: Remove the path to the custom iptables rules file
+        ansible.builtin.lineinfile:
+          path: '{{ item }}'
+          regexp: ^FW_CUSTOMRULES=
+          line: FW_CUSTOMRULES=""
+        become: true
+        loop:
+          - /etc/sysconfig/SuSEfirewall2
+          - /sbin/SuSEfirewall2
+          - /usr/sbin/SuSEfirewall2
+
+      - name: Remove the SuSEfirewall2 iptables batch setting value
+        ansible.builtin.lineinfile:
+          path: /etc/sysconfig/SuSEfirewall2
+          regexp: ^FW_USE_IPTABLES_BATCH=
+          line: FW_USE_IPTABLES_BATCH=""
+        become: true
+
+      - name: Stop and disable the SuSEfirewall2 service
+        ansible.builtin.systemd:
+          name: SuSEfirewall2
+          enabled: false
+          state: stopped
+        become: true
+    when: ansible_distribution_major_version == '12'
+...

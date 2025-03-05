@@ -1,0 +1,22 @@
+---
+{{- range $index, $rtbId := .Values.shootRtbIds }}
+apiVersion: ec2.aws.upbound.io/v1beta2
+kind: Route
+metadata:
+  name: {{ $.Values.customerName }}-shoot-route-{{ $index | add 1 | toString | lower }}
+  annotations:
+    meta.upbound.io/{{ $.Values.customerName }}: ec2/v1beta1/shoot-route
+  labels:
+    resource.upbound.io/{{ $.Values.customerName }}: Route
+spec:
+  forProvider:
+    destinationCidrBlock: {{ $.Values.customerCidrBlock }}
+    region: {{ $.Values.region }}
+    vpcPeeringConnectionIdSelector:
+      matchLabels:
+        resource.upbound.io/{{ $.Values.customerName }}: VPCPeeringConnection
+    routeTableId: {{ $rtbId.rtbId }}
+  providerConfigRef:
+    name: aws-provider-config
+---
+{{- end }}

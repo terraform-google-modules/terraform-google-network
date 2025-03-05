@@ -1,0 +1,14 @@
+---
+# Synopsis: Orchestrates configuration/removal of the Tenable Nessus agent
+
+  - name: Perform dependencies check
+    include_tasks: dependency-check.yml
+
+  - name: Configure Tenable Nessus Agent
+    include_tasks: configure.yml
+
+  # TODO: implement ability to remove agent from a system
+  # - name: Remove Tenable Nessus Agent
+  #   include_tasks: remove.yml
+
+...

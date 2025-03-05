@@ -1,0 +1,10 @@
+---
+  - name: Verify
+    hosts: all
+    gather_facts: true
+    tasks:
+      - name: test ansible hostname is equal to preset variable hostname
+        assert:
+          that:
+            - ansible_hostname  == 'testdomainjoinblock'
+...

@@ -1,0 +1,39 @@
+---
+# Synopsis: This playbook will start any ec2 instances named 'spr-' every Monday at 6:00 AM
+# Inputs:
+#   - aws_automation_secret_key: The aws access key used for access
+#   - aws_automation_secret_key: The aws secret key used for access
+#   - aws_region: The default amazon region specified in the defaults file
+# Outputs: Any instance with the tag of 'spr' will be started every monday morning at 0200 UTC / 2200 EST.
+
+  - name: Discover AWS EC2 instances
+    local_action:
+      module: ec2_instance_info
+      aws_access_key: '{{ aws_automation_access_key | default(omit, true) }}'
+      aws_secret_key: '{{ aws_automation_secret_key | default(omit, true) }}'
+      region: '{{ aws_region }}'
+    register: discovered_instances
+    tags:
+      - start
+
+  - name: Creating a list of spr instances that will be started
+    set_fact:
+      instances_to_start: '{{ discovered_instances | to_json | from_json | json_query(query) }}'
+    vars:
+      query: instances[?starts_with(tags.Name, `spr-`)].instance_id
+    register: instances_to_start
+
+  - name: Setting from ansible_fact to a list
+    set_fact:
+      instances_to_start: '{{ instances_to_start.ansible_facts.instances_to_start }}'
+
+  - name: Starting spr instances
+    local_action:
+      module: ec2
+      region: '{{ aws_region }}'
+      aws_access_key: '{{ aws_automation_access_key | default(omit, true) }}'
+      aws_secret_key: '{{ aws_automation_secret_key | default(omit, true) }}'
+      state: running
+      instance_ids: '{{ instances_to_start }}'
+    when: instances_to_start|length > 0
+...

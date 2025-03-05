@@ -1,0 +1,86 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+          "Sid": "CreateCloudwatchAlarms",
+          "Effect": "Allow",
+          "Action": [
+              "SNS:ListTopics",
+              "SNS:GetTopicAttributes",
+              "SNS:ListSubscriptions",
+              "SNS:TagResource",
+              "SNS:UntagResource",
+              "SNS:Unsubscribe",
+              "SNS:Subscribe",
+              "cloudwatch:PutMetricAlarm",
+              "cloudwatch:DescribeAlarms"
+          ],
+          "Resource": "*"
+        },
+        {
+          "Sid": "AllowTagManagement",
+          "Effect": "Allow",
+          "Action": [
+            "ec2:DescribeInstances",
+            "cloudwatch:DescribeAlarms",
+            "ec2:DescribeImages",
+            "ec2:CreateTags"
+          ],
+          "Resource": "*"
+        },
+        {
+          "Sid": "AllowforSnapshotMigration",
+          "Effect": "Allow",
+          "Action": [
+            "ec2:DescribeInstances",
+            "ec2:DescribeVolumes",
+            "ec2:AttachVolume",
+            "ec2:CreateVolume",
+            "ec2:StopInstances",
+            "ec2:StartInstances",
+            "ec2:Describe*",
+            "ec2:CreateSnapshot",
+            "ec2:DeleteSnapshot"
+          ],
+          "Resource": "*"
+        },
+        {
+            "Sid": "AllowEC2AMICreation",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:ModifySnapshotAttribute",
+                "ec2:DeleteTags",
+                "ec2:StartInstances",
+                "ec2:CreateTags",
+                "ec2:CreateSnapshots",
+                "ec2:CreateSnapshot",
+                "ec2:StopInstances",
+                "ec2:AssociateIamInstanceProfile"
+            ],
+            "Resource": [
+                "arn:${ partition }:ec2:${ aws_region }:${ account_id }:instance/*",
+                "arn:${ partition }:ec2:${ aws_region }:${ account_id }:snapshot/*",
+                "arn:${ partition }:ec2:${ aws_region }:${ account_id }:volume/*"
+            ]
+        },
+        {
+            "Sid": "AllowEC2ImageCreation",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeImages",
+                "ec2:DescribeInstances",
+                "ec2:CreateImage",
+                "ec2:DescribeSnapshots"
+             ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowCloudWatchAlarmDelete",
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:DeleteAlarms"
+            ],
+            "Resource": "*"
+        }
+    ]
+  }

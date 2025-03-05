@@ -1,0 +1,53 @@
+---
+# handlers file for rhel8-disa-stig
+
+# NOTE: The 'auditd' service can't be restarted by the 'systemd' or 'sysvinit' Ansible modules.
+
+  - name: Restart the 'auditd' service
+    listen: service auditd restart
+    shell: service auditd restart
+    become: true
+
+  - name: Restart the 'sssd' service
+    listen: systemctl restart sssd.service
+    systemd:
+      state: restarted
+      name: sssd.service
+    become: true
+
+  - name: Update the dconf system database
+    listen: dconf update
+    command: dconf update
+    become: true
+
+  - name: Restart the 'rsyslog' service
+    listen: systemctl restart rsyslog.service
+    systemd:
+      state: restarted
+      name: rsyslog.service
+    become: true
+
+  - name: Restart the 'sshd' service
+    listen: systemctl restart sshd.service
+    systemd:
+      state: restarted
+      name: sshd.service
+    become: true
+
+  - name: Reload all systemctl unit files
+    listen: systemctl daemon-reload
+    systemd:
+      daemon_reload: true
+    become: true
+
+  - name: Reboot the system
+    listen: reboot
+    reboot:
+    become: true
+    when: reboot_if_needed | bool
+
+  - name: Reboot the system after enabling FIPS mode
+    listen: 'reboot # fips'
+    reboot:
+    become: true
+...

@@ -1,0 +1,40 @@
+---
+# Configure vector for an agent deployment
+
+  - name: Install NS2 Vector Agent sinks configuration files
+    delegate_to: localhost
+    copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/'
+      src: config/agent_sinks
+    become: false
+    when:
+      - vector_aggregator_sink_address is defined
+      - vector_aggregator_sink_address != ""
+    notify:
+      - restart vector
+
+  - name: Install NS2 Vector agent internal metrics source
+    delegate_to: localhost
+    copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/agent_internal/sources/'
+      src: config/aggregator_processing/sources/vector_internal_metrics.yaml
+
+    become: false
+    when:
+      - vector_aggregator_sink_address is defined
+      - vector_aggregator_sink_address != ""
+    notify:
+      - restart vector
+
+  - name: Install NS2 Vector agent internal metrics to log transform
+    delegate_to: localhost
+    copy:
+      dest: '{{ vector_local_temp_directory.path }}/ns2/agent_internal/transforms/'
+      src: config/aggregator_processing/transforms/vector_metrics_to_log.yaml
+    become: false
+    when:
+      - vector_aggregator_sink_address is defined
+      - vector_aggregator_sink_address != ""
+    notify:
+      - restart vector
+...

@@ -1,0 +1,12 @@
+[Unit]
+Description=Clam AntiVirus userspace daemon timer
+
+[Timer]
+OnCalendar='*-*-* *:00/30:00'
+Persistent=true
+Unit=clamd@scan.service
+FixedRandomDelay=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

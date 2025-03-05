@@ -1,0 +1,68 @@
+---
+# Description: Tests whether a sidlist is generated from the inventory
+# Comments: Modify provisioner.ansible.ansible_args to change the inventory to test
+
+scenario:
+  name: sidlist
+  create_sequence:
+    - dependency
+    - create
+    - prepare
+  check_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - create
+    - prepare
+    - converge
+    - check
+    - destroy
+  converge_sequence:
+    - dependency
+    - create
+    - prepare
+    - converge
+  destroy_sequence:
+    - dependency
+    - cleanup
+    - destroy
+  test_sequence:
+    - dependency
+    - lint
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+#    - idempotence    # NOTE: A lot of our roles aren't truly idempotent as far as Molecule understands, so you might have to comment this line out.
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  # - name: docker-hub-ubuntu-latest    # NOTE: Commented out example demonstrating pulling a pre-built image.
+  #   image: ubuntu:latest              # NOTE: The image must have Python and the 'sudo' package installed in order for the Ansible roles to work.
+  #   pre_build_image: true
+  - name: ubuntu-ansible-18.04
+    image: ubuntu:18.04
+    pre_build_image: false
+    dockerfile: ../../../../testing/molecule/docker/dockerfiles/ubuntu-ansible-18.04/Dockerfile
+provisioner:
+  name: ansible
+  ansible_args:
+    - --inventory=vars/business/cre-ibp-c01.yml
+  lint:
+    name: ansible-lint
+    enabled: false
+  playbooks:
+    prepare: ../../../../testing/molecule/docker/prepare.yml
+    converge: ./converge.yml
+    verify: ./verify.yml
+verifier:
+  name: ansible
+  enabled: true

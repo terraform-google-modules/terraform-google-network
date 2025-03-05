@@ -1,0 +1,31 @@
+---
+# Synopsis: Replaces Host File
+# Inputs:
+#   hostvars : pulled directly from spr inventory file
+#   - spr_hostname
+#   - spr_domain
+#    ansible groups : from dynamic group assignments
+#    - webdispatcher
+#    - staging
+#    - production
+# Outputs: New host file
+# Comments: Requires use of the spr inventory file
+
+- name: update /etc/hosts file for non dr app/db
+  template:
+    dest: /etc/hosts
+    src: provisioning/spr-hostfile-prd-app.j2
+    backup: yes
+  become: yes
+  when:
+    - inventory_hostname not in groups.dr
+
+- name: update /etc/hosts file for dr app/db
+  template:
+    dest: /etc/hosts
+    src: provisioning/spr-hostfile-dr-app.j2
+    backup: yes
+  become: yes
+  when:
+    - inventory_hostname in groups.dr
+...

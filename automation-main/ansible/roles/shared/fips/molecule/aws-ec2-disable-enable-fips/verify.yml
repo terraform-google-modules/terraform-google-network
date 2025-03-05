@@ -1,0 +1,20 @@
+---
+# Description: Molecule verify.yml playbook used to run a series of tests after the converge.yml playbook.
+
+  - name: Verify
+    hosts: all
+    become: true  # fips role requires playbook level 'become: true'.
+    gather_facts: true
+    tasks:
+      - name: Get FIPS status
+        include_role:
+          name: fips
+          tasks_from: '{{ ansible_distribution | lower }}/check-fips.yml'
+          allow_duplicates: true
+        vars:
+          fips_mode_enabled: true
+
+      - name: Ensure that FIPS state is enabled
+        assert:
+          that: fips_state | bool
+...

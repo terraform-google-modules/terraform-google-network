@@ -1,0 +1,40 @@
+# Synopsis: This is an example of the upgrade_scope.yml file
+# Inputs: N/A
+# Outputs: N/A
+# Comments: This is an example of the upgrade_scope.yml file
+
+### misc
+sqlcmd_folder: '/staging/ibp/Build/SQL-Statements'
+
+### hdb
+hdb_upgrade:        true
+hdb_saphostagent:   true
+hdb_logging_off:    true
+
+hdb_parameters:     false
+
+hdb_upgrade_source: '/staging/ibp/Upgrade/2005-HFC03-EP05'
+
+hana_afl_sp_level:      '046'
+hana_afl_patch_level:   '0002'
+sapibpafl_sp_level:     '046'
+sapibpafl_patch_level:  '0011'
+
+### saphostagent
+saphostagent_source: '/staging/ibp/Upgrade/2005-HFC03-EP05/SAPHOSTAGENT/SAPHOSTAGENT46_46-20009394.SAR'
+saphostagent_patch_level: '46'
+
+### app
+app_client:       false
+app_saphostagent: false
+abap_stack_xml:   true
+abap_parameters:  false
+abap_kernel:      false
+sum:              false
+spam:             false
+app_upgrade_source: '/staging/ibp/Upgrade/2005-HFC03-EP05/CLIENT/SAP_HANA_CLIENT'
+abap_stack_source: '/staging/ibp/Upgrade/2005-HFC03-EP05'
+
+### webdispatcher
+
+### cpids

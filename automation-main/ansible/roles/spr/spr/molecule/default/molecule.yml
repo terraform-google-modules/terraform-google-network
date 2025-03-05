@@ -1,0 +1,84 @@
+---
+# Description: Variables file defining AWS EC2 instances to create for the given Molecule test scenario.
+# Comments: This Molecule test scenario validates that the hostname is updated correctly after executing the playbook.
+
+dependency:
+  name: galaxy
+driver:
+  name: ec2_instance
+platforms:
+  - name: instance
+    image_owner: 723712175675
+    image_name: Golden-NS2-RHEL-8.1-Base-V*
+    instance_type: t2.micro
+    vpc_subnet_id: subnet-03740edfaa4a578af
+    tags:
+      - Name: molecule_instance
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      all:
+        vars:
+          spr_hostname: app-g00
+          spr_domain: spr.sapns2.us
+          spr_nodetype: app
+          spr_landscape: dev
+          spr_productname: webdispatcher
+        children:
+          #landscapes
+          prd:
+          qas:
+          dev:
+          sbx:
+          #nodetype
+          aas:
+          app:
+          db:
+          #productname
+          ads:
+          apache_ftp:
+          attp:
+          bobj:
+          bw4hana:
+          bw4hana_addons:
+          bw4hana_bpc:
+          car:
+          cloudconnector:
+          contentserver:
+          convergent_charging:
+          convergent_mediation:
+          cpids_agent:
+          crm:
+          data_services:
+          data_warehouse:
+          dpagent:
+          fiori:
+          gts:
+          hana_ee:
+          hanacockpit:
+          information_steward:
+          lumira:
+          mii:
+          optimizer:
+          opentext:
+          payroll:
+          platform_edition:
+          po:
+          portal:
+          router:
+          s4hana:
+          s4hana_addons:
+          sac_agent:
+          scm:
+          slt:
+          solman_abap:
+          solman_hdb:
+          solman_java:
+          sso:
+          tm:
+          webdispatcher:
+          dr:
+verifier:
+  name: ansible
+...

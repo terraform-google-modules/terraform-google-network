@@ -1,0 +1,380 @@
+---
+# Playbook Name: spr-create-disks-ha-sso.yml
+# Description: Creates and mounts necessary EBS and EFS mounts for 99.9 HA Clustering
+# Dependencies:
+# - Ansible v2.9+
+# - AWS CLI v1.16+
+# - sudo capability or root privileges on target machine
+# - Instances with base S3 repository configured
+# - disk-management ansible role
+# - nfs ansible role
+# Variables:
+#   - efs_staging_ip: IP Address of the staging EFS to be mounted. (Inventory GroupVar)
+#   - nfs_usr_sap_trans_ip: IP Address of the usr_sap_trans GCP Filestore instance (Inventory GroupVar)
+#   - efs_usr_sap_trans_fsid: AWS EFS ID of the Customer's EFS Volume (Inventory GroupVar)
+#   - aws_efs_ip_address: IP address of the file system. When defined will use this var instead of the efs_usr_sap_trans_fsid (Inventory GroupVar)
+#   - spr_productname: Used to create dynamic group (Inventory HostVar)
+#   - non_spr_productname: Used to create dynamic group (Inventory HostVar)
+#   - spr_landscape: Used to create dynamic group (Inventory HostVar)
+#   - spr_nodetype: Used to create dynamic group (Inventory HostVar)
+#   - spr_usr_sap_mount_size: Customer's `/usr/sap` mount size (Inventory HostVar)
+#   - efs_ha_app_fsid - AWS FSID of the EFS HA Volume
+# Example:
+#   Execution on remote systems using the fuse inventory host template
+#     ansible-playbook s4pce-create-disks-non-spr.yml -k -i /<PATH-TO>/<SPR-INVENTORY-FILE>
+# Authors: Sean-Thomas Saloom
+# Version: 2.9-000001
+# Modified: 2023-07-17 - Created playbook
+# Comments: |
+#   This playbook is designed to work with the spr ansible-inventory template.
+#   AWS has a maxiumum limit of 16TB.  Future iterations to add multi-disk support
+#   Tags:
+#     play0 always cloud-identify    : Prepare dynamic values
+#     play1 app                      : Swap Files
+#     play2 usrsaptrans              : EFS usr/sap/trans Mount
+#     play3 haefs                    : EFS for HA
+#     play4 staging                  : Common Staging Mount
+#     play5 Play5 /sapmnt/ on APP01  : Mount /sapmnt/ on APP01
+#     playEND                        : The End
+
+
+#################
+##### Play0 #####
+#################
+- name: "Play0: Prepare dynamic values"
+  gather_facts: true
+  hosts: all
+  tags:
+  - play0
+  - cloud-identify
+  - always
+
+  tasks:
+  - name: "Dynamic Group Assignment"
+    group_by:
+      key: "{{ item }}"
+    when: "item != 'undefined'"
+    loop:
+    - "{{ non_spr_productname|default('undefined')|lower }}"
+    - "{{ spr_productname|default('undefined')|lower }}"
+    - "{{ spr_landscape|default('undefined')|lower }}"
+    - "{{ spr_nodetype|default('undefined')|lower }}"
+
+  # Notes: outputs: cloud_provider, machine_id
+  - name: Detect Cloud Provider
+    include_role:
+      name: cloud-identify
+
+  - name: Group by Cloud Provider
+    group_by:
+      key: "cloud_{{ cloud_provider }}"
+
+
+  - name: "Configure Base Repositories from S3"
+    include_role:
+      name: repository-management
+    vars:
+      repo_enable: 'true'
+      application_preset_selection: 'base'
+
+  - name: Group hosts whose hostname contains 'app01'
+    group_by:
+      key: "app01"
+    when: "'app01' in inventory_hostname"
+
+  - name: Pause for confirmation
+    pause:
+      prompt: "Do you want to continue? (Press enter to proceed)"
+
+#################
+##### Play1 #####
+#################
+- name: Play1 Swap Files
+  hosts: app
+  tags:
+  - play1
+  - app
+
+  tasks:
+  - name: "{{ inventory_hostname }} has {{ (ansible_facts.memtotal_mb/1000)|round|int }}GB of system memory"
+    set_fact:
+      ram_size: "{{ (ansible_facts.memtotal_mb/1000)|round|int }}"
+
+  - name: "Calculate swap size"
+    set_fact:
+      swap_size: >-
+          {% if ram_size|int < 32 %} {{ ram_size|int * 2 }}
+          {% elif ram_size|int < 64 %} 64
+          {% elif ram_size|int < 128 %} 96
+          {% elif ram_size|int < 256 %} 128
+          {% elif ram_size|int < 512 %} 160
+          {% elif ram_size|int < 1024 %} 192
+          {% elif ram_size|int < 2048 %} 224
+          {% elif ram_size|int < 4096 %} 256
+          {% elif ram_size|int < 8192 %} 288
+          {% else %} 320
+          {% endif %}
+
+  - name: "Additional swap size will be {{ swap_size|int }}GB"
+    set_fact:
+      swap_size: "{{ swap_size|int }}"
+
+  - name: Include disk management role to create, attach, parition, format, and mount disks
+    include_role:
+      name: disk-management
+    vars:
+      azure_resource_group: "{{ play_azure_resource_group | default('',true) }}"
+      azure_disk_type: 'Standard_LRS'
+      disk_create: true
+      disk_encryption: true
+      disk_encryption_key_default: ''
+      disk_preset_selection: 'custom'
+      custom:
+        swap:
+          mount_point: '/swap'
+          size: "{{ swap_size|int }}"
+
+
+#################
+##### Play2 #####
+#################
+- name: Play2 Central Services /usr/sap/trans
+  hosts: app
+  tags:
+  - play2
+  - usrsaptrans
+
+  vars:
+    aws_efs_file_system_id: "{{ efs_usr_sap_trans_fsid }}"
+    nfs_file_system_ip: "{{ nfs_usr_sap_trans_ip | default(omit,true) }}"
+    nfs_mount_dir: "{{ spr_efs_mount|default('none',true) }}"
+    azure_nfs_storage_account: "{{ spr_azure_customer_storage_account|default(omit,true) }}"
+    azure_nfs_name: "{{ spr_azure_customer_file_share|default(omit,true) }}"
+    gcp_filestore_name: "{{ spr_gcp_filestore_name | default(omit,true) }}"
+
+  pre_tasks:
+    - name: Retrieve ec2 metadata
+      ec2_metadata_facts:
+      when: cloud_provider == "aws"
+
+  tasks:
+  - name: "Block: Mount usr/sap/trans"
+    when: nfs_mount_dir != 'none'
+    become: true
+    block:
+    - name: "Create list of subfolders for NFS"
+      set_fact:
+        nfs_mnt: "{{ hostvars | to_json | from_json | json_query('*.spr_efs_mount') | sort | unique }}"
+      # Deconstructing what just happened:
+      # json_query('*.sid') - get sids for all hosts
+      # sort - sorts in alphabetical/numerical
+      # unique - remove duplicates
+
+    - name: "Mount Temporary EFS"
+      include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          temp:
+            path: '/mnt/temp'
+            src: '{{ aws_efs_ip_address | default(aws_efs_file_system_id + ".efs." + ansible_ec2_placement_region + ".amazonaws.com",true) }}'
+
+    - name: "Create NFS Subfolders"
+      run_once: true
+      file:
+        path: "/mnt/temp/{{ item }}"
+        state: directory
+        mode: 0755
+      loop_control:
+        label: "Ensuring subfolder {{ item }} exists on NFS"
+      loop: "{{ nfs_mnt }}"
+
+    - name: "Unmount Temporary EFS"
+      include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          temp:
+            path: '/mnt/temp'
+            state: absent
+
+    - name: "Mount the /usr/sap/trans"
+      include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          temp:
+            path: '/usr/sap/trans'
+            src: '{{ aws_efs_ip_address | default(aws_efs_file_system_id + ".efs." + ansible_ec2_placement_region + ".amazonaws.com",true) }}'
+            src_root: '/{{ nfs_mount_dir }}'
+  #END "Block: Mount usr/sap/trans"
+
+
+#################
+##### Play3 #####
+#################
+- name: Play3 Central Services /ha-efs
+  hosts: app
+  tags:
+  - play3
+  - haefs
+
+  vars:
+    aws_efs_file_system_id: "{{ efs_ha_app_fsid }}"
+    nfs_mount_dir: "/{{ spr_sid | upper }}/ha-app"
+
+  pre_tasks:
+    - name: Retrieve ec2 metadata
+      ec2_metadata_facts:
+      when: cloud_provider == "aws"
+
+  tasks:
+  - name: "Block: Mount EFS-HA"
+    when: nfs_mount_dir != 'none'
+    become: true
+    block:
+    - name: "Mount Temporary EFS"
+      include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          temp:
+            path: '/mnt/temp'
+            src: '{{ aws_efs_ip_address | default(aws_efs_file_system_id + ".efs." + ansible_ec2_placement_region + ".amazonaws.com",true) }}'
+
+    - name: "Create NFS Subfolders"    # Create <SID>/ha-app subfolder  (just one subfolder)
+      run_once: true
+      file:
+        path: "/mnt/temp/{{ nfs_mount_dir }}"
+        state: directory
+        mode: 0755
+
+    - name: "Unmount Temporary EFS"
+      include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          temp:
+            path: '/mnt/temp'
+            state: absent
+
+    - name: "Mount EFS-ID/{{ nfs_mount_dir }}/ha-app as /efs/ha-app"
+      include_role:
+        name: nfs
+      vars:
+        nfs_dictionary:
+          temp:
+            path: '/efs/ha-app' #/efs/ha-app"
+            src: '{{ aws_efs_ip_address | default(aws_efs_file_system_id + ".efs." + ansible_ec2_placement_region + ".amazonaws.com",true) }}'   #EFS-ID
+            src_root: "{{ nfs_mount_dir }}"    #/SID/ha-app
+  #END "Block: Mount EFS-HA"
+
+
+#################
+##### Play4 #####
+#################
+- name: Play4 EFS Common Staging Mount
+  hosts: cloud_aws:cloud_azure
+  gather_facts: false
+  tags:
+  - play4
+  - staging
+
+  vars:
+    efs_ipaddress: "{{ efs_staging_ip }}"
+    azure_nfs_storage_account: "{{ spr_azure_staging_storage_account|default(omit,true) }}"
+    azure_nfs_name: "{{ spr_azure_staging_file_share|default(omit,true) }}"
+
+  pre_tasks:
+    - name: Retrieve ec2 metadata
+      ec2_metadata_facts:
+      when: cloud_provider == "aws"
+
+  tasks:
+  #Note: Until we can reroll the older AWS EFS, the DNS lookup method won't work here.
+  - name: Mount EFS Staging
+    include_role:
+      name: nfs
+    vars:
+      nfs_dictionary:
+        staging:
+          path: '/staging'
+          src: >-
+            {%- if cloud_provider == "aws" -%}      {{ efs_ipaddress }}
+            {%- elif cloud_provider == "azure" and cloud_partition == "usgovernment" -%}  {{ azure_nfs_storage_account }}.file.core.usgovcloudapi.net
+            {%- elif cloud_provider == "azure" and cloud_partition == "public" -%}  {{ azure_nfs_storage_account }}.file.core.windows.net
+            {%- endif -%}
+          src_root: >-
+            {%- if cloud_provider == "aws" -%}
+            {%- elif cloud_provider == "azure" -%}    /{{ azure_nfs_storage_account }}/{{ azure_nfs_name }}
+            {%- endif -%}
+
+#################
+##### Play5 #####
+#################
+- name: Play5 /sapmnt/ on APP01
+  hosts: app01
+  tags:
+  - play5
+  - app
+  vars:
+    efs_ipaddress: "{{ efs_staging_ip }}"
+    aws_region:  "us-gov-west-1"
+    efs_ha_app: "{{ efs_ha_app_fsid }}.efs.{{ aws_region }}.amazonaws.com:/{{ sap_sid | upper }}/ha-app"
+
+    nfs_mount_dir: "/{{ spr_sid | upper }}/ha-app"
+    #nfs_mount_dir: "/SST/ha-app"
+  # Preparation for PAS
+  # Make sure the EFS is mounted on primary app server and additional app server
+  # This play is only validating if the EFS is mounted
+  tasks:
+  - name: Check EFS '/efs/ha-app' and '/usr/sap/trans' are mounted
+    shell: |
+        df -h | grep -E 'ha-app|/usr/sap/trans'
+    args:
+      executable: /bin/bash
+    register: check_efs_ha
+    ignore_errors: true
+    changed_when:
+      - "'/efs/ha-app' and ':/ha-app' in check_efs_ha.stdout"
+      - "'/usr/sap/trans' and ':/trans-' in check_efs_ha.stdout"
+
+  - name: Print Check EFS are mounted
+    debug:
+      var: check_efs_ha.changed
+
+  ## Preparation for PAS
+  ## mount filesystems a) /sapmnt b) /usr/sap/SID/SYS c) /usr/sap/SID/D00 (PAS) d) /usr/sap/SID/D00 (AAS)
+  ## creates mount points, mounts filesystems using required options, and updates /etc/fstab
+
+  - name: Mount filesystems on PAS
+    mount:
+      src: "{{ item.src }}"
+      path: "{{ item.path }}"
+      fstype: "{{ item.fstype }}"
+      opts: "{{ item.opts }}"
+      state: mounted
+    loop:
+      - { src: '{{ efs_ha_app }}/sap-ha/sapmnt', path: '/sapmnt', fstype: 'nfs4', opts: 'nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport'}
+    become: true
+
+
+###################
+##### PlayEND #####
+###################
+- name: "PlayEND: End of playbook"
+  hosts: all
+  gather_facts: false
+  become: false
+  tags:
+  - play-end
+  - always
+  - the-end
+
+  tasks:
+  - name: "This is the end"
+    delegate_to: localhost
+    run_once: true
+    debug:
+      msg: "Of the world as we know it"
+...

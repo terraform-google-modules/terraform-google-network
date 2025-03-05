@@ -1,0 +1,152 @@
+# {{ ansible_managed }}
+
+{% if aide_config_version is defined %}
+config_version={{ aide_config_version }}
+{% endif %}
+
+{% if aide_macros.define is defined %}
+# Define Variables
+{% for item in aide_macros.define %}
+{% if item.comment is defined %}
+# {{ item.comment }}
+{% endif %}
+@@define {{ item.variable }} {{ item.value }}
+{% endfor %}
+
+{% endif %}
+{% if aide_macros.undefine is defined %}
+# Undefine Variables
+{% for item in aide_macros.undefine %}
+{% if item.comment is defined %}
+# {{ item.comment }}
+{% endif %}
+@@undef {{ item.variable }}
+{% endfor %}
+
+{% endif %}
+# Configuration Options
+{% if aide_database_filename is defined and aide_dbdir is defined %}
+database=file:{{ aide_dbdir }}/{{ aide_database_filename }}
+{% endif %}
+{% if aide_database_out_filename is defined and aide_dbdir is defined %}
+database_out=file:{{ aide_dbdir }}/{{ aide_database_out_filename }}
+{% endif %}
+{% if aide_gzip_dbout %}
+gzip_dbout=yes
+{% else %}
+gzip_dbout=no
+{% endif %}
+{% if aide_verbose %}
+verbose={{ aide_verbose }}
+{% endif %}
+{% if aide_log_level and aide_report_level %}
+log_level = {{ aide_log_level }}
+report_level = {{ aide_report_level }}
+{% endif %}
+{% if aide_report_url is defined %}
+{% for i in aide_report_url %}
+report_url={{ i }}
+{% endfor %}
+{% endif %}
+{% if aide_acl_no_symlink_follow %}
+acl_no_symlink_follow=yes
+{% else %}
+acl_no_symlink_follow=no
+{% endif %}
+{% if aide_warn_dead_symlinks %}
+warn_dead_symlinks=yes
+{% else %}
+warn_dead_symlinks=no
+{% endif %}
+{% if aide_summarize_changes %}
+summarize_changes=yes
+{% else %}
+summarize_changes=no
+{% endif %}
+{% if aide_report_attributes is defined %}
+report_attributes={% for i in aide_report_attributes %}{% if loop.last %}{{ i }}
+{% else %}{{ i }}+{% endif %}{% endfor %}
+{% endif %}
+{% if aide_ignore_list is defined and aide_ignore_list | length > 0 %}
+ignore_list={% for i in aide_ignore_list %}{% if loop.last %}{{ i }}
+{% else %}{{ i }}+{% endif %}{% endfor %}
+{% endif %}
+
+{% if aide_rules is defined %}
+# Define Rules
+{% for rule in aide_rules %}
+{% if rule.rule != 'negative' %}
+{% if rule.comment is defined %}
+# {{ rule.comment }}
+{% endif %}
+{% if rule.rule is defined %}{{ rule.rule }} = {% endif %}{% if rule.attributes is defined %}{% for item in rule.attributes %}{% if loop.last %}{{ item }}
+{% else %}{{ item }}+{% endif %}{% endfor %}{% endif %}
+{% endif %}
+{% endfor %}
+
+{% endif %}
+{% if aide_rules is defined %}
+# Define Include Paths
+{% for rule in aide_rules %}
+{% if rule.rule != 'negative' %}
+{% if rule.paths is defined %}
+{% for path in rule.paths %}
+{{ path }}   {{ rule.rule }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endfor %}
+
+{% if aide_stig_compatibility | bool %}
+# BEGIN ANSIBLE MANAGED BLOCK
+# Audit tools rules for compatibility with the DISA STIG Ansible roles
+{% if ansible_distribution | lower == 'sles' and ansible_distribution_major_version | lower == '15' %}
+/usr/sbin/audispd   p+i+n+u+g+s+b+acl+selinux+xattrs+sha512
+/usr/sbin/auditctl   p+i+n+u+g+s+b+acl+selinux+xattrs+sha512
+/usr/sbin/auditd   p+i+n+u+g+s+b+acl+selinux+xattrs+sha512
+/usr/sbin/augenrules   p+i+n+u+g+s+b+acl+selinux+xattrs+sha512
+/usr/sbin/aureport   p+i+n+u+g+s+b+acl+selinux+xattrs+sha512
+/usr/sbin/ausearch   p+i+n+u+g+s+b+acl+selinux+xattrs+sha512
+/usr/sbin/autrace   p+i+n+u+g+s+b+acl+selinux+xattrs+sha512
+{% elif ansible_distribution | lower == 'redhat' and ansible_distribution_major_version | lower == '8' %}
+/usr/sbin/auditctl   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/auditd   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/ausearch   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/aureport   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/autrace   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/rsyslogd   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/augenrules   p+i+n+u+g+s+b+acl+xattrs+sha512
+{% elif ansible_distribution | lower == 'redhat' and ansible_distribution_major_version | lower == '7' or
+        ansible_distribution | lower == 'ubuntu' and ansible_distribution_major_version | lower == '16' %}
+/usr/sbin/auditctl   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/auditd   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/ausearch   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/aureport   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/autrace   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/audispd   p+i+n+u+g+s+b+acl+xattrs+sha512
+/usr/sbin/augenrules   p+i+n+u+g+s+b+acl+xattrs+sha512
+{% elif ansible_distribution | lower == 'ubuntu' and ansible_distribution_major_version | lower == '18' %}
+/sbin/auditctl   p+i+n+u+g+s+b+acl+xattrs+sha512
+/sbin/auditd   p+i+n+u+g+s+b+acl+xattrs+sha512
+/sbin/ausearch   p+i+n+u+g+s+b+acl+xattrs+sha512
+/sbin/aureport   p+i+n+u+g+s+b+acl+xattrs+sha512
+/sbin/autrace   p+i+n+u+g+s+b+acl+xattrs+sha512
+/sbin/audispd   p+i+n+u+g+s+b+acl+xattrs+sha512
+/sbin/augenrules   p+i+n+u+g+s+b+acl+xattrs+sha512
+{% endif %}
+# END ANSIBLE MANAGED BLOCK
+{% endif %}
+
+{% endif %}
+{% if aide_rules is defined %}
+# Define Ignore/Exclude Paths
+{% for rule in aide_rules %}
+{% if rule.rule == 'negative' %}
+{% if rule.paths is defined %}
+{% for path in rule.paths %}
+!{{ path }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}

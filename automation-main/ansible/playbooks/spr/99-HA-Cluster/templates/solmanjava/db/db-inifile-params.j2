@@ -1,0 +1,22 @@
+# IMPORTANT DO NOT DELETE!!! SAPInstDes25Hash=$MPF77aYDl+wX$wUL+pKdXjsi7lziPm/iMAK1K3g/ENL0EdKUdAZJXmJNAV9WMvKgpNrirrgXenQVewb38+tsYjNLiY/lSpQ4gxCk2baAQh1cN
+HDB_Schema_Check_Dialogs.dropSchema = true
+HDB_Schema_Check_Dialogs.schemaName = {{ app_schema_name }}
+HDB_Schema_Check_Dialogs.schemaPassword = des25(lCxPKabYYRQV3JRKeJhFCo4aDQ==)
+NW_Delete_Sapinst_Users.removeUsers = true
+NW_GetMasterPassword.masterPwd = des25(0MROkU7JtPQlU0WCfdjCGr19XQ==)
+NW_HDB_DB.javaSchemaName = {{ app_schema_name }}
+NW_HDB_DB.javaSchemaPassword = des25(QeDP/lRXuKhz15xOTxSmWa5jJQ==)
+NW_HDB_getDBInfo.dbhost = {{ db_virtual_hostname }}
+NW_HDB_getDBInfo.dbsid = {{ spr_db_second_tenant_sid | upper }}
+NW_HDB_getDBInfo.instanceNumber = 00
+NW_HDB_getDBInfo.systemPassword = des25(oPrvGxwYOHgh2cxgUTEF9PQg8w==)
+NW_HDB_getDBInfo.systemid = {{ db_sid | upper }}
+NW_JAVA_Export.keyPhrase = des25(KG5KeTYVRmBMx1jMWXL0A/QT4g==)
+NW_getLoadType.loadType = SAP
+NW_internal.useProductVersionDescriptor = true
+NW_readProfileDir.profileDir = /sapmnt/{{ sap_sid }}/profile
+archives.downloadBasket = {{ download_basket }}
+nwUsers.sapsysGID = 79
+nwUsers.sidAdmUID = 20204
+SAPINST.CD.PACKAGE.SCA={{ download_basket }}/51045655_4/DATA_UNITS/JAVA_J2EE_OSINDEP_UT
+SAPINST.CD.PACKAGE.SCA_2={{ download_basket }}/51045655_4/DATA_UNITS

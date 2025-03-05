@@ -1,0 +1,131 @@
+---
+# Synopsis: Installs and configures Tenable Nessus agent
+# Inputs:
+#   nessus_s3_bucket_aws_region - AWS region containing S3 bucket to download Nessus Agent binaries
+#   nessus_package_version - Version of Tenable Nessus agent to install
+#   nessus_manager_port - Port number to communicate with Tenable Nessus Manager on
+#   nessus_s3_bucket_name - Name of the AWS S3 bucket containing the Nessus Agent packages
+#   nessus_s3_bucket_path - Path within the S3 bucket to the folder containing the Nessus Agent packages
+#   nessus_manager_address - URI to the Tenable Nessus Manager
+#   nessus_registration_key - Tenable manager registration key
+#   nessus_agent_group - Nessus Scanner scan group name
+#   binary_location - Location of Nessus Agent binaries. Possible values of "aws_s3" or "local". Defaults to "aws_s3"
+#   binary_local_folder - Full local Ansible controller path to folder containing the Nessus Agent binaries e.g. "/tmp/nessus_agent_binaries"
+
+  - name: Construct package name for Amazon
+    set_fact:
+      nessus_package_name: NessusAgent-{{nessus_package_version}}-amzn.x86_64.rpm
+    when: ansible_distribution == "Amazon"
+
+  - name: Construct package name for Red Hat
+    set_fact:
+      nessus_package_name: NessusAgent-{{nessus_package_version}}-es{{ansible_distribution_major_version}}.x86_64.rpm
+    when: ansible_distribution == "RedHat"
+
+  - name: Construct package name for Suse Linux Enterprise Server
+    set_fact:
+      nessus_package_name: NessusAgent-{{nessus_package_version}}-suse12.x86_64.rpm
+    when: ansible_distribution == "SLES"
+
+  - name: Construct package name for Ubuntu
+    set_fact:
+      nessus_package_name: NessusAgent-{{nessus_package_version}}-ubuntu1110_amd64.deb
+    when: ansible_distribution == "Ubuntu"
+
+  - name: '[BLOCK] - Download Nessus Agent binary from AWS S3 bucket.'
+    block:
+
+      - name: Check if AWS CLI is available
+        stat:
+          path: /usr/local/bin/aws
+        register: aws_cli
+
+      - block:    # When CLI is not installed
+          - name: Install unzip utility
+            package:
+              state: present
+              name: unzip
+            become: true
+          - name: Download awscliv2 installer
+            unarchive:
+              src: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+              dest: "{{ executable_temp_dir | default('/tmp') }}"
+              remote_src: yes
+              creates: /tmp/aws
+              mode: 0755
+          - name: Run the installer
+            command:
+            args:
+              cmd: "{{ executable_temp_dir | default('/tmp') }}/aws/install"
+              creates: /usr/local/bin/aws
+            become: true
+            register: aws_install
+          - debug:
+              var: aws_install
+              verbosity: 2
+          - name: Cleanup AWS CLI v2 install files
+            file:
+              path: /tmp/aws
+              state: absent
+        when: not aws_cli.stat.exists
+
+      - name: Download Nessus Agent package from S3
+        shell: /usr/local/bin/aws s3 cp s3://{{nessus_s3_bucket_name}}/{{nessus_s3_bucket_path}}/{{nessus_package_name}} /tmp
+        become: true
+        environment:
+          AWS_DEFAULT_REGION: '{{nessus_s3_bucket_aws_region}}'
+
+    when: binary_location == "aws_s3"
+    # End "[BLOCK] - Download Nessus Agent binary from AWS S3 bucket."
+
+  - name: '[BLOCK] - Copy Nessus Agent binary from local Ansible controller.'
+    block:
+
+      - name: Check if Nessus Agent package is present locally
+        stat:
+          path: '{{binary_local_folder | regex_replace("\\/$", "") }}/{{nessus_package_name}}'
+        register: local_binary_check
+        delegate_to: localhost
+
+      - name: Fail check for missing Nessus Agent package local
+        fail:
+          msg: '[ERROR]: Local Nessus agent package missing at "{{binary_local_folder | regex_replace("\\/$", "") }}/{{nessus_package_name}}". Please refer
+            to README documentation.'
+        when: local_binary_check.stat.exists == False
+        delegate_to: localhost
+
+      - name: Copy Nessus Agent package from local
+        copy:
+          src: '{{binary_local_folder | regex_replace("\\/$", "") }}/{{nessus_package_name}}'
+          dest: /tmp/{{nessus_package_name}}
+        become: true
+
+    when: binary_location == "local"
+    # End "[BLOCK] - Copy Nessus Agent binary from local Ansible controller."
+
+  - name: Install Nessus Agent package
+    apt:
+      state: present
+      deb: /tmp/{{nessus_package_name}}
+    become: true
+    when: ansible_distribution == "Ubuntu"
+
+  - name: Install Nessus Agent package
+    package:
+      state: present
+      name: /tmp/{{nessus_package_name}}
+      disable_gpg_check: true
+    become: true
+    when: ansible_distribution != "Ubuntu"
+
+  - name: Register Nessus Agent
+    shell: /opt/nessus_agent/sbin/nessuscli agent link --name={{ansible_hostname}} --groups={{nessus_agent_group}} --host={{nessus_manager_address}} --key={{nessus_registration_key}}
+      --port={{nessus_manager_port}} --offline-install
+    become: true
+
+  - name: Start Nessus Agent service
+    service:
+      name: nessusagent
+      state: restarted
+    become: true
+...

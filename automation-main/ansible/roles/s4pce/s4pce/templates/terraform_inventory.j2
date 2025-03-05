@@ -1,0 +1,78 @@
+/*
+  Description: Terraform instance_list input
+  Comments:
+*/
+
+instance_list = {
+{% for host in ansible_play_hosts | sort %}
+  {{ host }} = {
+    sid            = "{{ hostvars[host].spr_sid | upper }}"
+    name           = "{{ hostvars[host].spr_nodetype | lower }}"
+    productname    = "{{ hostvars[host].spr_productname | lower }}"
+    productgroup   = "{{ hostvars[host].spr_productgroup }}"
+    landscape      = "{{ hostvars[host].spr_landscape | lower | replace('prd','Production') | replace('qas','Quality-Assurance') | replace('dev','Development') | replace('sbx','Development') | replace('dr','Production') }}"
+    instance_type  = "{{ hostvars[host].spr_size }}"
+    cnames         = {{ ([host] + hostvars[host].spr_cnames|default([],true)) | replace("'",'"') }}
+{% if hostvars[host].tag_landscape is defined %}
+    tag_landscape  = "{{ hostvars[host].tag_landscape }}"
+{% endif %}
+{% if (hostvars[host].tag_customdomain is defined) %}
+    tag_customdomain = "{{ hostvars[host].tag_customdomain }}"
+{% endif %}
+{% if (hostvars[host].tag_customhostname is defined) %}
+    tag_customhostname = "{{ hostvars[host].tag_customhostname | lower }}"
+{% endif %}
+{% if (hostvars[host].s4pce_productcomponent is defined) %}
+    tag_productcomponent = "{{ hostvars[host].s4pce_productcomponent | lower }}"
+{% endif %}
+{% if hostvars[host].spr_hostname is defined %}
+    hostname       = "{{ hostvars[host].spr_hostname|lower }}"
+{% endif %}
+{% if hostvars[host].spr_os is defined %}
+    os             = "{{ hostvars[host].spr_os }}"
+{% endif %}
+{% if hostvars[host].spr_az is defined %}
+    az             = "{{ hostvars[host].spr_az }}"
+{% endif %}
+{% if hostvars[host].spr_subnet is defined %}
+    subnet         = "{{ hostvars[host].spr_subnet }}"
+{% endif %}
+{% if hostvars[host].spr_ami is defined %}
+{% if vars.cloud_provider is defined and vars.cloud_provider|lower != "azure" %}
+    ami            = "{{ hostvars[host].spr_ami }}"
+{% else %}
+    image            = "{{ hostvars[host].spr_ami }}"
+{% endif %}
+{% endif %}
+{% if hostvars[host].spr_ami_owner is defined %}
+{% if vars.cloud_provider is defined and vars.cloud_provider|lower != "azure" %}
+    ami_owner      = "{{ hostvars[host].spr_ami_owner }}"
+{% else %}
+    image_owner      = "{{ hostvars[host].spr_ami_owner }}"
+{% endif %}
+{% endif %}
+{% if hostvars[host].spr_securitygroups is defined %}
+    securitygroups = {{ (hostvars[host].spr_securitygroups) | replace("'",'"') }}
+{% endif %}
+{% if hostvars[host].spr_nlb_ports is defined %}
+    endpoint_port_list = {{ (hostvars[host].spr_nlb_ports) | replace("'",'"') | lower }}
+{% endif %}
+{% if hostvars[host].non_spr_productname is defined %}
+    non_spr_productname = "{{ hostvars[host].non_spr_productname | lower }}"
+{% endif %}
+{% if hostvars[host].spr_interfaces_efs_mount is defined %}
+    spr_interfaces_efs_mount = "{{ hostvars[host].spr_interfaces_efs_mount }}"
+{% endif %}
+{% if hostvars[host].spr_azure_customer_sftp_storage_account is defined %}
+    spr_azure_customer_sftp_storage_account = "{{ hostvars[host].spr_azure_customer_sftp_storage_account }}"
+{% endif %}
+{% if hostvars[host].spr_customer_sftp_object_container is defined %}
+    spr_customer_sftp_object_container = "{{ hostvars[host].spr_customer_sftp_object_container }}"
+{% endif %}
+{% if hostvars[host].spr_customer_sftp_user_homedirectory is defined %}
+    spr_customer_sftp_user_homedirectory = "{{ hostvars[host].spr_customer_sftp_user_homedirectory }}"
+{% endif %}
+
+  }
+{% endfor %}
+}

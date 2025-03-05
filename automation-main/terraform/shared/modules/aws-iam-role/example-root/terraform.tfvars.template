@@ -1,0 +1,9 @@
+/*
+  Description: Terraform variables for module run; The variables contained in this page will be used to run this terraform module.
+    The resulting created IAM user will be with the specified policies and groups attached.
+  Comments:
+    - policy_list and group_list may be left blank.
+*/
+
+aws_region                    = "us-gov-west-1"             # AWS Region where this will be run.
+# build_user                    = ""                          # Employee ID of the Running Terraform

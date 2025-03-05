@@ -1,0 +1,114 @@
+---
+# Synopsis: Commonly shared set of tasks that configure iptables idempotently with the rules based on the provided ports.
+# Inputs:
+#   - iptables_default_input_chain_behavior :  Default INPUT chain behavior, e.g. ACCEPT, DROP
+#   - iptables_default_forward_chain_behavior :  Default FORWARD chain behavior, e.g. ACCEPT, DROP
+#
+# Outputs:
+#   - Configures iptables with ruleset idempotently. Can be viewed on the system using 'iptables -L'
+
+  - name: Ensure default policy for the INPUT chain is set
+    ansible.builtin.iptables:
+      chain: INPUT
+      policy: '{{ iptables_default_input_chain_behavior }}'
+      wait: '{{ iptables_lock_wait }}'
+    become: true
+
+  - name: Ensure default policy for the FORWARD chain is set
+    ansible.builtin.iptables:
+      chain: INPUT
+      policy: '{{ iptables_default_forward_chain_behavior }}'
+      wait: '{{ iptables_lock_wait }}'
+    become: true
+    when:
+      - iptables_default_forward_chain_behavior is defined
+      - iptables_default_forward_chain_behavior is not none
+      - iptables_default_forward_chain_behavior | length > 0
+
+  - name: Check whether the 'ANSIBLE_MANAGED' iptables chain already exists
+    ansible.builtin.shell: iptables -L ANSIBLE_MANAGED
+    register: ansible_chain_results
+    failed_when: ansible_chain_results.rc not in [0,1]
+    changed_when: false
+    become: true
+
+  - name: Create ANSIBLE_MANAGED iptables chain if it doesn't already exist
+    ansible.builtin.shell: iptables -N ANSIBLE_MANAGED
+    when: ansible_chain_results.rc == 1
+    become: true
+
+  - name: Send all traffic to the 'ANSIBLE_MANAGED' chain
+    ansible.builtin.iptables:
+      action: insert
+      chain: INPUT
+      wait: '{{ iptables_lock_wait }}'
+      protocol: all
+      jump: ANSIBLE_MANAGED
+    become: true
+
+  - name: Check whether the 'ANSIBLE_MANAGED_TMP' iptables chain already exists
+    ansible.builtin.shell: iptables -L ANSIBLE_MANAGED_TMP
+    register: ansible_chain_new_results
+    failed_when: ansible_chain_new_results.rc not in [0,1]
+    changed_when: false
+    become: true
+
+  - name: Flush the 'ANSIBLE_MANAGED_TMP' iptables chain if already exists
+    ansible.builtin.iptables:
+      chain: ANSIBLE_MANAGED_TMP
+      wait: '{{ iptables_lock_wait }}'
+      flush: true
+    when: ansible_chain_new_results.rc != 1
+    become: true
+
+  - name: Create ANSIBLE_MANAGED_TMP iptables chain for constructing new ruleset
+    ansible.builtin.shell: iptables -N ANSIBLE_MANAGED_TMP
+    when: ansible_chain_new_results.rc == 1
+    become: true
+
+  - name: Include taskfile to setup iptables rules for ANSIBLE_MANAGED_TMP
+    ansible.builtin.include_tasks: common/configure-rules-common.yml
+    vars:
+      iptables_internal_chain: ANSIBLE_MANAGED_TMP
+
+  - name: Send all traffic to the 'ANSIBLE_MANAGED_TMP' chain
+    ansible.builtin.iptables:
+      action: insert
+      wait: '{{ iptables_lock_wait }}'
+      chain: INPUT
+      protocol: all
+      jump: ANSIBLE_MANAGED_TMP
+    become: true
+
+  - name: Flush the 'ANSIBLE_MANAGED' iptables chain
+    ansible.builtin.iptables:
+      chain: ANSIBLE_MANAGED
+      wait: '{{ iptables_lock_wait }}'
+      flush: true
+    become: true
+
+  - name: Include taskfile to setup iptables rules for ANSIBLE_MANAGED
+    ansible.builtin.include_tasks: common/configure-rules-common.yml
+    vars:
+      iptables_internal_chain: ANSIBLE_MANAGED
+
+  - name: Drop the iptables rule from the 'INPUT' chain to temporary ANSIBLE_MANAGED_TMP
+    ansible.builtin.iptables:
+      chain: INPUT
+      wait: '{{ iptables_lock_wait }}'
+      protocol: all
+      jump: ANSIBLE_MANAGED_TMP
+      state: absent
+    become: true
+
+  - name: Flush the 'ANSIBLE_MANAGED_TMP' iptables chain
+    ansible.builtin.iptables:
+      chain: ANSIBLE_MANAGED_TMP
+      wait: '{{ iptables_lock_wait }}'
+      flush: true
+    become: true
+
+  - name: Remove the 'ANSIBLE_MANAGED_TMP' iptables chain
+    ansible.builtin.shell: iptables -X ANSIBLE_MANAGED_TMP
+    become: true
+...

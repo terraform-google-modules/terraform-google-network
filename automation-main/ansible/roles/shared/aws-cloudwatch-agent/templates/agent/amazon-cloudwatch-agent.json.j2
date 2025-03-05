@@ -1,0 +1,67 @@
+#jinja2:variable_start_string:'[%', variable_end_string:'%]'
+
+{%- set collect_list = lookup('vars', 'logs_default') | union(lookup('vars', 'logs_' + application_preset_selection)) %}
+{% set _collect_list = [] %}
+{% for collect in collect_list %}
+{% set _ = _collect_list.append({"timezone": lookup('vars', 'cwa_default_log_stream_timezone')} | combine(collect)) %}
+{% endfor -%}
+
+{
+    "agent": {
+        {% if cwa_aws_region | length > 0 -%}
+        "region": "[% cwa_aws_region %]",
+        {% endif -%}
+        "logfile": "[% cwa_agent_log_file %]",
+        "debug": false
+    },
+    "logs": {
+        "log_stream_name": "{[% cwa_default_log_stream_name %]}",
+        "logs_collected": {
+            "files": {
+                "collect_list": [% _collect_list | to_nice_json(indent=8) %]
+            }
+        }
+    }
+    {% if cwa_install_metrics | bool %},
+    "metrics": {
+        {% if cwa_configure_asg_dimensions == "true" -%}
+        "aggregation_dimensions" : [["AutoScalingGroupName"]],
+        "append_dimensions": {
+            "AutoScalingGroupName": "${aws:AutoScalingGroupName}",
+            "InstanceId": "${aws:InstanceId}"
+        },
+        {% else -%}
+        "append_dimensions": {"InstanceId": "${aws:InstanceId}"},
+        {% endif -%}
+        "metrics_collected": {
+            "collectd": {
+                "metrics_aggregation_interval": 60,
+                "collectd_security_level": "none"
+            },
+            "disk": {
+                "measurement": [
+                    "used_percent",
+                    "inodes_free"
+                ],
+                "metrics_collection_interval": 60,
+                "resources": [
+                    "*"
+                ]
+            },
+            "mem": {
+                "measurement": [
+                    "mem_used_percent"
+                ],
+                "metrics_collection_interval": 60
+            },
+            "cpu": {
+                "measurement": [
+                    "cpu_usage_system"
+                ],
+                "metrics_collection_interval": 60,
+                "totalcpu": true
+            }
+        }
+    }
+    {% endif %}
+}

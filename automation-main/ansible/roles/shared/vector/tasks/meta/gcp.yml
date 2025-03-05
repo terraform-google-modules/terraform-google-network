@@ -1,0 +1,42 @@
+---
+  - name: Compute the tags list as a dictionary
+    set_fact:
+      vector_gcp_tags: "{{ mds['instance']['attributes'] }}"
+
+  - name: Compute the list of IP addresses for the VM
+    set_fact:
+      vector_vm_ip_adddresses: '{{ (mds | json_query("instance.networkInterfaces[*].ip")) + (mds | json_query("instance.networkInterfaces[*].ipAliases[]"))
+        }}'
+
+  - name: Additional environment variables
+    set_fact:
+      vector_additional_environment_variables:
+        NS2_CLOUD_PROVIDER: gcp
+        NS2_GCP_CLOUD_SERVICE: gce_instance
+        NS2_GCP_IMAGE: "{{ mds['instance']['image'] }}"
+        NS2_GCP_PROJECT: "{{ mds['project']['projectId'] }}"
+        NS2_GCP_PROJECT_ID: "{{ mds['project']['numericProjectId'] }}"
+        NS2_GCP_PROVIDER: gce
+        NS2_GCP_REGION: "{{ mds['instance']['zone'].rsplit('/', 1)[1][:-2] }}"
+        NS2_GCP_TAGS: "{{ vector_gcp_tags.items() | map('join', ':') | join(';') }}"
+        NS2_GCP_TAGS_LIST: '{{ vector_gcp_tags | to_json }}'
+        NS2_GCP_VM_ID: "{{ mds['instance']['id'] }}"
+        NS2_GCP_VM_TYPE: "{{ mds['instance']['machineType'].rsplit('/', 1)[1] }}"
+        NS2_GCP_ZONE: "{{ mds['instance']['zone'].rsplit('/', 1)[1] }}"
+        NS2_IP_ADDRESSES: "{{ vector_vm_ip_adddresses | join(',') }}"
+        NS2_VM_NAME: "{{ mds['instance']['name'] }}"
+
+        NS2_TAG_BUSINESS: "{{ vector_gcp_tags.get('Business', '') }}"
+        NS2_TAG_CNAMES: "{{ vector_gcp_tags.get('cnames', '') }}"
+        NS2_TAG_CUSTOMER: "{{ vector_gcp_tags.get('Customer', '') }}"
+        NS2_TAG_DOMAIN: "{{ vector_gcp_tags.get('Domain', '') }}"
+        NS2_TAG_ENVIRONMENT: "{{ vector_gcp_tags.get('Environment', '') }}"
+        NS2_TAG_IMAGE: "{{ vector_gcp_tags.get('Image', '') }}"
+        NS2_TAG_NAME: "{{ vector_gcp_tags.get('Name', '') }}"
+        NS2_TAG_PRODUCT_NAME: "{{ vector_gcp_tags.get('ProductName', '') }}"
+
+  - name: Set some variables for templating use
+    set_fact:
+      vector_hyperscaler: gcp
+      vector_hyperscaler_gcp: true
+...

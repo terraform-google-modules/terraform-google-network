@@ -1,0 +1,148 @@
+---
+# Synopsis: Provision HANA DB
+# Inputs:
+#   - hana_tar_source: location of the compressed hana source files
+#   - db_hostname: Hostname of the HANA Database server
+#   - sapsys_gid: Group ID of 'sapsys'
+#   - sid: SAP ID of the Landscape
+#   - hdb_instance_number: HDB instance number
+#   - sidadm_uid: User ID of the sidadm user
+#   - extract_hana_tar_files: (true|false) True uses the Tar Extraction install
+# Outputs: Configured and running S4 HANA system
+# Comments: N/A
+
+- name: "Install /etc/host file"
+  include_tasks: s4-hostfile-install.yml
+
+- name: "Value of extract_hana_tar_files"
+  debug:
+    var: extract_hana_tar_files
+
+- name: "Validate source for extraction"
+  include_tasks: directories-validate.yml
+  vars:
+    folder_path: "{{item}}"
+  loop:
+    - "{{ hana_tar_source }}"
+  when: extract_hana_tar_files | bool
+
+- name: "Set the Hostname"
+  hostname:
+    name: "{{ db_hostname }}"
+  become: true
+
+- name: "Ensure Sapsys group has GID of {{ sapsys_gid }}"
+  group:
+    name: sapsys
+    state: present
+    gid: "{{ sapsys_gid }}"
+    local: yes
+  become: true
+
+- name: "Stop Host Agent"
+  command: "/etc/init.d/sapinit stop"
+  become: yes
+  register: stophostagent_results
+
+- name: "Display stophostagent_results when verbosity >= 1"
+  debug:
+    var: stophostagent_results
+    verbosity: 1
+
+- name: "Preinstall cleanup"
+  shell: |
+    rm -rf /tmp/UNIFIEDINSTALL
+    rm -rf /tmp/UNIFIED
+    rm -rf /tmp/LMTP*
+    rm -rf /tmp/sapinst*
+    rm -rf /tmp/.sap*
+    rm -rf /hana/shared/{{ sid|upper }}/*
+    rm -rf /hana/data/{{ sid|upper }}/*
+    rm -rf /hana/log/{{ sid|upper }}/*
+    rm -rf /hana/backup/{{ sid|upper }}/data/*
+    rm -rf /hana/backup/{{ sid|upper }}/log/*
+    rm -rf /sapmnt/{{ sid|upper }}/exe
+    rm -rf /sapmnt/{{ sid|upper }}/global
+    rm -rf /sapmnt/{{ sid|upper }}/profile
+    rm -rf /usr/sap/sapservices
+    rm -rf /usr/sap/{{ sid|upper }}.hdbinstall
+    rm -rf /usr/sap/{{ sid|upper }}.hdbupgrade
+    rm -rf /usr/sap/{{ sid|upper }}/*
+    rm -rf /tmp/.sapstr*
+    rm -rf /tmp/STDIN*
+    rm -rf /usr/sap/hdbstudio*
+    rm -rf /usr/sap/hdbclient
+    rm -rf /var/tmp/hdb*
+    rm -rf /tmp/{{ sid|upper }}*
+    rm -rf /var/tmp/saposcol.pid
+    rm -rf /var/lib/hdb/*
+    rm -rf /usr/sap/{{ sid|upper }}
+    rm -rf /hana/shared/{{ sid|upper }}/*
+    rm -rf /hana/data/{{ sid|upper }}/*
+    rm -rf /hana/log/{{ sid|upper }}/*
+    rm -rf /var/tmp/hdb*
+    rm -rf /var/lib/hdb
+    rm -rf /hana/shared/{{ sid|upper }}
+    rm -rf /hana/data/{{ sid|upper }}
+    rm -rf /hana/log/{{ sid|upper }}
+    rm -rf /tmp/posrdb*
+  args:
+    warn: false
+  become: yes
+  register: preinstallcleanup_output
+  when: extract_hana_tar_files | bool
+
+- name: "Display preinstallcleanup_output when verbosity >= 1"
+  debug:
+    var: preinstallcleanup_output
+    verbosity: 1
+  when: extract_hana_tar_files | bool
+
+- name: "Create SID Directories"
+  file:
+    path: "{{ item }}"
+    state: directory
+  become: yes
+  loop:
+  - /hana/data/{{ sid|upper }}
+  - /hana/log/{{ sid|upper }}
+  - /hana/shared/{{ sid|upper }}
+  - /hana/backups/{{ sid|upper }}/HDB{{ hdb_instance_number }}/backup/data
+  - /hana/backups/{{ sid|upper }}/HDB{{ hdb_instance_number }}/backup/log
+
+- name: "Create {{sid|lower}}adm SAP System Administrator"
+  user:
+    name: "{{sid|lower}}adm"
+    comment: "SAP System Administrator"
+    create_home: yes
+    home: "/usr/sap/{{sid|upper}}/home"
+    uid: "{{ sidadm_uid }}"
+    group: "{{ sapsys_gid }}"
+    shell: /bin/csh
+    state: present
+
+- name: "Extract Tar files"
+  shell: "cat {{ item }}.tgz-* | tar -zpxvf - -C /"
+  become: yes
+  args:
+    chdir: "{{ hana_tar_source }}"
+  loop:
+  - usr-sap
+  - hana-data
+  - hana-log
+  - hana-shared
+  when: extract_hana_tar_files | bool
+
+- name: "Change Ownership on the {{ sid|lower }}adm directories"
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{sid|lower}}adm"
+    group: "sapsys"
+    recurse: yes
+  loop:
+  - /hana/backups
+  - /usr/sap/{{sid|upper}}/home
+  - /var/lib/hdb
+  become: yes
+...

@@ -1,0 +1,23 @@
+plugin_cache_dir="/root/.terraform.d/plugin_cache"
+provider_installation {
+  filesystem_mirror {
+    path = "/root/.cache/tf_providers_mirror"
+    include = [
+      "hashicorp/archive",
+      "hashicorp/aws",
+      "hashicorp/azuread",
+      "hashicorp/azurerm",
+      "hashicorp/external",
+      "hashicorp/http",
+      "hashicorp/local",
+      "hashicorp/null",
+      "hashicorp/random",
+      "hashicorp/template",
+      "hashicorp/time",
+      "hashicorp/tls"
+    ]
+  }
+  direct {
+    include = ["*/*"]
+  }
+}

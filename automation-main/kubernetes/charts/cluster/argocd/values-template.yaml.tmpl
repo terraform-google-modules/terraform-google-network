@@ -1,0 +1,429 @@
+{{ $vault := (datasource "vault") }}
+{{ $envConfig := (datasource "envConfig") }}
+{{ $argoOidc := default false $envConfig.argocdOidcEnabled }}
+{{ $crossplane := default false $envConfig.crossplaneEnabled }}
+serverTlsCert:
+  enabled: true
+  secretName: argocd-server-tls
+  domain: argocd.{{- $envConfig.envBaseDomain }}
+namespaceOverride: argocd
+fullnameOverride: argocd
+argo-cd:
+  nodeSelector:
+    worker.garden.sapcloud.io/group: system
+  nameOverride: argocd
+  fullnameOverride: argocd
+  namespaceOverride: argocd
+  global:
+    domain: argocd.{{- $envConfig.envBaseDomain }}
+    addPrometheusAnnotations: true
+    nodeSelector:
+      worker.garden.sapcloud.io/group: system
+    topologySpreadConstraints: 
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+    deploymentStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+  configs:
+    secret:  
+      argocdServerAdminPassword: "{{ $vault.ARGOCD_ADMIN_PASS | crypto.Bcrypt }}"
+      {{- if $argoOidc }}
+      extra:
+        oidc.clientID: {{ $vault.IAS_CLIENTID }}
+        oidc.clientSecret: {{ $vault.IAS_CLIENTSECRET }}
+      {{- end }}
+    repositories:
+      ste-k8s-deploy-repo:
+        url: "{{ $envConfig.gitlabRepoUrl }}"
+        username: {{ $vault.REPO_TECH_USER }}
+        password: {{ $vault.REPO_TECH_PAT }}
+    params:
+      applicationsetcontroller.enable.new.git.file.globbing: "true"
+    {{- if or $argoOidc $crossplane }}
+    cm:
+    {{- if $crossplane }}
+      application.resourceTrackingMethod: annotation
+      resource.customizations: |
+        "*.upbound.io/*":
+          health.lua: |
+            health_status = {
+              status = "Progressing",
+              message = "Provisioning ..."
+            }
+
+            local function contains (table, val)
+              for i, v in ipairs(table) do
+                if v == val then
+                  return true
+                end
+              end
+              return false
+            end
+
+            local has_no_status = {
+              "ProviderConfig",
+              "ProviderConfigUsage"
+            }
+
+            if obj.status == nil or next(obj.status) == nil and contains(has_no_status, obj.kind) then
+              health_status.status = "Healthy"
+              health_status.message = "Resource is up-to-date."
+              return health_status
+            end
+
+            if obj.status == nil or next(obj.status) == nil or obj.status.conditions == nil then
+              if obj.kind == "ProviderConfig" and obj.status.users ~= nil then
+                health_status.status = "Healthy"
+                health_status.message = "Resource is in use."
+                return health_status
+              end
+              return health_status
+            end
+
+            for i, condition in ipairs(obj.status.conditions) do
+              if condition.type == "LastAsyncOperation" then
+                if condition.status == "False" then
+                  health_status.status = "Degraded"
+                  health_status.message = condition.message
+                  return health_status
+                end
+              end
+
+              if condition.type == "Synced" then
+                if condition.status == "False" then
+                  health_status.status = "Degraded"
+                  health_status.message = condition.message
+                  return health_status
+                end
+              end
+
+              if condition.type == "Ready" then
+                if condition.status == "True" then
+                  health_status.status = "Healthy"
+                  health_status.message = "Resource is up-to-date."
+                  return health_status
+                end
+              end
+            end
+
+            return health_status
+
+        "*.crossplane.io/*":
+          health.lua: |
+            health_status = {
+              status = "Progressing",
+              message = "Provisioning ..."
+            }
+
+            local function contains (table, val)
+              for i, v in ipairs(table) do
+                if v == val then
+                  return true
+                end
+              end
+              return false
+            end
+
+            local has_no_status = {
+              "Composition",
+              "CompositionRevision",
+              "DeploymentRuntimeConfig",
+              "ControllerConfig",
+              "ProviderConfig",
+              "ProviderConfigUsage"
+            }
+            if obj.status == nil or next(obj.status) == nil and contains(has_no_status, obj.kind) then
+                health_status.status = "Healthy"
+                health_status.message = "Resource is up-to-date."
+              return health_status
+            end
+
+            if obj.status == nil or next(obj.status) == nil or obj.status.conditions == nil then
+              if obj.kind == "ProviderConfig" and obj.status.users ~= nil then
+                health_status.status = "Healthy"
+                health_status.message = "Resource is in use."
+                return health_status
+              end
+              return health_status
+            end
+
+            for i, condition in ipairs(obj.status.conditions) do
+              if condition.type == "LastAsyncOperation" then
+                if condition.status == "False" then
+                  health_status.status = "Degraded"
+                  health_status.message = condition.message
+                  return health_status
+                end
+              end
+
+              if condition.type == "Synced" then
+                if condition.status == "False" then
+                  health_status.status = "Degraded"
+                  health_status.message = condition.message
+                  return health_status
+                end
+              end
+
+              if contains({"Ready", "Healthy", "Offered", "Established"}, condition.type) then
+                if condition.status == "True" then
+                  health_status.status = "Healthy"
+                  health_status.message = "Resource is up-to-date."
+                  return health_status
+                end
+              end
+            end
+
+            return health_status
+      resource.customizations.ignoreDifferences.all: |
+        jsonPointers:
+        - /metadata/labels/argocd.argoproj.io~1instance
+        - /metadata/labels/app
+      resource.exclusions: |
+        - apiGroups:
+          - "*"
+          kinds:
+          - ProviderConfigUsage
+    {{- end }}
+    {{- if $argoOidc }}
+      admin.enabled: "false"
+      oidc.config: |
+        name: ias
+        issuer: {{ $vault.IAS_ISSUER }}
+        clientID: $oidc.clientID
+        clientSecret: $oidc.clientSecret
+        requestedIDTokenClaims:
+          groups:
+            essential: true
+          email:
+            essential: true
+        requestedScopes: 
+          - openid
+          - profile
+          - email
+          - groups
+    rbac:
+      policy.default: role:default
+      policy.csv: |
+        # Default role
+        p, role:default, projects, get, *, allow
+        p, role:default, repositories, get, *, allow
+        p, role:default, clusters, get, *, allow
+        p, role:default, certificates, get, *, allow
+        p, role:default, accounts, get, *, allow
+
+        # Operator role
+        p, role:operator, applications, *, */*, allow
+        p, role:operator, repositories, *, *, allow
+        p, role:operator, projects, *, *, allow
+        p, role:operator, clusters, get, *, allow
+        p, role:operator, certificates, *, *, allow
+        p, role:operator, accounts, get, *, allow
+
+        # Admin role
+        p, role:admin, *, *, *, allow
+
+        # RBAC
+        g, KUBECD-ARGO-ADMIN, role:admin
+        g, KUBECD-ARGO-USER, role:operator
+        g, KUBECD-ARGO-VIEWER, role:readonly
+    {{- end }}
+    {{- end }}
+  redis:
+    enabled: false
+  redis-ha:
+    enabled: true
+    nodeSelector: 
+      worker.garden.sapcloud.io/group: system
+    topologySpreadConstraints:
+      enabled: true
+      maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: DoNotSchedule
+    exporter:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+    redis:
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "200m"
+    sentinel:
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "200m"
+    ha-proxy:
+      metrics:
+        enabled: true
+        serviceMonitor:
+          enabled: true
+  server:
+    replicas: 3
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 6
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "200m"
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule    
+    service:
+      annotations:
+        dns.gardener.cloud/class: garden
+        dns.gardener.cloud/dnsnames: "argocd.{{- $envConfig.envBaseDomain }}"
+        dns.gardener.cloud/ttl: "600"
+      type: LoadBalancer
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+  repoServer:
+    name: repo-server
+    replicas: 3
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 6
+    env:
+      - name: ARGOCD_HELM_ALLOW_CONCURRENCY
+        value: "true"
+    envFrom: 
+      - secretRef:
+          name: argocd-vault-plugin-credentials
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "2Gi"
+        cpu: "900m"
+    rbac:
+      - verbs:
+          - get
+          - list
+          - watch
+        apiGroups:
+          - ''
+        resources:
+          - secrets
+          - configmaps
+    initContainers:
+      - name: download-tools
+        image: registry.access.redhat.com/ubi8
+        env:
+          - name: AVP_VERSION
+            value: {{ $envConfig.argocdVltPluginVer }}
+        command: [sh, -c]
+        args:
+          - >-
+            curl -L https://github.com/argoproj-labs/argocd-vault-plugin/releases/download/v$(AVP_VERSION)/argocd-vault-plugin_$(AVP_VERSION)_linux_amd64 -o argocd-vault-plugin && chmod +x argocd-vault-plugin && mv argocd-vault-plugin /custom-tools/
+        volumeMounts:
+          - mountPath: /custom-tools
+            name: custom-tools
+    extraContainers:
+      - name: avp-helm
+        command: [/var/run/argocd/argocd-cmp-server]
+        image: quay.io/argoproj/argocd:v{{ $envConfig.argocdImageVersion }}
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 999
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        volumeMounts:
+          - mountPath: /var/run/argocd
+            name: var-files
+          - mountPath: /home/argocd/cmp-server/plugins
+            name: plugins
+          - mountPath: /tmp
+            name: cmp-tmp
+          - mountPath: /home/argocd/cmp-server/config/plugin.yaml
+            subPath: argocd-vault-plugin-overlay.yaml
+            name: cmp-plugin
+          - name: custom-tools
+            subPath: argocd-vault-plugin
+            mountPath: /usr/local/bin/argocd-vault-plugin
+    volumes:
+      - configMap:
+          name: argocd-cmp-cm
+        name: cmp-plugin
+      - name: cmp-tmp
+        emptyDir: {}
+      - name: custom-tools
+        emptyDir: {}
+  applicationSet:
+    name: applicationset-controller
+    replicas: 3
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+    resources:
+      limits:
+        cpu: 500m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+  controller:
+    env:
+      - name: ARGOCD_K8S_CLIENT_QPS
+        value: "300"
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "400m"
+      limits:
+        memory: "4Gi"
+        cpu: "800m"
+  dex:
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+  notifications:
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi

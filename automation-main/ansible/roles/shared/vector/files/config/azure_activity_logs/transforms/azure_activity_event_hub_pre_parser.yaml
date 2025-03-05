@@ -1,0 +1,58 @@
+---
+# +----------------------------------------------------------------------------------------+
+# | __   __      _             _                   _              ___           __ _       |
+# | \ \ / /__ __| |_ ___ _ _  | |   ___  __ _ __ _(_)_ _  __ _   / __|___ _ _  / _(_)__ _  |
+# |  \ V / -_) _|  _/ _ \ '_| | |__/ _ \/ _` / _` | | ' \/ _` | | (__/ _ \ ' \|  _| / _` | |
+# |   \_/\___\__|\__\___/_|   |____\___/\__, \__, |_|_||_\__, |  \___\___/_||_|_| |_\__, | |
+# |                                     |___/|___/       |___/                      |___/  |
+# | Managed by Ansible                                                                     |
+# +----------------------------------------------------------------------------------------+
+#
+# Description:
+# Vector Output Name: azure_activity_event_hub_pre_parser
+# Notes:
+# +----------------------------------------------------------------------------------------+
+
+type: remap
+inputs:
+  - azure_activity_event_hub
+drop_on_abort: true
+drop_on_error: true
+reroute_dropped: true
+source: |
+  #log(., "warn", 0)
+  # Custom metadata so that it doesnt need to be enriched after since we dont have machine metadata since it is coming from Eventhub.
+  metadata:
+    sourcetype: "azure:activity"
+    source: "{{ get_env_var("NS2_AZ_SUBSCRIPTION_ID") | default("unknown") }}:{{ get_env_var("NS2_AZ_VM_LOCATION") | default("unknown") }}:{{ .topic | default("unknown") }}"
+    cloud:
+      account:
+        id: "{{ get_env_var("NS2_AZ_SUBSCRIPTION_ID") | default("") }}"
+      environment: "{{ get_env_var("NS2_AZ_ENV") | default("") }}"
+      region: "{{ get_env_var("NS2_AZ_VM_LOCATION") | default("") }}"
+      provider: "{{ get_env_var("NS2_CLOUD_PROVIDER") | default("") }}"
+      project:
+        name: "{{ get_env_var("NS2_AZ_RESOURCE_GROUP_NAME") | default("") }}"
+    custom:
+      index:
+        prefix: "{{ get_env_var("VECTOR_SPLUNK_INDEX_PREFIX") | default(null) }}"
+        suffix: "azu"
+      event_hub: {}
+      event_hub_topic: "{{ .topic }}"
+  .message: "{{ parse_json!(.message) }}"
+  context: "{{ . }}"
+  # dropping headers as they are empty
+  del(context.headers)
+  # message_key is never set for event hub data
+  del(context.message_key)
+  # This was the vector timestamp, dropping and using the one from the record
+  tstamp: "{{ del(context.timestamp) }}"
+  # Delete the message body from the context
+  del(context.message)
+  metadata.custom.event_hub: "{{ context }}"
+  .metadata: "{{ compact(metadata) }}"
+  .vector: {}
+  .vector.source_type: "{{ del(.metadata.custom.event_hub.source_type) }}"
+  # https://vector.dev/docs/reference/vrl/examples/#unnest
+  .: "{{ unnest!(.message.records) | default(.) }}"
+...

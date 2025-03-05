@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: "Include spr"
+      include_role:
+        name: "spr"
+...

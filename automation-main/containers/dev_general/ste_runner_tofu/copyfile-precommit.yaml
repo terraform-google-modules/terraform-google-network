@@ -1,0 +1,37 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks.git
+    rev: v4.4.0
+    hooks:
+      - id: no-commit-to-branch
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-json
+        exclude: /templates/
+      - id: check-yaml
+      - id: check-toml
+        exclude: roles/.*/templates/
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform.git
+    rev: v1.92.0
+    hooks:
+      - id: terraform_fmt
+        args:
+          - --hook-config=--parallelism-ci-cpu-cores=2
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform.git
+    rev: v1.92.0
+    hooks:
+      - id: terraform_docs
+        args:
+          - --hook-config=--path-to-file=tf-docs.md
+          - --hook-config=--add-to-existing-file=false
+          - --hook-config=--create-file-if-not-exist=true
+...

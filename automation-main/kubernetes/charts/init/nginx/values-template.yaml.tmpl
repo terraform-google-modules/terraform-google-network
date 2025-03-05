@@ -1,0 +1,85 @@
+{{ $envConfig := (datasource "envConfig") }}
+ingress-nginx:
+  nameOverride: nginx
+  fullnameOverride: nginx
+
+  namespaceOverride: nginx
+
+  controller:
+    nodeSelector:
+      worker.garden.sapcloud.io/group: system
+    config:
+      use-forwarded-headers: "true"
+      compute-full-forwarded-for: "true"
+      enable-real-ip: "true"
+      proxy-add-original-uri-header: "true"
+      keep-alive: "300"
+      ssl-redirect: "false"
+
+    topologySpreadConstraints:
+    - labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: {{`'{{ include "ingress-nginx.name" . }}'`}}
+          app.kubernetes.io/instance: {{`'{{ .Release.Name }}'`}}
+          app.kubernetes.io/component: controller
+      topologyKey: topology.kubernetes.io/zone
+      maxSkew: 1
+      whenUnsatisfiable: ScheduleAnyway
+    
+    autoscaling:
+      enabled: true
+      minReplicas: 3
+      maxReplicas: 12
+      targetCPUUtilizationPercentage: 60
+      targetMemoryUtilizationPercentage: 60
+
+    service:
+      annotations:
+        cert.gardener.cloud/purpose: managed
+        cert.gardener.cloud/secretname: ste-default-tls
+        dns.gardener.cloud/class: garden
+        dns.gardener.cloud/dnsnames: "*.{{- $envConfig.envBaseDomain }}"
+        dns.gardener.cloud/ttl: "600"
+        service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+        service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+        service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+        service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+        service.beta.kubernetes.io/aws-load-balancer-type: nlb
+        service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+      
+      internal:
+        enabled: true
+        type: LoadBalancer
+        externalTrafficPolicy: Local
+        annotations:
+          cert.gardener.cloud/purpose: managed
+          cert.gardener.cloud/secretname: ste-default-internal-tls
+          dns.gardener.cloud/class: garden
+          dns.gardener.cloud/dnsnames: "*.internal.{{- $envConfig.envBaseDomain }}"
+          dns.gardener.cloud/ttl: "600"
+          service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+          service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+          service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+          service.beta.kubernetes.io/aws-load-balancer-scheme: internal
+          service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+          service.beta.kubernetes.io/aws-load-balancer-type: nlb
+          service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+
+      type: LoadBalancer
+      externalTrafficPolicy: Local
+
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+
+    resources:
+      limits:
+        cpu: 200m
+        memory: 1536Mi
+      requests:
+        cpu: 100m
+        memory: 1024Mi
+
+    extraArgs:
+      default-ssl-certificate: nginx/ste-default-tls
