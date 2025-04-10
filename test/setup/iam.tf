@@ -51,7 +51,7 @@ resource "google_service_account_key" "int_test" {
   service_account_id = google_service_account.int_test.id
 }
 
-# due to limitation we need to assign this role at org level otherwise TF throws an error. Issue is only happening when deployedusing APIs like in TF. Console works fine
+# due to limitation we need to assign this role at org level otherwise TF throws an error. Issue is only happening when deployed using APIs like in TF. Console works fine
 # b/265054739
 
 resource "google_organization_iam_member" "organization" {
@@ -69,14 +69,6 @@ resource "google_folder_iam_member" "folder1" {
   role     = each.value
   member   = "serviceAccount:${google_service_account.int_test.email}"
 }
-
-# Roles needed on folders to create Attach firewall policies to the folders/org
-
-# resource "google_organization_iam_member" "org_permission" {
-#   org_id = var.org_id
-#   role   = "roles/compute.orgSecurityResourceAdmin"
-#   member = "serviceAccount:${google_service_account.int_test.email}"
-# }
 
 resource "google_folder_iam_member" "folder2" {
   for_each = toset(["roles/compute.orgSecurityResourceAdmin", "roles/compute.orgFirewallPolicyUser"])
