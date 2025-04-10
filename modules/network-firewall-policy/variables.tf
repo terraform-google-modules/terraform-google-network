@@ -78,6 +78,9 @@ variable "rules" {
     is_mirroring              = optional(bool, false)
     tls_inspect               = optional(bool, false)
     security_profile_group_id = optional(string)
+    src_networks              = optional(list(string), [])
+    src_network_scope         = optional(string)
+    dest_network_scope        = optional(string)
   }))
   default = []
   validation {

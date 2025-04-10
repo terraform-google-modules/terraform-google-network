@@ -232,8 +232,8 @@ In a [firewall policy rule](https://cloud.google.com/firewall/docs/firewall-poli
 ## Requirements
 ### Installed Software
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.3
-- [Terraform Provider for GCP](https://github.com/terraform-providers/terraform-provider-google) >= 4.64
-- [Terraform Provider for GCP Beta](https://github.com/terraform-providers/terraform-provider-google-beta) >= 4.64
+- [Terraform Provider for GCP](https://github.com/terraform-providers/terraform-provider-google) >= 6.18
+- [Terraform Provider for GCP Beta](https://github.com/terraform-providers/terraform-provider-google-beta) >= 6.18
 
 ### Configure a Service Account
 In order to execute this module you must have a Service Account with the following roles:

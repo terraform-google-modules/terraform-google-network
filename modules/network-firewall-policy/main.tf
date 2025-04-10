@@ -70,6 +70,9 @@ resource "google_compute_network_firewall_policy_rule" "rules" {
     dest_region_codes         = each.value.direction == "EGRESS" ? lookup(each.value.match, "dest_region_codes", []) : []
     dest_threat_intelligences = each.value.direction == "EGRESS" ? lookup(each.value.match, "dest_threat_intelligences", []) : []
     dest_address_groups       = each.value.direction == "EGRESS" ? lookup(each.value.match, "dest_address_groups", []) : []
+    src_networks              = lookup(each.value.match, "src_networks", [])
+    src_network_scope         = lookup(each.value.match, "src_network_scope", null)
+    dest_network_scope        = lookup(each.value.match, "dest_network_scope", null)
 
     dynamic "src_secure_tags" {
       for_each = each.value.direction != "INGRESS" || each.value.match.src_secure_tags == null ? [] : toset(each.value.match.src_secure_tags)
@@ -184,6 +187,9 @@ resource "google_compute_region_network_firewall_policy_rule" "rules" {
     dest_region_codes         = each.value.direction == "EGRESS" ? lookup(each.value.match, "dest_region_codes", []) : []
     dest_threat_intelligences = each.value.direction == "EGRESS" ? lookup(each.value.match, "dest_threat_intelligences", []) : []
     dest_address_groups       = each.value.direction == "EGRESS" ? lookup(each.value.match, "dest_address_groups", []) : []
+    src_networks              = lookup(each.value.match, "src_networks", [])
+    src_network_scope         = lookup(each.value.match, "src_network_scope", null)
+    dest_network_scope        = lookup(each.value.match, "dest_network_scope", null)
 
     dynamic "src_secure_tags" {
       for_each = each.value.direction != "INGRESS" || each.value.match.src_secure_tags == null ? [] : toset(each.value.match.src_secure_tags)
