@@ -27,6 +27,9 @@ locals {
     "roles/iam.serviceAccountAdmin",
     "roles/compute.orgFirewallPolicyAdmin",
     "roles/networkconnectivity.hubAdmin",
+    "roles/networksecurity.mirroringDeploymentAdmin",
+    "roles/networksecurity.mirroringEndpointAdmin",
+    "roles/networksecurity.securityProfileAdmin"
   ]
 }
 
@@ -52,8 +55,9 @@ resource "google_service_account_key" "int_test" {
 # b/265054739
 
 resource "google_organization_iam_member" "organization" {
+  for_each = toset(["roles/compute.orgFirewallPolicyAdmin", "roles/compute.orgSecurityResourceAdmin", "roles/networksecurity.securityProfileAdmin"])
   org_id = var.org_id
-  role   = "roles/compute.orgFirewallPolicyAdmin"
+  role   = each.value
   member = "serviceAccount:${google_service_account.int_test.email}"
 }
 
@@ -68,11 +72,11 @@ resource "google_folder_iam_member" "folder1" {
 
 # Roles needed on folders to create Attach firewall policies to the folders/org
 
-resource "google_organization_iam_member" "org_permission" {
-  org_id = var.org_id
-  role   = "roles/compute.orgSecurityResourceAdmin"
-  member = "serviceAccount:${google_service_account.int_test.email}"
-}
+# resource "google_organization_iam_member" "org_permission" {
+#   org_id = var.org_id
+#   role   = "roles/compute.orgSecurityResourceAdmin"
+#   member = "serviceAccount:${google_service_account.int_test.email}"
+# }
 
 resource "google_folder_iam_member" "folder2" {
   for_each = toset(["roles/compute.orgSecurityResourceAdmin", "roles/compute.orgFirewallPolicyUser"])

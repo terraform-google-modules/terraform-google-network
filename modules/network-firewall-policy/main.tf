@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2025 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ resource "google_compute_network_firewall_policy_association" "vpc_associations"
 resource "google_compute_network_firewall_policy_rule" "rules" {
   provider = google-beta
 
-  for_each                = local.global ? { for x in var.rules : x.priority => x } : {}
+  for_each                = local.global ? { for x in var.rules : x.priority => x if x.is_mirroring == false } : {}
   priority                = each.key
   project                 = var.project_id
   action                  = each.value.action
@@ -65,7 +65,7 @@ resource "google_compute_network_firewall_policy_rule" "rules" {
     src_region_codes          = each.value.direction == "INGRESS" ? lookup(each.value.match, "src_region_codes", []) : []
     src_threat_intelligences  = each.value.direction == "INGRESS" ? lookup(each.value.match, "src_threat_intelligences", []) : []
     src_address_groups        = each.value.direction == "INGRESS" ? lookup(each.value.match, "src_address_groups", []) : []
-    dest_ip_ranges            = lookup(each.value.match, "dest_ip_ranges", []) # == null ? [] : lookup(each.value.match, "dest_ip_ranges", [])
+    dest_ip_ranges            = lookup(each.value.match, "dest_ip_ranges", [])
     dest_fqdns                = each.value.direction == "EGRESS" ? lookup(each.value.match, "dest_fqdns", []) : []
     dest_region_codes         = each.value.direction == "EGRESS" ? lookup(each.value.match, "dest_region_codes", []) : []
     dest_threat_intelligences = each.value.direction == "EGRESS" ? lookup(each.value.match, "dest_threat_intelligences", []) : []
@@ -90,6 +90,45 @@ resource "google_compute_network_firewall_policy_rule" "rules" {
 
 }
 
+# Mirroring rules
+
+resource "google_compute_network_firewall_policy_packet_mirroring_rule" "rules" {
+  provider = google-beta
+
+  for_each               = local.global ? { for x in var.rules : x.priority => x if x.is_mirroring == true } : {}
+  priority               = each.key
+  project                = var.project_id
+  action                 = each.value.action
+  description            = each.value.description
+  direction              = each.value.direction
+  disabled               = each.value.disabled
+  firewall_policy        = google_compute_network_firewall_policy.fw_policy[0].name
+  rule_name              = each.value.rule_name
+  tls_inspect            = lookup(each.value, "tls_inspect", null)
+  security_profile_group = "//networksecurity.googleapis.com/${each.value.security_profile_group_id}"
+
+  dynamic "target_secure_tags" {
+    for_each = each.value.target_secure_tags == null ? [] : toset(each.value.target_secure_tags)
+    content {
+      name = target_secure_tags.value
+    }
+  }
+
+  match {
+    src_ip_ranges  = lookup(each.value.match, "src_ip_ranges", [])
+    dest_ip_ranges = lookup(each.value.match, "dest_ip_ranges", [])
+
+    dynamic "layer4_configs" {
+      for_each = each.value.match.layer4_configs
+      content {
+        ip_protocol = layer4_configs.value.ip_protocol
+        ports       = layer4_configs.value.ports
+      }
+    }
+
+  }
+
+}
 
 ########## Regional ##########
 

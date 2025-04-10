@@ -9,7 +9,7 @@ Variable `rules` details are available [here](#firwall-policy-rules-format). Hig
 ```
 module "hierarchical_firewall_policy" {
   source         = "terraform-google-modules/network/google//modules/hierarchical-firewall-policy"
-  version        = "~> 9.0"
+  version        = "~> 11.0"
 
   parent_node    = "folders/123456789012"
   policy_name    = "test-policy"
@@ -31,7 +31,7 @@ There are examples included for [hierarchical firewall policy](../../examples/hi
 ```hcl
 module "firewal_policy" {
   source  = "terraform-google-modules/network/google//modules/hierarchical-firewall-policy"
-  version = "~> 10.0"
+  version = "~> 11.0"
 
   parent_node    = "folders/123456789012"
   policy_name    = "test-policy"

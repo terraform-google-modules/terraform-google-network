@@ -58,6 +58,8 @@ spec:
         location: examples/ilb_routing
       - name: multi_vpc
         location: examples/multi_vpc
+      - name: network_connectivity_center
+        location: examples/network_connectivity_center
       - name: network_service_tiers
         location: examples/network_service_tiers
       - name: packet_mirroring
@@ -123,6 +125,7 @@ spec:
     roles:
       - level: Project
         roles:
+          - roles/compute.instanceAdmin
           - roles/compute.networkAdmin
           - roles/compute.securityAdmin
           - roles/iam.serviceAccountUser
@@ -132,6 +135,10 @@ spec:
           - roles/resourcemanager.tagAdmin
           - roles/iam.serviceAccountAdmin
           - roles/compute.orgFirewallPolicyAdmin
+          - roles/networkconnectivity.hubAdmin
+          - roles/networksecurity.mirroringDeploymentAdmin
+          - roles/networksecurity.mirroringEndpointAdmin
+          - roles/networksecurity.securityProfileAdmin
     services:
       - cloudresourcemanager.googleapis.com
       - compute.googleapis.com
@@ -139,4 +146,10 @@ spec:
       - vpcaccess.googleapis.com
       - dns.googleapis.com
       - networksecurity.googleapis.com
+      - networkconnectivity.googleapis.com
       - iam.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 4.64, < 7"
+      - source: hashicorp/google-beta
+        version: ">= 4.64, < 7"
