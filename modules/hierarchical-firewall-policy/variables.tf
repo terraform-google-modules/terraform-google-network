@@ -73,6 +73,9 @@ variable "rules" {
         ip_protocol = optional(string, "all")
         ports       = optional(list(string), [])
       })), [{}])
+      src_networks       = optional(list(string), [])
+      src_network_scope  = optional(string)
+      dest_network_scope = optional(string)
     })
   }))
   default = []
