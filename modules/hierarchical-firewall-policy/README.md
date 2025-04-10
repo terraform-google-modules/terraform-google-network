@@ -9,7 +9,7 @@ Variable `rules` details are available [here](#firwall-policy-rules-format). Hig
 ```
 module "hierarchical_firewall_policy" {
   source         = "terraform-google-modules/network/google//modules/hierarchical-firewall-policy"
-  version        = "~> 9.0"
+  version        = "~> 11.0"
 
   parent_node    = "folders/123456789012"
   policy_name    = "test-policy"
@@ -31,7 +31,7 @@ There are examples included for [hierarchical firewall policy](../../examples/hi
 ```hcl
 module "firewal_policy" {
   source  = "terraform-google-modules/network/google//modules/hierarchical-firewall-policy"
-  version = "~> 10.0"
+  version = "~> 11.0"
 
   parent_node    = "folders/123456789012"
   policy_name    = "test-policy"
@@ -167,7 +167,7 @@ module "firewal_policy" {
 | description | An optional description of this resource. Provide this property when you create the resource | `string` | `null` | no |
 | parent\_node | The parent of the firewall policy. Parent should be in format organizations/<org-id> or folders/<folder\_id> | `string` | n/a | yes |
 | policy\_name | User-provided name of the hierarchical firewall policy | `string` | n/a | yes |
-| rules | List of Ingress/Egress rules | <pre>list(object({<br>    priority                = number<br>    direction               = string<br>    action                  = string<br>    rule_name               = optional(string)<br>    disabled                = optional(bool)<br>    description             = optional(string)<br>    enable_logging          = optional(bool)<br>    target_service_accounts = optional(list(string), [])<br>    target_resources        = optional(list(string), [])<br>    match = object({<br>      src_ip_ranges             = optional(list(string), [])<br>      src_fqdns                 = optional(list(string), [])<br>      src_region_codes          = optional(list(string), [])<br>      src_threat_intelligences  = optional(list(string), [])<br>      src_address_groups        = optional(list(string), [])<br>      dest_ip_ranges            = optional(list(string), [])<br>      dest_fqdns                = optional(list(string), [])<br>      dest_region_codes         = optional(list(string), [])<br>      dest_threat_intelligences = optional(list(string), [])<br>      dest_address_groups       = optional(list(string), [])<br>      layer4_configs = optional(list(object({<br>        ip_protocol = optional(string, "all")<br>        ports       = optional(list(string), [])<br>      })), [{}])<br>    })<br>  }))</pre> | `[]` | no |
+| rules | List of Ingress/Egress rules | <pre>list(object({<br>    priority                = number<br>    direction               = string<br>    action                  = string<br>    rule_name               = optional(string)<br>    disabled                = optional(bool)<br>    description             = optional(string)<br>    enable_logging          = optional(bool)<br>    target_service_accounts = optional(list(string), [])<br>    target_resources        = optional(list(string), [])<br>    match = object({<br>      src_ip_ranges             = optional(list(string), [])<br>      src_fqdns                 = optional(list(string), [])<br>      src_region_codes          = optional(list(string), [])<br>      src_threat_intelligences  = optional(list(string), [])<br>      src_address_groups        = optional(list(string), [])<br>      dest_ip_ranges            = optional(list(string), [])<br>      dest_fqdns                = optional(list(string), [])<br>      dest_region_codes         = optional(list(string), [])<br>      dest_threat_intelligences = optional(list(string), [])<br>      dest_address_groups       = optional(list(string), [])<br>      layer4_configs = optional(list(object({<br>        ip_protocol = optional(string, "all")<br>        ports       = optional(list(string), [])<br>      })), [{}])<br>      src_networks       = optional(list(string), [])<br>      src_network_scope  = optional(string)<br>      dest_network_scope = optional(string)<br>    })<br>  }))</pre> | `[]` | no |
 | target\_folders | List of target folders IDs that the firewall policy will be attached to | `list(string)` | `[]` | no |
 | target\_org | Target org id that the firewall policy will be attached to | `string` | `null` | no |
 
@@ -232,8 +232,8 @@ In a [firewall policy rule](https://cloud.google.com/firewall/docs/firewall-poli
 ## Requirements
 ### Installed Software
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.3
-- [Terraform Provider for GCP](https://github.com/terraform-providers/terraform-provider-google) >= 4.64
-- [Terraform Provider for GCP Beta](https://github.com/terraform-providers/terraform-provider-google-beta) >= 4.64
+- [Terraform Provider for GCP](https://github.com/terraform-providers/terraform-provider-google) >= 6.18
+- [Terraform Provider for GCP Beta](https://github.com/terraform-providers/terraform-provider-google-beta) >= 6.18
 
 ### Configure a Service Account
 In order to execute this module you must have a Service Account with the following roles:

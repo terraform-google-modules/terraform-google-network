@@ -9,7 +9,7 @@ Variable `rules` details are available [here](#firwall-policy-rules-format). Hig
 ```
 module "network_firewall_policy" {
   source       = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version      = "~> 9.0"
+  version      = "~> 11.0"
   project_id   = var.project_id
   policy_name  = "my-firewall-policy"
   description  = "Test firewall policy"
@@ -29,7 +29,7 @@ There are examples included for [global](https://github.com/terraform-google-mod
 ```hcl
 module "network_firewall_policy" {
   source       = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version      = "~> 9.0"
+  version      = "~> 11.0"
   project_id   = var.project_id
   policy_name  = "my-firewall-policy"
   description  = "Test firewall policy"
@@ -135,7 +135,7 @@ module "network_firewall_policy" {
 | policy\_name | User-provided name of the Network firewall policy | `string` | n/a | yes |
 | policy\_region | Location of the firewall policy. Needed for regional firewall policies. Default is null (Global firewall policy) | `string` | `null` | no |
 | project\_id | Project ID of the Network firewall policy | `string` | n/a | yes |
-| rules | List of Ingress/Egress rules | <pre>list(object({<br>    priority                = number<br>    direction               = string<br>    action                  = string<br>    rule_name               = optional(string)<br>    disabled                = optional(bool)<br>    description             = optional(string)<br>    enable_logging          = optional(bool)<br>    target_secure_tags      = optional(list(string))<br>    target_service_accounts = optional(list(string))<br>    match = object({<br>      src_ip_ranges             = optional(list(string), [])<br>      src_fqdns                 = optional(list(string), [])<br>      src_region_codes          = optional(list(string), [])<br>      src_secure_tags           = optional(list(string), [])<br>      src_threat_intelligences  = optional(list(string), [])<br>      src_address_groups        = optional(list(string), [])<br>      dest_ip_ranges            = optional(list(string), [])<br>      dest_fqdns                = optional(list(string), [])<br>      dest_region_codes         = optional(list(string), [])<br>      dest_threat_intelligences = optional(list(string), [])<br>      dest_address_groups       = optional(list(string), [])<br>      layer4_configs = optional(list(object({<br>        ip_protocol = optional(string, "all")<br>        ports       = optional(list(string), [])<br>      })), [{}])<br>    })<br>  }))</pre> | `[]` | no |
+| rules | List of Ingress/Egress rules | <pre>list(object({<br>    priority                = number<br>    direction               = string<br>    action                  = string<br>    rule_name               = optional(string)<br>    disabled                = optional(bool)<br>    description             = optional(string)<br>    enable_logging          = optional(bool)<br>    target_secure_tags      = optional(list(string))<br>    target_service_accounts = optional(list(string))<br>    match = object({<br>      src_ip_ranges             = optional(list(string), [])<br>      src_fqdns                 = optional(list(string), [])<br>      src_region_codes          = optional(list(string), [])<br>      src_secure_tags           = optional(list(string), [])<br>      src_threat_intelligences  = optional(list(string), [])<br>      src_address_groups        = optional(list(string), [])<br>      dest_ip_ranges            = optional(list(string), [])<br>      dest_fqdns                = optional(list(string), [])<br>      dest_region_codes         = optional(list(string), [])<br>      dest_threat_intelligences = optional(list(string), [])<br>      dest_address_groups       = optional(list(string), [])<br>      layer4_configs = optional(list(object({<br>        ip_protocol = optional(string, "all")<br>        ports       = optional(list(string), [])<br>      })), [{}])<br>    })<br>    is_mirroring              = optional(bool, false)<br>    tls_inspect               = optional(bool, false)<br>    security_profile_group_id = optional(string)<br>    src_networks              = optional(list(string), [])<br>    src_network_scope         = optional(string)<br>    dest_network_scope        = optional(string)<br>  }))</pre> | `[]` | no |
 | target\_vpcs | List of target VPC IDs that the firewall policy will be attached to | `list(string)` | `[]` | no |
 
 ## Outputs
@@ -150,15 +150,18 @@ module "network_firewall_policy" {
 
 ## Firwall Policy Rules Format
 
-In a [firewall policy rule](https://cloud.google.com/firewall/docs/firewall-policies-rule-details), you specify a set of components that define what the rule does. Some of the values are optional and some have default value. See [Inputs](#Inputs). For sample code check [global](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/global-network-firewall-policy) and [regional](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/regional-network-firewall-policy) in [examples](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/) folder.
+In a [firewall policy rule](https://cloud.google.com/firewall/docs/firewall-policies-rule-details), you specify a set of components that define what the rule does. Some of the values are optional and some have default value. See [Inputs](#Inputs). For sample code check [global](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/global-network-firewall-policy) and [regional](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/regional-network-firewall-policy) in [examples](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/) folders. [Global](https://github.com/terraform-google-modules/terraform-google-network/tree/master/examples/global-network-firewall-policy) folder also contains example for `Out-of-band Network Security Integration` firewall rule.
 
 - `priority`: An integer indicating the priority of a rule in the list. The `priority` must be a positive value between 0 and 2147483647 and It has to be unique for every rule.
+- `action`: The Action to perform when the client connection triggers the rule. Valid actions are "allow", "deny", "goto_next", "apply_security_profile_group", "mirror", "do_not_mirror" and "goto_next". "mirror" and "do_not_mirror" can be used only if is_mirroring is set to true.
 - `dest_fqdns`, `dest_region_codes`, `dest_threat_intelligences` and `dest_address_groups` values are not needed and ignored by the this for `INGRESS` policies.
 - `src_fqdns`, `src_region_codes`, `src_threat_intelligences` and `src_address_groups` values are not needed and ignored by this module for `EGRESS` policies.
 - `target_secure_tags` may not be set at the same time as `target_service_accounts`. When both `target_service_accounts` and `target_secure_tags` are provided, this module will generate an error message.
 - `layer4_configs` is a list of maps.
   - `ip_protocol`: IP protocol to which this rule applies. The protocol type is required when creating a firewall rule. This value can either be one of the following well known protocol strings (`tcp`, `udp`, `icmp`, `esp`, `ah`, `ipip`, `sctp`), or the IP protocol number.
   - `ports`: An optional list of ports to which this rule applies. Field is only applicable for UDP or TCP protocol. Each entry must be either an integer or a range. If not specified, this rule applies to connections through any port.
+- `tls_inspect`: Boolean flag indicating if the traffic should be TLS decrypted. Can be set only if action = 'mirror' and cannot be set for other actions
+- `is_mirroring`: Boolean flag indicating packet mirroring rule.
 
 ### Format
 
@@ -191,14 +194,17 @@ In a [firewall policy rule](https://cloud.google.com/firewall/docs/firewall-poli
         },
       ]
     }
+    is_mirroring = false
+    tls_inspect = null
+    security_profile_group_id = null
   }
 ```
 
 ## Requirements
 ### Installed Software
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.3
-- [Terraform Provider for GCP](https://github.com/terraform-providers/terraform-provider-google) >= 4.64
-- [Terraform Provider for GCP Beta](https://github.com/terraform-providers/terraform-provider-google-beta) >= 4.64
+- [Terraform Provider for GCP](https://github.com/terraform-providers/terraform-provider-google) >= 6.28
+- [Terraform Provider for GCP Beta](https://github.com/terraform-providers/terraform-provider-google-beta) >= 6.28
 
 ### Configure a Service Account
 In order to execute this module you must have a Service Account with the following roles:

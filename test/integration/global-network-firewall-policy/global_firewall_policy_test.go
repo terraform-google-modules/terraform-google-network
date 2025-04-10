@@ -136,6 +136,16 @@ func TestGlobalNetworkFirewallPolicy(t *testing.T) {
 			targetServiceAccounts103 := sp103.Get("targetServiceAccounts").Array()
 			assert.Equal(1, len(targetServiceAccounts103), "Rule3should have the correct targetServiceAccounts count")
 
-		})
+			rule200 := gcloud.Runf(t, "beta compute network-firewall-policies mirroring-rules describe 200 --global-firewall-policy --firewall-policy %s --project %s", policyName, projectId)
+			sp104 := rule200.Array()[0]
+			assert.Equal("mirror", sp104.Get("action").String(), "Rule200 action should be mirror")
+			assert.Equal("egress-200", sp104.Get("ruleName").String(), "Rule200 ruleName should be egress-200")
+			assert.Equal("test egress mirroring rule 200", sp104.Get("description").String(), "Rule200 has expected description")
+			assert.Equal("EGRESS", sp104.Get("direction").String(), "Rule200 direction should be EGRESS")
+			assert.Equal( "0.0.0.0/0", sp104.Get("match.destIpRanges").Array()[0].String(), "has expected destIpRanges")
+			assert.Equal("tcp", sp104.Get("match.layer4Configs").Array()[0].Get("ipProtocol").String(), "has expected layer4Configs.ipProtocol")
+			layer4ConfigsPorts200 := sp104.Get("match.layer4Configs").Array()[0].Get("ports").Array()
+			assert.Equal(1, len(layer4ConfigsPorts200), "Rule3 should have the correct layer4Configs.ports count")
+	})
 	fwp.Test()
 }

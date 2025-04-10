@@ -1,12 +1,13 @@
 #  Network Firewall Policy Rule
 
-This example creates a VPC network, Service Account, tag, address group and 2 `global` network firewall policy. First policy will have a few rules and will be attached to a VPC network. Second policy will not be attached and any VPC and will not have any rules.
+This example creates a VPC network, Service Account, tag, address group and 2 `global` network firewall policy. First policy will have a few rules and will be attached to a VPC network. Second policy will not be attached and any VPC and will not have any rules. It also creates a packet mirroring rule for out of band network service integration.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| org\_id | The project ID to host the network in | `any` | n/a | yes |
 | project\_id | The project ID to host the network in | `any` | n/a | yes |
 
 ## Outputs

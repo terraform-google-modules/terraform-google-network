@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2025 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,6 @@ output "vpc_associations" {
 }
 
 output "rules" {
-  value       = merge(google_compute_network_firewall_policy_rule.rules, google_compute_region_network_firewall_policy_rule.rules)
+  value       = merge(google_compute_network_firewall_policy_rule.rules, google_compute_region_network_firewall_policy_rule.rules, google_compute_network_firewall_policy_packet_mirroring_rule.rules)
   description = "Firewall policy rules created"
 }

@@ -74,9 +74,62 @@ resource "google_service_account" "service_account" {
   display_name = "${local.prefix} firewall policy test service account"
 }
 
+################################
+#          VPC Spoke           #
+################################
+module "vpc" {
+  source  = "terraform-google-modules/network/google//modules/vpc"
+  version = "~> 10.0"
+
+  project_id   = var.project_id
+  network_name = "global-sec-policy-test-vpc"
+
+  # shared_vpc_host = false
+}
+
+resource "google_network_security_mirroring_deployment_group" "mirroring_deployment_group" {
+  project                       = var.project_id
+  mirroring_deployment_group_id = "${local.prefix}-mirroring-dg"
+  location                      = "global"
+  description                   = "suricata mirroring deployment group"
+  network                       = module.vpc.network_id
+}
+
+resource "google_network_security_mirroring_endpoint_group" "mirroring_endpoint_group" {
+  provider                    = google-beta
+  project                     = var.project_id
+  mirroring_endpoint_group_id = "${local.prefix}-mirroring-eg"
+  location                    = "global"
+  description                 = "suricata mirroring endpoint group"
+  mirroring_deployment_group  = google_network_security_mirroring_deployment_group.mirroring_deployment_group.id
+}
+
+
+resource "google_network_security_security_profile" "security_profile" {
+  provider    = google-beta
+  name        = "${local.prefix}-security-profile"
+  parent      = "organizations/${var.org_id}"
+  description = "Security profile description"
+  type        = "CUSTOM_MIRRORING"
+
+  custom_mirroring_profile {
+    mirroring_endpoint_group = google_network_security_mirroring_endpoint_group.mirroring_endpoint_group.id
+  }
+}
+
+resource "google_network_security_security_profile_group" "security_profile_group" {
+  provider                 = google-beta
+  name                     = "${local.prefix}-sec-profile-group"
+  parent                   = "organizations/${var.org_id}"
+  description              = "Security profile group"
+  custom_mirroring_profile = google_network_security_security_profile.security_profile.id
+}
+
+
+
 module "firewal_policy" {
   source  = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version = "~> 10.0"
+  version = "~> 11.0"
 
   project_id  = var.project_id
   policy_name = "${local.prefix}-firewall-policy-${random_string.random_suffix.result}"
@@ -205,6 +258,27 @@ module "firewal_policy" {
         ]
       }
     },
+    {
+      is_mirroring            = true
+      priority                = "200"
+      direction               = "EGRESS"
+      action                  = "mirror"
+      rule_name               = "egress-200"
+      disabled                = false
+      description             = "test egress mirroring rule 200"
+      target_service_accounts = ["fw-test-svc-acct@${var.project_id}.iam.gserviceaccount.com"]
+      match = {
+        src_ip_ranges  = ["0.0.0.0/0"]
+        dest_ip_ranges = ["0.0.0.0/0"]
+        layer4_configs = [
+          {
+            ip_protocol = "tcp"
+            ports       = ["80"]
+          }
+        ]
+      }
+      security_profile_group_id = google_network_security_security_profile_group.security_profile_group.id
+    },
 
   ]
 
@@ -216,7 +290,7 @@ module "firewal_policy" {
 
 module "firewal_policy_no_rule" {
   source      = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version     = "~> 10.0"
+  version     = "~> 11.0"
   project_id  = var.project_id
   policy_name = "${local.prefix}-firewall-policy-no-rules-${random_string.random_suffix.result}"
   description = "${local.prefix} test firewall policy without any rules"

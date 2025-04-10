@@ -38,7 +38,7 @@ resource "google_folder" "folder3" {
 
 module "project" {
   source  = "terraform-google-modules/project-factory/google"
-  version = "~> 17.0"
+  version = "~> 18.0"
 
   name              = "ci-network"
   random_project_id = "true"

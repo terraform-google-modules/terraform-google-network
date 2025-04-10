@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2025 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,6 +75,12 @@ variable "rules" {
         ports       = optional(list(string), [])
       })), [{}])
     })
+    is_mirroring              = optional(bool, false)
+    tls_inspect               = optional(bool, false)
+    security_profile_group_id = optional(string)
+    src_networks              = optional(list(string), [])
+    src_network_scope         = optional(string)
+    dest_network_scope        = optional(string)
   }))
   default = []
   validation {
@@ -83,5 +89,4 @@ variable "rules" {
     )
     error_message = "target_secure_tags may not be set at the same time as target_service_accounts"
   }
-
 }

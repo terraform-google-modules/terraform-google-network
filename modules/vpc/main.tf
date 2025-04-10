@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Google LLC
+ * Copyright 2025 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 	VPC configuration
  *****************************************/
 resource "google_compute_network" "network" {
-  provider                                  = google-beta
   name                                      = var.network_name
   auto_create_subnetworks                   = var.auto_create_subnetworks
   routing_mode                              = var.routing_mode
@@ -36,7 +35,6 @@ resource "google_compute_network" "network" {
 	Shared VPC
  *****************************************/
 resource "google_compute_shared_vpc_host_project" "shared_vpc_host" {
-  provider = google-beta
 
   count      = var.shared_vpc_host ? 1 : 0
   project    = var.project_id
