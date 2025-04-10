@@ -56,9 +56,9 @@ resource "google_service_account_key" "int_test" {
 
 resource "google_organization_iam_member" "organization" {
   for_each = toset(["roles/compute.orgFirewallPolicyAdmin", "roles/compute.orgSecurityResourceAdmin", "roles/networksecurity.securityProfileAdmin"])
-  org_id = var.org_id
-  role   = each.value
-  member = "serviceAccount:${google_service_account.int_test.email}"
+  org_id   = var.org_id
+  role     = each.value
+  member   = "serviceAccount:${google_service_account.int_test.email}"
 }
 
 
