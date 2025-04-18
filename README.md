@@ -9,30 +9,34 @@ It supports creating:
 - Secondary ranges for the subnets (if applicable)
 - routes
 - firewall rules
+- network firewall policy
+- hierarchical firewall policy
+- serverless vpc  access connector
+- network connectivity center
 
-[Sub modules](./modules/) are provided for creating individual vpc, subnets, routes, firewall rules, and firewall policies. See the [modules](./modules/) directory for the various sub modules usage.
-- [vpc](./modules/vpc/)
-- [subnet](./modules/subnets/)
-- [route](./modules/routes/)
-- [firewall rules](./modules/firewall-rules/)
-- [hierarchical firewall policy](./modules/hierarchical-firewall-policy/)
-- [network firewall policy](./modules/network-firewall-policy/)
-- [serverless vpc  access connector](./modules/vpc-serverless-connector-beta/)
-- [hierarchical firewall policy](./modules/hierarchical-firewall-policy/)
+[Sub modules](https://github.com/terraform-google-modules/terraform-google-network/tree/main/modules) are provided for creating individual vpc, subnets, routes, firewall rules, network firewall policies, hierarchical firewall policy, serverless vpc  access connector and network connectivity center. See the [modules](https://github.com/terraform-google-modules/terraform-google-network/tree/main/modules) directory for the various sub modules usage.
+- [vpc](https://github.com/terraform-google-modules/terraform-google-network/tree/main/modules/vpc)
+- [subnet](https://github.com/terraform-google-modules/terraform-google-network/tree/main/modules/subnets/)
+- [route](https://github.com/terraform-google-modules/terraform-google-network/tree/main/modules/routes)
+- [firewall rules](https://github.com/terraform-google-modules/terraform-google-network/tree/main/modules/firewall-rules)
+- [network firewall policy](https://github.com/terraform-google-modules/terraform-google-network/tree/main/modules/network-firewall-policy)
+- [hierarchical firewall policy](https://github.com/terraform-google-modules/terraform-google-network/tree/main/modules/hierarchical-firewall-policy)
+- [serverless vpc  access connector](https://github.com/terraform-google-modules/terraform-google-network/tree/main/modules/vpc-serverless-connector-beta)
+- [network connectivity center](https://github.com/terraform-google-modules/terraform-google-network/tree/main/modules/network-connectivity-center)
 
 ## Compatibility
 
-This module is meant for use with Terraform 1.3+ and tested using Terraform 1.4+.
+This module is meant for use with Terraform 1.3+.
 If you find incompatibilities using Terraform `>=1.3`, please open an issue.
 
 
 ## Usage
-You can go to the [examples](./examples/) folder, however the usage of the module could be like this in your own main.tf file:
+Comprehensive examples are available in [examples](https://github.com/terraform-google-modules/terraform-google-network/tree/main/examples) folder. Simple usage:
 
 ```hcl
 module "vpc" {
     source  = "terraform-google-modules/network/google"
-    version = "~> 10.0"
+    version = "~> 11.0"
 
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"
@@ -191,9 +195,6 @@ The routes list contains maps, where each object represents a route. For the nex
 ## Requirements
 ### Installed Software
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.3
-- [Terraform Provider for GCP](https://github.com/terraform-providers/terraform-provider-google) >= 4.25
-- [Terraform Provider for GCP Beta](https://github.com/terraform-providers/terraform-provider-google-beta) >= 4.25
-- [gcloud](https://cloud.google.com/sdk/gcloud/) >243.0.0
 
 ### Configure a Service Account
 In order to execute this module you must have a Service Account with the following roles:
@@ -214,6 +215,3 @@ In order to operate with the Service Account you must activate the following API
 
 Refer to the [contribution guidelines](./CONTRIBUTING.md) for
 information on contributing to this module.
-
-[terraform-0.13-upgrade]: https://www.terraform.io/upgrade-guides/0-13.html
-[2.6.0]: https://registry.terraform.io/modules/terraform-google-modules/network/google/2.6.0

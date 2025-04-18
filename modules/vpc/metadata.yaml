@@ -28,7 +28,7 @@ spec:
     version: 10.0.0
     actuationTool:
       flavor: Terraform
-      version: ">= 0.13.0"
+      version: ">= 1.3"
     description: {}
   content:
     examples:
@@ -58,6 +58,8 @@ spec:
         location: examples/ilb_routing
       - name: multi_vpc
         location: examples/multi_vpc
+      - name: network_connectivity_center
+        location: examples/network_connectivity_center
       - name: network_service_tiers
         location: examples/network_service_tiers
       - name: packet_mirroring
@@ -118,6 +120,14 @@ spec:
         description: The name of the network being created
         varType: string
         required: true
+      - name: network_profile
+        description: |
+          "A full or partial URL of the network profile to apply to this network.
+          This field can be set only at resource creation time. For example, the
+          following are valid URLs:
+            * https://www.googleapis.com/compute/beta/projects/{projectId}/global/networkProfiles/{network_profile_name}
+            * projects/{projectId}/global/networkProfiles/{network_profile_name}
+        varType: string
       - name: project_id
         description: The ID of the project where this VPC will be created
         varType: string
@@ -145,6 +155,7 @@ spec:
     roles:
       - level: Project
         roles:
+          - roles/compute.instanceAdmin
           - roles/compute.networkAdmin
           - roles/compute.securityAdmin
           - roles/iam.serviceAccountUser
@@ -154,6 +165,10 @@ spec:
           - roles/resourcemanager.tagAdmin
           - roles/iam.serviceAccountAdmin
           - roles/compute.orgFirewallPolicyAdmin
+          - roles/networkconnectivity.hubAdmin
+          - roles/networksecurity.mirroringDeploymentAdmin
+          - roles/networksecurity.mirroringEndpointAdmin
+          - roles/networksecurity.securityProfileAdmin
     services:
       - cloudresourcemanager.googleapis.com
       - compute.googleapis.com
@@ -161,4 +176,10 @@ spec:
       - vpcaccess.googleapis.com
       - dns.googleapis.com
       - networksecurity.googleapis.com
+      - networkconnectivity.googleapis.com
       - iam.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 6.19, < 7"
+      - source: hashicorp/google-beta
+        version: ">= 6.19, < 7"
