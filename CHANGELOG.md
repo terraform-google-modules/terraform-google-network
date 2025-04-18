@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v10.0.0...v11.0.0) (2025-04-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **TPG>6.28:** added support for packet mirroring firewall policy rule,  src_networks, src_network_scope and dest_network_scope ([#596](https://github.com/terraform-google-modules/terraform-google-network/issues/596))
+
+### Features
+
+* **TPG>6.28:** added support for packet mirroring firewall policy rule,  src_networks, src_network_scope and dest_network_scope ([#596](https://github.com/terraform-google-modules/terraform-google-network/issues/596)) ([3ac6496](https://github.com/terraform-google-modules/terraform-google-network/commit/3ac64964bd2fd7f9f4f763d6f5152e9456f2e175))
+
 ## [10.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v9.3.0...v10.0.0) (2024-12-11)
 
 
