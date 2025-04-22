@@ -120,10 +120,10 @@ resource "google_network_security_mirroring_endpoint_group" "mirroring_endpoint_
 }
 
 resource "google_network_security_security_profile" "security_profile" {
-  provider    = google-beta
-  name        = "${local.prefix}-security-profile"
-  parent      = "organizations/${var.org_id}"
-  type        = "CUSTOM_MIRRORING"
+  provider = google-beta
+  name     = "${local.prefix}-security-profile"
+  parent   = "organizations/${var.org_id}"
+  type     = "CUSTOM_MIRRORING"
 
   custom_mirroring_profile {
     mirroring_endpoint_group = google_network_security_mirroring_endpoint_group.mirroring_endpoint_group.id
@@ -144,16 +144,16 @@ resource "google_network_security_security_profile_group" "security_profile_grou
 resource "google_network_security_security_profile_group" "security_profile_group_1" {
   provider                  = google-beta
   name                      = "spg"
-  parent                   = "organizations/${var.org_id}"
+  parent                    = "organizations/${var.org_id}"
   threat_prevention_profile = google_network_security_security_profile.security_profile_1.id
 }
 
 resource "google_network_security_security_profile" "security_profile_1" {
-  provider    = google-beta
-  name        = "${local.prefix}-threat-sec-profile-group"
-  type        = "THREAT_PREVENTION"
-  parent                   = "organizations/${var.org_id}"
-  location    = "global"
+  provider = google-beta
+  name     = "${local.prefix}-threat-sec-profile-group"
+  type     = "THREAT_PREVENTION"
+  parent   = "organizations/${var.org_id}"
+  location = "global"
 }
 
 ################################
@@ -161,9 +161,8 @@ resource "google_network_security_security_profile" "security_profile_1" {
 ################################
 
 module "firewal_policy" {
-  # source  = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  # version = "~> 11.0"
-  source = "../../modules/network-firewall-policy"
+  source  = "terraform-google-modules/network/google//modules/network-firewall-policy"
+  version = "~> 11.0"
 
   project_id  = var.project_id
   policy_name = "${local.prefix}-firewall-policy-${random_string.random_suffix.result}"
@@ -293,13 +292,13 @@ module "firewal_policy" {
       }
     },
     {
-      is_mirroring            = true
-      priority                = "200"
-      direction               = "EGRESS"
-      action                  = "mirror"
-      rule_name               = "egress-200"
-      disabled                = false
-      description             = "test egress mirroring rule 200"
+      is_mirroring = true
+      priority     = "200"
+      direction    = "EGRESS"
+      action       = "mirror"
+      rule_name    = "egress-200"
+      disabled     = false
+      description  = "test egress mirroring rule 200"
       match = {
         dest_ip_ranges = ["0.0.0.0/0"]
         layer4_configs = [
@@ -312,12 +311,12 @@ module "firewal_policy" {
       security_profile_group_id = google_network_security_security_profile_group.security_profile_group.id
     },
     {
-      priority                = "300"
-      direction               = "EGRESS"
-      action                  = "apply_security_profile_group"
-      rule_name               = "egress-300"
-      disabled                = false
-      description             = "test egress threat prevention rule 300"
+      priority    = "300"
+      direction   = "EGRESS"
+      action      = "apply_security_profile_group"
+      rule_name   = "egress-300"
+      disabled    = false
+      description = "test egress threat prevention rule 300"
       match = {
         dest_ip_ranges = ["0.0.0.0/0"]
         layer4_configs = [
@@ -338,9 +337,8 @@ module "firewal_policy" {
 }
 
 module "firewal_policy_no_rule" {
-  # source      = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  # version     = "~> 11.0"
-  source = "../../modules/network-firewall-policy"
+  source  = "terraform-google-modules/network/google//modules/network-firewall-policy"
+  version = "~> 11.0"
 
   project_id  = var.project_id
   policy_name = "${local.prefix}-firewall-policy-no-rules-${random_string.random_suffix.result}"
