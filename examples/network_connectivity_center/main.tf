@@ -122,7 +122,7 @@ module "vpn_spoke_local_vpc" {
 
 module "remote_to_local_vpn" {
   source  = "terraform-google-modules/vpn/google//modules/vpn_ha"
-  version = "~> 4.0"
+  version = "~> 5.0"
 
   project_id       = var.project_id
   region           = var.vpn_region
@@ -160,7 +160,7 @@ module "remote_to_local_vpn" {
 
 module "local_to_remote_vpn" {
   source  = "terraform-google-modules/vpn/google//modules/vpn_ha"
-  version = "~> 4.0"
+  version = "~> 5.0"
 
   project_id       = var.project_id
   region           = var.vpn_region
