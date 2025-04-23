@@ -22,18 +22,21 @@ resource "random_string" "random_suffix" {
 }
 
 resource "google_folder" "folder1" {
-  display_name = "ci-network1-${random_string.random_suffix.result}"
-  parent       = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
+  display_name        = "ci-network1-${random_string.random_suffix.result}"
+  parent              = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
+  deletion_protection = false
 }
 
 resource "google_folder" "folder2" {
-  display_name = "ci-network2-${random_string.random_suffix.result}"
-  parent       = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
+  display_name        = "ci-network2-${random_string.random_suffix.result}"
+  parent              = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
+  deletion_protection = false
 }
 
 resource "google_folder" "folder3" {
-  display_name = "ci-network3-${random_string.random_suffix.result}"
-  parent       = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
+  display_name        = "ci-network3-${random_string.random_suffix.result}"
+  parent              = var.folder_id != null ? "folders/${var.folder_id}" : "organizations/${var.org_id}"
+  deletion_protection = false
 }
 
 module "project" {

@@ -50,6 +50,8 @@ resource "google_compute_network_firewall_policy_rule" "rules" {
   firewall_policy         = google_compute_network_firewall_policy.fw_policy[0].name
   rule_name               = each.value.rule_name
   target_service_accounts = each.value.target_service_accounts
+  tls_inspect             = each.value.action == "apply_security_profile_group" ? lookup(each.value, "tls_inspect", null) : null
+  security_profile_group  = each.value.action == "apply_security_profile_group" ? "//networksecurity.googleapis.com/${each.value.security_profile_group_id}" : null
 
   ## targetSecureTag may not be set at the same time as targetServiceAccounts
   dynamic "target_secure_tags" {
@@ -107,8 +109,8 @@ resource "google_compute_network_firewall_policy_packet_mirroring_rule" "rules" 
   disabled               = each.value.disabled
   firewall_policy        = google_compute_network_firewall_policy.fw_policy[0].name
   rule_name              = each.value.rule_name
-  tls_inspect            = lookup(each.value, "tls_inspect", null)
-  security_profile_group = "//networksecurity.googleapis.com/${each.value.security_profile_group_id}"
+  tls_inspect            = each.value.action == "mirror" ? lookup(each.value, "tls_inspect", null) : null
+  security_profile_group = each.value.action == "mirror" ? "//networksecurity.googleapis.com/${each.value.security_profile_group_id}" : null
 
   dynamic "target_secure_tags" {
     for_each = each.value.target_secure_tags == null ? [] : toset(each.value.target_secure_tags)
@@ -167,6 +169,8 @@ resource "google_compute_region_network_firewall_policy_rule" "rules" {
   firewall_policy         = google_compute_region_network_firewall_policy.fw_policy[0].name
   rule_name               = each.value.rule_name
   target_service_accounts = each.value.target_service_accounts
+  tls_inspect             = each.value.action == "apply_security_profile_group" ? lookup(each.value, "tls_inspect", null) : null
+  security_profile_group  = each.value.action == "apply_security_profile_group" ? "//networksecurity.googleapis.com/${each.value.security_profile_group_id}" : null
 
   ## targetSecureTag may not be set at the same time as targetServiceAccounts
   dynamic "target_secure_tags" {

@@ -23,7 +23,7 @@ data "google_project" "project" {
 }
 
 resource "random_string" "random_suffix" {
-  length  = 6
+  length  = 4
   special = false
   lower   = true
   upper   = false
@@ -38,6 +38,10 @@ resource "google_compute_network" "network_backup" {
   project = var.project_id
   name    = "${local.prefix}-network-backup"
 }
+
+################################
+#          Tags                #
+################################
 
 resource "google_tags_tag_key" "tag_key" {
 
@@ -56,6 +60,10 @@ resource "google_tags_tag_value" "tag_value" {
   short_name  = "yes"
 }
 
+################################
+#          Address group       #
+################################
+
 resource "google_network_security_address_group" "networksecurity_address_group" {
   provider = google-beta
 
@@ -68,6 +76,10 @@ resource "google_network_security_address_group" "networksecurity_address_group"
   capacity    = 100
 }
 
+################################
+#          Service Account     #
+################################
+
 resource "google_service_account" "service_account" {
   project      = var.project_id
   account_id   = "${local.prefix}-fw-test-svc-acct"
@@ -75,17 +87,20 @@ resource "google_service_account" "service_account" {
 }
 
 ################################
-#          VPC Spoke           #
+#          VPC                 #
 ################################
+
 module "vpc" {
   source  = "terraform-google-modules/network/google//modules/vpc"
   version = "~> 10.0"
 
   project_id   = var.project_id
   network_name = "global-sec-policy-test-vpc"
-
-  # shared_vpc_host = false
 }
+
+################################
+#          Mirroring           #
+################################
 
 resource "google_network_security_mirroring_deployment_group" "mirroring_deployment_group" {
   project                       = var.project_id
@@ -104,13 +119,11 @@ resource "google_network_security_mirroring_endpoint_group" "mirroring_endpoint_
   mirroring_deployment_group  = google_network_security_mirroring_deployment_group.mirroring_deployment_group.id
 }
 
-
 resource "google_network_security_security_profile" "security_profile" {
-  provider    = google-beta
-  name        = "${local.prefix}-security-profile"
-  parent      = "organizations/${var.org_id}"
-  description = "Security profile description"
-  type        = "CUSTOM_MIRRORING"
+  provider = google-beta
+  name     = "${local.prefix}-mirror-sp-${random_string.random_suffix.result}"
+  parent   = "organizations/${var.org_id}"
+  type     = "CUSTOM_MIRRORING"
 
   custom_mirroring_profile {
     mirroring_endpoint_group = google_network_security_mirroring_endpoint_group.mirroring_endpoint_group.id
@@ -119,13 +132,33 @@ resource "google_network_security_security_profile" "security_profile" {
 
 resource "google_network_security_security_profile_group" "security_profile_group" {
   provider                 = google-beta
-  name                     = "${local.prefix}-sec-profile-group"
+  name                     = "${local.prefix}-mirror-spg-${random_string.random_suffix.result}"
   parent                   = "organizations/${var.org_id}"
-  description              = "Security profile group"
   custom_mirroring_profile = google_network_security_security_profile.security_profile.id
 }
 
+################################
+#          Threat              #
+################################
 
+resource "google_network_security_security_profile" "security_profile_1" {
+  provider = google-beta
+  name     = "${local.prefix}-threat-sp-${random_string.random_suffix.result}"
+  type     = "THREAT_PREVENTION"
+  parent   = "organizations/${var.org_id}"
+  location = "global"
+}
+
+resource "google_network_security_security_profile_group" "security_profile_group_1" {
+  provider                  = google-beta
+  name                      = "${local.prefix}-threat-spg-${random_string.random_suffix.result}"
+  parent                    = "organizations/${var.org_id}"
+  threat_prevention_profile = google_network_security_security_profile.security_profile_1.id
+}
+
+################################
+#      Firewall Policy         #
+################################
 
 module "firewal_policy" {
   source  = "terraform-google-modules/network/google//modules/network-firewall-policy"
@@ -259,16 +292,14 @@ module "firewal_policy" {
       }
     },
     {
-      is_mirroring            = true
-      priority                = "200"
-      direction               = "EGRESS"
-      action                  = "mirror"
-      rule_name               = "egress-200"
-      disabled                = false
-      description             = "test egress mirroring rule 200"
-      target_service_accounts = ["fw-test-svc-acct@${var.project_id}.iam.gserviceaccount.com"]
+      is_mirroring = true
+      priority     = "200"
+      direction    = "EGRESS"
+      action       = "mirror"
+      rule_name    = "egress-200"
+      disabled     = false
+      description  = "test egress mirroring rule 200"
       match = {
-        src_ip_ranges  = ["0.0.0.0/0"]
         dest_ip_ranges = ["0.0.0.0/0"]
         layer4_configs = [
           {
@@ -278,6 +309,23 @@ module "firewal_policy" {
         ]
       }
       security_profile_group_id = google_network_security_security_profile_group.security_profile_group.id
+    },
+    {
+      priority    = "300"
+      direction   = "EGRESS"
+      action      = "apply_security_profile_group"
+      rule_name   = "egress-300"
+      disabled    = false
+      description = "test egress threat prevention rule 300"
+      match = {
+        dest_ip_ranges = ["0.0.0.0/0"]
+        layer4_configs = [
+          {
+            ip_protocol = "tcp"
+          }
+        ]
+      }
+      security_profile_group_id = google_network_security_security_profile_group.security_profile_group_1.id
     },
 
   ]
@@ -289,8 +337,9 @@ module "firewal_policy" {
 }
 
 module "firewal_policy_no_rule" {
-  source      = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version     = "~> 11.0"
+  source  = "terraform-google-modules/network/google//modules/network-firewall-policy"
+  version = "~> 11.0"
+
   project_id  = var.project_id
   policy_name = "${local.prefix}-firewall-policy-no-rules-${random_string.random_suffix.result}"
   description = "${local.prefix} test firewall policy without any rules"

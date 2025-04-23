@@ -146,6 +146,15 @@ func TestGlobalNetworkFirewallPolicy(t *testing.T) {
 			assert.Equal("tcp", sp104.Get("match.layer4Configs").Array()[0].Get("ipProtocol").String(), "has expected layer4Configs.ipProtocol")
 			layer4ConfigsPorts200 := sp104.Get("match.layer4Configs").Array()[0].Get("ports").Array()
 			assert.Equal(1, len(layer4ConfigsPorts200), "Rule3 should have the correct layer4Configs.ports count")
+
+			rule300 := gcloud.Runf(t, "compute network-firewall-policies rules describe 300 --global-firewall-policy --firewall-policy %s --project %s", policyName, projectId)
+			sp300 := rule300.Array()[0]
+			assert.Equal("apply_security_profile_group", sp300.Get("action").String(), "Rule300 action should be allow")
+			assert.Equal("egress-300", sp300.Get("ruleName").String(), "Rule300 ruleName should be egress-300")
+			assert.Equal("test egress threat prevention rule 300", sp300.Get("description").String(), "Rule300 has expected description")
+			assert.Equal("EGRESS", sp300.Get("direction").String(), "Rule300 direction should be EGRESS")
+			assert.Equal("0.0.0.0/0", sp300.Get("match.destIpRanges").Array()[0].String(), "has expected destIpRanges")
+			assert.Equal("tcp", sp300.Get("match.layer4Configs").Array()[0].Get("ipProtocol").String(), "has expected layer4Configs.ipProtocol")
 	})
 	fwp.Test()
 }
