@@ -23,7 +23,7 @@ data "google_project" "project" {
 }
 
 resource "random_string" "random_suffix" {
-  length  = 6
+  length  = 4
   special = false
   lower   = true
   upper   = false
@@ -121,7 +121,7 @@ resource "google_network_security_mirroring_endpoint_group" "mirroring_endpoint_
 
 resource "google_network_security_security_profile" "security_profile" {
   provider = google-beta
-  name     = "${local.prefix}-security-profile"
+  name     = "${local.prefix}-mirror-sp-${random_string.random_suffix.result}"
   parent   = "organizations/${var.org_id}"
   type     = "CUSTOM_MIRRORING"
 
@@ -132,7 +132,7 @@ resource "google_network_security_security_profile" "security_profile" {
 
 resource "google_network_security_security_profile_group" "security_profile_group" {
   provider                 = google-beta
-  name                     = "${local.prefix}-sec-profile-group"
+  name                     = "${local.prefix}-mirror-spg-${random_string.random_suffix.result}"
   parent                   = "organizations/${var.org_id}"
   custom_mirroring_profile = google_network_security_security_profile.security_profile.id
 }
@@ -141,19 +141,19 @@ resource "google_network_security_security_profile_group" "security_profile_grou
 #          Threat              #
 ################################
 
-resource "google_network_security_security_profile_group" "security_profile_group_1" {
-  provider                  = google-beta
-  name                      = "spg"
-  parent                    = "organizations/${var.org_id}"
-  threat_prevention_profile = google_network_security_security_profile.security_profile_1.id
-}
-
 resource "google_network_security_security_profile" "security_profile_1" {
   provider = google-beta
-  name     = "${local.prefix}-threat-sec-profile-group"
+  name     = "${local.prefix}-threat-sp-${random_string.random_suffix.result}"
   type     = "THREAT_PREVENTION"
   parent   = "organizations/${var.org_id}"
   location = "global"
+}
+
+resource "google_network_security_security_profile_group" "security_profile_group_1" {
+  provider                  = google-beta
+  name                      = "${local.prefix}-threat-spg-${random_string.random_suffix.result}"
+  parent                    = "organizations/${var.org_id}"
+  threat_prevention_profile = google_network_security_security_profile.security_profile_1.id
 }
 
 ################################
