@@ -66,14 +66,14 @@ noninteractively, using the prepared test project.
 1. Run `make docker_run` to start the testing Docker container in
    interactive mode.
 
-1. Run `kitchen_do create <EXAMPLE_NAME>` to initialize the working
+2. Run `kitchen_do create <EXAMPLE_NAME>` to initialize the working
    directory for an example module.
 
-1. Run `kitchen_do converge <EXAMPLE_NAME>` to apply the example module.
+3. Run `kitchen_do converge <EXAMPLE_NAME>` to apply the example module.
 
-1. Run `kitchen_do verify <EXAMPLE_NAME>` to test the example module.
+4. Run `kitchen_do verify <EXAMPLE_NAME>` to test the example module.
 
-1. Run `kitchen_do destroy <EXAMPLE_NAME>` to destroy the example module
+5. Run `kitchen_do destroy <EXAMPLE_NAME>` to destroy the example module
    state.
 
 ## Linting and Formatting
