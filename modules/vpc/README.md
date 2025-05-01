@@ -1,6 +1,6 @@
 # Terraform VPC Module
 
-This submodule is part of the the `terraform-google-network` module. It creates a vpc network and optionally enables it as a Shared VPC host project.
+This submodule is part of the `terraform-google-network` module. It creates a vpc network and optionally enables it as a Shared VPC host project.
 
 It supports creating:
 
