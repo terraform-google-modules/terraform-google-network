@@ -89,3 +89,21 @@ variable "network_profile" {
       * projects/{projectId}/global/networkProfiles/{network_profile_name}
     EOT
 }
+
+variable "bgp_always_compare_med" {
+  type        = bool
+  description = "If set to true, the Cloud Router will use MED values from the peer even if the AS paths differ. Default is false."
+  default     = null
+}
+
+variable "bgp_best_path_selection_mode" {
+  type        = string
+  description = "Specifies the BGP best path selection mode. Valid values are `STANDARD`, `EARLY_EXIT`, `MULTI_EXIT_DISC`. Default is `STANDARD`."
+  default     = null
+}
+
+variable "bgp_inter_region_cost" {
+  type        = string
+  description = "Specifies the BGP inter-region cost mode. Valid values are `DEFAULT`, `LOW`. Default is `DEFAULT`."
+  default     = null
+}
