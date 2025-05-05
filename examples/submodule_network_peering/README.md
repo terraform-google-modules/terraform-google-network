@@ -1,6 +1,6 @@
 # Simple VPC Network Peering
 
-This example creates a VPC Network peering between two VPCs.
+This example creates three VPCs: `local-network`, `peer-network-1`, and `peer-network-2`, and sets up VPC peering between `local-network` and both `peer-network-1` and `peer-network-2`.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
