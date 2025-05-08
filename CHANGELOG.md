@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v11.0.0...v11.1.0) (2025-05-08)
+
+
+### Features
+
+* added bgp_best_path_selection_mode bgp_always_compare_med bgp_inter_region_cost in VPC module ([#610](https://github.com/terraform-google-modules/terraform-google-network/issues/610)) ([aab974a](https://github.com/terraform-google-modules/terraform-google-network/commit/aab974aa485132f97edab4e404108e874baaa0a2))
+
 ## [11.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v10.0.0...v11.0.0) (2025-04-23)
 
 
