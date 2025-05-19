@@ -14,7 +14,7 @@ Basic usage of this module is as follows:
 ```hcl
 module "peering" {
   source  = "terraform-google-modules/network/google//modules/network-peering"
-  version = "~> 11.0"
+  version = "~> 11.1"
 
   prefix        = "name-prefix"
   local_network = "<FIRST NETWORK SELF LINK>"
