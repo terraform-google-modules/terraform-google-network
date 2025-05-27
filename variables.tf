@@ -221,11 +221,11 @@ variable "bgp_always_compare_med" {
 variable "bgp_best_path_selection_mode" {
   type        = string
   description = "Specifies the BGP best path selection mode. Valid values are `STANDARD` or `LEGACY`. Default is `STANDARD`."
-  default     = "STANDARD"
+  default     = "LEGACY"
 }
 
 variable "bgp_inter_region_cost" {
   type        = string
-  description = "Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`. Default is `DEFAULT`."
-  default     = "DEFAULT"
+  description = "Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`."
+  default     = null
 }
