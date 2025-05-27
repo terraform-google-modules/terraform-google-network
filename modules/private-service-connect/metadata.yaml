@@ -25,7 +25,7 @@ spec:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
       dir: /modules/private-service-connect
-    version: 11.1.0
+    version: 11.1.1
     actuationTool:
       flavor: Terraform
       version: ">= 0.13"
