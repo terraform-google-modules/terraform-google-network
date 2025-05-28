@@ -220,7 +220,7 @@ variable "bgp_always_compare_med" {
 
 variable "bgp_best_path_selection_mode" {
   type        = string
-  description = "Specifies the BGP best path selection mode. Valid values are `STANDARD` or `LEGACY`. Default is `STANDARD`."
+  description = "Specifies the BGP best path selection mode. Valid values are `STANDARD` or `LEGACY`. Default is `LEGACY`."
   default     = "LEGACY"
 }
 
