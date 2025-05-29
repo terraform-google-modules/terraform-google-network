@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.1.2](https://github.com/terraform-google-modules/terraform-google-network/compare/v11.1.1...v11.1.2) (2025-05-29)
+
+
+### Bug Fixes
+
+* **docs:** Correct bgp_best_path_selection_mode default value ([#618](https://github.com/terraform-google-modules/terraform-google-network/issues/618)) ([6e5ac89](https://github.com/terraform-google-modules/terraform-google-network/commit/6e5ac8999f5f50ee2169b360af48a8b5e6dcda90))
+
 ## [11.1.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v11.1.0...v11.1.1) (2025-05-27)
 
 
