@@ -103,7 +103,7 @@ spec:
         varType: string
         defaultValue: ""
       - name: enable_ipv6_ula
-        description: Enabled IPv6 ULA, this is a permenant change and cannot be undone! (default 'false')
+        description: Enabled IPv6 ULA, this is a permanent change and cannot be undone! (default 'false')
         varType: bool
         defaultValue: false
       - name: internal_ipv6_range

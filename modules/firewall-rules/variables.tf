@@ -25,7 +25,7 @@ variable "network_name" {
 }
 
 variable "rules" {
-  description = "This is DEPRICATED and available for backward compatiblity. Use ingress_rules and egress_rules variables. List of custom rule definitions"
+  description = "This is DEPRECATED and available for backward compatibility. Use ingress_rules and egress_rules variables. List of custom rule definitions"
   default     = []
   type = list(object({
     name                    = string

@@ -95,7 +95,7 @@ variable "firewall_rules" {
       metadata = string
     }))
   }))
-  description = "This is DEPRICATED and available for backward compatiblity. Use ingress_rules and egress_rules variables. List of firewall rules"
+  description = "This is DEPRECATED and available for backward compatibility. Use ingress_rules and egress_rules variables. List of firewall rules"
   default     = []
 }
 
@@ -184,7 +184,7 @@ variable "egress_rules" {
 
 variable "enable_ipv6_ula" {
   type        = bool
-  description = "Enabled IPv6 ULA, this is a permenant change and cannot be undone! (default 'false')"
+  description = "Enabled IPv6 ULA, this is a permanent change and cannot be undone! (default 'false')"
   default     = false
 }
 
