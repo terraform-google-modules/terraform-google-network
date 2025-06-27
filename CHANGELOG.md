@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.1.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v11.1.0...v11.1.1) (2025-05-27)
+
+
+### Bug Fixes
+
+* default value for bgp_inter_region_cost and bgp_best_path_selection_mode ([#616](https://github.com/terraform-google-modules/terraform-google-network/issues/616)) ([1bb1b32](https://github.com/terraform-google-modules/terraform-google-network/commit/1bb1b32a72583122b18cebe417b2c0b4d253b2aa))
+
+## [11.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v11.0.0...v11.1.0) (2025-05-08)
+
+
+### Features
+
+* added bgp_best_path_selection_mode bgp_always_compare_med bgp_inter_region_cost in VPC module ([#610](https://github.com/terraform-google-modules/terraform-google-network/issues/610)) ([aab974a](https://github.com/terraform-google-modules/terraform-google-network/commit/aab974aa485132f97edab4e404108e874baaa0a2))
+
+## [11.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v10.0.0...v11.0.0) (2025-04-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* **TPG>6.28:** added support for packet mirroring firewall policy rule,  src_networks, src_network_scope and dest_network_scope ([#596](https://github.com/terraform-google-modules/terraform-google-network/issues/596))
+
+### Features
+
+* added security profile rule support in network firewall policy ([#602](https://github.com/terraform-google-modules/terraform-google-network/issues/602)) ([339e6f6](https://github.com/terraform-google-modules/terraform-google-network/commit/339e6f6013d5d7b749f4e8eb18410dc59f1d6ab3))
+* **TPG>6.28:** added support for packet mirroring firewall policy rule,  src_networks, src_network_scope and dest_network_scope ([#596](https://github.com/terraform-google-modules/terraform-google-network/issues/596)) ([3ac6496](https://github.com/terraform-google-modules/terraform-google-network/commit/3ac64964bd2fd7f9f4f763d6f5152e9456f2e175))
+
 ## [10.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v9.3.0...v10.0.0) (2024-12-11)
 
 

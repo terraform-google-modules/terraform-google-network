@@ -95,7 +95,7 @@ variable "firewall_rules" {
       metadata = string
     }))
   }))
-  description = "This is DEPRICATED and available for backward compatiblity. Use ingress_rules and egress_rules variables. List of firewall rules"
+  description = "This is DEPRECATED and available for backward compatibility. Use ingress_rules and egress_rules variables. List of firewall rules"
   default     = []
 }
 
@@ -184,7 +184,7 @@ variable "egress_rules" {
 
 variable "enable_ipv6_ula" {
   type        = bool
-  description = "Enabled IPv6 ULA, this is a permenant change and cannot be undone! (default 'false')"
+  description = "Enabled IPv6 ULA, this is a permanent change and cannot be undone! (default 'false')"
   default     = false
 }
 
@@ -210,4 +210,22 @@ variable "network_profile" {
       * https://www.googleapis.com/compute/beta/projects/{projectId}/global/networkProfiles/{network_profile_name}
       * projects/{projectId}/global/networkProfiles/{network_profile_name}
     EOT
+}
+
+variable "bgp_always_compare_med" {
+  type        = bool
+  description = "If set to true, the Cloud Router will use MED values from the peer even if the AS paths differ. Default is false."
+  default     = false
+}
+
+variable "bgp_best_path_selection_mode" {
+  type        = string
+  description = "Specifies the BGP best path selection mode. Valid values are `STANDARD` or `LEGACY`. Default is `LEGACY`."
+  default     = "LEGACY"
+}
+
+variable "bgp_inter_region_cost" {
+  type        = string
+  description = "Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`."
+  default     = null
 }
