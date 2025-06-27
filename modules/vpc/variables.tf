@@ -62,7 +62,7 @@ variable "mtu" {
 
 variable "enable_ipv6_ula" {
   type        = bool
-  description = "Enabled IPv6 ULA, this is a permenant change and cannot be undone! (default 'false')"
+  description = "Enabled IPv6 ULA, this is a permanent change and cannot be undone! (default 'false')"
   default     = false
 }
 
