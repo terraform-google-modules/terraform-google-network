@@ -29,9 +29,9 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:fabric-net-svpc-access/v11.1.1"
+    module_name = "blueprints/terraform/terraform-google-network:fabric-net-svpc-access/v11.1.2"
   }
   provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-google-network:fabric-net-svpc-access/v11.1.1"
+    module_name = "blueprints/terraform/terraform-google-network:fabric-net-svpc-access/v11.1.2"
   }
 }
