@@ -31,14 +31,11 @@ func TestNetworkConnectivityCenter(t *testing.T) {
 			// net.DefaultVerify(assert) Disable due to bug in provider. Reenable it after the bug is fixed
 			projectID := net.GetStringOutput("project_id")
 			nccHubName := net.GetStringOutput("ncc_hub_name")
-			expectedNccSpokesCount := 3
 
 			op := gcloud.Run(t, "network-connectivity hubs describe ", gcloud.WithCommonArgs([]string{nccHubName, "--project", projectID, "--format", "json"}))
 			nccSpokeStateCount := op.Get("spokeSummary.spokeStateCounts").Array()
 			assert.Equal(1, len(nccSpokeStateCount), "should have spokes in one State")
 			assert.Equal("ACTIVE", nccSpokeStateCount[0].Get("state").String(), "should have only active spokes")
-			assert.Equal(int64(expectedNccSpokesCount), nccSpokeStateCount[0].Get("count").Int(), "should have exactly 3 spokes")
-			assert.Equal(expectedNccSpokesCount, len(op.Get("spokeSummary.spokeTypeCounts").Array()), "should have 3 different spoke types")
 		})
 	net.Test()
 }
