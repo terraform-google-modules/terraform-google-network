@@ -92,7 +92,7 @@ resource "google_service_account" "service_account" {
 
 module "vpc" {
   source  = "terraform-google-modules/network/google//modules/vpc"
-  version = "~> 10.0"
+  version = "~> 11.0"
 
   project_id   = var.project_id
   network_name = "global-sec-policy-test-vpc"
