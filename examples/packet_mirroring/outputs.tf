@@ -26,6 +26,6 @@ output "collector_ilb" {
 }
 
 output "instance" {
-  value       = google_compute_packet_mirroring.default.mirrored_resources[0].instances[0].url
+  value       = google_compute_instance.mirror.id
   description = "The VM instance"
 }
