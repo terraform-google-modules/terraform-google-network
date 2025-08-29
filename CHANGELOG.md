@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [11.2.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v11.1.1...v11.2.0) (2025-08-29)
+
+
+### Features
+
+* **deps:** Update Terraform Google Provider to v7 (major) ([#629](https://github.com/terraform-google-modules/terraform-google-network/issues/629)) ([5a3faca](https://github.com/terraform-google-modules/terraform-google-network/commit/5a3facae2e90912219ecdf6f00245913599cbe15))
+
+
+### Bug Fixes
+
+* **docs:** Correct bgp_best_path_selection_mode default value ([#618](https://github.com/terraform-google-modules/terraform-google-network/issues/618)) ([6e5ac89](https://github.com/terraform-google-modules/terraform-google-network/commit/6e5ac8999f5f50ee2169b360af48a8b5e6dcda90))
+* typo on the variables ([#624](https://github.com/terraform-google-modules/terraform-google-network/issues/624)) ([8097ce9](https://github.com/terraform-google-modules/terraform-google-network/commit/8097ce9594ef6bfe185d8cb162867f88494877a6))
+
 ## [11.1.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v11.1.0...v11.1.1) (2025-05-27)
 
 
