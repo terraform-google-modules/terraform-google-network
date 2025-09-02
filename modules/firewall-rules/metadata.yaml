@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ spec:
     version: 11.1.1
     actuationTool:
       flavor: Terraform
-      version: ">= 1.3.0"
+      version: ">= 1.3"
     description: {}
   content:
     examples:
@@ -90,16 +90,24 @@ spec:
         location: examples/submodule_vpc_serverless_connector
   interfaces:
     variables:
-      - name: egress_rules
-        description: List of egress rules. This will be ignored if variable 'rules' is non-empty
+      - name: project_id
+        description: Project id of the project that holds the network.
+        varType: string
+        required: true
+      - name: network_name
+        description: Name of the network this set of firewall rules applies to.
+        varType: string
+        required: true
+      - name: rules
+        description: This is DEPRECATED and available for backward compatibility. Use ingress_rules and egress_rules variables. List of custom rule definitions
         varType: |-
           list(object({
               name                    = string
               description             = optional(string, null)
+              direction               = optional(string, "INGRESS")
               disabled                = optional(bool, null)
               priority                = optional(number, null)
-              destination_ranges      = optional(list(string), [])
-              source_ranges           = optional(list(string), [])
+              ranges                  = optional(list(string), [])
               source_tags             = optional(list(string))
               source_service_accounts = optional(list(string))
               target_tags             = optional(list(string))
@@ -146,24 +154,16 @@ spec:
               }))
             }))
         defaultValue: []
-      - name: network_name
-        description: Name of the network this set of firewall rules applies to.
-        varType: string
-        required: true
-      - name: project_id
-        description: Project id of the project that holds the network.
-        varType: string
-        required: true
-      - name: rules
-        description: This is DEPRECATED and available for backward compatibility. Use ingress_rules and egress_rules variables. List of custom rule definitions
+      - name: egress_rules
+        description: List of egress rules. This will be ignored if variable 'rules' is non-empty
         varType: |-
           list(object({
               name                    = string
               description             = optional(string, null)
-              direction               = optional(string, "INGRESS")
               disabled                = optional(bool, null)
               priority                = optional(number, null)
-              ranges                  = optional(list(string), [])
+              destination_ranges      = optional(list(string), [])
+              source_ranges           = optional(list(string), [])
               source_tags             = optional(list(string))
               source_service_accounts = optional(list(string))
               target_tags             = optional(list(string))
@@ -215,7 +215,5 @@ spec:
       - networkconnectivity.googleapis.com
       - iam.googleapis.com
     providerVersions:
-      - source: hashicorp/google-beta
-        version: ">= 4.64, < 7"
       - source: hashicorp/google
-        version: ">= 4.64, < 7"
+        version: ">= 3.33, < 8"

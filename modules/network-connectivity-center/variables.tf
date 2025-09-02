@@ -53,6 +53,17 @@ variable "vpc_spokes" {
   default = {}
 }
 
+variable "producer_vpc_network_spokes" {
+  type = map(object({
+    network_name          = string
+    peering               = string
+    include_export_ranges = optional(list(string))
+    exclude_export_ranges = optional(list(string))
+  }))
+  description = "Producer VPC network that is associated with the spoke."
+  default     = {}
+}
+
 variable "hybrid_spokes" {
   description = "VLAN attachments and VPN Tunnels that are associated with the spoke. Type must be one of `interconnect` and `vpn`."
   type = map(object({

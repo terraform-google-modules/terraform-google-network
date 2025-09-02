@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ spec:
     version: 11.1.1
     actuationTool:
       flavor: Terraform
-      version: ">= 0.13.0"
+      version: ">= 1.3"
     description: {}
   content:
     examples:
@@ -90,38 +90,38 @@ spec:
         location: examples/submodule_vpc_serverless_connector
   interfaces:
     variables:
-      - name: export_local_custom_routes
-        description: Export custom routes to peer network from local network.
-        varType: bool
-        defaultValue: false
-      - name: export_local_subnet_routes_with_public_ip
-        description: Export custom routes to peer network from local network (defaults to true; causes the Local Peering Connection to align with the [provider default](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_network_peering#export_subnet_routes_with_public_ip), and the Remote Peering Connection to be opposite the provider default).
-        varType: bool
-        defaultValue: true
+      - name: prefix
+        description: Name prefix for the network peerings
+        varType: string
+        defaultValue: network-peering
+      - name: local_network
+        description: Resource link of the network to add a peering to.
+        varType: string
+        required: true
+      - name: peer_network
+        description: Resource link of the peer network.
+        varType: string
+        required: true
       - name: export_peer_custom_routes
         description: Export custom routes to local network from peer network.
+        varType: bool
+        defaultValue: false
+      - name: export_local_custom_routes
+        description: Export custom routes to peer network from local network.
         varType: bool
         defaultValue: false
       - name: export_peer_subnet_routes_with_public_ip
         description: Export custom routes to local network from peer network (defaults to false; causes the Local Peering Connection to align with the [provider default](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_network_peering#import_subnet_routes_with_public_ip), and the Remote Peering Connection to be opposite the provider default).
         varType: bool
         defaultValue: false
-      - name: local_network
-        description: Resource link of the network to add a peering to.
-        varType: string
-        required: true
+      - name: export_local_subnet_routes_with_public_ip
+        description: Export custom routes to peer network from local network (defaults to true; causes the Local Peering Connection to align with the [provider default](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_network_peering#export_subnet_routes_with_public_ip), and the Remote Peering Connection to be opposite the provider default).
+        varType: bool
+        defaultValue: true
       - name: module_depends_on
         description: List of modules or resources this module depends on.
         varType: list(any)
         defaultValue: []
-      - name: peer_network
-        description: Resource link of the peer network.
-        varType: string
-        required: true
-      - name: prefix
-        description: Name prefix for the network peerings
-        varType: string
-        defaultValue: network-peering
       - name: stack_type
         description: "Which IP version(s) of traffic and routes are allowed to be imported or exported between peer networks. Possible values: [\"IPV4_ONLY\", \"IPV4_IPV6\"]."
         varType: string
@@ -161,7 +161,11 @@ spec:
       - networkconnectivity.googleapis.com
       - iam.googleapis.com
     providerVersions:
-      - source: hashicorp/google-beta
-        version: ">= 4.64, < 7"
       - source: hashicorp/google
-        version: ">= 4.64, < 7"
+        version: ">= 4.65, < 8"
+      - source: hashicorp/google-beta
+        version: ">= 4.65, < 8"
+      - source: hashicorp/null
+        version: ">= 3.2"
+      - source: hashicorp/random
+        version: ">= 3.4"

@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -90,32 +90,53 @@ spec:
         location: examples/submodule_vpc_serverless_connector
   interfaces:
     variables:
-      - name: admin_ranges
-        description: IP CIDR ranges that have complete access to all subnets.
+      - name: network
+        description: Name of the network this set of firewall rules applies to.
+        varType: string
+        required: true
+      - name: project_id
+        description: Project id of the project that holds the network.
+        varType: string
+        required: true
+      - name: internal_ranges_enabled
+        description: Create rules for intra-VPC ranges.
+        varType: bool
+        defaultValue: false
+      - name: internal_ranges
+        description: IP CIDR ranges for intra-VPC rules.
         varType: list(string)
         defaultValue: []
+      - name: internal_target_tags
+        description: List of target tags for intra-VPC rules.
+        varType: list(string)
+        defaultValue: []
+      - name: internal_allow
+        description: Allow rules for internal ranges.
+        varType: |-
+          list(object({
+              protocol = string
+              ports    = optional(list(string))
+            }))
+        defaultValue:
+          - protocol: icmp
       - name: admin_ranges_enabled
         description: Enable admin ranges-based rules.
         varType: bool
         defaultValue: false
-      - name: custom_rules
-        description: List of custom rule definitions (refer to variables file for syntax).
-        varType: |-
-          map(object({
-              description          = string
-              direction            = string
-              action               = string # (allow|deny)
-              ranges               = list(string)
-              sources              = list(string)
-              targets              = list(string)
-              use_service_accounts = bool
-              rules = list(object({
-                protocol = string
-                ports    = list(string)
-              }))
-              extra_attributes = map(string)
-            }))
-        defaultValue: {}
+      - name: admin_ranges
+        description: IP CIDR ranges that have complete access to all subnets.
+        varType: list(string)
+        defaultValue: []
+      - name: ssh_source_ranges
+        description: List of IP CIDR ranges for tag-based SSH rule, defaults to 0.0.0.0/0.
+        varType: list(string)
+        defaultValue:
+          - 0.0.0.0/0
+      - name: ssh_target_tags
+        description: List of target tags for tag-based SSH rule, defaults to ssh.
+        varType: list(string)
+        defaultValue:
+          - ssh
       - name: http_source_ranges
         description: List of IP CIDR ranges for tag-based HTTP rule, defaults to 0.0.0.0/0.
         varType: list(string)
@@ -136,45 +157,24 @@ spec:
         varType: list(string)
         defaultValue:
           - https-server
-      - name: internal_allow
-        description: Allow rules for internal ranges.
+      - name: custom_rules
+        description: List of custom rule definitions (refer to variables file for syntax).
         varType: |-
-          list(object({
-              protocol = string
-              ports    = optional(list(string))
+          map(object({
+              description          = string
+              direction            = string
+              action               = string # (allow|deny)
+              ranges               = list(string)
+              sources              = list(string)
+              targets              = list(string)
+              use_service_accounts = bool
+              rules = list(object({
+                protocol = string
+                ports    = list(string)
+              }))
+              extra_attributes = map(string)
             }))
-        defaultValue:
-          - protocol: icmp
-      - name: internal_ranges
-        description: IP CIDR ranges for intra-VPC rules.
-        varType: list(string)
-        defaultValue: []
-      - name: internal_ranges_enabled
-        description: Create rules for intra-VPC ranges.
-        varType: bool
-        defaultValue: false
-      - name: internal_target_tags
-        description: List of target tags for intra-VPC rules.
-        varType: list(string)
-        defaultValue: []
-      - name: network
-        description: Name of the network this set of firewall rules applies to.
-        varType: string
-        required: true
-      - name: project_id
-        description: Project id of the project that holds the network.
-        varType: string
-        required: true
-      - name: ssh_source_ranges
-        description: List of IP CIDR ranges for tag-based SSH rule, defaults to 0.0.0.0/0.
-        varType: list(string)
-        defaultValue:
-          - 0.0.0.0/0
-      - name: ssh_target_tags
-        description: List of target tags for tag-based SSH rule, defaults to ssh.
-        varType: list(string)
-        defaultValue:
-          - ssh
+        defaultValue: {}
     outputs:
       - name: admin_ranges
         description: Admin ranges data.
@@ -217,6 +217,4 @@ spec:
       - iam.googleapis.com
     providerVersions:
       - source: hashicorp/google
-        version: ">= 4.64, < 7"
-      - source: hashicorp/google-beta
-        version: ">= 4.64, < 7"
+        version: ">= 2.12, < 8"

@@ -27,6 +27,10 @@ locals {
     for k, v in google_network_connectivity_spoke.router_appliance_spoke :
     k => v
   }
+  producer_vpc_network_spoke = {
+    for k, v in google_network_connectivity_spoke.producer_vpc_network_spoke :
+    k => v
+  }
 }
 
 resource "google_network_connectivity_hub" "hub" {
@@ -49,6 +53,23 @@ resource "google_network_connectivity_spoke" "vpc_spoke" {
 
   linked_vpc_network {
     uri                   = each.value.uri
+    exclude_export_ranges = each.value.exclude_export_ranges
+    include_export_ranges = each.value.include_export_ranges
+  }
+}
+
+resource "google_network_connectivity_spoke" "producer_vpc_network_spoke" {
+  for_each    = var.producer_vpc_network_spokes
+  project     = var.project_id
+  name        = each.key
+  location    = "global"
+  description = each.value.description
+  hub         = google_network_connectivity_hub.hub.id
+  labels      = merge(var.spoke_labels, each.value.labels)
+
+  linked_producer_vpc_network {
+    network               = each.value.network_name
+    peering               = each.value.peering
     exclude_export_ranges = each.value.exclude_export_ranges
     include_export_ranges = each.value.include_export_ranges
   }

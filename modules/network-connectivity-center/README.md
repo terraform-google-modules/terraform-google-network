@@ -9,7 +9,7 @@ Basic usage of this submodule is as follows:
 ```hcl
 module "ncc" {
     source  = "terraform-google-modules/network/google//modules/network-connectivity-center"
-    version = "~> 11.1"
+    version = "~> 12.0"
 
     project_id   = "<PROJECT ID>"
 }
@@ -27,6 +27,7 @@ An extensive example that also contains the creation and attachment of multiple 
 | ncc\_hub\_description | The description of the NCC Hub | `string` | `null` | no |
 | ncc\_hub\_labels | These labels will be added the NCC hub | `map(string)` | `{}` | no |
 | ncc\_hub\_name | The Name of the NCC Hub | `string` | n/a | yes |
+| producer\_vpc\_network\_spokes | Producer VPC network that is associated with the spoke. | <pre>map(object({<br>    network_name          = string<br>    peering               = string<br>    include_export_ranges = optional(list(string))<br>    exclude_export_ranges = optional(list(string))<br>  }))</pre> | `{}` | no |
 | project\_id | Project ID of the project that holds the network. | `string` | n/a | yes |
 | router\_appliance\_spokes | Router appliance instances that are associated with the spoke. | <pre>map(object({<br>    instances = set(object({<br>      virtual_machine = string<br>      ip_address      = string<br>    }))<br>    location                   = string<br>    site_to_site_data_transfer = optional(bool, false)<br>    description                = optional(string)<br>    labels                     = optional(map(string))<br>    include_import_ranges      = optional(list(string), [])<br>  }))</pre> | `{}` | no |
 | spoke\_labels | These labels will be added to all NCC spokes | `map(string)` | `{}` | no |
@@ -38,6 +39,7 @@ An extensive example that also contains the creation and attachment of multiple 
 |------|-------------|
 | hybrid\_spokes | All hybrid spoke objects |
 | ncc\_hub | The NCC Hub object |
+| producer\_vpc\_network\_spoke | All producer network vpc spoke objects |
 | router\_appliance\_spokes | All router appliance spoke objects |
 | spokes | All spoke objects prefixed with the type of spoke (vpc, hybrid, appliance) |
 | vpc\_spokes | All vpc spoke objects |
