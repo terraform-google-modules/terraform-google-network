@@ -62,6 +62,7 @@ variable "hybrid_spokes" {
     type                       = string
     description                = optional(string)
     labels                     = optional(map(string))
+    include_import_ranges      = optional(list(string), [])
   }))
   default = {}
 }
@@ -77,6 +78,7 @@ variable "router_appliance_spokes" {
     site_to_site_data_transfer = optional(bool, false)
     description                = optional(string)
     labels                     = optional(map(string))
+    include_import_ranges      = optional(list(string), [])
   }))
   default = {}
 }

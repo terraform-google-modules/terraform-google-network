@@ -68,6 +68,7 @@ resource "google_network_connectivity_spoke" "hybrid_spoke" {
     content {
       uris                       = each.value.uris
       site_to_site_data_transfer = each.value.site_to_site_data_transfer
+      include_import_ranges      = each.value.include_import_ranges
     }
   }
 
@@ -76,6 +77,7 @@ resource "google_network_connectivity_spoke" "hybrid_spoke" {
     content {
       uris                       = each.value.uris
       site_to_site_data_transfer = each.value.site_to_site_data_transfer
+      include_import_ranges      = each.value.include_import_ranges
     }
   }
 }
@@ -99,6 +101,7 @@ resource "google_network_connectivity_spoke" "router_appliance_spoke" {
       }
     }
     site_to_site_data_transfer = each.value.site_to_site_data_transfer
+    include_import_ranges      = each.value.include_import_ranges
 
   }
 }
