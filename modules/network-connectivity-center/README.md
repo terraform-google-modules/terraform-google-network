@@ -27,11 +27,10 @@ An extensive example that also contains the creation and attachment of multiple 
 | ncc\_hub\_description | The description of the NCC Hub | `string` | `null` | no |
 | ncc\_hub\_labels | These labels will be added the NCC hub | `map(string)` | `{}` | no |
 | ncc\_hub\_name | The Name of the NCC Hub | `string` | n/a | yes |
-| producer\_vpc\_network\_spokes | Producer VPC network that is associated with the spoke. | <pre>map(object({<br>    network_name          = string<br>    peering               = string<br>    include_export_ranges = optional(list(string))<br>    exclude_export_ranges = optional(list(string))<br>  }))</pre> | `{}` | no |
 | project\_id | Project ID of the project that holds the network. | `string` | n/a | yes |
 | router\_appliance\_spokes | Router appliance instances that are associated with the spoke. | <pre>map(object({<br>    instances = set(object({<br>      virtual_machine = string<br>      ip_address      = string<br>    }))<br>    location                   = string<br>    site_to_site_data_transfer = optional(bool, false)<br>    description                = optional(string)<br>    labels                     = optional(map(string))<br>    include_import_ranges      = optional(list(string), [])<br>  }))</pre> | `{}` | no |
 | spoke\_labels | These labels will be added to all NCC spokes | `map(string)` | `{}` | no |
-| vpc\_spokes | VPC network that is associated with the spoke | <pre>map(object({<br>    uri                   = string<br>    exclude_export_ranges = optional(set(string), [])<br>    include_export_ranges = optional(set(string), [])<br>    description           = optional(string)<br>    labels                = optional(map(string))<br>  }))</pre> | `{}` | no |
+| vpc\_spokes | VPC network that is associated with the spoke. link\_producer\_vpc\_network: Producer VPC network that is peered with vpc network | <pre>map(object({<br>    uri                   = string<br>    exclude_export_ranges = optional(set(string), [])<br>    include_export_ranges = optional(set(string), [])<br>    description           = optional(string)<br>    labels                = optional(map(string))<br><br>    link_producer_vpc_network = optional(object({<br>      network_name          = string<br>      peering               = string<br>      include_export_ranges = optional(list(string))<br>      exclude_export_ranges = optional(list(string))<br>      description           = optional(string)<br>      labels                = optional(map(string))<br>    }))<br>  }))</pre> | `{}` | no |
 
 ## Outputs
 

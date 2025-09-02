@@ -110,7 +110,7 @@ spec:
         varType: bool
         defaultValue: false
       - name: vpc_spokes
-        description: VPC network that is associated with the spoke
+        description: "VPC network that is associated with the spoke. link_producer_vpc_network: Producer VPC network that is peered with vpc network"
         varType: |-
           map(object({
               uri                   = string
@@ -118,16 +118,15 @@ spec:
               include_export_ranges = optional(set(string), [])
               description           = optional(string)
               labels                = optional(map(string))
-            }))
-        defaultValue: {}
-      - name: producer_vpc_network_spokes
-        description: Producer VPC network that is associated with the spoke.
-        varType: |-
-          map(object({
-              network_name          = string
-              peering               = string
-              include_export_ranges = optional(list(string))
-              exclude_export_ranges = optional(list(string))
+
+              link_producer_vpc_network = optional(object({
+                network_name          = string
+                peering               = string
+                include_export_ranges = optional(list(string))
+                exclude_export_ranges = optional(list(string))
+                description           = optional(string)
+                labels                = optional(map(string))
+              }))
             }))
         defaultValue: {}
       - name: hybrid_spokes
@@ -202,6 +201,7 @@ spec:
       - networksecurity.googleapis.com
       - networkconnectivity.googleapis.com
       - iam.googleapis.com
+      - servicenetworking.googleapis.com
     providerVersions:
       - source: hashicorp/google
         version: ">= 6.49, < 8"

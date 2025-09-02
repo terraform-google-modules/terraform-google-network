@@ -54,5 +54,9 @@ output "spokes" {
       for k, v in local.router_appliance_spokes :
       "appliance/${k}" => v
     },
+    {
+      for k, v in local.producer_vpc_network_spoke :
+      "producer-vpc/${k}" => v
+    },
   ])
 }

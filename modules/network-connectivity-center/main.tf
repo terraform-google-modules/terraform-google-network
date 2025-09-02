@@ -59,9 +59,9 @@ resource "google_network_connectivity_spoke" "vpc_spoke" {
 }
 
 resource "google_network_connectivity_spoke" "producer_vpc_network_spoke" {
-  for_each    = var.producer_vpc_network_spokes
+  for_each    = { for x, y in var.vpc_spokes : x => y.link_producer_vpc_network if y.link_producer_vpc_network != null }
   project     = var.project_id
-  name        = each.key
+  name        = "${each.key}-linked-spoke"
   location    = "global"
   description = each.value.description
   hub         = google_network_connectivity_hub.hub.id
@@ -73,6 +73,7 @@ resource "google_network_connectivity_spoke" "producer_vpc_network_spoke" {
     exclude_export_ranges = each.value.exclude_export_ranges
     include_export_ranges = each.value.include_export_ranges
   }
+  depends_on = [google_network_connectivity_spoke.vpc_spoke]
 }
 
 resource "google_network_connectivity_spoke" "hybrid_spoke" {

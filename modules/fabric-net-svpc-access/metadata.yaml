@@ -148,6 +148,7 @@ spec:
       - networksecurity.googleapis.com
       - networkconnectivity.googleapis.com
       - iam.googleapis.com
+      - servicenetworking.googleapis.com
     providerVersions:
       - source: hashicorp/google
         version: ">= 2.12, < 8"

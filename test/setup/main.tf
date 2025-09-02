@@ -59,5 +59,6 @@ module "project" {
     "networksecurity.googleapis.com",
     "networkconnectivity.googleapis.com",
     "iam.googleapis.com",
+    "servicenetworking.googleapis.com",
   ]
 }
