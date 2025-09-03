@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ spec:
     version: 11.1.1
     actuationTool:
       flavor: Terraform
-      version: ">= 0.13.0"
+      version: ">= 1.3"
     description: {}
   content:
     examples:
@@ -94,12 +94,12 @@ spec:
         description: Project id of the shared VPC host project.
         varType: string
         required: true
-      - name: host_service_agent_role
-        description: Assign host service agent role to users in host_service_agent_users variable.
-        varType: bool
-        defaultValue: false
-      - name: host_service_agent_users
-        description: List of IAM-style users that will be granted the host service agent role on the host project.
+      - name: service_project_ids
+        description: Ids of the service projects that will be attached to the Shared VPC.
+        varType: list(string)
+        required: true
+      - name: host_subnets
+        description: List of subnet names on which to grant network user role.
         varType: list(string)
         defaultValue: []
       - name: host_subnet_regions
@@ -110,14 +110,14 @@ spec:
         description: Map of comma-delimited IAM-style members to which network user roles for subnets will be assigned.
         varType: map(any)
         defaultValue: {}
-      - name: host_subnets
-        description: List of subnet names on which to grant network user role.
+      - name: host_service_agent_role
+        description: Assign host service agent role to users in host_service_agent_users variable.
+        varType: bool
+        defaultValue: false
+      - name: host_service_agent_users
+        description: List of IAM-style users that will be granted the host service agent role on the host project.
         varType: list(string)
         defaultValue: []
-      - name: service_project_ids
-        description: Ids of the service projects that will be attached to the Shared VPC.
-        varType: list(string)
-        required: true
     outputs:
       - name: service_projects
         description: Project ids of the services with access to all subnets.
@@ -148,8 +148,9 @@ spec:
       - networksecurity.googleapis.com
       - networkconnectivity.googleapis.com
       - iam.googleapis.com
+      - servicenetworking.googleapis.com
     providerVersions:
       - source: hashicorp/google
-        version: ">= 4.64, < 7"
+        version: ">= 2.12, < 8"
       - source: hashicorp/google-beta
-        version: ">= 4.64, < 7"
+        version: ">= 2.12, < 8"

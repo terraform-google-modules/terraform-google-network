@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ spec:
     version: 11.1.1
     actuationTool:
       flavor: Terraform
-      version: ">= 1.3.0"
+      version: ">= 1.3"
     description: {}
   content:
     examples:
@@ -90,9 +90,6 @@ spec:
         location: examples/submodule_vpc_serverless_connector
   interfaces:
     variables:
-      - name: description
-        description: An optional description of this resource. Provide this property when you create the resource
-        varType: string
       - name: parent_node
         description: The parent of the firewall policy. Parent should be in format organizations/<org-id> or folders/<folder_id>
         varType: string
@@ -101,6 +98,16 @@ spec:
         description: User-provided name of the hierarchical firewall policy
         varType: string
         required: true
+      - name: description
+        description: An optional description of this resource. Provide this property when you create the resource
+        varType: string
+      - name: target_folders
+        description: List of target folders IDs that the firewall policy will be attached to
+        varType: list(string)
+        defaultValue: []
+      - name: target_org
+        description: Target org id that the firewall policy will be attached to
+        varType: string
       - name: rules
         description: List of Ingress/Egress rules
         varType: |-
@@ -129,16 +136,12 @@ spec:
                   ip_protocol = optional(string, "all")
                   ports       = optional(list(string), [])
                 })), [{}])
+                src_networks       = optional(list(string), [])
+                src_network_scope  = optional(string)
+                dest_network_scope = optional(string)
               })
             }))
         defaultValue: []
-      - name: target_folders
-        description: List of target folders IDs that the firewall policy will be attached to
-        varType: list(string)
-        defaultValue: []
-      - name: target_org
-        description: Target org id that the firewall policy will be attached to
-        varType: string
     outputs:
       - name: fw_policy
         description: Firewall policy created
@@ -173,8 +176,9 @@ spec:
       - networksecurity.googleapis.com
       - networkconnectivity.googleapis.com
       - iam.googleapis.com
+      - servicenetworking.googleapis.com
     providerVersions:
       - source: hashicorp/google
-        version: ">= 6.18, < 7"
+        version: ">= 6.18, < 8"
       - source: hashicorp/google-beta
-        version: ">= 6.18, < 7"
+        version: ">= 6.18, < 8"

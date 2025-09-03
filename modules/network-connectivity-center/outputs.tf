@@ -24,6 +24,10 @@ output "vpc_spokes" {
   value       = local.vpc_spokes
 }
 
+output "producer_vpc_network_spoke" {
+  description = "All producer network vpc spoke objects"
+  value       = local.producer_vpc_network_spoke
+}
 
 output "hybrid_spokes" {
   description = "All hybrid spoke objects"
@@ -49,6 +53,10 @@ output "spokes" {
     {
       for k, v in local.router_appliance_spokes :
       "appliance/${k}" => v
+    },
+    {
+      for k, v in local.producer_vpc_network_spoke :
+      "producer-vpc/${k}" => v
     },
   ])
 }

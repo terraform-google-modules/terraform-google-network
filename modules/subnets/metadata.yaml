@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -90,18 +90,14 @@ spec:
         location: examples/submodule_vpc_serverless_connector
   interfaces:
     variables:
-      - name: network_name
-        description: The name of the network where subnets will be created
-        varType: string
-        required: true
       - name: project_id
         description: The ID of the project where subnets will be created
         varType: string
         required: true
-      - name: secondary_ranges
-        description: Secondary ranges that will be used in some of the subnets
-        varType: map(list(object({ range_name = string, ip_cidr_range = string })))
-        defaultValue: {}
+      - name: network_name
+        description: The name of the network where subnets will be created
+        varType: string
+        required: true
       - name: subnets
         description: The list of subnets being created
         varType: |-
@@ -124,6 +120,10 @@ spec:
               ipv6_access_type                 = optional(string)
             }))
         required: true
+      - name: secondary_ranges
+        description: Secondary ranges that will be used in some of the subnets
+        varType: map(list(object({ range_name = string, ip_cidr_range = string })))
+        defaultValue: {}
     outputs:
       - name: subnets
         description: The created subnet resources
@@ -154,8 +154,7 @@ spec:
       - networksecurity.googleapis.com
       - networkconnectivity.googleapis.com
       - iam.googleapis.com
+      - servicenetworking.googleapis.com
     providerVersions:
       - source: hashicorp/google
-        version: ">= 4.64, < 7"
-      - source: hashicorp/google-beta
-        version: ">= 4.64, < 7"
+        version: ">= 4.25.0, < 8"

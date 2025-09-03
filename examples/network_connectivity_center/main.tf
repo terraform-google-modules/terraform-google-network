@@ -15,7 +15,9 @@
  */
 
 module "network_connectivity_center" {
-  source       = "terraform-google-modules/network/google//modules/network-connectivity-center"
+  source  = "terraform-google-modules/network/google//modules/network-connectivity-center"
+  version = "~> 12.0"
+
   project_id   = var.project_id
   ncc_hub_name = var.ncc_hub_name
   ncc_hub_labels = {
@@ -24,6 +26,7 @@ module "network_connectivity_center" {
   spoke_labels = {
     "created-by" = "terraform-google-ncc-example"
   }
+
   vpc_spokes = {
     "vpc-1" = {
       uri = module.vpc_spoke_vpc.network_id
@@ -31,7 +34,25 @@ module "network_connectivity_center" {
         "spoke-type" = "vpc"
       }
     }
+    "producer-conn" = {
+      uri = google_compute_network.producer_connected_network.id
+      labels = {
+        "spoke-type" = "producer-connected"
+      }
+      link_producer_vpc_network = {
+        network_name = google_compute_network.producer_connected_network.name
+        peering      = google_service_networking_connection.producer_connected_network_peering.peering
+        labels = {
+          "spoke-type" = "linked-producer"
+        }
+        exclude_export_ranges = [
+          "198.51.100.0/24",
+          "10.10.0.0/16"
+        ]
+      }
+    }
   }
+
   hybrid_spokes = {
     "vpn-1" = {
       type                       = "vpn"
@@ -244,4 +265,29 @@ resource "google_compute_instance" "router_appliance_1" {
       network_tier = "PREMIUM"
     }
   }
+}
+
+################################
+#     Producer VPC Spoke       #
+################################
+resource "google_compute_network" "producer_connected_network" {
+  name                    = "producer-connected-network"
+  project                 = var.project_id
+  auto_create_subnetworks = false
+}
+
+resource "google_compute_global_address" "producer_connected_network_psa_ip" {
+  name          = "producer-connected-network-psa"
+  project       = var.project_id
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = google_compute_network.producer_connected_network.id
+}
+
+resource "google_service_networking_connection" "producer_connected_network_peering" {
+  network                 = google_compute_network.producer_connected_network.id
+  service                 = "servicenetworking.googleapis.com"
+  deletion_policy         = "ABANDON"
+  reserved_peering_ranges = [google_compute_global_address.producer_connected_network_psa_ip.name]
 }

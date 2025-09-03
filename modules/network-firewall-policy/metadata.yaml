@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ spec:
     version: 11.1.1
     actuationTool:
       flavor: Terraform
-      version: ">= 1.3.0"
+      version: ">= 1.3"
     description: {}
   content:
     examples:
@@ -90,20 +90,24 @@ spec:
         location: examples/submodule_vpc_serverless_connector
   interfaces:
     variables:
-      - name: description
-        description: An optional description of this resource. Provide this property when you create the resource
-        varType: string
-      - name: policy_name
-        description: User-provided name of the Network firewall policy
-        varType: string
-        required: true
-      - name: policy_region
-        description: Location of the firewall policy. Needed for regional firewall policies. Default is null (Global firewall policy)
-        varType: string
       - name: project_id
         description: Project ID of the Network firewall policy
         varType: string
         required: true
+      - name: policy_name
+        description: User-provided name of the Network firewall policy
+        varType: string
+        required: true
+      - name: description
+        description: An optional description of this resource. Provide this property when you create the resource
+        varType: string
+      - name: target_vpcs
+        description: List of target VPC IDs that the firewall policy will be attached to
+        varType: list(string)
+        defaultValue: []
+      - name: policy_region
+        description: Location of the firewall policy. Needed for regional firewall policies. Default is null (Global firewall policy)
+        varType: string
       - name: rules
         description: List of Ingress/Egress rules
         varType: |-
@@ -137,11 +141,10 @@ spec:
               is_mirroring              = optional(bool, false)
               tls_inspect               = optional(bool, false)
               security_profile_group_id = optional(string)
+              src_networks              = optional(list(string), [])
+              src_network_scope         = optional(string)
+              dest_network_scope        = optional(string)
             }))
-        defaultValue: []
-      - name: target_vpcs
-        description: List of target VPC IDs that the firewall policy will be attached to
-        varType: list(string)
         defaultValue: []
     outputs:
       - name: fw_policy
@@ -177,8 +180,9 @@ spec:
       - networksecurity.googleapis.com
       - networkconnectivity.googleapis.com
       - iam.googleapis.com
+      - servicenetworking.googleapis.com
     providerVersions:
-      - source: hashicorp/google-beta
-        version: ">= 6.28, < 7"
       - source: hashicorp/google
-        version: ">= 6.28, < 7"
+        version: ">= 6.28, < 8"
+      - source: hashicorp/google-beta
+        version: ">= 6.28, < 8"

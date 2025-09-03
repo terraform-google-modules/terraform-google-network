@@ -42,16 +42,36 @@ variable "export_psc" {
 }
 
 variable "vpc_spokes" {
-  description = "VPC network that is associated with the spoke"
+  description = "VPC network that is associated with the spoke. link_producer_vpc_network: Producer VPC network that is peered with vpc network"
   type = map(object({
     uri                   = string
     exclude_export_ranges = optional(set(string), [])
     include_export_ranges = optional(set(string), [])
     description           = optional(string)
     labels                = optional(map(string))
+
+    link_producer_vpc_network = optional(object({
+      network_name          = string
+      peering               = string
+      include_export_ranges = optional(list(string))
+      exclude_export_ranges = optional(list(string))
+      description           = optional(string)
+      labels                = optional(map(string))
+    }))
   }))
   default = {}
 }
+
+# variable "producer_vpc_network_spokes" {
+#   type = map(object({
+#     network_name          = string
+#     peering               = string
+#     include_export_ranges = optional(list(string))
+#     exclude_export_ranges = optional(list(string))
+#   }))
+#   description = "Producer VPC network that is associated with the spoke."
+#   default     = {}
+# }
 
 variable "hybrid_spokes" {
   description = "VLAN attachments and VPN Tunnels that are associated with the spoke. Type must be one of `interconnect` and `vpn`."
