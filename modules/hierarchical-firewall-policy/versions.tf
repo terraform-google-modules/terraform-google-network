@@ -29,6 +29,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:hierarchical-firewall-policy/v11.1.1"
+    module_name = "blueprints/terraform/terraform-google-network:hierarchical-firewall-policy/v12.0.0"
   }
 }

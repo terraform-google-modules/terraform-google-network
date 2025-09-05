@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [12.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v11.1.1...v12.0.0) (2025-09-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* **TPG>=6.49:** added include_import_ranges in network connectivity center sub-module ([#633](https://github.com/terraform-google-modules/terraform-google-network/issues/633))
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v6 ([#613](https://github.com/terraform-google-modules/terraform-google-network/issues/613))
+
+### Features
+
+* added producer VPC network spoke ([#634](https://github.com/terraform-google-modules/terraform-google-network/issues/634)) ([d79ab8b](https://github.com/terraform-google-modules/terraform-google-network/commit/d79ab8ba4553e59e766274d051de967150734b5a))
+* **deps:** Update Terraform Google Provider to v7 (major) ([#629](https://github.com/terraform-google-modules/terraform-google-network/issues/629)) ([5a3faca](https://github.com/terraform-google-modules/terraform-google-network/commit/5a3facae2e90912219ecdf6f00245913599cbe15))
+* **TPG>=6.49:** added include_import_ranges in network connectivity center sub-module ([#633](https://github.com/terraform-google-modules/terraform-google-network/issues/633)) ([f10a323](https://github.com/terraform-google-modules/terraform-google-network/commit/f10a3238ece8550da7e41b596b20e2592b615b92))
+
+
+### Bug Fixes
+
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v6 ([#613](https://github.com/terraform-google-modules/terraform-google-network/issues/613)) ([34ae6ad](https://github.com/terraform-google-modules/terraform-google-network/commit/34ae6ad3d7146530da437a5a7d175d868056d9f6))
+* **docs:** Correct bgp_best_path_selection_mode default value ([#618](https://github.com/terraform-google-modules/terraform-google-network/issues/618)) ([6e5ac89](https://github.com/terraform-google-modules/terraform-google-network/commit/6e5ac8999f5f50ee2169b360af48a8b5e6dcda90))
+* typo on the variables ([#624](https://github.com/terraform-google-modules/terraform-google-network/issues/624)) ([8097ce9](https://github.com/terraform-google-modules/terraform-google-network/commit/8097ce9594ef6bfe185d8cb162867f88494877a6))
+
 ## [11.1.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v11.1.0...v11.1.1) (2025-05-27)
 
 
