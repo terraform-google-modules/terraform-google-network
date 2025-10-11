@@ -122,7 +122,7 @@ spec:
         required: true
       - name: secondary_ranges
         description: Secondary ranges that will be used in some of the subnets
-        varType: map(list(object({ range_name = string, ip_cidr_range = string })))
+        varType: map(list(object({ range_name = string, ip_cidr_range = optional(string), reserved_internal_range = optional(string) })))
         defaultValue: {}
     outputs:
       - name: subnets
@@ -157,4 +157,4 @@ spec:
       - servicenetworking.googleapis.com
     providerVersions:
       - source: hashicorp/google
-        version: ">= 4.25.0, < 8"
+        version: ">= 6.0, < 8"
