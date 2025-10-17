@@ -23,16 +23,32 @@ module "network_connectivity_center" {
   ncc_hub_labels = {
     "module" = "ncc"
   }
+  ncc_hub_preset_topology = "STAR"
+  ncc_groups = {
+    "center" = {
+      name = "center"
+      labels = {
+        "module" = "ncc"
+      }
+    }
+    "edge" = {
+      name = "edge"
+      auto_accept_projects = [
+        "foo",
+        "bar"
+      ]
+    }
+  }
   spoke_labels = {
     "created-by" = "terraform-google-ncc-example"
   }
-
   vpc_spokes = {
     "vpc-1" = {
       uri = module.vpc_spoke_vpc.network_id
       labels = {
         "spoke-type" = "vpc"
       }
+      group = "edge"
     }
     "producer-conn" = {
       uri = google_compute_network.producer_connected_network.id
@@ -49,6 +65,7 @@ module "network_connectivity_center" {
           "198.51.100.0/24",
           "10.10.0.0/16"
         ]
+        group = "center"
       }
     }
   }
@@ -59,6 +76,7 @@ module "network_connectivity_center" {
       uris                       = [for k, v in module.local_to_remote_vpn.tunnel_self_links : v]
       site_to_site_data_transfer = true
       location                   = var.vpn_region
+      group = "center"
     }
   }
   router_appliance_spokes = {
@@ -72,6 +90,7 @@ module "network_connectivity_center" {
       ]
       location                   = var.instance_region
       site_to_site_data_transfer = false
+      group = "center"
     }
   }
 }

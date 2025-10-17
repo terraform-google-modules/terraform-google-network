@@ -50,7 +50,7 @@ resource "google_network_connectivity_hub" "hub" {
 resource "google_network_connectivity_group" "group" {
   for_each = var.ncc_groups
   name     = each.value.name
-  hub      = google_network_connectivity_hub.hub.name
+  hub      = google_network_connectivity_hub.hub.id
   project  = var.project_id
   auto_accept {
     auto_accept_projects = each.value.auto_accept_projects
@@ -82,6 +82,7 @@ resource "google_network_connectivity_spoke" "producer_vpc_network_spoke" {
   description = each.value.description
   hub         = google_network_connectivity_hub.hub.id
   labels      = merge(var.spoke_labels, each.value.labels)
+  group       = each.value.group
 
   linked_producer_vpc_network {
     network               = each.value.network_name
@@ -100,6 +101,7 @@ resource "google_network_connectivity_spoke" "hybrid_spoke" {
   description = each.value.description
   hub         = google_network_connectivity_hub.hub.id
   labels      = merge(var.spoke_labels, each.value.labels)
+  group       = each.value.group
 
   dynamic "linked_interconnect_attachments" {
     for_each = each.value.type == "interconnect" ? [1] : []
@@ -128,6 +130,7 @@ resource "google_network_connectivity_spoke" "router_appliance_spoke" {
   description = each.value.description
   hub         = google_network_connectivity_hub.hub.id
   labels      = merge(var.spoke_labels, each.value.labels)
+  group       = each.value.group
 
   linked_router_appliance_instances {
     dynamic "instances" {

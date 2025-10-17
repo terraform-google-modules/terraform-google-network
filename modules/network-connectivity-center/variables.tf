@@ -36,16 +36,19 @@ variable "ncc_hub_labels" {
 }
 
 variable "ncc_hub_preset_topology" {
+  description = "The topology implemented in the hub"
   type    = string
   default = ""
 }
 
 variable "ncc_hub_policy_mode" {
+  description = "The policy mode of the hub"
   type    = string
   default = "PRESET"
 }
 
 variable "ncc_groups" {
+  description = "Groups for Hubs using the star topolgy"
   type = map(object({
     name                 = string
     labels               = optional(map(string))
@@ -78,6 +81,7 @@ variable "vpc_spokes" {
       exclude_export_ranges = optional(list(string))
       description           = optional(string)
       labels                = optional(map(string))
+      group                 = optional(string)
     }))
   }))
   default = {}
@@ -104,6 +108,7 @@ variable "hybrid_spokes" {
     description                = optional(string)
     labels                     = optional(map(string))
     include_import_ranges      = optional(list(string), [])
+    group                      = optional(string)
   }))
   default = {}
 }
@@ -120,6 +125,7 @@ variable "router_appliance_spokes" {
     description                = optional(string)
     labels                     = optional(map(string))
     include_import_ranges      = optional(list(string), [])
+    group                      = optional(string)
   }))
   default = {}
 }
