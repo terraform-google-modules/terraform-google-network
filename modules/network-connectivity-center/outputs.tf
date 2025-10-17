@@ -60,3 +60,7 @@ output "spokes" {
     },
   ])
 }
+
+output "groups" {
+  value = local.groups
+}
