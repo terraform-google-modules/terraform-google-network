@@ -62,5 +62,6 @@ output "spokes" {
 }
 
 output "groups" {
-  value = local.groups
+  description = "All group objects"
+  value       = local.groups
 }

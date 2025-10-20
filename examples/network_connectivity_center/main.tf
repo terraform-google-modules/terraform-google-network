@@ -16,10 +16,68 @@
 
 module "network_connectivity_center" {
   source  = "terraform-google-modules/network/google//modules/network-connectivity-center"
-  version = "~> 12.0"
+  version = "~> 13.0"
 
   project_id   = var.project_id
   ncc_hub_name = var.ncc_hub_name
+  ncc_hub_labels = {
+    "module" = "ncc"
+  }
+  vpc_spokes = {
+    "vpc-1" = {
+      uri = module.vpc_spoke_vpc.network_id
+      labels = {
+        "spoke-type" = "vpc"
+      }
+    }
+    "producer-conn" = {
+      uri = google_compute_network.producer_connected_network.id
+      labels = {
+        "spoke-type" = "producer-connected"
+      }
+      link_producer_vpc_network = {
+        network_name = google_compute_network.producer_connected_network.name
+        peering      = google_service_networking_connection.producer_connected_network_peering.peering
+        labels = {
+          "spoke-type" = "linked-producer"
+        }
+        exclude_export_ranges = [
+          "198.51.100.0/24",
+          "10.10.0.0/16"
+        ]
+      }
+    }
+  }
+
+  hybrid_spokes = {
+    "vpn-1" = {
+      type                       = "vpn"
+      uris                       = [for k, v in module.local_to_remote_vpn.tunnel_self_links : v]
+      site_to_site_data_transfer = true
+      location                   = var.vpn_region
+    }
+  }
+  router_appliance_spokes = {
+    "appliance-1" = {
+      instances = [
+        {
+          virtual_machine = google_compute_instance.router_appliance_1.id
+          ip_address      = google_compute_instance.router_appliance_1.network_interface[0].network_ip
+        },
+
+      ]
+      location                   = var.instance_region
+      site_to_site_data_transfer = false
+    }
+  }
+}
+
+module "network_connectivity_center_star" {
+  source  = "terraform-google-modules/network/google//modules/network-connectivity-center"
+  version = "~> 13.0"
+
+  project_id   = var.project_id
+  ncc_hub_name = "${var.ncc_hub_name}_star"
   ncc_hub_labels = {
     "module" = "ncc"
   }
@@ -41,57 +99,6 @@ module "network_connectivity_center" {
   }
   spoke_labels = {
     "created-by" = "terraform-google-ncc-example"
-  }
-  vpc_spokes = {
-    "vpc-1" = {
-      uri = module.vpc_spoke_vpc.network_id
-      labels = {
-        "spoke-type" = "vpc"
-      }
-      group = "edge"
-    }
-    "producer-conn" = {
-      uri = google_compute_network.producer_connected_network.id
-      labels = {
-        "spoke-type" = "producer-connected"
-      }
-      link_producer_vpc_network = {
-        network_name = google_compute_network.producer_connected_network.name
-        peering      = google_service_networking_connection.producer_connected_network_peering.peering
-        labels = {
-          "spoke-type" = "linked-producer"
-        }
-        exclude_export_ranges = [
-          "198.51.100.0/24",
-          "10.10.0.0/16"
-        ]
-        group = "center"
-      }
-    }
-  }
-
-  hybrid_spokes = {
-    "vpn-1" = {
-      type                       = "vpn"
-      uris                       = [for k, v in module.local_to_remote_vpn.tunnel_self_links : v]
-      site_to_site_data_transfer = true
-      location                   = var.vpn_region
-      group = "center"
-    }
-  }
-  router_appliance_spokes = {
-    "appliance-1" = {
-      instances = [
-        {
-          virtual_machine = google_compute_instance.router_appliance_1.id
-          ip_address      = google_compute_instance.router_appliance_1.network_interface[0].network_ip
-        },
-
-      ]
-      location                   = var.instance_region
-      site_to_site_data_transfer = false
-      group = "center"
-    }
   }
 }
 

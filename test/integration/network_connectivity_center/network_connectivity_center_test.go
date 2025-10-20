@@ -31,11 +31,18 @@ func TestNetworkConnectivityCenter(t *testing.T) {
 			// net.DefaultVerify(assert) Disable due to bug in provider. Reenable it after the bug is fixed
 			projectID := net.GetStringOutput("project_id")
 			nccHubName := net.GetStringOutput("ncc_hub_name")
+			nccHubStarName := net.GetStringOutput("ncc_hub_name_star")
 
 			op := gcloud.Run(t, "network-connectivity hubs describe ", gcloud.WithCommonArgs([]string{nccHubName, "--project", projectID, "--format", "json"}))
 			nccSpokeStateCount := op.Get("spokeSummary.spokeStateCounts").Array()
 			assert.Equal(1, len(nccSpokeStateCount), "should have spokes in one State")
 			assert.Equal("ACTIVE", nccSpokeStateCount[0].Get("state").String(), "should have only active spokes")
+
+			groups := gcloud.Run(t, "network-connectivity hubs groups list ", gcloud.WithCommonArgs([]string{"--hub", nccHubStarName, "--project", projectID, "--format", "json"})).Get("groups").Array()
+			assert.Equal(2, len(groups), "should have two groups")
+			for _, group := range groups {
+				assert.Equal("ACTIVE", group.Get("state").String(), "should have active group")
+			}
 		})
 	net.Test()
 }

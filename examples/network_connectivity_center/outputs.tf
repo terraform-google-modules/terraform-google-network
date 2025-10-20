@@ -29,7 +29,6 @@ output "vpc_spokes" {
   value       = module.network_connectivity_center.vpc_spokes
 }
 
-
 output "hybrid_spokes" {
   description = "All hybrid spoke objects"
   value       = module.network_connectivity_center.hybrid_spokes
@@ -43,4 +42,14 @@ output "router_appliance_spokes" {
 output "spokes" {
   description = "All spoke objects prefixed with the type of spoke (vpc, hybrid, appliance)"
   value       = module.network_connectivity_center.spokes
+}
+
+output "ncc_hub_name_star" {
+  description = "Name of the NCC Hub (required for testing)"
+  value       = element(reverse(split("/", module.network_connectivity_center_star.ncc_hub.name)), 0)
+}
+
+output "groups" {
+  description = "All spoke objects prefixed with the type of spoke (vpc, hybrid, appliance)"
+  value       = module.network_connectivity_center_star.groups
 }

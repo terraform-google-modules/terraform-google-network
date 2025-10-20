@@ -37,14 +37,14 @@ variable "ncc_hub_labels" {
 
 variable "ncc_hub_preset_topology" {
   description = "The topology implemented in the hub"
-  type    = string
-  default = ""
+  type        = string
+  default     = null
 }
 
 variable "ncc_hub_policy_mode" {
   description = "The policy mode of the hub"
-  type    = string
-  default = "PRESET"
+  type        = string
+  default     = "PRESET"
 }
 
 variable "ncc_groups" {

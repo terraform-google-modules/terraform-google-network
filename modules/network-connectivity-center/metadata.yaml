@@ -105,6 +105,23 @@ spec:
         description: These labels will be added the NCC hub
         varType: map(string)
         defaultValue: {}
+      - name: ncc_hub_preset_topology
+        description: The topology implemented in the hub
+        varType: string
+      - name: ncc_hub_policy_mode
+        description: The policy mode of the hub
+        varType: string
+        defaultValue: PRESET
+      - name: ncc_groups
+        description: Groups for Hubs using the star topolgy
+        varType: |-
+          map(object({
+              name                 = string
+              labels               = optional(map(string))
+              description          = optional(string)
+              auto_accept_projects = optional(list(string), [])
+            }))
+        defaultValue: {}
       - name: export_psc
         description: Whether Private Service Connect transitivity is enabled for the hub
         varType: bool
@@ -118,6 +135,7 @@ spec:
               include_export_ranges = optional(set(string), [])
               description           = optional(string)
               labels                = optional(map(string))
+              group                 = optional(string)
 
               link_producer_vpc_network = optional(object({
                 network_name          = string
@@ -126,6 +144,7 @@ spec:
                 exclude_export_ranges = optional(list(string))
                 description           = optional(string)
                 labels                = optional(map(string))
+                group                 = optional(string)
               }))
             }))
         defaultValue: {}
@@ -140,6 +159,7 @@ spec:
               description                = optional(string)
               labels                     = optional(map(string))
               include_import_ranges      = optional(list(string), [])
+              group                      = optional(string)
             }))
         defaultValue: {}
       - name: router_appliance_spokes
@@ -155,6 +175,7 @@ spec:
               description                = optional(string)
               labels                     = optional(map(string))
               include_import_ranges      = optional(list(string), [])
+              group                      = optional(string)
             }))
         defaultValue: {}
       - name: spoke_labels
@@ -162,6 +183,8 @@ spec:
         varType: map(string)
         defaultValue: {}
     outputs:
+      - name: groups
+        description: All group objects
       - name: hybrid_spokes
         description: All hybrid spoke objects
       - name: ncc_hub
@@ -204,4 +227,4 @@ spec:
       - servicenetworking.googleapis.com
     providerVersions:
       - source: hashicorp/google
-        version: ">= 6.49, < 8"
+        version: ">= 6.9, < 8"
