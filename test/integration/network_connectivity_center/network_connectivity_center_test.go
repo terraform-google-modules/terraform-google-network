@@ -34,9 +34,15 @@ func TestNetworkConnectivityCenter(t *testing.T) {
 			nccHubStarName := net.GetStringOutput("ncc_hub_name_star")
 
 			op := gcloud.Run(t, "network-connectivity hubs describe ", gcloud.WithCommonArgs([]string{nccHubName, "--project", projectID, "--format", "json"}))
+			meshPresetTopology := op.Get("presetTopology").String()
+			assert.Equal("MESH", meshPresetTopology, "should have mesh topology")
 			nccSpokeStateCount := op.Get("spokeSummary.spokeStateCounts").Array()
 			assert.Equal(1, len(nccSpokeStateCount), "should have spokes in one State")
 			assert.Equal("ACTIVE", nccSpokeStateCount[0].Get("state").String(), "should have only active spokes")
+
+			starHub := gcloud.Run(t, "network-connectivity hubs describe ", gcloud.WithCommonArgs([]string{nccHubStarName, "--project", projectID, "--format", "json"}))
+			starPresetTopology := starHub.Get("presetTopology").String()
+			assert.Equal("STAR", starPresetTopology, "should have star topology")
 
 			groups := gcloud.Run(t, "network-connectivity hubs groups list ", gcloud.WithCommonArgs([]string{"--hub", nccHubStarName, "--project", projectID, "--format", "json"})).Get("groups").Array()
 			assert.Equal(2, len(groups), "should have two groups")
