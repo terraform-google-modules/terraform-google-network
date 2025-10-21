@@ -36,13 +36,13 @@ variable "ncc_hub_labels" {
 }
 
 variable "ncc_hub_preset_topology" {
-  description = "The topology implemented in the hub"
+  description = "The topology implemented in the hub. Type must be one of `STAR` or `MESH`."
   type        = string
   default     = null
 }
 
 variable "ncc_hub_policy_mode" {
-  description = "The policy mode of the hub"
+  description = "The policy mode of the hub. Type must be one of `PRESET` or `CUSTOM`."
   type        = string
   default     = "PRESET"
 }
