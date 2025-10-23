@@ -78,7 +78,7 @@ module "network_connectivity_center_star" {
   version = "~> 13.0"
 
   project_id   = var.project_id
-  ncc_hub_name = "${var.ncc_hub_name}_star"
+  ncc_hub_name = "${var.ncc_hub_name}-star"
   ncc_hub_labels = {
     "module" = "ncc"
   }

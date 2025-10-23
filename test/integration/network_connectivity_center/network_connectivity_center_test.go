@@ -44,7 +44,7 @@ func TestNetworkConnectivityCenter(t *testing.T) {
 			starPresetTopology := starHub.Get("presetTopology").String()
 			assert.Equal("STAR", starPresetTopology, "should have star topology")
 
-			groups := gcloud.Run(t, "network-connectivity hubs groups list ", gcloud.WithCommonArgs([]string{"--hub", nccHubStarName, "--project", projectID, "--format", "json"})).Get("groups").Array()
+			groups := gcloud.Run(t, "network-connectivity hubs groups list ", gcloud.WithCommonArgs([]string{"--hub", nccHubStarName, "--project", projectID, "--format", "json"})).Array()
 			assert.Equal(2, len(groups), "should have two groups")
 			for _, group := range groups {
 				assert.Equal("ACTIVE", group.Get("state").String(), "should have active group")
