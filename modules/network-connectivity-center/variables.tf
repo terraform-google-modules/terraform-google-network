@@ -36,7 +36,7 @@ variable "ncc_hub_labels" {
 }
 
 variable "ncc_hub_preset_topology" {
-  description = "The topology implemented in the hub. Type must be one of `STAR` or `MESH`."
+  description = "The topology implemented in the hub. Type must be one of `STAR`, `MESH` or `HYBRID_INSPECTION`."
   type        = string
   default     = null
 }

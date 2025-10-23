@@ -29,7 +29,7 @@ An extensive example that also contains the creation and attachment of multiple 
 | ncc\_hub\_labels | These labels will be added the NCC hub | `map(string)` | `{}` | no |
 | ncc\_hub\_name | The Name of the NCC Hub | `string` | n/a | yes |
 | ncc\_hub\_policy\_mode | The policy mode of the hub. Type must be one of `PRESET` or `CUSTOM`. | `string` | `"PRESET"` | no |
-| ncc\_hub\_preset\_topology | The topology implemented in the hub. Type must be one of `STAR` or `MESH`. | `string` | `null` | no |
+| ncc\_hub\_preset\_topology | The topology implemented in the hub. Type must be one of `STAR`, `MESH` or `HYBRID_INSPECTION`. | `string` | `null` | no |
 | project\_id | Project ID of the project that holds the network. | `string` | n/a | yes |
 | router\_appliance\_spokes | Router appliance instances that are associated with the spoke. | <pre>map(object({<br>    instances = set(object({<br>      virtual_machine = string<br>      ip_address      = string<br>    }))<br>    location                   = string<br>    site_to_site_data_transfer = optional(bool, false)<br>    description                = optional(string)<br>    labels                     = optional(map(string))<br>    include_import_ranges      = optional(list(string), [])<br>    group                      = optional(string)<br>  }))</pre> | `{}` | no |
 | spoke\_labels | These labels will be added to all NCC spokes | `map(string)` | `{}` | no |
