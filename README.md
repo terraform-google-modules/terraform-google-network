@@ -186,7 +186,7 @@ The routes list contains maps, where each object represents a route. For the nex
 |------|-------------|:----:|:-----:|:-----:|
 | name | The name of the route being created  | string | - | no |
 | description | The description of the route being created | string | - | no |
-| tags | The network tags assigned to this route. This is a list in string format. Eg. "tag-01,tag-02"| string | - | yes |
+| tags | The network tags assigned to this route. This is a list in string format. Eg. "tag-01,tag-02"| string | - | no |
 | destination\_range | The destination range of outgoing packets that this route applies to. Only IPv4 is supported | string | - | yes
 | next\_hop\_internet | Whether the next hop to this route will the default internet gateway. Use "true" to enable this as next hop | string | `"false"` | yes |
 | next\_hop\_ip | Network IP address of an instance that should handle matching packets | string | - | yes |
