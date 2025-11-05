@@ -16,17 +16,14 @@
 
 module "network_connectivity_center" {
   source  = "terraform-google-modules/network/google//modules/network-connectivity-center"
-  version = "~> 12.0"
+  version = "~> 13.0"
+
 
   project_id   = var.project_id
   ncc_hub_name = var.ncc_hub_name
   ncc_hub_labels = {
     "module" = "ncc"
   }
-  spoke_labels = {
-    "created-by" = "terraform-google-ncc-example"
-  }
-
   vpc_spokes = {
     "vpc-1" = {
       uri = module.vpc_spoke_vpc.network_id
@@ -73,6 +70,36 @@ module "network_connectivity_center" {
       location                   = var.instance_region
       site_to_site_data_transfer = false
     }
+  }
+}
+
+module "network_connectivity_center_star" {
+  source  = "terraform-google-modules/network/google//modules/network-connectivity-center"
+  version = "~> 13.0"
+
+  project_id   = var.project_id
+  ncc_hub_name = "${var.ncc_hub_name}-star"
+  ncc_hub_labels = {
+    "module" = "ncc"
+  }
+  ncc_hub_preset_topology = "STAR"
+  ncc_groups = {
+    "center" = {
+      name = "center"
+      labels = {
+        "module" = "ncc"
+      }
+    }
+    "edge" = {
+      name = "edge"
+      auto_accept_projects = [
+        "foo",
+        "bar"
+      ]
+    }
+  }
+  spoke_labels = {
+    "created-by" = "terraform-google-ncc-example"
   }
 }
 
