@@ -31,16 +31,31 @@ locals {
     for k, v in google_network_connectivity_spoke.producer_vpc_network_spoke :
     k => v
   }
+  groups = {
+    for k, v in google_network_connectivity_group.group :
+    k => v
+  }
 }
 
 resource "google_network_connectivity_hub" "hub" {
-  name        = var.ncc_hub_name
-  project     = var.project_id
-  description = var.ncc_hub_description
-  export_psc  = var.export_psc
-  labels      = var.ncc_hub_labels
+  name            = var.ncc_hub_name
+  project         = var.project_id
+  description     = var.ncc_hub_description
+  export_psc      = var.export_psc
+  labels          = var.ncc_hub_labels
+  policy_mode     = var.ncc_hub_policy_mode
+  preset_topology = var.ncc_hub_policy_mode == "PRESET" ? var.ncc_hub_preset_topology : (var.ncc_hub_policy_mode == "CUSTOM" ? "PRESET_TOPOLOGY_UNSPECIFIED" : "MESH")
 }
 
+resource "google_network_connectivity_group" "group" {
+  for_each = var.ncc_groups
+  name     = each.value.name
+  hub      = google_network_connectivity_hub.hub.id
+  project  = var.project_id
+  auto_accept {
+    auto_accept_projects = each.value.auto_accept_projects
+  }
+}
 
 resource "google_network_connectivity_spoke" "vpc_spoke" {
   for_each    = var.vpc_spokes
@@ -50,6 +65,7 @@ resource "google_network_connectivity_spoke" "vpc_spoke" {
   description = each.value.description
   hub         = google_network_connectivity_hub.hub.id
   labels      = merge(var.spoke_labels, each.value.labels)
+  group       = each.value.group
 
   linked_vpc_network {
     uri                   = each.value.uri
@@ -66,6 +82,7 @@ resource "google_network_connectivity_spoke" "producer_vpc_network_spoke" {
   description = each.value.description
   hub         = google_network_connectivity_hub.hub.id
   labels      = merge(var.spoke_labels, each.value.labels)
+  group       = each.value.group
 
   linked_producer_vpc_network {
     network               = each.value.network_name
@@ -84,6 +101,7 @@ resource "google_network_connectivity_spoke" "hybrid_spoke" {
   description = each.value.description
   hub         = google_network_connectivity_hub.hub.id
   labels      = merge(var.spoke_labels, each.value.labels)
+  group       = each.value.group
 
   dynamic "linked_interconnect_attachments" {
     for_each = each.value.type == "interconnect" ? [1] : []
@@ -112,6 +130,7 @@ resource "google_network_connectivity_spoke" "router_appliance_spoke" {
   description = each.value.description
   hub         = google_network_connectivity_hub.hub.id
   labels      = merge(var.spoke_labels, each.value.labels)
+  group       = each.value.group
 
   linked_router_appliance_instances {
     dynamic "instances" {

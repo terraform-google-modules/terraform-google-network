@@ -60,3 +60,8 @@ output "spokes" {
     },
   ])
 }
+
+output "groups" {
+  description = "All group objects"
+  value       = local.groups
+}
