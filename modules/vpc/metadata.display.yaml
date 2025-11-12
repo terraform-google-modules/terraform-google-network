@@ -1,0 +1,75 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-network-display
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: Terraform VPC Module
+    source:
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
+      sourceType: git
+      dir: /modules/vpc
+  ui:
+    input:
+      variables:
+        auto_create_subnetworks:
+          name: auto_create_subnetworks
+          title: Auto Create Subnetworks
+        bgp_always_compare_med:
+          name: bgp_always_compare_med
+          title: Bgp Always Compare Med
+        bgp_best_path_selection_mode:
+          name: bgp_best_path_selection_mode
+          title: Bgp Best Path Selection Mode
+        bgp_inter_region_cost:
+          name: bgp_inter_region_cost
+          title: Bgp Inter Region Cost
+        delete_default_internet_gateway_routes:
+          name: delete_default_internet_gateway_routes
+          title: Delete Default Internet Gateway Routes
+        description:
+          name: description
+          title: Description
+        enable_ipv6_ula:
+          name: enable_ipv6_ula
+          title: Enable Ipv6 Ula
+        internal_ipv6_range:
+          name: internal_ipv6_range
+          title: Internal Ipv6 Range
+        mtu:
+          name: mtu
+          title: Mtu
+        network_firewall_policy_enforcement_order:
+          name: network_firewall_policy_enforcement_order
+          title: Network Firewall Policy Enforcement Order
+        network_name:
+          name: network_name
+          title: Network Name
+        network_profile:
+          name: network_profile
+          title: Network Profile
+        project_id:
+          name: project_id
+          title: Project Id
+        routing_mode:
+          name: routing_mode
+          title: Routing Mode
+        shared_vpc_host:
+          name: shared_vpc_host
+          title: Shared Vpc Host

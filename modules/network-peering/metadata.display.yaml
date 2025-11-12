@@ -1,0 +1,57 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-network-display
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: Google Network Peering
+    source:
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
+      sourceType: git
+      dir: /modules/network-peering
+  ui:
+    input:
+      variables:
+        export_local_custom_routes:
+          name: export_local_custom_routes
+          title: Export Local Custom Routes
+        export_local_subnet_routes_with_public_ip:
+          name: export_local_subnet_routes_with_public_ip
+          title: Export Local Subnet Routes With Public Ip
+        export_peer_custom_routes:
+          name: export_peer_custom_routes
+          title: Export Peer Custom Routes
+        export_peer_subnet_routes_with_public_ip:
+          name: export_peer_subnet_routes_with_public_ip
+          title: Export Peer Subnet Routes With Public Ip
+        local_network:
+          name: local_network
+          title: Local Network
+        module_depends_on:
+          name: module_depends_on
+          title: Module Depends On
+        peer_network:
+          name: peer_network
+          title: Peer Network
+        prefix:
+          name: prefix
+          title: Prefix
+        stack_type:
+          name: stack_type
+          title: Stack Type
