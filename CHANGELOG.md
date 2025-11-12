@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [13.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v12.0.0...v13.0.0) (2025-11-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **TPG>7.8:** added ncc preset topology ([#642](https://github.com/terraform-google-modules/terraform-google-network/issues/642))
+
+### Features
+
+* **TPG>7.8:** added ncc preset topology ([#642](https://github.com/terraform-google-modules/terraform-google-network/issues/642)) ([c177a8b](https://github.com/terraform-google-modules/terraform-google-network/commit/c177a8b5a98efae1af668834ed0524e4b16efb77))
+
+
+### Bug Fixes
+
+* Enable metadata generation for lint tests in local setup ([#639](https://github.com/terraform-google-modules/terraform-google-network/issues/639)) ([0f4ad32](https://github.com/terraform-google-modules/terraform-google-network/commit/0f4ad329f2a2d6145a59d3aadc34be45d7dec0bd))
+
 ## [12.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v11.1.1...v12.0.0) (2025-09-05)
 
 
