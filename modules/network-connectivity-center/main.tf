@@ -15,6 +15,13 @@
  */
 
 locals {
+
+  hub_id = (
+    var.hub_configuration.create
+    ? google_network_connectivity_hub.hub[0].id
+    : var.hub_configuration.existing_uri
+  )
+
   vpc_spokes = {
     for k, v in google_network_connectivity_spoke.vpc_spoke :
     k => v
@@ -38,6 +45,8 @@ locals {
 }
 
 resource "google_network_connectivity_hub" "hub" {
+  count = var.hub_configuration.create ? 1 : 0
+
   name            = var.ncc_hub_name
   project         = var.project_id
   description     = var.ncc_hub_description
@@ -50,7 +59,7 @@ resource "google_network_connectivity_hub" "hub" {
 resource "google_network_connectivity_group" "group" {
   for_each = var.ncc_groups
   name     = each.value.name
-  hub      = google_network_connectivity_hub.hub.id
+  hub      = local.hub_id
   project  = var.project_id
   auto_accept {
     auto_accept_projects = each.value.auto_accept_projects
@@ -63,7 +72,7 @@ resource "google_network_connectivity_spoke" "vpc_spoke" {
   name        = each.key
   location    = "global"
   description = each.value.description
-  hub         = google_network_connectivity_hub.hub.id
+  hub         = local.hub_id
   labels      = merge(var.spoke_labels, each.value.labels)
   group       = each.value.group
 
@@ -80,7 +89,7 @@ resource "google_network_connectivity_spoke" "producer_vpc_network_spoke" {
   name        = "${each.key}-linked-spoke"
   location    = "global"
   description = each.value.description
-  hub         = google_network_connectivity_hub.hub.id
+  hub         = local.hub_id
   labels      = merge(var.spoke_labels, each.value.labels)
   group       = each.value.group
 
@@ -99,7 +108,7 @@ resource "google_network_connectivity_spoke" "hybrid_spoke" {
   name        = each.key
   location    = each.value.location
   description = each.value.description
-  hub         = google_network_connectivity_hub.hub.id
+  hub         = local.hub_id
   labels      = merge(var.spoke_labels, each.value.labels)
   group       = each.value.group
 
@@ -128,7 +137,7 @@ resource "google_network_connectivity_spoke" "router_appliance_spoke" {
   name        = each.key
   location    = each.value.location
   description = each.value.description
-  hub         = google_network_connectivity_hub.hub.id
+  hub         = local.hub_id
   labels      = merge(var.spoke_labels, each.value.labels)
   group       = each.value.group
 

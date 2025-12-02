@@ -28,12 +28,24 @@ spec:
   ui:
     input:
       variables:
+        create_new_hub:
+          name: create_new_hub
+          title: Create New Hub
+        existing_hub_uri:
+          name: existing_hub_uri
+          title: Existing Hub Uri
         export_psc:
           name: export_psc
           title: Export Psc
+        hub_configuration:
+          name: hub_configuration
+          title: Hub Configuration
         hybrid_spokes:
           name: hybrid_spokes
           title: Hybrid Spokes
+        ncc_groups:
+          name: ncc_groups
+          title: Ncc Groups
         ncc_hub_description:
           name: ncc_hub_description
           title: Ncc Hub Description
@@ -43,6 +55,12 @@ spec:
         ncc_hub_name:
           name: ncc_hub_name
           title: Ncc Hub Name
+        ncc_hub_policy_mode:
+          name: ncc_hub_policy_mode
+          title: Ncc Hub Policy Mode
+        ncc_hub_preset_topology:
+          name: ncc_hub_preset_topology
+          title: Ncc Hub Preset Topology
         project_id:
           name: project_id
           title: Project Id
