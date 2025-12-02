@@ -98,6 +98,10 @@ spec:
         description: Resource link of the network to add a peering to.
         varType: string
         required: true
+      - name: create_remote_peer
+        description: If the remote peer should be created.
+        varType: bool
+        defaultValue: true
       - name: peer_network
         description: Resource link of the peer network.
         varType: string

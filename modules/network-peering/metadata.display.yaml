@@ -28,6 +28,9 @@ spec:
   ui:
     input:
       variables:
+        create_remote_peer:
+          name: create_remote_peer
+          title: Create Remote Peer
         export_local_custom_routes:
           name: export_local_custom_routes
           title: Export Local Custom Routes
