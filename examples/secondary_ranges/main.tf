@@ -76,6 +76,10 @@ module "vpc-secondary-ranges" {
         range_name    = "${local.subnet_03}-01"
         ip_cidr_range = "192.168.66.0/24"
       },
+      {
+        range_name              = "${local.subnet_03}-02"
+        reserved_internal_range = "networkconnectivity.googleapis.com/${google_network_connectivity_internal_range.internal_range.id}"
+      },
     ]
   }
 
@@ -102,4 +106,14 @@ module "vpc-secondary-ranges" {
       }]
     },
   ]
+}
+
+resource "google_network_connectivity_internal_range" "internal_range" {
+  project       = var.project_id
+  name          = "${var.network_name}-internal-range"
+  description   = "Example internal range for secondary subnet ranges"
+  ip_cidr_range = "172.16.0.0/24"
+  network       = module.vpc-secondary-ranges.network_id
+  usage         = "FOR_VPC"
+  peering       = "FOR_SELF"
 }
