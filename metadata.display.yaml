@@ -66,6 +66,10 @@ spec:
         network_firewall_policy_enforcement_order:
           name: network_firewall_policy_enforcement_order
           title: Network Firewall Policy Enforcement Order
+          # ADC-specific default override
+          altDefaults:
+            - type: ALTERNATE_TYPE_DC
+              value: "BEFORE_CLASSIC_FIREWALL"
         network_name:
           name: network_name
           title: Network Name
