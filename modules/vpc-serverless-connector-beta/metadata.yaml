@@ -74,16 +74,6 @@ spec:
         location: examples/private_service_connect_producer_ipv4
       - name: private_service_connect_producer_ipv6
         location: examples/private_service_connect_producer_ipv6
-      - name: psc_consumer_all_default_ipv4
-        location: examples/psc_consumer_all_default_ipv4
-      - name: psc_consumer_all_default_ipv6
-        location: examples/psc_consumer_all_default_ipv6
-      - name: psc_consumer_ipv4_all_filled
-        location: examples/psc_consumer_ipv4_all_filled
-      - name: psc_consumer_ipv6_all_filled
-        location: examples/psc_consumer_ipv6_all_filled
-      - name: psc_consumer_shared_vpc
-        location: examples/psc_consumer_shared_vpc
       - name: regional-network-firewall-policy
         location: examples/regional-network-firewall-policy
       - name: routes
