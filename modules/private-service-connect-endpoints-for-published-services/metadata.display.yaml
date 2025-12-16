@@ -1,0 +1,66 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-network-display
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: Private Service Connect Endpoints For Published Services
+    source:
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
+      sourceType: git
+      dir: /modules/private-service-connect-endpoints-for-published-services
+  ui:
+    input:
+      variables:
+        address_name:
+          name: address_name
+          title: Address Name
+        forwarding_rule_name:
+          name: forwarding_rule_name
+          title: Forwarding Rule Name
+        forwarding_rule_target:
+          name: forwarding_rule_target
+          title: Forwarding Rule Target
+        ip_address:
+          name: ip_address
+          title: Ip Address
+        ip_version:
+          name: ip_version
+          title: Ip Version
+        network:
+          name: network
+          title: Network
+        network_project_id:
+          name: network_project_id
+          title: Network Project Id
+        project_id:
+          name: project_id
+          title: Project Id
+        psc_global_access:
+          name: psc_global_access
+          title: Psc Global Access
+        region:
+          name: region
+          title: Region
+        service_directory_namespace:
+          name: service_directory_namespace
+          title: Service Directory Namespace
+        subnetwork:
+          name: subnetwork
+          title: Subnetwork

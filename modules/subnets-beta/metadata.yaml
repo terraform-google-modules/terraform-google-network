@@ -66,8 +66,24 @@ spec:
         location: examples/packet_mirroring
       - name: private_service_connect
         location: examples/private_service_connect
+      - name: private_service_connect_endpoints_for_published_services
+        location: examples/private_service_connect_endpoints_for_published_services
       - name: private_service_connect_google_apis
         location: examples/private_service_connect_google_apis
+      - name: private_service_connect_producer_ipv4
+        location: examples/private_service_connect_producer_ipv4
+      - name: private_service_connect_producer_ipv6
+        location: examples/private_service_connect_producer_ipv6
+      - name: psc_consumer_all_default_ipv4
+        location: examples/psc_consumer_all_default_ipv4
+      - name: psc_consumer_all_default_ipv6
+        location: examples/psc_consumer_all_default_ipv6
+      - name: psc_consumer_ipv4_all_filled
+        location: examples/psc_consumer_ipv4_all_filled
+      - name: psc_consumer_ipv6_all_filled
+        location: examples/psc_consumer_ipv6_all_filled
+      - name: psc_consumer_shared_vpc
+        location: examples/psc_consumer_shared_vpc
       - name: regional-network-firewall-policy
         location: examples/regional-network-firewall-policy
       - name: routes
@@ -142,6 +158,7 @@ spec:
           - roles/vpcaccess.admin
           - roles/serviceusage.serviceUsageAdmin
           - roles/dns.admin
+          - roles/servicedirectory.admin
           - roles/resourcemanager.tagAdmin
           - roles/iam.serviceAccountAdmin
           - roles/compute.orgFirewallPolicyAdmin
@@ -155,6 +172,7 @@ spec:
       - serviceusage.googleapis.com
       - vpcaccess.googleapis.com
       - dns.googleapis.com
+      - servicedirectory.googleapis.com
       - networksecurity.googleapis.com
       - networkconnectivity.googleapis.com
       - iam.googleapis.com

@@ -21,9 +21,21 @@ Session.vim
 
 ### https://raw.github.com/github/gitignore/90f149de451a5433aebd94d02d11b0e28843a1af/Terraform.gitignore
 
+# intellij
+**/.idea/*
+
 # Local .terraform directories
 **/.terraform/*
+**/.terraform.d/*
+.terraform.lock
 .terraform.lock.hcl
+
+# Manual test folders
+examples/psc_consumer_all_default_ipv4
+examples/psc_consumer_all_default_ipv6
+examples/psc_consumer_ipv4_all_filled
+examples/psc_consumer_ipv6_all_filled
+examples/psc_consumer_shared_vpc
 
 # .tfstate files
 *.tfstate
