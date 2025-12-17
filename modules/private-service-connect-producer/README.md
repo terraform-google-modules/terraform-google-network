@@ -76,6 +76,35 @@ module "psc_producer" {
 }
 ```
 
+IPv4_IPv6
+
+```hcl
+module "psc_producer" {
+  source  = "terraform-google-modules/psc-producer/google"
+  version = "~> 0.1"
+
+  project = "my-project-id"
+  network = "my-network-name"
+  name    = "producer-sa"
+
+  region                = "us-central1"
+  connection_preference = "ACCEPT_MANUAL"
+  consumer_accept_lists = [
+    {
+      project_id_or_num = "accepted-project-id"
+      connection_limit  = 10
+    },
+  ]
+  consumer_reject_lists = ["rejected-project-id"]
+  nat_subnets           = [
+    {
+      stack_type = "IPV4_IPV6"
+      ipv4_range = "10.10.20.0/24" # required for dual-stack subnet
+    }
+  ]
+  target_service        = var.forwarding_rule_url
+}
+```
 
 Shared VPC
 
@@ -127,10 +156,9 @@ Functional examples are included in the
 
 | Name | Description |
 |------|-------------|
-| nat\_subnets | The NAT Subnets |
-| service\_attachment\_id | ID of the service attachment |
+| service\_attachment\_id | ID of the service attachment with format `projects/{$project}/regions/{$region}/serviceAttachments/{$name}` |
 | service\_attachment\_name | Name of the service attachment |
-| service\_attachment\_self\_link | Self link of the service attachment |
+| service\_attachment\_self\_link | Self link of the service attachment with `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/serviceAttachments/{$name}` |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 

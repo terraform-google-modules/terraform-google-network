@@ -17,7 +17,6 @@ This example creates a Private Service Connect endpoint which targets a producer
 | address\_id | An identifier for the address created for the private service connect with format projects/{$project}/regions/{$region}/addresses/{$name}. |
 | address\_name | Private Service Connect address name. |
 | forwarding\_rule\_name | Private Service Connect forwarding rule resource name. |
-| forwarding\_rule\_target | The target Service Attachment URL for Private Service Connect for Published Service. |
 | ip\_address | Private Service Connect IP address. |
 | project\_id | The project id |
 

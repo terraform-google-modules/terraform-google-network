@@ -104,9 +104,6 @@ spec:
         description: Region in which to provision the resources.
         varType: string
         required: true
-      - name: network_project_id
-        description: Name of the project for the Shared VPC host network. Required for Shared VPC case.
-        varType: string
       - name: network
         description: Name or self link of the network to create resources in. For Shared VPC case, use network self link.
         varType: string
@@ -129,16 +126,10 @@ spec:
       - name: ip_version
         description: "`IPv4`or `IPv6`. Only set this field when private_service_connect_ip is unset. If both ip_address and ip_version are unset, GCP will pick an IPv4 address."
         varType: string
-      - name: forwarding_rule_target
-        description: The target resource URL for this Private Service Connect Endpoint.
+      - name: service_attachment
+        description: The target service attachment resource URL for this Private Service Connect Endpoint.
         varType: string
         required: true
-        connections:
-          - source:
-              source: terraform-google-modules/network/google//modules/private-service-connect-producer
-              version: ~> 13.0
-            spec:
-              outputExpr: service_attachment_self_link
       - name: service_directory_namespace
         description: Service Directory namespace to register the forwarding rule under.
         varType: string
@@ -148,13 +139,17 @@ spec:
         defaultValue: false
     outputs:
       - name: address_id
-        description: An identifier for the address created for the private service connect with format projects/{$project}/regions/{$region}/addresses/{$name}.
+        description: Private Service Connect address ID with format `projects/{$project}/regions/{$region}/addresses/{$name}`.
       - name: address_name
         description: Private Service Connect address name.
+      - name: address_self_link
+        description: Private Service Connect address self link with format `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/addresses/{$name}`.
+      - name: forwarding_rule_id
+        description: Private Service Connect forwarding rule ID with format `projects/{$project}/regions/{$region}/forwardingRules/{$name}`.
       - name: forwarding_rule_name
         description: Private Service Connect forwarding rule resource name.
-      - name: forwarding_rule_target
-        description: The target Service Attachment URL for Private Service Connect for Published Service.
+      - name: forwarding_rule_self_link
+        description: Private Service Connect forwarding rule self link with format `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/forwardingRules/{$name}`.
       - name: ip_address
         description: Private Service Connect IP address.
   requirements:

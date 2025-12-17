@@ -24,12 +24,6 @@ variable "region" {
   type        = string
 }
 
-variable "network_project_id" {
-  description = "Name of the project for the Shared VPC host network. Required for Shared VPC case."
-  type        = string
-  default     = null
-}
-
 variable "network" {
   description = "Name or self link of the network to create resources in. For Shared VPC case, use network self link."
   type        = string
@@ -64,8 +58,8 @@ variable "ip_version" {
   default     = null
 }
 
-variable "forwarding_rule_target" {
-  description = "The target resource URL for this Private Service Connect Endpoint."
+variable "service_attachment" {
+  description = "The target service attachment resource URL for this Private Service Connect Endpoint."
   type        = string
 }
 

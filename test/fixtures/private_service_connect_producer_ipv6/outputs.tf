@@ -23,8 +23,3 @@ output "service_attachment_name" {
   description = "The service attachment name."
   value       = module.ipv6_producer.service_attachment_name
 }
-
-output "nat_subnets" {
-  description = "The subnet IPv6 ranges."
-  value       = module.ipv6_producer.nat_subnets
-}

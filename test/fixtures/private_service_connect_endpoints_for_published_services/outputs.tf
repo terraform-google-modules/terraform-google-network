@@ -38,8 +38,3 @@ output "forwarding_rule_name" {
   value       = module.example.forwarding_rule_name
   description = "Private Service Connect forwarding rule resource name."
 }
-
-output "forwarding_rule_target" {
-  value       = module.example.forwarding_rule_target
-  description = "The target Service Attachment URL for Private Service Connect for Published Service."
-}

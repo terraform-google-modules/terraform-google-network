@@ -19,17 +19,12 @@ output "service_attachment_name" {
   value       = google_compute_service_attachment.default.name
 }
 
-output "service_attachment_self_link" {
-  description = "Self link of the service attachment"
-  value       = google_compute_service_attachment.default.self_link
-}
-
 output "service_attachment_id" {
-  description = "ID of the service attachment"
+  description = "ID of the service attachment with format `projects/{$project}/regions/{$region}/serviceAttachments/{$name}`"
   value       = google_compute_service_attachment.default.id
 }
 
-output "nat_subnets" {
-  description = "The NAT Subnets"
-  value       = google_compute_subnetwork.subnetworks
+output "service_attachment_self_link" {
+  description = "Self link of the service attachment with format `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/serviceAttachments/{$name}`"
+  value       = google_compute_service_attachment.default.self_link
 }

@@ -19,14 +19,19 @@ output "address_name" {
   description = "Private Service Connect address name."
 }
 
+output "address_id" {
+  value       = google_compute_address.private_service_connect_regional_address.id
+  description = "Private Service Connect address ID with format `projects/{$project}/regions/{$region}/addresses/{$name}`."
+}
+
+output "address_self_link" {
+  value       = google_compute_address.private_service_connect_regional_address.self_link
+  description = "Private Service Connect address self link with format `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/addresses/{$name}`."
+}
+
 output "ip_address" {
   value       = google_compute_address.private_service_connect_regional_address.address
   description = "Private Service Connect IP address."
-}
-
-output "address_id" {
-  value       = google_compute_address.private_service_connect_regional_address.id
-  description = "An identifier for the address created for the private service connect with format projects/{$project}/regions/{$region}/addresses/{$name}."
 }
 
 output "forwarding_rule_name" {
@@ -34,7 +39,12 @@ output "forwarding_rule_name" {
   description = "Private Service Connect forwarding rule resource name."
 }
 
-output "forwarding_rule_target" {
-  value       = google_compute_forwarding_rule.private_service_connect_for_published_services.target
-  description = "The target Service Attachment URL for Private Service Connect for Published Service."
+output "forwarding_rule_id" {
+  value       = google_compute_forwarding_rule.private_service_connect_for_published_services.id
+  description = "Private Service Connect forwarding rule ID with format `projects/{$project}/regions/{$region}/forwardingRules/{$name}`."
+}
+
+output "forwarding_rule_self_link" {
+  value       = google_compute_forwarding_rule.private_service_connect_for_published_services.self_link
+  description = "Private Service Connect forwarding rule self link with format `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/forwardingRules/{$name}`."
 }

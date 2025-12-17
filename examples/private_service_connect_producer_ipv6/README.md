@@ -14,7 +14,6 @@ This example creates a service attachment with IPv6_ONLY NAT subnet.
 
 | Name | Description |
 |------|-------------|
-| nat\_subnets | The NAT subnets. |
 | service\_attachment\_name | The service attachment name. |
 | service\_attachment\_self\_link | The service attachment self link. |
 

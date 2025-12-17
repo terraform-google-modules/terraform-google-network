@@ -172,14 +172,12 @@ spec:
         description: (Optional) The number of consumer spokes that connected Private Service Connect endpoints can be propagated to through Network Connectivity Center.
         varType: number
     outputs:
-      - name: nat_subnets
-        description: The NAT Subnets
       - name: service_attachment_id
-        description: ID of the service attachment
+        description: ID of the service attachment with format `projects/{$project}/regions/{$region}/serviceAttachments/{$name}`
       - name: service_attachment_name
         description: Name of the service attachment
       - name: service_attachment_self_link
-        description: Self link of the service attachment
+        description: Self link of the service attachment with `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/serviceAttachments/{$name}`
   requirements:
     roles:
       - level: Project

@@ -23,8 +23,3 @@ output "service_attachment_name" {
   description = "The service attachment name."
   value       = module.test_service_attachment.service_attachment_name
 }
-
-output "nat_subnets" {
-  description = "The NAT subnets."
-  value       = module.test_service_attachment.nat_subnets
-}

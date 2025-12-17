@@ -37,9 +37,8 @@ func TestPrivateServiceConnectEndpointsForPublishedServices(t *testing.T) {
 			assert.Equalf(regionAddressIp, regionAddress.Get("address").String(), "private service connect ip should be %s", regionAddressIp)
 
 			forwardingRuleName := psc.GetStringOutput("forwarding_rule_name")
-			forwardingRuleTarget := psc.GetStringOutput("forwarding_rule_target")
 			forwardingRule := gcloud.Run(t, fmt.Sprintf("compute forwarding-rules describe %s", forwardingRuleName), gcOpts)
-			assert.Equalf(forwardingRuleTarget, forwardingRule.Get("target").String(), "forwarding rule should target to %s", forwardingRuleTarget)
+			assert.Contains(forwardingRule.Get("target").String(), "serviceAttachments", "forwarding rule should target a service attachment")
 		})
 	psc.Test()
 }

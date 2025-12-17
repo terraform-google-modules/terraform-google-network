@@ -34,10 +34,6 @@ resource "google_compute_service_attachment" "default" {
   propagated_connection_limit = var.propagated_connection_limit
   target_service              = var.target_service
   domain_names                = var.domain_names
-
-  lifecycle {
-    create_before_destroy = true
-  }
 }
 
 resource "google_compute_subnetwork" "subnetworks" {
@@ -53,8 +49,4 @@ resource "google_compute_subnetwork" "subnetworks" {
   ipv6_access_type = (each.value.stack_type == "IPV4_IPV6" || each.value.stack_type == "IPV6_ONLY") ? "INTERNAL" : null
   stack_type       = each.value.stack_type
   purpose          = "PRIVATE_SERVICE_CONNECT"
-
-  lifecycle {
-    create_before_destroy = true
-  }
 }

@@ -28,7 +28,7 @@ resource "google_compute_forwarding_rule" "private_service_connect_for_published
   project                 = var.project_id
   region                  = var.region
   name                    = var.forwarding_rule_name
-  target                  = var.forwarding_rule_target
+  target                  = var.service_attachment
   network                 = var.network
   ip_address              = google_compute_address.private_service_connect_regional_address.id
   allow_psc_global_access = var.psc_global_access

@@ -58,6 +58,9 @@ spec:
         region:
           name: region
           title: Region
+        service_attachment:
+          name: service_attachment
+          title: Service Attachment
         service_directory_namespace:
           name: service_directory_namespace
           title: Service Directory Namespace

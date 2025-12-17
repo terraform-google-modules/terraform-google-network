@@ -24,7 +24,6 @@ locals {
   producer_network_name   = "producer-net"
   producer_subnet_name    = "producer-subnet"
   service_attachment_name = "producer-sa"
-  nat_subnet_name         = "producer-nat-subnet"
 
   consumer_network_name = "consumer-net"
   consumer_subnet_name  = "consumer-subnet"
@@ -78,7 +77,7 @@ module "test-ilb" {
 }
 
 module "service-attachment" {
-  source = "terraform-google-modules/network/google//modules/private-service-connect-producer"
+  source = "bobyu-google/network/google//modules/private-service-connect-producer"
 
   project_id = var.private_service_connect_producer_project_id
   network    = google_compute_network.producer_network.name
@@ -112,11 +111,11 @@ resource "google_compute_subnetwork" "consumer_subnetwork" {
 module "private-service-connect-endpoint" {
   source = "terraform-google-modules/network/google//modules/private-service-connect-endpoints-for-published-services"
 
-  project_id             = var.project_id
-  region                 = var.region
-  network                = google_compute_network.consumer_network.name
-  subnetwork             = google_compute_subnetwork.consumer_subnetwork.name
-  forwarding_rule_target = module.service-attachment.service_attachment_id
+  project_id         = var.project_id
+  region             = var.region
+  network            = google_compute_network.consumer_network.name
+  subnetwork         = google_compute_subnetwork.consumer_subnetwork.name
+  service_attachment = module.service-attachment.service_attachment_id
 
   depends_on = [google_compute_subnetwork.consumer_subnetwork]
 }
