@@ -77,7 +77,7 @@ module "test-ilb" {
 }
 
 module "service-attachment" {
-  source  = "terraform-google-module/network/google//modules/private-service-connect-producer"
+  source  = "terraform-google-modules/network/google//modules/private-service-connect-producer"
   version = "~> 13.0"
 
   project_id = var.private_service_connect_producer_project_id
