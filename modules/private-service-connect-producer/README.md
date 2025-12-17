@@ -158,7 +158,7 @@ Functional examples are included in the
 |------|-------------|
 | service\_attachment\_id | ID of the service attachment with format `projects/{$project}/regions/{$region}/serviceAttachments/{$name}` |
 | service\_attachment\_name | Name of the service attachment |
-| service\_attachment\_self\_link | Self link of the service attachment with `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/serviceAttachments/{$name}` |
+| service\_attachment\_self\_link | Self link of the service attachment with format `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/serviceAttachments/{$name}` |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 

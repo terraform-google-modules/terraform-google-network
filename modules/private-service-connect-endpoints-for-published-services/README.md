@@ -13,7 +13,7 @@ Both resources are created under the provided `project_id`.
 
 Basic usage of this module is as follows:
 
-IPv4 
+IPv4
 ```hcl
 module "private_service_connect_endpoints_for_published_services" {
   source  = "terraform-google-modules/network/google//modules/private-service-connect-endpoints-for-published-services"

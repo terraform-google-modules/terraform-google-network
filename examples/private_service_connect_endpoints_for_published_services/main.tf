@@ -77,7 +77,8 @@ module "test-ilb" {
 }
 
 module "service-attachment" {
-  source = "bobyu-google/network/google//modules/private-service-connect-producer"
+  source  = "terraform-google-module/network/google//modules/private-service-connect-producer"
+  version = "~> 13.0"
 
   project_id = var.private_service_connect_producer_project_id
   network    = google_compute_network.producer_network.name
@@ -109,7 +110,8 @@ resource "google_compute_subnetwork" "consumer_subnetwork" {
 }
 
 module "private-service-connect-endpoint" {
-  source = "terraform-google-modules/network/google//modules/private-service-connect-endpoints-for-published-services"
+  source  = "terraform-google-modules/network/google//modules/private-service-connect-endpoints-for-published-services"
+  version = "~> 13.0"
 
   project_id         = var.project_id
   region             = var.region
