@@ -25,12 +25,12 @@ variable "region" {
 }
 
 variable "network" {
-  description = "Name or self link of the network to create resources in. For Shared VPC case, use network self link."
+  description = "Name, id or self link of the network to create resources in. For Shared VPC case, use network self link."
   type        = string
 }
 
 variable "subnetwork" {
-  description = "Name or self link of the subnetwork to create resources in. For Shared VPC case, use subnetwork self link."
+  description = "Name, id or self link of the subnetwork to create resources in. For Shared VPC case, use subnetwork self link."
   type        = string
 }
 

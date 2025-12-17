@@ -98,8 +98,14 @@ module "psc_producer" {
   consumer_reject_lists = ["rejected-project-id"]
   nat_subnets           = [
     {
+      name       = "producer-nat-subnet-0"
       stack_type = "IPV4_IPV6"
       ipv4_range = "10.10.20.0/24" # required for dual-stack subnet
+    }
+    {
+      name       = "producer-nat-subnet-1"
+      stack_type = "IPV4_IPV6"
+      ipv4_range = "10.10.30.0/24" # required for dual-stack subnet
     }
   ]
   target_service        = var.forwarding_rule_url
@@ -144,7 +150,7 @@ Functional examples are included in the
 | enable\_proxy\_protocol | (Optional) Enables the proxy protocol which is for supplying client TCP/IP address data in TCP connections that traverse proxies on their way to destination servers. | `bool` | `false` | no |
 | name | Name for the service attachment. | `string` | n/a | yes |
 | nat\_subnets | NAT Subnets.<br>  - subnet\_name: (Optional) Name of the subnet. Defaults to `$var.name-nat-subnet-$index` if unset.<br>  - ipv4\_range: (Optional) IPv4 range is required for IPV4\_ONLY and IPV4\_IPV6 stack type. Leave ipv4\_range unset for IPV6\_ONLY subnet.<br>  - stack\_type: (Optional) IPV4\_ONLY, IPV4\_IPV6 or IPV6\_ONLY. IPv6 range is assigned by GCP. | <pre>list(object({<br>    subnet_name = optional(string)<br>    ipv4_range  = optional(string)<br>    stack_type  = optional(string)<br>  }))</pre> | n/a | yes |
-| network | Name of the network to create resources in. | `string` | n/a | yes |
+| network | Name, id or self link of the network to create resources in. | `string` | n/a | yes |
 | network\_project\_id | (Optional) Name of the project for the Shared VPC host network, in which the NAT subnets will be created. Required for Shared VPC case. | `string` | `null` | no |
 | project\_id | The project to deploy to, if not set the default provider project is used. | `string` | n/a | yes |
 | propagated\_connection\_limit | (Optional) The number of consumer spokes that connected Private Service Connect endpoints can be propagated to through Network Connectivity Center. | `number` | `null` | no |

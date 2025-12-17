@@ -30,7 +30,7 @@ variable "region" {
 }
 
 variable "network" {
-  description = "Name of the network to create resources in."
+  description = "Name, id or self link of the network to create resources in."
   type        = string
 }
 

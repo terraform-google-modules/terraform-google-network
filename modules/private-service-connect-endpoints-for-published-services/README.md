@@ -19,11 +19,11 @@ module "private_service_connect_endpoints_for_published_services" {
   source  = "terraform-google-modules/network/google//modules/private-service-connect-endpoints-for-published-services"
   version = "~> 13.0"
 
-  project_id                 = "my-project-id"
-  region                     = "us-central1"
-  network                    = "my-network-name"
-  subnetwork                 = "my-subnet-name"
-  forwarding_rule_target     = "https://www.googleapis.com/compute/v1/projects/producer-project/regions/us-central1/serviceAttachments/producer-sa"
+  project_id             = "my-project-id"
+  region                 = "us-central1"
+  network                = "my-network-name"
+  subnetwork             = "my-subnet-name"
+  service_attachment     = "https://www.googleapis.com/compute/v1/projects/producer-project/regions/us-central1/serviceAttachments/producer-sa"
 
   depends_on = [module.consumer-network]
 }
@@ -35,12 +35,12 @@ module "private_service_connect_endpoints_for_published_services" {
   source  = "terraform-google-modules/network/google//modules/private-service-connect-endpoints-for-published-services"
   version = "~> 13.0"
 
-  project_id                 = "my-project-id"
-  region                     = "us-central1"
-  network                    = "my-network-name"
-  subnetwork                 = "my-subnet-name"
-  ip_version                 = "IPV6"
-  forwarding_rule_target     = "https://www.googleapis.com/compute/v1/projects/producer-project/regions/us-central1/serviceAttachments/producer-sa"
+  project_id           = "my-project-id"
+  region               = "us-central1"
+  network              = "my-network-name"
+  subnetwork           = "my-subnet-name"
+  ip_version           = "IPV6"
+  service_attachment   = "https://www.googleapis.com/compute/v1/projects/producer-project/regions/us-central1/serviceAttachments/producer-sa"
 
   depends_on = [module.consumer-network]
 }
@@ -59,13 +59,13 @@ A functional example is included in the [examples/private_service_connect_endpoi
 | forwarding\_rule\_name | Private Service Connect Forwarding Rule resource name. Follow regular GCE naming pattern: https://docs.cloud.google.com/compute/docs/naming-resources#resource-name-format. | `string` | `"psc-for-published-services-endpoint"` | no |
 | ip\_address | Private Service Connect Endpoint IP address. GCP will pick an IP if left unset. | `string` | `null` | no |
 | ip\_version | `IPv4`or `IPv6`. Only set this field when private\_service\_connect\_ip is unset. If both ip\_address and ip\_version are unset, GCP will pick an IPv4 address. | `string` | `null` | no |
-| network | Name or self link of the network to create resources in. For Shared VPC case, use network self link. | `string` | n/a | yes |
+| network | Name, id or self link of the network to create resources in. For Shared VPC case, use network self link. | `string` | n/a | yes |
 | project\_id | Project ID in which to provision the resources. | `string` | n/a | yes |
 | psc\_global\_access | Whether to allow Private Service Connect global access. | `bool` | `false` | no |
 | region | Region in which to provision the resources. | `string` | n/a | yes |
 | service\_attachment | The target service attachment resource URL for this Private Service Connect Endpoint. | `string` | n/a | yes |
 | service\_directory\_namespace | Service Directory namespace to register the forwarding rule under. | `string` | `null` | no |
-| subnetwork | Name or self link of the subnetwork to create resources in. For Shared VPC case, use subnetwork self link. | `string` | n/a | yes |
+| subnetwork | Name, id or self link of the subnetwork to create resources in. For Shared VPC case, use subnetwork self link. | `string` | n/a | yes |
 
 ## Outputs
 
