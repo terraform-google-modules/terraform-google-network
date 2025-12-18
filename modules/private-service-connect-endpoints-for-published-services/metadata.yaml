@@ -130,6 +130,12 @@ spec:
         description: The target service attachment resource URL for this Private Service Connect Endpoint.
         varType: string
         required: true
+        connections:
+          - source:
+              source: github.com/terraform-google-modules/network/google//modules/private-service-connect-producer
+              version: ~> 13.0.0
+            spec:
+              outputExpr: service_attachment_self_link
       - name: service_directory_namespace
         description: Service Directory namespace to register the forwarding rule under.
         varType: string
