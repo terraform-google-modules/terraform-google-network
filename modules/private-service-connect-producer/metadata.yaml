@@ -174,10 +174,13 @@ spec:
     outputs:
       - name: service_attachment_id
         description: ID of the service attachment with format `projects/{$project}/regions/{$region}/serviceAttachments/{$name}`
+        type: string
       - name: service_attachment_name
         description: Name of the service attachment
+        type: string
       - name: service_attachment_self_link
         description: Self link of the service attachment with `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/serviceAttachments/{$name}`
+        type: string
   requirements:
     roles:
       - level: Project
