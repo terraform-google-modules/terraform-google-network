@@ -258,7 +258,7 @@ steps:
   args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectProducerIpv4 --stage teardown --verbose']
 - id: converge private-service-connect-producer-ipv6
   waitFor:
-    - destroy network-connectivity-center
+    - destroy private-service-connect-producer-ipv4
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectProducerIpv6 --stage apply --verbose']
 - id: verify private-service-connect-producer-ipv6
