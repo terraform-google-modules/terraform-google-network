@@ -141,57 +141,57 @@ spec:
         connections:
           - source:
               source: github.com/GoogleCloudPlatform/lb-internal/google
-              version: >= 7.1.0
+              version: ">= 7.1.0"
             spec:
               outputExpr: forwarding_rule
           - source:
               source: github.com/GoogleCloudPlatform/regional-lb-http/google//modules/frontend
-              version: >= 0.7.0
+              version: ">= 0.7.0"
             spec:
               outputExpr: http_forwarding_rule
           - source:
               source: github.com/GoogleCloudPlatform/regional-lb-http/google//modules/frontend
-              version: >= 0.7.0
+              version: ">= 0.7.0"
             spec:
               outputExpr: https_forwarding_rule
           - source:
               source: github.com/GoogleCloudPlatform/regional-lb-http/google//modules/frontend
-              version: >= 0.7.0
+              version: ">= 0.7.0"
             spec:
               outputExpr: http_ipv6_forwarding_rule
           - source:
               source: github.com/GoogleCloudPlatform/regional-lb-http/google//modules/frontend
-              version: >= 0.7.0
+              version: ">= 0.7.0"
             spec:
               outputExpr: https_ipv6_forwarding_rule
           - source:
               source: github.com/terraform-google-modules/lb-http/google//modules/frontend
-              version: >= 14.1.0
+              version: ">= 14.1.0"
             spec:
               outputExpr: http_forwarding_rule
           - source:
               source: github.com/terraform-google-modules/lb-http/google//modules/frontend
-              version: >= 14.1.0
+              version: ">= 14.1.0"
             spec:
               outputExpr: https_forwarding_rule
           - source:
               source: github.com/terraform-google-modules/lb-http/google//modules/frontend
-              version: >= 14.1.0
+              version: ">= 14.1.0"
             spec:
               outputExpr: http_ipv6_forwarding_rule
           - source:
               source: github.com/terraform-google-modules/lb-http/google//modules/frontend
-              version: >= 14.1.0
+              version: ">= 14.1.0"
             spec:
               outputExpr: https_ipv6_forwarding_rule
           - source:
               source: github.com/terraform-google-modules/lb-http/google//modules/frontend
-              version: >= 14.1.0
+              version: ">= 14.1.0"
             spec:
               outputExpr: internal_managed_http_forwarding_rule
           - source:
               source: github.com/terraform-google-modules/lb-http/google//modules/frontend
-              version: >= 14.1.0
+              version: ">= 14.1.0"
             spec:
               outputExpr: internal_managed_http_ipv6_forwarding_rule
       - name: connection_preference
