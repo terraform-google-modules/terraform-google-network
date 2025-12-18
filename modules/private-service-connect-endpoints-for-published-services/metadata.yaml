@@ -140,18 +140,25 @@ spec:
     outputs:
       - name: address_id
         description: Private Service Connect address ID with format `projects/{$project}/regions/{$region}/addresses/{$name}`.
+        type: string
       - name: address_name
         description: Private Service Connect address name.
+        type: string
       - name: address_self_link
         description: Private Service Connect address self link with format `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/addresses/{$name}`.
+        type: string
       - name: forwarding_rule_id
         description: Private Service Connect forwarding rule ID with format `projects/{$project}/regions/{$region}/forwardingRules/{$name}`.
+        type: string
       - name: forwarding_rule_name
         description: Private Service Connect forwarding rule resource name.
+        type: string
       - name: forwarding_rule_self_link
         description: Private Service Connect forwarding rule self link with format `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/forwardingRules/{$name}`.
+        type: string
       - name: ip_address
         description: Private Service Connect IP address.
+        type: string
   requirements:
     roles:
       - level: Project
