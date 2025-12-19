@@ -1,0 +1,221 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-psc-producer
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: Private Service Connect Producer
+    source:
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
+      sourceType: git
+      dir: /modules/private-service-connect-producer
+    version: 13.0.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.5"
+    description: {}
+    icon: assets/icon.png
+    costEstimate:
+      description: Blueprint cost details
+      url: https://cloud.google.com/products/calculator?id=02fb0c45-cc29-4567-8cc6-f72ac9024add
+  content:
+    documentation:
+      - title: Publish services by using Private Service Connect
+        url: http://cloud/vpc/docs/configure-private-service-connect-producer
+    examples:
+      - name: basic_auto_mode
+        location: examples/basic_auto_mode
+      - name: basic_custom_mode
+        location: examples/basic_custom_mode
+      - name: basic_firewall_rule
+        location: examples/basic_firewall_rule
+      - name: basic_secondary_ranges
+        location: examples/basic_secondary_ranges
+      - name: basic_shared_vpc
+        location: examples/basic_shared_vpc
+      - name: basic_vpc_peering
+        location: examples/basic_vpc_peering
+      - name: bidirectional-firewall-rules
+        location: examples/bidirectional-firewall-rules
+      - name: delete_default_gateway_routes
+        location: examples/delete_default_gateway_routes
+      - name: firewall_logging
+        location: examples/firewall_logging
+      - name: global-network-firewall-policy
+        location: examples/global-network-firewall-policy
+      - name: hierarchical-firewall-policy
+        location: examples/hierarchical-firewall-policy
+      - name: ilb_routing
+        location: examples/ilb_routing
+      - name: multi_vpc
+        location: examples/multi_vpc
+      - name: network_connectivity_center
+        location: examples/network_connectivity_center
+      - name: network_service_tiers
+        location: examples/network_service_tiers
+      - name: packet_mirroring
+        location: examples/packet_mirroring
+      - name: private_service_connect
+        location: examples/private_service_connect
+      - name: private_service_connect_endpoints_for_published_services
+        location: examples/private_service_connect_endpoints_for_published_services
+      - name: private_service_connect_google_apis
+        location: examples/private_service_connect_google_apis
+      - name: private_service_connect_producer_ipv4
+        location: examples/private_service_connect_producer_ipv4
+      - name: private_service_connect_producer_ipv6
+        location: examples/private_service_connect_producer_ipv6
+      - name: regional-network-firewall-policy
+        location: examples/regional-network-firewall-policy
+      - name: routes
+        location: examples/routes
+      - name: secondary_ranges
+        location: examples/secondary_ranges
+      - name: simple_ipv6_project
+        location: examples/simple_ipv6_project
+      - name: simple_project
+        location: examples/simple_project
+      - name: simple_project_with_regional_network
+        location: examples/simple_project_with_regional_network
+      - name: submodule_firewall
+        location: examples/submodule_firewall
+      - name: submodule_network_peering
+        location: examples/submodule_network_peering
+      - name: submodule_svpc_access
+        location: examples/submodule_svpc_access
+      - name: submodule_vpc_serverless_connector
+        location: examples/submodule_vpc_serverless_connector
+  interfaces:
+    variables:
+      - name: name
+        description: Name for the service attachment.
+        varType: string
+        required: true
+      - name: project_id
+        description: The project to deploy to, if not set the default provider project is used.
+        varType: string
+        required: true
+      - name: region
+        description: Region for cloud resources.
+        varType: string
+        required: true
+      - name: network
+        description: Name, id or self link of the network to create resources in.
+        varType: string
+        required: true
+      - name: network_project_id
+        description: (Optional) Name of the project for the Shared VPC host network, in which the NAT subnets will be created. Required for Shared VPC case.
+        varType: string
+      - name: nat_subnets
+        description: "  NAT Subnets.\n  - subnet_name: (Optional) Name of the subnet. Defaults to `$var.name-nat-subnet-$index` if unset.\n  - ipv4_range: (Optional) IPv4 range is required for IPV4_ONLY and IPV4_IPV6 stack type. Leave ipv4_range unset for IPV6_ONLY subnet.\n  - stack_type: (Optional) IPV4_ONLY, IPV4_IPV6 or IPV6_ONLY. IPv6 range is assigned by GCP.\n"
+        varType: |-
+          list(object({
+              subnet_name = optional(string)
+              ipv4_range  = optional(string)
+              stack_type  = optional(string)
+            }))
+        required: true
+      - name: domain_names
+        description: (Optional) The domain names to be used during the integration between the PSC connected endpoints and the Cloud DNS.
+        varType: list(string)
+      - name: target_service
+        description: "Target service URL ex. ILB, SWP. Supported types: https://cloud.google.com/vpc/docs/configure-private-service-connect-producer#lb-types "
+        varType: string
+        required: true
+        connections:
+          - source:
+              source: github.com/GoogleCloudPlatform/terraform-google-regional-lb-http/google//modules/frontend
+              version: ">= 0.7.0"
+            spec:
+              outputExpr: forwarding_rules[0]
+          - source:
+              source: github.com/terraform-google-modules/terraform-google-lb-http/google//modules/frontend
+              version: ">= 14.1.0"
+            spec:
+              outputExpr: forwarding_rules[0]
+      - name: connection_preference
+        description: ACCEPT_AUTOMATIC or ACCEPT_MANUAL
+        varType: string
+        required: true
+      - name: consumer_accept_lists
+        description: "(Optional) An array of projects/networks that are allowed to connect to this service attachment: The list needs to be either project-based or network-based."
+        varType: |-
+          list(object({
+              project_id_or_num = optional(string)
+              network_url       = optional(string)
+              connection_limit  = number
+            }))
+        defaultValue: []
+      - name: consumer_reject_lists
+        description: (Optional) An array of projects/networks that are not allowed to connect to this service attachment.
+        varType: list(string)
+      - name: enable_proxy_protocol
+        description: (Optional) Enables the proxy protocol which is for supplying client TCP/IP address data in TCP connections that traverse proxies on their way to destination servers.
+        varType: bool
+        defaultValue: false
+      - name: reconcile_connections
+        description: (Optional) Determines whether a consumer accept/reject list change can reconcile the statuses of existing ACCEPTED or REJECTED PSC endpoints.
+        varType: bool
+        defaultValue: false
+      - name: propagated_connection_limit
+        description: (Optional) The number of consumer spokes that connected Private Service Connect endpoints can be propagated to through Network Connectivity Center.
+        varType: number
+    outputs:
+      - name: service_attachment_id
+        description: ID of the service attachment with format `projects/{$project}/regions/{$region}/serviceAttachments/{$name}`
+        type: string
+      - name: service_attachment_name
+        description: Name of the service attachment
+        type: string
+      - name: service_attachment_self_link
+        description: Self link of the service attachment with format `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/serviceAttachments/{$name}`
+        type: string
+  requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/compute.instanceAdmin
+          - roles/compute.networkAdmin
+          - roles/compute.securityAdmin
+          - roles/iam.serviceAccountUser
+          - roles/vpcaccess.admin
+          - roles/serviceusage.serviceUsageAdmin
+          - roles/dns.admin
+          - roles/servicedirectory.admin
+          - roles/resourcemanager.tagAdmin
+          - roles/iam.serviceAccountAdmin
+          - roles/compute.orgFirewallPolicyAdmin
+          - roles/networkconnectivity.hubAdmin
+          - roles/networksecurity.mirroringDeploymentAdmin
+          - roles/networksecurity.mirroringEndpointAdmin
+          - roles/networksecurity.securityProfileAdmin
+    services:
+      - cloudresourcemanager.googleapis.com
+      - compute.googleapis.com
+      - serviceusage.googleapis.com
+      - vpcaccess.googleapis.com
+      - dns.googleapis.com
+      - servicedirectory.googleapis.com
+      - networksecurity.googleapis.com
+      - networkconnectivity.googleapis.com
+      - iam.googleapis.com
+      - servicenetworking.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 7.11, < 8"

@@ -1,6 +1,6 @@
 # Private Service Connect
 
-This module enables the usage of [Private Service Connect](https://cloud.google.com/vpc/docs/private-service-connect) for a specific subnetwork.
+This module enables the usage of [Private Service Connect For Google APIs](https://docs.cloud.google.com/vpc/docs/private-service-connect#google-apis) for a specific network.
 
 The resources created/managed by this module are:
 
