@@ -30,6 +30,13 @@ Session.vim
 .terraform.lock
 .terraform.lock.hcl
 
+# Manual test folders
+examples/psc_consumer_all_default_ipv4
+examples/psc_consumer_all_default_ipv6
+examples/psc_consumer_ipv4_all_filled
+examples/psc_consumer_ipv6_all_filled
+examples/psc_consumer_shared_vpc
+
 # .tfstate files
 *.tfstate
 *.tfstate.*
