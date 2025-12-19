@@ -140,7 +140,7 @@ spec:
         required: true
         connections:
           - source:
-              source: github.com/GoogleCloudPlatform/regional-lb-http/google//modules/frontend
+              source: github.com/GoogleCloudPlatform/terraform-google-regional-lb-http/google//modules/frontend
               version: ">= 0.7.0"
             spec:
               outputExpr: forwarding_rules[0]
