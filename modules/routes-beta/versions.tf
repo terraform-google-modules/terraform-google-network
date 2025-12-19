@@ -25,6 +25,6 @@ terraform {
   }
 
   provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-google-network:routes-beta/v13.0.1"
+    module_name = "blueprints/terraform/terraform-google-network:routes-beta/v13.1.0"
   }
 }

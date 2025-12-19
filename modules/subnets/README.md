@@ -13,7 +13,7 @@ Basic usage of this submodule is as follows:
 ```hcl
 module "vpc" {
     source  = "terraform-google-modules/network/google//modules/subnets"
-    version = "~> 13.0"
+    version = "~> 13.1"
 
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"
