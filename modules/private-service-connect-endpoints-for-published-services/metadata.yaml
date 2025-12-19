@@ -105,11 +105,11 @@ spec:
         varType: string
         required: true
       - name: network
-        description: Name or self link of the network to create resources in. For Shared VPC case, use network self link.
+        description: Name, id or self link of the network to create resources in. For Shared VPC case, use network self link.
         varType: string
         required: true
       - name: subnetwork
-        description: Name or self link of the subnetwork to create resources in. For Shared VPC case, use subnetwork self link.
+        description: Name, id or self link of the subnetwork to create resources in. For Shared VPC case, use subnetwork self link.
         varType: string
         required: true
       - name: forwarding_rule_name
