@@ -68,6 +68,7 @@ spec:
           name: service_attachment
           title: Service Attachment
           regexValidation: "(projects/[a-z][a-z0-9-]{4,28}[a-z0-9]/regions/[a-z0-9-]+/serviceAttachments/[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?|[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?)$"
+          validation: Must be a valid terraform self link or id for a service attachment.
         service_directory_namespace:
           name: service_directory_namespace
           title: Service Directory Namespace
