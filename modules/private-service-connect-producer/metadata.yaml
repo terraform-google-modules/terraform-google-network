@@ -145,7 +145,7 @@ spec:
             spec:
               outputExpr: forwarding_rules[0]
           - source:
-              source: github.com/terraform-google-modules/lb-http/google//modules/frontend
+              source: github.com/terraform-google-modules/terraform-google-lb-http/google//modules/frontend
               version: ">= 14.1.0"
             spec:
               outputExpr: forwarding_rules[0]
