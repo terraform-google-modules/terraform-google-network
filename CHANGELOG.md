@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [13.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.0.1...v13.1.0) (2025-12-19)
+
+
+### Features
+
+* private-service-connect-endpoints-for-published-services and private-service-connect-producer submodules ([#652](https://github.com/terraform-google-modules/terraform-google-network/issues/652)) ([ed2e126](https://github.com/terraform-google-modules/terraform-google-network/commit/ed2e1260f290e086261c72e8e54c2a0ac08980cf))
+
 ## [13.0.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.0.0...v13.0.1) (2025-12-18)
 
 
