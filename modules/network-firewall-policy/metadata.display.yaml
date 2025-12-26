@@ -37,6 +37,9 @@ spec:
         policy_region:
           name: policy_region
           title: Policy Region
+        policy_type:
+          name: policy_type
+          title: Policy Type
         project_id:
           name: project_id
           title: Project Id
