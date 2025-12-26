@@ -26,6 +26,7 @@ resource "google_compute_network_firewall_policy" "fw_policy" {
   name        = var.policy_name
   project     = var.project_id
   description = var.description
+  policy_type = var.policy_type
 }
 
 resource "google_compute_network_firewall_policy_association" "vpc_associations" {
@@ -143,6 +144,7 @@ resource "google_compute_region_network_firewall_policy" "fw_policy" {
   project     = var.project_id
   description = var.description
   region      = var.policy_region
+  policy_type = var.policy_type
 }
 
 resource "google_compute_region_network_firewall_policy_association" "vpc_associations" {
