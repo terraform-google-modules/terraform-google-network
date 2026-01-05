@@ -33,7 +33,9 @@ spec:
           title: Connection Preference
           enumValueLabels:
           - label: ACCEPT_AUTOMATIC
+            value: ACCEPT_AUTOMATIC
           - label: ACCEPT_MANUAL
+            value: ACCEPT_MANUAL
         consumer_accept_lists:
           name: consumer_accept_lists
           title: Consumer Accept Lists
@@ -82,8 +84,11 @@ spec:
               title: Stack Type
               enumValueLabels:
               - label: IPV4_ONLY
+                value: IPV4_ONLY
               - label: IPV6_ONLY
+                value: IPV6_ONLY
               - label: IPV4_IPV6
+                value: IPV4_IPV6
         network:
           name: network
           title: Network

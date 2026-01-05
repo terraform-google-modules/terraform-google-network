@@ -48,7 +48,9 @@ spec:
           title: Ip Version
           enumValueLabels:
             - label: IPV4
+              value: IPV4
             - label: IPV6
+              value: IPV6
         network:
           name: network
           title: Network
