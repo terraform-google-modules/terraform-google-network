@@ -25,7 +25,7 @@ output "network_name" {
 }
 
 output "network_id" {
-  value       = google_compute_network.network.id
+  value       = google_compute_network.network.network_id
   description = "The ID of the VPC being created"
 }
 
