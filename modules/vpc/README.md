@@ -52,6 +52,7 @@ module "vpc" {
 | network\_id | The ID of the VPC being created |
 | network\_name | The name of the VPC being created |
 | network\_self\_link | The URI of the VPC being created |
+| network\_unique\_id | The unique identifier for the resource, defined by the server |
 | project\_id | VPC project id |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

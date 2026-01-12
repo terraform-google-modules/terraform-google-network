@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [13.0.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.0.0...v13.0.1) (2025-12-18)
+
+
+### Bug Fixes
+
+* make bgpAlwaysCompareMed and bgpInterRegionCost conditional on STANDARD mode ([#654](https://github.com/terraform-google-modules/terraform-google-network/issues/654)) ([0e7ac7e](https://github.com/terraform-google-modules/terraform-google-network/commit/0e7ac7e727585f3de9eedaacfad5429e6bc85936))
+
 ## [13.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v12.0.0...v13.0.0) (2025-11-12)
 
 

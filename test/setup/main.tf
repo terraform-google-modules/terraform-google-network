@@ -56,6 +56,32 @@ module "project" {
     "serviceusage.googleapis.com",
     "vpcaccess.googleapis.com",
     "dns.googleapis.com",
+    "servicedirectory.googleapis.com",
+    "networksecurity.googleapis.com",
+    "networkconnectivity.googleapis.com",
+    "iam.googleapis.com",
+    "servicenetworking.googleapis.com",
+  ]
+}
+
+module "private_service_connect_producer_project" {
+  source  = "terraform-google-modules/project-factory/google"
+  version = "~> 18.0"
+
+  name              = "ci-producer-network"
+  random_project_id = "true"
+  org_id            = var.org_id
+  folder_id         = google_folder.folder2.id
+  billing_account   = var.billing_account
+  deletion_policy   = "DELETE"
+
+  activate_apis = [
+    "cloudresourcemanager.googleapis.com",
+    "compute.googleapis.com",
+    "serviceusage.googleapis.com",
+    "vpcaccess.googleapis.com",
+    "dns.googleapis.com",
+    "servicedirectory.googleapis.com",
     "networksecurity.googleapis.com",
     "networkconnectivity.googleapis.com",
     "iam.googleapis.com",
