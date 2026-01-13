@@ -23,6 +23,7 @@ locals {
     "roles/vpcaccess.admin",
     "roles/serviceusage.serviceUsageAdmin",
     "roles/dns.admin",
+    "roles/servicedirectory.admin",
     "roles/resourcemanager.tagAdmin",
     "roles/iam.serviceAccountAdmin",
     "roles/compute.orgFirewallPolicyAdmin",
@@ -43,6 +44,14 @@ resource "google_project_iam_member" "int_test" {
   count = length(local.int_required_roles)
 
   project = module.project.project_id
+  role    = local.int_required_roles[count.index]
+  member  = "serviceAccount:${google_service_account.int_test.email}"
+}
+
+resource "google_project_iam_member" "int_test2" {
+  count = length(local.int_required_roles)
+
+  project = module.private_service_connect_producer_project.project_id
   role    = local.int_required_roles[count.index]
   member  = "serviceAccount:${google_service_account.int_test.email}"
 }

@@ -1,5 +1,5 @@
 # Private Service Connect
-This example configures a single VPC inside a project and enables it to consume a Private Service Connect endpoint.
+This example configures a single VPC inside a project and enables it to consume a Private Service Connect For Google APIs endpoint.
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs

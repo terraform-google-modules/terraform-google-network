@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-timeout: 3600s
+timeout: 7200s
 steps:
 - id: swap-module-refs
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
@@ -241,6 +241,51 @@ steps:
     - verify network-connectivity-center
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'cft test run TestNetworkConnectivityCenter --stage teardown --verbose']
+- id: converge private-service-connect-producer-ipv4
+  waitFor:
+    - destroy network-connectivity-center
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectProducerIpv4 --stage apply --verbose']
+- id: verify private-service-connect-producer-ipv4
+  waitFor:
+    - converge private-service-connect-producer-ipv4
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectProducerIpv4 --stage verify --verbose']
+- id: destroy private-service-connect-producer-ipv4
+  waitFor:
+    - verify private-service-connect-producer-ipv4
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectProducerIpv4 --stage teardown --verbose']
+- id: converge private-service-connect-producer-ipv6
+  waitFor:
+    - destroy private-service-connect-producer-ipv4
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectProducerIpv6 --stage apply --verbose']
+- id: verify private-service-connect-producer-ipv6
+  waitFor:
+    - converge private-service-connect-producer-ipv6
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectProducerIpv6 --stage verify --verbose']
+- id: destroy private-service-connect-producer-ipv6
+  waitFor:
+    - verify private-service-connect-producer-ipv6
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectProducerIpv6 --stage teardown --verbose']
+- id: converge private-service-connect-endpoints-for-published-services
+  waitFor:
+    - destroy private-service-connect-producer-ipv6
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectEndpointsForPublishedServices --stage apply --verbose']
+- id: verify private-service-connect-endpoints-for-published-services
+  waitFor:
+    - converge private-service-connect-endpoints-for-published-services
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectEndpointsForPublishedServices --stage verify --verbose']
+- id: destroy private-service-connect-endpoints-for-published-services
+  waitFor:
+    - verify private-service-connect-endpoints-for-published-services
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectEndpointsForPublishedServices --stage teardown --verbose']
 tags:
 - 'ci'
 - 'integration'
