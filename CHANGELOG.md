@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [13.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.0.1...v13.1.0) (2026-01-22)
+
+
+### Features
+
+* Add an output variable network_unique_id to align with TF resource output network_id ([#659](https://github.com/terraform-google-modules/terraform-google-network/issues/659)) ([715edd1](https://github.com/terraform-google-modules/terraform-google-network/commit/715edd15da6dc6f47c6362ca42af7852f902126f))
+* private-service-connect-endpoints-for-published-services and private-service-connect-producer submodules ([#652](https://github.com/terraform-google-modules/terraform-google-network/issues/652)) ([ed2e126](https://github.com/terraform-google-modules/terraform-google-network/commit/ed2e1260f290e086261c72e8e54c2a0ac08980cf))
+
+
+### Bug Fixes
+
+* add enum values to PSC modules metadata.display.yaml ([#658](https://github.com/terraform-google-modules/terraform-google-network/issues/658)) ([6b0edf4](https://github.com/terraform-google-modules/terraform-google-network/commit/6b0edf42245dd347be30dc9c36a61b43e6e81937))
+
 ## [13.0.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.0.0...v13.0.1) (2025-12-18)
 
 
