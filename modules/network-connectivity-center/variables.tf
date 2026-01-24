@@ -25,6 +25,7 @@ variable "hub_configuration" {
     create       = optional(bool, true)
     existing_uri = optional(string)
   })
+  default = {}
 
   validation {
     condition = (

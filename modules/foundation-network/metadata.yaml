@@ -94,10 +94,6 @@ spec:
         description: Project ID for Shared VPC.
         varType: string
         required: true
-      - name: project_number
-        description: Project number for Shared VPC.
-        varType: number
-        required: true
       - name: mode
         description: Network deployment mode, should be set to `hub` or `spoke` when Hub and Spoke architecture used, keep as `null` otherwise.
         varType: string
@@ -187,14 +183,18 @@ spec:
         description: Network Connectivity Center configuration.
         varType: |-
           object({
-              create_hub      = optional(bool, true)
-              uri             = optional(string)
-              name            = optional(string)
-              description     = optional(string)
-              labels          = optional(map(string))
-              policy_mode     = optional(string, "PRESET")
-              preset_topology = optional(string)
-              export_psc      = optional(bool, false)
+              create_hub                  = optional(bool, true)
+              uri                         = optional(string)
+              name                        = optional(string)
+              description                 = optional(string)
+              hub_labels                  = optional(map(string))
+              spoke_labels                = optional(map(string))
+              policy_mode                 = optional(string, "PRESET")
+              preset_topology             = optional(string)
+              export_psc                  = optional(bool, false)
+              auto_accept_projects_center = optional(list(string), [])
+              auto_accept_projects_edge   = optional(list(string), [])
+              star_group                  = optional(string, "center") // TODO add validation
             })
         defaultValue: {}
     outputs:
@@ -202,6 +202,8 @@ spec:
         description: The name of the DNS policy being created
       - name: firewall_policy
         description: Policy created for firewall policy rules.
+      - name: ncc_hub_uri
+        description: The NCC Hub ID
       - name: network_name
         description: The name of the VPC being created
       - name: network_self_link
