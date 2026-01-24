@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -101,7 +101,7 @@ spec:
               create       = optional(bool, true)
               existing_uri = optional(string)
             })
-        required: true
+        defaultValue: {}
       - name: ncc_hub_name
         description: The Name of the NCC Hub
         varType: string

@@ -1,0 +1,117 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-network-high-availability-vpn-display
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: High Availability VPN module
+    source:
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
+      sourceType: git
+      dir: /modules/high-availability-vpn
+  ui:
+    input:
+      variables:
+        bgp_peer_asn:
+          name: bgp_peer_asn
+          title: Bgp Peer Asn
+        default_region1:
+          name: default_region1
+          title: Default Region1
+        default_region2:
+          name: default_region2
+          title: Default Region2
+        env_secret_project_id:
+          name: env_secret_project_id
+          title: Env Secret Project Id
+        on_prem_router_ip_address1:
+          name: on_prem_router_ip_address1
+          title: On Prem Router Ip Address1
+        on_prem_router_ip_address2:
+          name: on_prem_router_ip_address2
+          title: On Prem Router Ip Address2
+        project_id:
+          name: project_id
+          title: Project Id
+        region1_router1_name:
+          name: region1_router1_name
+          title: Region1 Router1 Name
+        region1_router1_tunnel0_bgp_peer_address:
+          name: region1_router1_tunnel0_bgp_peer_address
+          title: Region1 Router1 Tunnel0 Bgp Peer Address
+        region1_router1_tunnel0_bgp_peer_range:
+          name: region1_router1_tunnel0_bgp_peer_range
+          title: Region1 Router1 Tunnel0 Bgp Peer Range
+        region1_router1_tunnel1_bgp_peer_address:
+          name: region1_router1_tunnel1_bgp_peer_address
+          title: Region1 Router1 Tunnel1 Bgp Peer Address
+        region1_router1_tunnel1_bgp_peer_range:
+          name: region1_router1_tunnel1_bgp_peer_range
+          title: Region1 Router1 Tunnel1 Bgp Peer Range
+        region1_router2_name:
+          name: region1_router2_name
+          title: Region1 Router2 Name
+        region1_router2_tunnel0_bgp_peer_address:
+          name: region1_router2_tunnel0_bgp_peer_address
+          title: Region1 Router2 Tunnel0 Bgp Peer Address
+        region1_router2_tunnel0_bgp_peer_range:
+          name: region1_router2_tunnel0_bgp_peer_range
+          title: Region1 Router2 Tunnel0 Bgp Peer Range
+        region1_router2_tunnel1_bgp_peer_address:
+          name: region1_router2_tunnel1_bgp_peer_address
+          title: Region1 Router2 Tunnel1 Bgp Peer Address
+        region1_router2_tunnel1_bgp_peer_range:
+          name: region1_router2_tunnel1_bgp_peer_range
+          title: Region1 Router2 Tunnel1 Bgp Peer Range
+        region2_router1_name:
+          name: region2_router1_name
+          title: Region2 Router1 Name
+        region2_router1_tunnel0_bgp_peer_address:
+          name: region2_router1_tunnel0_bgp_peer_address
+          title: Region2 Router1 Tunnel0 Bgp Peer Address
+        region2_router1_tunnel0_bgp_peer_range:
+          name: region2_router1_tunnel0_bgp_peer_range
+          title: Region2 Router1 Tunnel0 Bgp Peer Range
+        region2_router1_tunnel1_bgp_peer_address:
+          name: region2_router1_tunnel1_bgp_peer_address
+          title: Region2 Router1 Tunnel1 Bgp Peer Address
+        region2_router1_tunnel1_bgp_peer_range:
+          name: region2_router1_tunnel1_bgp_peer_range
+          title: Region2 Router1 Tunnel1 Bgp Peer Range
+        region2_router2_name:
+          name: region2_router2_name
+          title: Region2 Router2 Name
+        region2_router2_tunnel0_bgp_peer_address:
+          name: region2_router2_tunnel0_bgp_peer_address
+          title: Region2 Router2 Tunnel0 Bgp Peer Address
+        region2_router2_tunnel0_bgp_peer_range:
+          name: region2_router2_tunnel0_bgp_peer_range
+          title: Region2 Router2 Tunnel0 Bgp Peer Range
+        region2_router2_tunnel1_bgp_peer_address:
+          name: region2_router2_tunnel1_bgp_peer_address
+          title: Region2 Router2 Tunnel1 Bgp Peer Address
+        region2_router2_tunnel1_bgp_peer_range:
+          name: region2_router2_tunnel1_bgp_peer_range
+          title: Region2 Router2 Tunnel1 Bgp Peer Range
+        vpc_name:
+          name: vpc_name
+          title: Vpc Name
+        vpn_psk_secret_name:
+          name: vpn_psk_secret_name
+          title: Vpn Psk Secret Name
