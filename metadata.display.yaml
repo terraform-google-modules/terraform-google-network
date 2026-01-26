@@ -76,6 +76,9 @@ spec:
         network_firewall_policy_enforcement_order:
           name: network_firewall_policy_enforcement_order
           title: Network Firewall Policy Enforcement Order
+          altDefaults:
+            - type: ALTERNATE_TYPE_DC
+              value: "BEFORE_CLASSIC_FIREWALL"
           enumValueLabels:
             - label: After Classic Firewall
               value: AFTER_CLASSIC_FIREWALL
