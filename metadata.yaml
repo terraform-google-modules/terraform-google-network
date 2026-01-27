@@ -23,7 +23,7 @@ spec:
     source:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
-    version: 13.0.1
+    version: 13.1.0
     actuationTool:
       flavor: Terraform
       version: ">= 1.3"
