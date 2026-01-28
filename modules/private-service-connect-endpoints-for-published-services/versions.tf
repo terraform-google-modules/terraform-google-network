@@ -28,10 +28,10 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:private-service-connect-endpoints-for-published-services/v13.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:private-service-connect-endpoints-for-published-services/v14.0.0"
   }
 
   provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-google-network:private-service-connect-endpoints-for-published-services/v13.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:private-service-connect-endpoints-for-published-services/v14.0.0"
   }
 }

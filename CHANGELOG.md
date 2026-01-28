@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [14.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.1.0...v14.0.0) (2026-01-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **TPG>6.42:** Add policy_type variable to network firewall policy ([#657](https://github.com/terraform-google-modules/terraform-google-network/issues/657))
+
+### Features
+
+* **TPG>6.42:** Add policy_type variable to network firewall policy ([#657](https://github.com/terraform-google-modules/terraform-google-network/issues/657)) ([3ca6e5e](https://github.com/terraform-google-modules/terraform-google-network/commit/3ca6e5ecbee6990921cc66e43d10b51060f6da91))
+
 ## [13.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.0.1...v13.1.0) (2026-01-22)
 
 
