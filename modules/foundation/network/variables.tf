@@ -119,12 +119,15 @@ variable "dns_config" {
 
   validation {
     condition = var.dns_config.onprem_forwarding == false || (
-      var.dns_config.dns_hub_project_id != "" &&
-      var.dns_config.dns_hub_network_name != "" &&
-      var.dns_config.domain != "" &&
-      length(var.dns_config.target_name_server_addresses) > 0
+      var.dns_config.type == "spoke" ? (
+        var.dns_config.dns_hub_project_id != "" &&
+        var.dns_config.dns_hub_network_name != ""
+        ) : (
+        var.dns_config.domain != "" &&
+        length(var.dns_config.target_name_server_addresses) > 0
+      )
     )
-    error_message = "When 'onprem_forwarding' is true, the following fields must be provided and not empty: dns_hub_project_id, dns_hub_network_name, domain, and target_name_server_addresses."
+    error_message = "When 'onprem_forwarding' is true: If type is 'spoke', 'dns_hub_project_id' and 'dns_hub_network_name' are required. If type is not spoke, 'domain' and 'target_name_server_addresses' are required."
   }
 }
 

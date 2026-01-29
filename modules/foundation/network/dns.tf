@@ -68,7 +68,7 @@ module "dns_forwarding_zone" {
 
   project_id = var.project_id
   type       = "forwarding"
-  name       = "fz-dns-hub"
+  name       = "fz-${var.resource_codes.short}-dns-hub"
   domain     = var.dns_config.domain
 
   private_visibility_config_networks = [

@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,10 +32,10 @@ spec:
           name: connection_preference
           title: Connection Preference
           enumValueLabels:
-          - label: ACCEPT_AUTOMATIC
-            value: ACCEPT_AUTOMATIC
-          - label: ACCEPT_MANUAL
-            value: ACCEPT_MANUAL
+            - label: ACCEPT_AUTOMATIC
+              value: ACCEPT_AUTOMATIC
+            - label: ACCEPT_MANUAL
+              value: ACCEPT_MANUAL
         consumer_accept_lists:
           name: consumer_accept_lists
           title: Consumer Accept Lists
@@ -78,12 +78,12 @@ spec:
               name: stack_type
               title: Stack Type
               enumValueLabels:
-              - label: IPV4_ONLY
-                value: IPV4_ONLY
-              - label: IPV6_ONLY
-                value: IPV6_ONLY
-              - label: IPV4_IPV6
-                value: IPV4_IPV6
+                - label: IPV4_ONLY
+                  value: IPV4_ONLY
+                - label: IPV6_ONLY
+                  value: IPV6_ONLY
+                - label: IPV4_IPV6
+                  value: IPV4_IPV6
         network:
           name: network
           title: Network

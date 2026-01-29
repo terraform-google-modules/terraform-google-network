@@ -1,38 +1,55 @@
 # Google Cloud Shared VPC Foundation Module
 
-This Terraform module deploys a **Shared VPC Host** network on Google Cloud Platform. It is designed to serve as a foundational networking component within a Hub-and-Spoke architecture, featuring integration with:
+This Terraform module deploys a **Shared VPC Host** network on Google Cloud Platform. It serves as a foundational networking component, integrating with **Network Connectivity Center (NCC)** for Mesh or Star topologies, **Global Network Firewall Policies**, and DNS configurations.
 
-- Network Connectivity Center (NCC)
-- Global Network Firewall Policies
-- Complex DNS forwarding/peering topologies.
+## Prerequisites
+
+### 1. Required APIs
+The project where this module is deployed must have the following APIs enabled:
+
+*   `compute.googleapis.com` (Compute Engine)
+*   `dns.googleapis.com` (Cloud DNS)
+*   `servicenetworking.googleapis.com` (Service Networking / PSA)
+*   `networkconnectivity.googleapis.com` (Network Connectivity Center)
+
+### 2. IAM Roles
+The Service Account running Terraform requires the following roles at the **Project** level:
+
+*   **Compute Network Admin** (`roles/compute.networkAdmin`): For VPC, Subnets, Routes.
+*   **Compute Security Admin** (`roles/compute.securityAdmin`): **Required** for Global Network Firewall Policies.
+*   **DNS Administrator** (`roles/dns.admin`): For DNS Policies and Zones.
+*   **Network Connectivity Center Admin** (`roles/networkconnectivity.hubAdmin`): For Hub/Spoke management.
+*   **Project IAM Admin** (Conditional): If auto-accepting projects into NCC groups.
+
 
 ## Features
 
-*   **Shared VPC:** Configures the network as a Shared VPC Host.
-*   **Hub & Spoke Modes:** Supports `hub` or `spoke` modes affecting naming conventions and DNS behavior.
+*   **Shared VPC:** Automatically configures the network as a Shared VPC Host (`shared_vpc_host = "true"`).
+*   **Network Connectivity Center (NCC):**
+    *   Supports **Mesh** (full-mesh connectivity) or **Star** (Hub & Spoke) topologies.
+    *   Granular control over spoke export filters and producer route propagation.
 *   **Advanced DNS:**
-    *   Default DNS Policy with logging.
-    *   **Spoke Mode:** Automatically creates DNS Peering to a Hub network if on-prem forwarding is required.
-    *   **Hub Mode:** Creates DNS Forwarding zones to on-prem target name servers.
+    *   **Spoke Logic:** Automatically creates DNS Peering to a central DNS Hub.
+    *   **Hub/Standalone Logic:** Creates DNS Forwarding zones to on-premise target name servers.
+    *   Default DNS Policy with logging enabled.
 *   **Security:**
-    *   Uses **Global Network Firewall Policies** (Next-Gen Firewall) instead of legacy VPC firewall rules.
-    *   Default "Deny All Egress" rule (priority 65530).
-    *   Allow rules for Restricted Google APIs (Private Service Connect).
+    *   **Global Network Firewall Policies:** Uses Next-Gen Firewall policies (hierarchical-style) instead of legacy VPC rules.
+    *   **Default Deny:** Priority 65530 rule denies all egress traffic.
+    *   **Google APIs:** Priority 1000 rule allows TCP 443 to Restricted Google APIs Virtual IP (VIP).
 *   **Connectivity:**
-    *   **Network Connectivity Center (NCC):** Can create a new Hub or attach as a Spoke to an existing NCC Hub (Star topology support).
     *   **Cloud NAT:** Optional regional Cloud Router and NAT configuration.
-    *   **Private Service Connect (PSC):** Configures endpoints for Google APIs.
+    *   **Private Service Connect (PSC):** Configures endpoints for internal Google API access.
     *   **Private Services Access (PSA):** Configures VPC Peering for Google Managed Services (SQL, Redis, etc.).
 
 ## Usage
 
 ```hcl
-module "shared_vpc" {
-  source = "./path/to/module"
+module "shared_vpc_foundation" {
+  source  = "terraform-google-modules/network/google//modules/foundation/network"
+  version = "~> 13.0"
 
   project_id = "my-project-id"
-  vpc_name   = "shared-net"
-  mode       = "spoke" # or "hub"
+  vpc_name   = "core-net" # Final VPC Name: vpc-p-core-net
 
   # Naming convention codes
   resource_codes = {
@@ -48,52 +65,50 @@ module "shared_vpc" {
       subnet_region         = "us-central1"
       subnet_private_access = "true"
       subnet_flow_logs      = "true"
+      description           = "Production workload subnet"
     }
   ]
 
-  # Cloud NAT Configuration
-  nat_config = {
-    enabled = true
-    regions = [
-      { name = "us-central1", num_addresses = 2 }
-    ]
-  }
-
-  # DNS Configuration (Spoke peering to Hub example)
+  # DNS Configuration (Example: Spoke peering to a DNS Hub)
   dns_config = {
     onprem_forwarding    = true
+    type                 = "spoke" # Triggers DNS Peering
     dns_hub_project_id   = "my-hub-project"
-    dns_hub_network_name = "vpc-hub"
+    dns_hub_network_name = "vpc-dns-hub"
     domain               = "example.com."
-    target_name_server_addresses = [
-      { ipv4_address = "192.168.1.1", forwarding_path = "default" }
-    ]
   }
 
-  # Network Connectivity Center
+  # Network Connectivity Center (Mesh Topology Example)
   ncc_hub_config = {
-    create_hub = false
-    uri        = "projects/my-hub-project/locations/global/hubs/my-hub"
+    create_hub      = true
+    name            = "global-mesh-hub"
+    description     = "Global VPC Mesh"
+    preset_topology = "MESH"
+    hub_labels      = { env = "prod" }
+
+    # Spoke Configuration
+    spoke_group                  = "default" # Use "default" for MESH, "center"/"edge" for STAR
+    spoke_description            = "Core Network Spoke"
+    auto_accept_projects_default = ["my-project-id"]
   }
 
-  # Private Service Connect IP (Must be within a valid range)
+  # Private Service Connect IP (Must be a valid internal IP)
   private_service_connect_ip = "10.1.0.5"
 
-  # Private Service Access (e.g. for Cloud SQL)
+  # Private Service Access (e.g., for Cloud SQL)
   private_service_cidr       = "10.2.0.0/16"
 }
 ```
 
 ## Architecture Details
 
-### DNS Logic
-The module creates different resources based on the `var.mode` and `var.dns_config.onprem_forwarding` inputs:
+### DNS Architecture
+The module dynamically creates DNS resources based on `var.dns_config`:
 
-| Mode | On-Prem Forwarding | Resulting Architecture |
-|------|-------------------|------------------------|
-| `spoke` | `true` | Creates a **DNS Peering Zone** pointing to the Hub VPC (defined in `dns_config`). |
-| `hub` (or other) | `true` | Creates a **DNS Forwarding Zone** pointing to `target_name_server_addresses`. |
-| Any | `false` | No specific forwarding/peering zones created; standard DNS policy applies. |
+| Configuration | Resulting Resource | Note |
+|---------------|--------------------|------|
+| `type = "spoke"` | **DNS Peering Zone** | Peers `domain` to `dns_hub_network_name`. |
+| `type != "spoke"` | **DNS Forwarding Zone** | Forwards `domain` to `target_name_server_addresses`. |
 
 ### Firewall Strategy
 This module creates a **Network Firewall Policy** attached to the VPC. It does **not** create standard VPC firewall rules.
@@ -101,24 +116,16 @@ This module creates a **Network Firewall Policy** attached to the VPC. It does *
 2.  **Priority 1000 (Egress):** Allow TCP 443 to Restricted Google APIs VIP.
 3.  **Optional:** Allow full internal VPC traffic (Ingress/Egress) if `enable_all_vpc_internal_traffic` is true.
 
+### Network Connectivity Center (NCC)
+*   **Mesh:** Use `preset_topology = "MESH"` and `spoke_group = "default"`. All attached VPCs can talk to each other.
+*   **Star:** Use `preset_topology = "STAR"` and `spoke_group = "center"` (Hub) or `"edge"` (Spoke).
+*   **Route Export:** You can filter which subnets are advertised to the Hub using `spoke_exclude_export_ranges`.
+
 ## Requirements
 
 *   **Terraform:** `>= 0.13`
 *   **Provider:** `google` `>= 3.50` (Excluding `6.26.0`, `6.27.0`)
 *   **Provider:** `google-beta` `>= 3.50`
-
-## External Dependencies
-This module relies on the following upstream modules:
-*   `terraform-google-modules/network/google`
-*   `terraform-google-modules/cloud-dns/google`
-*   `terraform-google-modules/network/google//modules/network-firewall-policy`
-*   `terraform-google-modules/network/google//modules/private-service-connect`
-* `terraform-google-modules/network/google//modules//network-connectivity-center`
-
-## Validation Rules
-*   **DNS:** If `onprem_forwarding` is true, you must provide `dns_hub_project_id`, `dns_hub_network_name`, `domain`, and `target_name_server_addresses`.
-*   **NCC:** Validates that if `create_hub` is true, all hub details are provided. If false, the `uri` is required.
-
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs

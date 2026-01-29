@@ -41,7 +41,7 @@ locals {
 resource "google_compute_router" "nat_router_region" {
   for_each = local.nat_regions
 
-  name    = "cr-${var.vpc_name}-${each.key}-nat-router"
+  name    = "cr-${var.resource_codes.short}-${var.vpc_name}-${each.key}-nat-router"
   project = var.project_id
   region  = each.key
   network = module.main.network_self_link
@@ -63,7 +63,7 @@ resource "google_compute_address" "nat_external_addresses" {
 resource "google_compute_router_nat" "nat_external_addresses_region" {
   for_each = local.nat_regions
 
-  name                   = "rn-${var.vpc_name}-${each.key}-egress"
+  name                   = "rn-${var.resource_codes.short}-${var.vpc_name}-${each.key}-egress"
   project                = var.project_id
   router                 = google_compute_router.nat_router_region[each.key].name
   region                 = each.key

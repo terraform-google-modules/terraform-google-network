@@ -21,7 +21,7 @@
 resource "google_compute_global_address" "private_service_access_address" {
   count = var.private_service_cidr != null ? 1 : 0
 
-  name          = "ga-${var.vpc_name}-vpc-peering-internal"
+  name          = "ga-${var.resource_codes.short}-${var.vpc_name}-vpc-peering-internal"
   project       = var.project_id
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
