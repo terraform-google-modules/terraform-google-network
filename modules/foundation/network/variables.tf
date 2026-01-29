@@ -19,12 +19,6 @@ variable "project_id" {
   type        = string
 }
 
-variable "mode" {
-  description = "Network deployment mode, should be set to `hub` or `spoke` when Hub and Spoke architecture used, keep as `null` otherwise."
-  type        = string
-  default     = null
-}
-
 variable "resource_codes" {
   description = "codes for resources created"
   type = object({
@@ -81,7 +75,7 @@ variable "nat_config" {
 }
 
 variable "windows_activation_enabled" {
-  description = "Enable Windows license activation for Windows workloads."
+  description = "Enable Windows license activation for Windows workloads. See https://docs.cloud.google.com/compute/docs/instances/windows/creating-managing-windows-instances ."
   type        = bool
   default     = false
 }
@@ -118,6 +112,7 @@ variable "dns_config" {
     dns_hub_project_id           = optional(string, "")
     dns_hub_network_name         = optional(string, "")
     domain                       = optional(string, "")
+    type                         = optional(string, "")
     target_name_server_addresses = optional(list(map(any)), [])
   })
   default = {}
@@ -136,18 +131,26 @@ variable "dns_config" {
 variable "ncc_hub_config" {
   description = "Network Connectivity Center configuration."
   type = object({
-    create_hub                  = optional(bool, true)
-    uri                         = optional(string)
-    name                        = optional(string)
-    description                 = optional(string)
-    hub_labels                  = optional(map(string))
-    spoke_labels                = optional(map(string))
-    policy_mode                 = optional(string, "PRESET")
-    preset_topology             = optional(string)
-    export_psc                  = optional(bool, false)
-    auto_accept_projects_center = optional(list(string), [])
-    auto_accept_projects_edge   = optional(list(string), [])
-    star_group                  = optional(string, "center") // TODO add validation
+    create_hub                     = optional(bool, true)
+    uri                            = optional(string)
+    name                           = optional(string)
+    description                    = optional(string)
+    hub_labels                     = optional(map(string))
+    policy_mode                    = optional(string, "PRESET")
+    preset_topology                = optional(string, "MESH")
+    export_psc                     = optional(bool, false)
+    spoke_labels                   = optional(map(string))
+    spoke_exclude_export_ranges    = optional(set(string), [])
+    spoke_include_export_ranges    = optional(set(string), [])
+    spoke_description              = optional(string)
+    spoke_group                    = optional(string, "default")
+    producer_labels                = optional(map(string))
+    producer_exclude_export_ranges = optional(set(string), [])
+    producer_include_export_ranges = optional(set(string), [])
+    producer_description           = optional(string)
+    auto_accept_projects_center    = optional(list(string), [])
+    auto_accept_projects_edge      = optional(list(string), [])
+    auto_accept_projects_default   = optional(list(string), [])
   })
 
   default = {}
@@ -158,7 +161,7 @@ variable "ncc_hub_config" {
         var.ncc_hub_config.create_hub == true &&
         var.ncc_hub_config.name != null &&
         var.ncc_hub_config.description != null &&
-        var.ncc_hub_config.hub_labels != null && // TODO are labels required?
+        var.ncc_hub_config.hub_labels != null &&
         var.ncc_hub_config.preset_topology != null
       )
       ||

@@ -19,8 +19,7 @@
   Mandatory and optional firewall rules
  *****************************************/
 module "firewall_rules" {
-  source  = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version = "~> 13.0"
+  source = "../../network-firewall-policy"
 
   project_id  = var.project_id
   policy_name = "fp-${var.resource_codes.short}-firewalls"

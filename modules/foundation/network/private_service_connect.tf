@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-
 module "private_service_connect" {
-  source  = "terraform-google-modules/network/google//modules/private-service-connect"
-  version = "~> 13.0"
+  source = "../../private-service-connect"
 
   project_id                 = var.project_id
   dns_code                   = "dz-${var.resource_codes.short}-svpc"

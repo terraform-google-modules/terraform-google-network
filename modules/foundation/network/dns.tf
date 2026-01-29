@@ -33,7 +33,7 @@ resource "google_dns_policy" "default_policy" {
 *****************************************/
 
 data "google_compute_network" "vpc_dns_hub" {
-  count = var.dns_config.onprem_forwarding && var.mode == "spoke" ? 1 : 0
+  count = var.dns_config.onprem_forwarding && var.dns_config.type == "spoke" ? 1 : 0
 
   name    = var.dns_config.dns_hub_network_name
   project = var.dns_config.dns_hub_project_id
@@ -43,7 +43,7 @@ module "peering_zone" {
   source  = "terraform-google-modules/cloud-dns/google"
   version = "~> 6.1"
 
-  count = var.dns_config.onprem_forwarding && var.mode == "spoke" ? 1 : 0
+  count = var.dns_config.onprem_forwarding && var.dns_config.type == "spoke" ? 1 : 0
 
   project_id  = var.project_id
   type        = "peering"
@@ -64,7 +64,7 @@ module "dns_forwarding_zone" {
   source  = "terraform-google-modules/cloud-dns/google"
   version = "~> 6.1"
 
-  count = var.dns_config.onprem_forwarding && var.mode != "spoke" ? 1 : 0
+  count = var.dns_config.onprem_forwarding && var.dns_config.type != "spoke" ? 1 : 0
 
   project_id = var.project_id
   type       = "forwarding"

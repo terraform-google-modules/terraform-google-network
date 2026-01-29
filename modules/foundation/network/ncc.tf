@@ -16,11 +16,11 @@
 
 locals {
   is_star = var.ncc_hub_config.create_hub && var.ncc_hub_config.preset_topology == "STAR"
-  group   = local.is_star ? var.ncc_hub_config.star_group : "default"
+  is_mesh = var.ncc_hub_config.create_hub && var.ncc_hub_config.preset_topology == "MESH"
 }
 
 module "network_connectivity_center" {
-  source = "../network-connectivity-center"
+  source = "../../network-connectivity-center"
 
   hub_configuration = {
     create       = var.ncc_hub_config.create_hub
@@ -38,35 +38,44 @@ module "network_connectivity_center" {
   vpc_spokes = {
     "vpc" = merge(
       {
-        uri = module.main.network_id
-        labels = var.ncc_hub_config.spoke_labels
-        group = local.group
+        uri                   = module.main.network_id
+        exclude_export_ranges = var.ncc_hub_config.spoke_exclude_export_ranges
+        include_export_ranges = var.ncc_hub_config.spoke_include_export_ranges
+        description           = var.ncc_hub_config.spoke_description
+        labels                = var.ncc_hub_config.spoke_labels
+        group                 = var.ncc_hub_config.spoke_group
       },
       var.private_service_cidr != null ? {
         link_producer_vpc_network = {
           network_name          = module.main.network_name
           peering               = google_service_networking_connection.private_vpc_connection[0].peering
-          exclude_export_ranges = []
-          labels = {
-            "spoke-type" = "linked-producer"
-          }
-          group = local.group
+          exclude_export_ranges = var.ncc_hub_config.producer_exclude_export_ranges
+          include_export_ranges = var.ncc_hub_config.producer_include_export_ranges
+          description           = var.ncc_hub_config.producer_description
+          labels                = var.ncc_hub_config.producer_labels
+          group                 = var.ncc_hub_config.spoke_group
         }
       } : {}
     )
   }
 
-  // add configuration merge to create the default or center edge
-  ncc_groups = local.is_star ? { // TODO do  we really need this?
-    center = {
-      name                 = "center"
-      auto_accept_projects = var.ncc_hub_config.auto_accept_projects_center
-    }
-    edge = {
-      name                 = "edge"
-      auto_accept_projects = var.ncc_hub_config.auto_accept_projects_edge
-    }
-  } : {}
-
+  ncc_groups = merge(
+    local.is_star ? {
+      center = {
+        name                 = "center"
+        auto_accept_projects = var.ncc_hub_config.auto_accept_projects_center
+      }
+      edge = {
+        name                 = "edge"
+        auto_accept_projects = var.ncc_hub_config.auto_accept_projects_edge
+      }
+    } : {},
+    local.is_mesh ? {
+      default = {
+        name                 = "default"
+        auto_accept_projects = var.ncc_hub_config.auto_accept_projects_default
+      }
+    } : {}
+  )
 
 }

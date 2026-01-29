@@ -20,11 +20,11 @@ metadata:
     config.kubernetes.io/local-config: "true"
 spec:
   info:
-    title: Foundation network module
+    title: Google Cloud Shared VPC Foundation Module
     source:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
-      dir: /modules/foundation-network
+      dir: /modules/foundation/network
   ui:
     input:
       variables:

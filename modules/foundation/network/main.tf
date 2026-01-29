@@ -15,11 +15,8 @@
  */
 
 locals {
-  mode                        = var.mode == null ? "" : var.mode == "hub" ? "-hub" : "-spoke"
-  network_name                = "vpc-${var.vpc_name}${local.mode}"
-  restricted_googleapis_cidr  = module.private_service_connect.private_service_connect_ip
-  google_forward_source_range = "35.199.192.0/19"
-
+  network_name               = "vpc-${var.vpc_name}"
+  restricted_googleapis_cidr = module.private_service_connect.private_service_connect_ip
 }
 
 /******************************************
@@ -27,8 +24,7 @@ locals {
  *****************************************/
 
 module "main" {
-  source  = "terraform-google-modules/network/google"
-  version = "~> 13.0"
+  source = "../../.."
 
   project_id                             = var.project_id
   network_name                           = local.network_name

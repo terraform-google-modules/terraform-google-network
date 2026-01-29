@@ -55,9 +55,8 @@ output "subnets_secondary_ranges" {
   description = "The secondary ranges associated with these subnets"
 }
 
-
 output "firewall_policy" {
-  value       = module.firewall_rules.fw_policy[0].name
+  value       = module.firewall_rules.fw_policy
   description = "Policy created for firewall policy rules."
 }
 

@@ -37,12 +37,10 @@ spec:
         location: modules/fabric-net-svpc-access
       - name: firewall-rules
         location: modules/firewall-rules
-      - name: foundation-network
-        location: modules/foundation-network
       - name: hierarchical-firewall-policy
         location: modules/hierarchical-firewall-policy
-      - name: high-availability-vpn
-        location: modules/high-availability-vpn
+      - name: network
+        location: modules/foundation/network
       - name: network-connectivity-center
         location: modules/network-connectivity-center
       - name: network-firewall-policy
