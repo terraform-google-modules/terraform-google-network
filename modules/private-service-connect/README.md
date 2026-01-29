@@ -1,6 +1,6 @@
 # Private Service Connect
 
-This module enables the usage of [Private Service Connect](https://cloud.google.com/vpc/docs/private-service-connect) for a specific subnetwork.
+This module enables the usage of [Private Service Connect For Google APIs](https://docs.cloud.google.com/vpc/docs/private-service-connect#google-apis) for a specific network.
 
 The resources created/managed by this module are:
 
@@ -17,7 +17,7 @@ Basic usage of this module is as follows:
 ```hcl
 module "private_service_connect" {
   source  = "terraform-google-modules/network/google//modules/private-service-connect"
-  version = "~> 13.0"
+  version = "~> 13.1"
 
   project_id                 = "<PROJECT_ID>"
   network_self_link          = "<NETWORK_SELF_LINK>"

@@ -14,7 +14,7 @@ Basic usage of this submodule is as follows:
 ```hcl
 module "vpc" {
     source  = "terraform-google-modules/network/google//modules/vpc"
-    version = "~> 13.0"
+    version = "~> 13.1"
 
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"
@@ -52,6 +52,7 @@ module "vpc" {
 | network\_id | The ID of the VPC being created |
 | network\_name | The name of the VPC being created |
 | network\_self\_link | The URI of the VPC being created |
+| network\_unique\_id | The unique identifier for the resource, defined by the server |
 | project\_id | VPC project id |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

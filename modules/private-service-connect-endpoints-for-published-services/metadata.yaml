@@ -1,0 +1,202 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-network
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: Private Service Connect Endpoints For Published Services
+    source:
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
+      sourceType: git
+      dir: /modules/private-service-connect-endpoints-for-published-services
+    version: 13.1.0
+    actuationTool:
+      flavor: Terraform
+      version: ">= 1.5"
+    description: {}
+  content:
+    examples:
+      - name: basic_auto_mode
+        location: examples/basic_auto_mode
+      - name: basic_custom_mode
+        location: examples/basic_custom_mode
+      - name: basic_firewall_rule
+        location: examples/basic_firewall_rule
+      - name: basic_secondary_ranges
+        location: examples/basic_secondary_ranges
+      - name: basic_shared_vpc
+        location: examples/basic_shared_vpc
+      - name: basic_vpc_peering
+        location: examples/basic_vpc_peering
+      - name: bidirectional-firewall-rules
+        location: examples/bidirectional-firewall-rules
+      - name: delete_default_gateway_routes
+        location: examples/delete_default_gateway_routes
+      - name: firewall_logging
+        location: examples/firewall_logging
+      - name: global-network-firewall-policy
+        location: examples/global-network-firewall-policy
+      - name: hierarchical-firewall-policy
+        location: examples/hierarchical-firewall-policy
+      - name: ilb_routing
+        location: examples/ilb_routing
+      - name: multi_vpc
+        location: examples/multi_vpc
+      - name: network_connectivity_center
+        location: examples/network_connectivity_center
+      - name: network_service_tiers
+        location: examples/network_service_tiers
+      - name: packet_mirroring
+        location: examples/packet_mirroring
+      - name: private_service_connect
+        location: examples/private_service_connect
+      - name: private_service_connect_endpoints_for_published_services
+        location: examples/private_service_connect_endpoints_for_published_services
+      - name: private_service_connect_google_apis
+        location: examples/private_service_connect_google_apis
+      - name: private_service_connect_producer_ipv4
+        location: examples/private_service_connect_producer_ipv4
+      - name: private_service_connect_producer_ipv6
+        location: examples/private_service_connect_producer_ipv6
+      - name: regional-network-firewall-policy
+        location: examples/regional-network-firewall-policy
+      - name: routes
+        location: examples/routes
+      - name: secondary_ranges
+        location: examples/secondary_ranges
+      - name: simple_ipv6_project
+        location: examples/simple_ipv6_project
+      - name: simple_project
+        location: examples/simple_project
+      - name: simple_project_with_regional_network
+        location: examples/simple_project_with_regional_network
+      - name: submodule_firewall
+        location: examples/submodule_firewall
+      - name: submodule_network_peering
+        location: examples/submodule_network_peering
+      - name: submodule_svpc_access
+        location: examples/submodule_svpc_access
+      - name: submodule_vpc_serverless_connector
+        location: examples/submodule_vpc_serverless_connector
+  interfaces:
+    variables:
+      - name: project_id
+        description: Project ID in which to provision the resources.
+        varType: string
+        required: true
+      - name: region
+        description: Region in which to provision the resources.
+        varType: string
+        required: true
+      - name: network
+        description: Name, id or self link of the network to create resources in. For Shared VPC case, use network self link.
+        varType: string
+        required: true
+      - name: subnetwork
+        description: Name, id or self link of the subnetwork to create resources in. For Shared VPC case, use subnetwork self link.
+        varType: string
+        required: true
+      - name: forwarding_rule_name
+        description: "Private Service Connect Forwarding Rule resource name. Follow regular GCE naming pattern: https://docs.cloud.google.com/compute/docs/naming-resources#resource-name-format."
+        varType: string
+        defaultValue: psc-for-published-services-endpoint
+      - name: address_name
+        description: Private Service Connect Endpoint address name.
+        varType: string
+        defaultValue: psc-for-published-services-endpoint-address
+      - name: ip_address
+        description: Private Service Connect Endpoint IP address. GCP will pick an IP if left unset.
+        varType: string
+      - name: ip_version
+        description: "`IPv4`or `IPv6`. Only set this field when private_service_connect_ip is unset. If both ip_address and ip_version are unset, GCP will pick an IPv4 address."
+        varType: string
+      - name: service_attachment
+        description: The target service attachment resource URL for this Private Service Connect Endpoint.
+        varType: string
+        required: true
+        connections:
+          - source:
+              source: github.com/terraform-google-modules/network/google//modules/private-service-connect-producer
+              version: ">= 13.0.0"
+            spec:
+              outputExpr: service_attachment_self_link
+      - name: service_directory_namespace
+        description: Service Directory namespace to register the forwarding rule under.
+        varType: string
+      - name: psc_global_access
+        description: Whether to allow Private Service Connect global access.
+        varType: bool
+        defaultValue: false
+    outputs:
+      - name: address_id
+        description: Private Service Connect address ID with format `projects/{$project}/regions/{$region}/addresses/{$name}`.
+        type: string
+      - name: address_name
+        description: Private Service Connect address name.
+        type: string
+      - name: address_self_link
+        description: Private Service Connect address self link with format `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/addresses/{$name}`.
+        type: string
+      - name: forwarding_rule_id
+        description: Private Service Connect forwarding rule ID with format `projects/{$project}/regions/{$region}/forwardingRules/{$name}`.
+        type: string
+      - name: forwarding_rule_name
+        description: Private Service Connect forwarding rule resource name.
+        type: string
+      - name: forwarding_rule_self_link
+        description: Private Service Connect forwarding rule self link with format `https://www.googleapis.com/compute/v1/projects/{$project}/regions/{$region}/forwardingRules/{$name}`.
+        type: string
+      - name: ip_address
+        description: Private Service Connect IP address.
+        type: string
+  requirements:
+    roles:
+      - level: Project
+        roles:
+          - roles/compute.instanceAdmin
+          - roles/compute.networkAdmin
+          - roles/compute.securityAdmin
+          - roles/iam.serviceAccountUser
+          - roles/vpcaccess.admin
+          - roles/serviceusage.serviceUsageAdmin
+          - roles/dns.admin
+          - roles/servicedirectory.admin
+          - roles/resourcemanager.tagAdmin
+          - roles/iam.serviceAccountAdmin
+          - roles/compute.orgFirewallPolicyAdmin
+          - roles/networkconnectivity.hubAdmin
+          - roles/networksecurity.mirroringDeploymentAdmin
+          - roles/networksecurity.mirroringEndpointAdmin
+          - roles/networksecurity.securityProfileAdmin
+    services:
+      - cloudresourcemanager.googleapis.com
+      - compute.googleapis.com
+      - serviceusage.googleapis.com
+      - vpcaccess.googleapis.com
+      - dns.googleapis.com
+      - servicedirectory.googleapis.com
+      - networksecurity.googleapis.com
+      - networkconnectivity.googleapis.com
+      - iam.googleapis.com
+      - servicenetworking.googleapis.com
+    providerVersions:
+      - source: hashicorp/google
+        version: ">= 7.11, < 8"
+      - source: hashicorp/google-beta
+        version: ">= 7.11, < 8"

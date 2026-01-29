@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 apiVersion: blueprints.cloud.google.com/v1alpha1
 kind: BlueprintMetadata
 metadata:
@@ -24,7 +23,7 @@ spec:
     source:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
-    version: 13.0.0
+    version: 13.1.0
     actuationTool:
       flavor: Terraform
       version: ">= 1.3"
@@ -49,6 +48,10 @@ spec:
         location: modules/network-peering
       - name: private-service-connect
         location: modules/private-service-connect
+      - name: private-service-connect-endpoints-for-published-services
+        location: modules/private-service-connect-endpoints-for-published-services
+      - name: private-service-connect-producer
+        location: modules/private-service-connect-producer
       - name: routes
         location: modules/routes
       - name: routes-beta
@@ -96,8 +99,14 @@ spec:
         location: examples/packet_mirroring
       - name: private_service_connect
         location: examples/private_service_connect
+      - name: private_service_connect_endpoints_for_published_services
+        location: examples/private_service_connect_endpoints_for_published_services
       - name: private_service_connect_google_apis
         location: examples/private_service_connect_google_apis
+      - name: private_service_connect_producer_ipv4
+        location: examples/private_service_connect_producer_ipv4
+      - name: private_service_connect_producer_ipv6
+        location: examples/private_service_connect_producer_ipv6
       - name: regional-network-firewall-policy
         location: examples/regional-network-firewall-policy
       - name: routes
@@ -298,34 +307,106 @@ spec:
     outputs:
       - name: network
         description: The created network
+        type:
+          - object
+          - network:
+              - object
+              - auto_create_subnetworks: bool
+                bgp_always_compare_med: bool
+                bgp_best_path_selection_mode: string
+                bgp_inter_region_cost: string
+                delete_default_routes_on_create: bool
+                description: string
+                enable_ula_internal_ipv6: bool
+                gateway_ipv4: string
+                id: string
+                internal_ipv6_range: string
+                mtu: number
+                name: string
+                network_firewall_policy_enforcement_order: string
+                network_id: string
+                network_profile: string
+                numeric_id: string
+                params:
+                  - list
+                  - - object
+                    - resource_manager_tags:
+                        - map
+                        - string
+                project: string
+                routing_mode: string
+                self_link: string
+                timeouts:
+                  - object
+                  - create: string
+                    delete: string
+                    update: string
+            network_id: string
+            network_name: string
+            network_self_link: string
+            project_id: string
       - name: network_id
         description: The ID of the VPC being created
+        type: string
       - name: network_name
         description: The name of the VPC being created
+        type: string
       - name: network_self_link
         description: The URI of the VPC being created
+        type: string
       - name: project_id
         description: VPC project id
+        type: string
       - name: route_names
         description: The route names associated with this VPC
+        type:
+          - tuple
+          - []
       - name: subnets
         description: A map with keys of form subnet_region/subnet_name and values being the outputs of the google_compute_subnetwork resources used to create corresponding subnets.
+        type:
+          - object
+          - {}
       - name: subnets_flow_logs
         description: Whether the subnets will have VPC flow logs enabled
+        type:
+          - tuple
+          - []
       - name: subnets_ids
         description: The IDs of the subnets being created
+        type:
+          - tuple
+          - []
       - name: subnets_ips
         description: The IPs and CIDRs of the subnets being created
+        type:
+          - tuple
+          - []
       - name: subnets_names
         description: The names of the subnets being created
+        type:
+          - tuple
+          - []
       - name: subnets_private_access
         description: Whether the subnets will have access to Google API's without a public IP
+        type:
+          - tuple
+          - []
       - name: subnets_regions
         description: The region where the subnets will be created
+        type:
+          - tuple
+          - []
       - name: subnets_secondary_ranges
         description: The secondary ranges associated with these subnets
+        type:
+          - tuple
+          - []
       - name: subnets_self_links
         description: The self-links of subnets being created
+        type:
+          - tuple
+          - []
   requirements:
     roles:
       - level: Project
@@ -337,6 +418,7 @@ spec:
           - roles/vpcaccess.admin
           - roles/serviceusage.serviceUsageAdmin
           - roles/dns.admin
+          - roles/servicedirectory.admin
           - roles/resourcemanager.tagAdmin
           - roles/iam.serviceAccountAdmin
           - roles/compute.orgFirewallPolicyAdmin
@@ -350,6 +432,7 @@ spec:
       - serviceusage.googleapis.com
       - vpcaccess.googleapis.com
       - dns.googleapis.com
+      - servicedirectory.googleapis.com
       - networksecurity.googleapis.com
       - networkconnectivity.googleapis.com
       - iam.googleapis.com

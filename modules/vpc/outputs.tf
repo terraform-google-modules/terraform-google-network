@@ -29,6 +29,11 @@ output "network_id" {
   description = "The ID of the VPC being created"
 }
 
+output "network_unique_id" {
+  value       = google_compute_network.network.network_id
+  description = "The unique identifier for the resource, defined by the server"
+}
+
 output "network_self_link" {
   value       = google_compute_network.network.self_link
   description = "The URI of the VPC being created"

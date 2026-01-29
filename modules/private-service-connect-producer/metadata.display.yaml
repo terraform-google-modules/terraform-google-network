@@ -1,0 +1,107 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: blueprints.cloud.google.com/v1alpha1
+kind: BlueprintMetadata
+metadata:
+  name: terraform-google-psc-producer-display
+  annotations:
+    config.kubernetes.io/local-config: "true"
+spec:
+  info:
+    title: Private Service Connect Producer
+    source:
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
+      sourceType: git
+      dir: /modules/private-service-connect-producer
+  ui:
+    input:
+      variables:
+        connection_preference:
+          name: connection_preference
+          title: Connection Preference
+          enumValueLabels:
+          - label: ACCEPT_AUTOMATIC
+            value: ACCEPT_AUTOMATIC
+          - label: ACCEPT_MANUAL
+            value: ACCEPT_MANUAL
+        consumer_accept_lists:
+          name: consumer_accept_lists
+          title: Consumer Accept Lists
+          properties:
+            connection_limit:
+              name: connection_limit
+              title: Connection Limit
+            network_url:
+              name: network_url
+              title: Network URL
+            project_id_or_num:
+              name: project_id_or_num
+              title: Project ID or Number
+              regexValidation: (^[a-z]([-a-z0-9]*[a-z0-9])?)|(^[0-9]{1,12}$)
+              validation: Must be a valid Google Cloud project ID or number.
+        consumer_reject_lists:
+          name: consumer_reject_lists
+          title: Consumer Reject Lists
+        domain_names:
+          name: domain_names
+          title: Domain Names
+        enable_proxy_protocol:
+          name: enable_proxy_protocol
+          title: Enable Proxy Protocol
+        name:
+          name: name
+          title: Name
+          regexValidation: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?
+          validation: Use lowercase letters, numbers, and hyphens. Must start with a letter. If longer than 1 character, it must end with a letter or number. Maximum length is 63 characters.
+        nat_subnets:
+          name: nat_subnets
+          title: Nat Subnets
+          properties:
+            ipv4_range:
+              name: ipv4_range
+              title: IPv4 Range
+              regexValidation: ^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9]).){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])/([0-9]|[1-2][0-9]|3[0-2])$
+              validation: Must be a valid IPv4 CIDR range (e.g., 192.168.1.0/24).
+            stack_type:
+              name: stack_type
+              title: Stack Type
+              enumValueLabels:
+              - label: IPV4_ONLY
+                value: IPV4_ONLY
+              - label: IPV6_ONLY
+                value: IPV6_ONLY
+              - label: IPV4_IPV6
+                value: IPV4_IPV6
+        network:
+          name: network
+          title: Network
+        network_project_id:
+          name: network_project_id
+          title: Network Project Id
+        project_id:
+          name: project_id
+          title: Project Id
+        propagated_connection_limit:
+          name: propagated_connection_limit
+          title: Propagated Connection Limit
+        reconcile_connections:
+          name: reconcile_connections
+          title: Reconcile Connections
+        region:
+          name: region
+          title: Region
+        target_service:
+          name: target_service
+          title: Target Service

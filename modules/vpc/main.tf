@@ -30,9 +30,14 @@ resource "google_compute_network" "network" {
   internal_ipv6_range                       = var.internal_ipv6_range
   network_firewall_policy_enforcement_order = var.network_firewall_policy_enforcement_order
   network_profile                           = var.network_profile
-  bgp_always_compare_med                    = var.bgp_always_compare_med
-  bgp_best_path_selection_mode              = var.bgp_best_path_selection_mode
-  bgp_inter_region_cost                     = var.bgp_inter_region_cost
+
+  # BGP best path selection mode - always set
+  bgp_best_path_selection_mode = var.bgp_best_path_selection_mode
+
+  # BGP MED and inter-region cost - only valid with STANDARD mode
+  # GCP API rejects these fields when mode is LEGACY, even if set to false/null
+  bgp_always_compare_med = var.bgp_best_path_selection_mode == "STANDARD" ? var.bgp_always_compare_med : null
+  bgp_inter_region_cost  = var.bgp_best_path_selection_mode == "STANDARD" ? var.bgp_inter_region_cost : null
 }
 
 /******************************************

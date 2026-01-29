@@ -36,9 +36,19 @@ spec:
         bgp_best_path_selection_mode:
           name: bgp_best_path_selection_mode
           title: Bgp Best Path Selection Mode
+          enumValueLabels:
+            - label: Legacy
+              value: LEGACY
+            - label: Standard
+              value: STANDARD
         bgp_inter_region_cost:
           name: bgp_inter_region_cost
           title: Bgp Inter Region Cost
+          enumValueLabels:
+            - label: Default
+              value: DEFAULT
+            - label: Add Cost to MED
+              value: ADD_COST_TO_MED
         delete_default_internet_gateway_routes:
           name: delete_default_internet_gateway_routes
           title: Delete Default Internet Gateway Routes
@@ -66,12 +76,24 @@ spec:
         network_firewall_policy_enforcement_order:
           name: network_firewall_policy_enforcement_order
           title: Network Firewall Policy Enforcement Order
+          altDefaults:
+            - type: ALTERNATE_TYPE_DC
+              value: "BEFORE_CLASSIC_FIREWALL"
+          enumValueLabels:
+            - label: After Classic Firewall
+              value: AFTER_CLASSIC_FIREWALL
+            - label: Before Classic Firewall
+              value: BEFORE_CLASSIC_FIREWALL
         network_name:
           name: network_name
           title: Network Name
+          regexValidation: ^[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?$
+          validation: "Network name must be 1-63 characters long, start with a lowercase letter, end with a lowercase letter or digit, and contain only lowercase letters, digits, or hyphens."
         network_profile:
           name: network_profile
           title: Network Profile
+          regexValidation: ^(?:https://www\\.googleapis\\.com/compute/[a-zA-Z0-9._-]+/)?projects/(?:(?:[a-z0-9.-]+:)?[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?)/global/networkProfiles/[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?$
+          validation: "The full or partial URL of the network profile. Examples: 'https://www.googleapis.com/compute/v1/projects/my-project/global/networkProfiles/my-profile' or 'projects/my-project/global/networkProfiles/my-profile'."
         project_id:
           name: project_id
           title: Project Id
@@ -81,6 +103,11 @@ spec:
         routing_mode:
           name: routing_mode
           title: Routing Mode
+          enumValueLabels:
+            - label: Regional
+              value: REGIONAL
+            - label: Global
+              value: GLOBAL
         secondary_ranges:
           name: secondary_ranges
           title: Secondary Ranges

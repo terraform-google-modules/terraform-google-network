@@ -51,6 +51,7 @@ run the `make test_integration_docker` target
 | folder2 | n/a |
 | folder3 | n/a |
 | org\_id | n/a |
+| private\_service\_connect\_producer\_project\_id | n/a |
 | project\_id | n/a |
 | sa\_key | n/a |
 
