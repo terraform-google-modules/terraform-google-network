@@ -36,7 +36,7 @@ module "network" {
 }
 
 module "service_connection_policy" {
-  source = "bruno561/network/google//modules/service-connection-policy"
+  source = "terraform-google-modules/network/google//modules/service-connection-policy"
 
   project_id    = var.project_id
   name          = "example-scp"
