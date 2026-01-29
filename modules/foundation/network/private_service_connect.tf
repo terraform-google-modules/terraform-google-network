@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-output "local_network_peering" {
-  description = "Network peering resource."
-  value       = google_compute_network_peering.local_network_peering
-}
+module "private_service_connect" {
+  source = "../../private-service-connect"
 
-output "peer_network_peering" {
-  description = "Peer network peering resource."
-  value       = var.create_remote_peer ? google_compute_network_peering.peer_network_peering[0] : null
-}
-
-output "complete" {
-  description = "Output to be used as a module dependency."
-  value       = null_resource.complete.id
+  project_id                 = var.project_id
+  dns_code                   = "dz-${var.resource_codes.short}-svpc"
+  network_self_link          = module.main.network_self_link
+  private_service_connect_ip = var.private_service_connect_ip
+  forwarding_rule_target     = "vpc-sc"
 }

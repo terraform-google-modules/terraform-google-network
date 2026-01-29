@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,6 +28,9 @@ spec:
   ui:
     input:
       variables:
+        create_remote_peer:
+          name: create_remote_peer
+          title: Create Remote Peer
         export_local_custom_routes:
           name: export_local_custom_routes
           title: Export Local Custom Routes
