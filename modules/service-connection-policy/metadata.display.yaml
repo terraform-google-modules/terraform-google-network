@@ -22,7 +22,7 @@ spec:
   info:
     title: Service Connection Policy
     source:
-      repo: https://github.com/bruno561/terraform-google-network.git
+      repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
       dir: /modules/service-connection-policy
   ui:
