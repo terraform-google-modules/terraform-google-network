@@ -132,7 +132,7 @@ spec:
         required: true
         connections:
           - source:
-              source: github.com/terraform-google-modules/network/google//modules/private-service-connect-producer
+              source: https://github.com/terraform-google-modules/terraform-google-network//modules/private-service-connect-producer
               version: ">= 13.0.0"
             spec:
               outputExpr: service_attachment_self_link
