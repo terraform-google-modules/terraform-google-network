@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [14.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.1.0...v14.0.0) (2026-02-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* Fixing connection with psc producer ([#667](https://github.com/terraform-google-modules/terraform-google-network/issues/667))
+* **TPG>6.42:** Add policy_type variable to network firewall policy ([#657](https://github.com/terraform-google-modules/terraform-google-network/issues/657))
+
+### Features
+
+* **TPG>6.42:** Add policy_type variable to network firewall policy ([#657](https://github.com/terraform-google-modules/terraform-google-network/issues/657)) ([3ca6e5e](https://github.com/terraform-google-modules/terraform-google-network/commit/3ca6e5ecbee6990921cc66e43d10b51060f6da91))
+
+
+### Bug Fixes
+
+* Fixing connection with psc producer ([#667](https://github.com/terraform-google-modules/terraform-google-network/issues/667)) ([5c5a8cb](https://github.com/terraform-google-modules/terraform-google-network/commit/5c5a8cb80e363ad1338d468d485cf3e788f10f61))
+
 ## [13.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.0.1...v13.1.0) (2026-01-22)
 
 
