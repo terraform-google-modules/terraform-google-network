@@ -17,7 +17,7 @@ IPv4
 ```hcl
 module "private_service_connect_endpoints_for_published_services" {
   source  = "terraform-google-modules/network/google//modules/private-service-connect-endpoints-for-published-services"
-  version = "~> 14.0"
+  version = "~> 15.0"
 
   project_id             = "my-project-id"
   region                 = "us-central1"
