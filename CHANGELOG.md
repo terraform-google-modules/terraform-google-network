@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [15.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v14.0.0...v15.0.0) (2026-02-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* fixing connection with global & regional lb modules ([#669](https://github.com/terraform-google-modules/terraform-google-network/issues/669))
+
+### Bug Fixes
+
+* fixing connection with global & regional lb modules ([#669](https://github.com/terraform-google-modules/terraform-google-network/issues/669)) ([fbbd57e](https://github.com/terraform-google-modules/terraform-google-network/commit/fbbd57eb30c9ab535bd1eaf681f1ed3e9a7f8cc9))
+
 ## [14.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.1.0...v14.0.0) (2026-02-02)
 
 
