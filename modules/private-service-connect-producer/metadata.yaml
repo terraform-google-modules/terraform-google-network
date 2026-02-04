@@ -140,12 +140,12 @@ spec:
         required: true
         connections:
           - source:
-              source: github.com/GoogleCloudPlatform/terraform-google-regional-lb-http/google//modules/frontend
+              source: github.com/GoogleCloudPlatform/terraform-google-regional-lb-http//modules/frontend
               version: ">= 0.7.0"
             spec:
               outputExpr: forwarding_rules[0]
           - source:
-              source: github.com/terraform-google-modules/terraform-google-lb-http/google//modules/frontend
+              source: github.com/terraform-google-modules/terraform-google-lb-http//modules/frontend
               version: ">= 14.1.0"
             spec:
               outputExpr: forwarding_rules[0]
