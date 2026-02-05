@@ -31,7 +31,7 @@ There are examples included for [hierarchical firewall policy](../../examples/hi
 ```hcl
 module "firewal_policy" {
   source  = "terraform-google-modules/network/google//modules/hierarchical-firewall-policy"
-  version = "~> 15.0"
+  version = "~> 15.1"
 
   parent_node    = "folders/123456789012"
   policy_name    = "test-policy"
