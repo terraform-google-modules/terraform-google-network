@@ -104,6 +104,12 @@ spec:
         description: Name of the network this set of firewall rules applies to.
         varType: string
         required: true
+        connections:
+          - source:
+              source: github.com/terraform-google-modules/terraform-google-network
+              version: ">= 13.0.0"
+            spec:
+              outputExpr: network_name
       - name: rules
         description: This is DEPRECATED and available for backward compatibility. Use ingress_rules and egress_rules variables. List of custom rule definitions
         varType: |-
@@ -160,6 +166,37 @@ spec:
               }))
             }))
         defaultValue: []
+        connections:
+          - source:
+              source: github.com/terraform-google-modules/terraform-google-service-accounts//modules/simple-sa
+              version: ">= 4.4"
+            spec:
+              outputExpr: email
+              inputPath: source_service_accounts
+          - source:
+              source: github.com/terraform-google-modules/terraform-google-service-accounts//modules/simple-sa
+              version: ">= 4.4"
+            spec:
+              outputExpr: email
+              inputPath: target_service_accounts
+          - source:
+              source: github.com/terraform-google-modules/terraform-google-address
+              version: ">= 4.3"
+            spec:
+              outputExpr: addresses
+              inputPath: source_ranges
+          - source:
+              source: github.com/terraform-google-modules/terraform-google-lb-http//modules/frontend
+              version: ">= 14.0.0"
+            spec:
+              outputExpr: "[external_ip]"
+              inputPath: source_ranges
+          - source:
+              source: github.com/GoogleCloudPlatform/terraform-google-regional-lb-http//modules/frontend
+              version: ">= 0.7.0"
+            spec:
+              outputExpr: "[external_ip]"
+              inputPath: source_ranges
       - name: egress_rules
         description: List of egress rules. This will be ignored if variable 'rules' is non-empty
         varType: |-
@@ -191,8 +228,22 @@ spec:
     outputs:
       - name: firewall_rules
         description: The created firewall rule resources
+        type:
+          - map
+          - - object
+            - id: string
+              name: string
+              self_link: string
+              creation_timestamp: string
       - name: firewall_rules_ingress_egress
         description: The created firewall ingress/egress rule resources
+        type:
+          - map
+          - - object
+            - id: string
+              name: string
+              self_link: string
+              creation_timestamp: string
   requirements:
     roles:
       - level: Project
