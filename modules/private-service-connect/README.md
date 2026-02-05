@@ -17,7 +17,7 @@ Basic usage of this module is as follows:
 ```hcl
 module "private_service_connect" {
   source  = "terraform-google-modules/network/google//modules/private-service-connect"
-  version = "~> 15.0"
+  version = "~> 15.1"
 
   project_id                 = "<PROJECT_ID>"
   network_self_link          = "<NETWORK_SELF_LINK>"
