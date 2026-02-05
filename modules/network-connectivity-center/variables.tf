@@ -19,6 +19,22 @@ variable "project_id" {
   type        = string
 }
 
+variable "hub_configuration" {
+  description = "Configuration for the Network Connectivity Center hub. Set 'create' to true to create a new hub. If 'create' is false, you must provide the 'uri' of an existing hub."
+  type = object({
+    create       = optional(bool, true)
+    existing_uri = optional(string)
+  })
+  default = {}
+
+  validation {
+    condition = (
+      var.hub_configuration.create || (var.hub_configuration.uri != null && var.hub_configuration.uri != "")
+    )
+    error_message = "If 'create' is set to false, a non-empty 'uri' for the existing hub must be provided."
+  }
+}
+
 variable "ncc_hub_name" {
   description = "The Name of the NCC Hub"
   type        = string
