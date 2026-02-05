@@ -17,6 +17,8 @@ ranges and the third being given a single secondary range.
 
 | Name | Description |
 |------|-------------|
+| internal\_range\_id | The ID of the created internal range |
+| internal\_range\_name | The name of the created internal range |
 | network\_name | The name of the VPC being created |
 | network\_self\_link | The URI of the VPC being created |
 | project\_id | VPC project id |
