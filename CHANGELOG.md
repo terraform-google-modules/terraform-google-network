@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [15.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v15.0.0...v15.1.0) (2026-02-05)
+
+
+### Features
+
+* **firewall_rules:** add connections and output types in metadata.yaml ([#671](https://github.com/terraform-google-modules/terraform-google-network/issues/671)) ([9a526c9](https://github.com/terraform-google-modules/terraform-google-network/commit/9a526c995181aa7ac36d4c2ecb66afee625d7c07))
+
 ## [15.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v14.0.0...v15.0.0) (2026-02-04)
 
 
