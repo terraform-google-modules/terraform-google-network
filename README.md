@@ -36,7 +36,7 @@ Comprehensive examples are available in [examples](https://github.com/terraform-
 ```hcl
 module "vpc" {
     source  = "terraform-google-modules/network/google"
-    version = "~> 14.0"
+    version = "~> 15.1"
 
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"
