@@ -149,6 +149,11 @@ spec:
               version: ">= 14.1.0"
             spec:
               outputExpr: forwarding_rules[0]
+          - source:
+              source: github.com/terraform-google-modules/terraform-google-lb-internal
+              version: ">= 8.0.0"
+            spec:
+              outputExpr: forwarding_rule
       - name: connection_preference
         description: ACCEPT_AUTOMATIC or ACCEPT_MANUAL
         varType: string
