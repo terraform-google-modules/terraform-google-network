@@ -14,7 +14,7 @@ Basic usage of this submodule is as follows:
 ```hcl
 module "vpc" {
     source  = "terraform-google-modules/network/google//modules/vpc"
-    version = "~> 15.1"
+    version = "~> 15.2"
 
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"

@@ -24,10 +24,10 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:private-service-connect-producer/v15.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:private-service-connect-producer/v15.2.0"
   }
 
   provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-google-network:private-service-connect-producer/v15.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:private-service-connect-producer/v15.2.0"
   }
 }
