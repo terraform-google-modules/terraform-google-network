@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [15.2.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v15.1.0...v15.2.0) (2026-02-09)
+
+
+### Features
+
+* Adding connection with ILB ([#673](https://github.com/terraform-google-modules/terraform-google-network/issues/673)) ([3341231](https://github.com/terraform-google-modules/terraform-google-network/commit/3341231a29669362f6b6d19c99be43aae92ab762))
+
 ## [15.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v15.0.0...v15.1.0) (2026-02-05)
 
 
