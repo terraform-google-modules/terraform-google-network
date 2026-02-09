@@ -15,6 +15,16 @@
  */
 
 output "routes" {
-  value       = google_compute_route.route
+  value       = values(google_compute_route.route)
   description = "The created routes resources"
+}
+
+output "route_ids" {
+  value       = [for r in google_compute_route.route : r.id]
+  description = "The IDs of the created routes."
+}
+
+output "route_names" {
+  value       = [for r in google_compute_route.route : r.name]
+  description = "The names of the created routes."
 }
