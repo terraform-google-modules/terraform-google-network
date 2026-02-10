@@ -380,6 +380,11 @@ spec:
         type:
           - list
           - string
+      - name: subnets_list
+        description: A list of subnet objects (values only) extracted from the subnets map. Useful when an ordered list/array of subnet objects is required.
+        type:
+          - list
+          - object
       - name: subnets_names
         description: The names of the subnets being created
         type:

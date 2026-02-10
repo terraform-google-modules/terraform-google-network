@@ -146,6 +146,7 @@ Then perform the following commands on the root folder:
 | subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets\_ids | The IDs of the subnets being created |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |
+| subnets\_list | A list of subnet objects (values only) extracted from the subnets map. Useful when an ordered list/array of subnet objects is required. |
 | subnets\_names | The names of the subnets being created |
 | subnets\_private\_access | Whether the subnets will have access to Google API's without a public IP |
 | subnets\_regions | The region where the subnets will be created |

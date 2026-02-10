@@ -149,3 +149,5 @@ spec:
           visibility: VISIBILITY_ROOT
         subnets_self_links:
           visibility: VISIBILITY_ROOT
+        subnets_list:
+          visibility: VISIBILITY_ROOT
