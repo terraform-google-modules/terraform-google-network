@@ -358,8 +358,8 @@ spec:
       - name: route_names
         description: The route names associated with this VPC
         type:
-          - tuple
-          - []
+          - list
+          - string
       - name: subnets
         description: A map with keys of form subnet_region/subnet_name and values being the outputs of the google_compute_subnetwork resources used to create corresponding subnets.
         type:
@@ -368,43 +368,43 @@ spec:
       - name: subnets_flow_logs
         description: Whether the subnets will have VPC flow logs enabled
         type:
-          - tuple
-          - []
+          - list
+          - string
       - name: subnets_ids
         description: The IDs of the subnets being created
         type:
-          - tuple
-          - []
+          - list
+          - string
       - name: subnets_ips
         description: The IPs and CIDRs of the subnets being created
         type:
-          - tuple
-          - []
+          - list
+          - string
       - name: subnets_names
         description: The names of the subnets being created
         type:
-          - tuple
-          - []
+          - list
+          - string
       - name: subnets_private_access
         description: Whether the subnets will have access to Google API's without a public IP
         type:
-          - tuple
-          - []
+          - list
+          - string
       - name: subnets_regions
         description: The region where the subnets will be created
         type:
-          - tuple
-          - []
+          - list
+          - string
       - name: subnets_secondary_ranges
         description: The secondary ranges associated with these subnets
         type:
-          - tuple
-          - []
+          - list
+          - string
       - name: subnets_self_links
         description: The self-links of subnets being created
         type:
-          - tuple
-          - []
+          - list
+          - string
   requirements:
     roles:
       - level: Project
