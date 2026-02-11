@@ -25,7 +25,7 @@ spec:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
       dir: /modules/private-service-connect-producer
-    version: 13.1.0
+    version: 15.2.0
     actuationTool:
       flavor: Terraform
       version: ">= 1.5"
@@ -140,15 +140,20 @@ spec:
         required: true
         connections:
           - source:
-              source: github.com/GoogleCloudPlatform/terraform-google-regional-lb-http/google//modules/frontend
+              source: github.com/GoogleCloudPlatform/terraform-google-regional-lb-http//modules/frontend
               version: ">= 0.7.0"
             spec:
               outputExpr: forwarding_rules[0]
           - source:
-              source: github.com/terraform-google-modules/terraform-google-lb-http/google//modules/frontend
+              source: github.com/terraform-google-modules/terraform-google-lb-http//modules/frontend
               version: ">= 14.1.0"
             spec:
               outputExpr: forwarding_rules[0]
+          - source:
+              source: github.com/terraform-google-modules/terraform-google-lb-internal
+              version: ">= 8.0.0"
+            spec:
+              outputExpr: forwarding_rule
       - name: connection_preference
         description: ACCEPT_AUTOMATIC or ACCEPT_MANUAL
         varType: string
