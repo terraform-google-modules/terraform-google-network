@@ -149,5 +149,5 @@ spec:
           visibility: VISIBILITY_ROOT
         subnets_self_links:
           visibility: VISIBILITY_ROOT
-        subnets_list:
+        subnets_by_region_purpose:
           visibility: VISIBILITY_ROOT
