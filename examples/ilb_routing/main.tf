@@ -96,7 +96,7 @@ resource "google_compute_forwarding_rule" "this" {
 }
 
 module "routes" {
-  source       = "vandnagarggoogle/network/google//modules/routes-beta"
+  source       = "../../modules/routes-beta"
   project_id   = var.project_id
   network_name = module.vpc.network_name
   routes_count = 2

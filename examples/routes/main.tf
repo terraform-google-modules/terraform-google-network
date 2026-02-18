@@ -22,7 +22,7 @@
 
 # [START vpc_static_route_create]
 module "google_compute_route" {
-  source       = "vandnagarggoogle/network/google//modules/routes"
+  source       = "../../modules/routes"
   project_id   = var.project_id # Replace this with your project ID in quotes
   network_name = "default"
 
