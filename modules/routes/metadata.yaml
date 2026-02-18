@@ -106,7 +106,7 @@ spec:
         required: true
         connections:
           - source:
-              source: github.com/terraform-google-modules/terraform-google-network//modules/vpc
+              source: github.com/terraform-google-modules/terraform-google-network
               version: ">= 9.1"
             spec:
               outputExpr: network_name
