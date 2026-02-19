@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -231,19 +231,19 @@ spec:
         type:
           - map
           - - object
-            - id: string
+            - creation_timestamp: string
+              id: string
               name: string
               self_link: string
-              creation_timestamp: string
       - name: firewall_rules_ingress_egress
         description: The created firewall ingress/egress rule resources
         type:
           - map
           - - object
-            - id: string
+            - creation_timestamp: string
+              id: string
               name: string
               self_link: string
-              creation_timestamp: string
   requirements:
     roles:
       - level: Project

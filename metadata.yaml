@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 apiVersion: blueprints.cloud.google.com/v1alpha1
 kind: BlueprintMetadata
 metadata:
@@ -170,8 +171,22 @@ spec:
         varType: map(list(object({ range_name = string, ip_cidr_range = string })))
         defaultValue: {}
       - name: routes
-        description: List of routes being created in this VPC
-        varType: list(map(string))
+        description: List of routes being created in this VPC.
+        varType: |-
+          list(object({
+              name                   = string
+              description            = optional(string)
+              tags                   = optional(list(string), [])
+              destination_range      = string
+              next_hop_gateway       = optional(string)
+              next_hop_internet      = optional(bool, false)
+              next_hop_ip            = optional(string)
+              next_hop_instance      = optional(string)
+              next_hop_instance_zone = optional(string)
+              next_hop_vpn_tunnel    = optional(string)
+              next_hop_ilb           = optional(string)
+              priority               = optional(number, 1000)
+            }))
         defaultValue: []
       - name: firewall_rules
         description: This is DEPRECATED and available for backward compatibility. Use ingress_rules and egress_rules variables. List of firewall rules

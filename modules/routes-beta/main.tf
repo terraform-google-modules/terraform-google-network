@@ -26,7 +26,7 @@ resource "google_compute_route" "route" {
 
   name                   = lookup(var.routes[count.index], "name", format("%s-%s-%d", lower(var.network_name), "route", count.index))
   description            = lookup(var.routes[count.index], "description", null)
-  tags                   = compact(split(",", lookup(var.routes[count.index], "tags", "")))
+  tags                   = var.routes[count.index].tags
   dest_range             = lookup(var.routes[count.index], "destination_range", null)
   next_hop_gateway       = lookup(var.routes[count.index], "next_hop_internet", "false") == "true" ? "default-internet-gateway" : null
   next_hop_ip            = lookup(var.routes[count.index], "next_hop_ip", null)
