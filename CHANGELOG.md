@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [16.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v15.2.0...v16.0.0) (2026-02-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* add ADC compliance for modules/routes ([#677](https://github.com/terraform-google-modules/terraform-google-network/issues/677))
+
+### Features
+
+* add ADC compliance for modules/routes ([#677](https://github.com/terraform-google-modules/terraform-google-network/issues/677)) ([8eff67d](https://github.com/terraform-google-modules/terraform-google-network/commit/8eff67dffb8d8ae2c1f1c63fb55134f7ea88d279))
+
 ## [15.2.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v15.1.0...v15.2.0) (2026-02-09)
 
 
