@@ -92,7 +92,7 @@ resource "google_service_account" "service_account" {
 
 module "vpc" {
   source  = "terraform-google-modules/network/google//modules/vpc"
-  version = "~> 13.0"
+  version = "~> 15.0"
 
   project_id   = var.project_id
   network_name = "global-sec-policy-test-vpc"
@@ -162,7 +162,7 @@ resource "google_network_security_security_profile_group" "security_profile_grou
 
 module "firewal_policy" {
   source  = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version = "~> 13.0"
+  version = "~> 15.0"
 
   project_id  = var.project_id
   policy_name = "${local.prefix}-firewall-policy-${random_string.random_suffix.result}"
@@ -338,7 +338,7 @@ module "firewal_policy" {
 
 module "firewal_policy_no_rule" {
   source  = "terraform-google-modules/network/google//modules/network-firewall-policy"
-  version = "~> 13.0"
+  version = "~> 15.0"
 
   project_id  = var.project_id
   policy_name = "${local.prefix}-firewall-policy-no-rules-${random_string.random_suffix.result}"

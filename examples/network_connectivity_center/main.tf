@@ -16,7 +16,7 @@
 
 module "network_connectivity_center" {
   source  = "terraform-google-modules/network/google//modules/network-connectivity-center"
-  version = "~> 13.0"
+  version = "~> 15.0"
 
 
   project_id   = var.project_id
@@ -75,7 +75,7 @@ module "network_connectivity_center" {
 
 module "network_connectivity_center_star" {
   source  = "terraform-google-modules/network/google//modules/network-connectivity-center"
-  version = "~> 13.0"
+  version = "~> 15.0"
 
   project_id   = var.project_id
   ncc_hub_name = "${var.ncc_hub_name}-star"

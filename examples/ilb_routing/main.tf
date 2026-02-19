@@ -16,7 +16,7 @@
 
 module "vpc" {
   source  = "terraform-google-modules/network/google//modules/vpc"
-  version = "~> 13.0"
+  version = "~> 15.0"
 
   network_name = var.network_name
   project_id   = var.project_id
@@ -24,7 +24,7 @@ module "vpc" {
 
 module "subnets" {
   source  = "terraform-google-modules/network/google//modules/subnets-beta"
-  version = "~> 13.0"
+  version = "~> 15.0"
 
   project_id   = var.project_id
   network_name = module.vpc.network_name
@@ -47,7 +47,7 @@ module "subnets" {
 
 module "subnets-backup" {
   source  = "terraform-google-modules/network/google//modules/subnets-beta"
-  version = "~> 13.0"
+  version = "~> 15.0"
 
   project_id   = var.project_id
   network_name = module.vpc.network_name
