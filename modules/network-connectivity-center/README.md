@@ -9,7 +9,7 @@ Basic usage of this submodule is as follows:
 ```hcl
 module "ncc" {
     source  = "terraform-google-modules/network/google//modules/network-connectivity-center"
-    version = "~> 15.2"
+    version = "~> 16.0"
 
     project_id   = "<PROJECT ID>"
 }
