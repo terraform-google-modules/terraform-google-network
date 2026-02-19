@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -166,6 +166,8 @@ spec:
         description: The name of the VPC being created
       - name: network_self_link
         description: The URI of the VPC being created
+      - name: network_unique_id
+        description: The unique identifier for the resource, defined by the server
       - name: project_id
         description: VPC project id
   requirements:

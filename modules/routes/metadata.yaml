@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -104,17 +104,110 @@ spec:
         description: The name of the network where routes will be created
         varType: string
         required: true
+        connections:
+          - source:
+              source: github.com/terraform-google-modules/terraform-google-network
+              version: ">= 9.1"
+            spec:
+              outputExpr: network_name
       - name: routes
-        description: List of routes being created in this VPC
-        varType: list(map(string))
+        description: List of routes being created in this VPC.
+        varType: |-
+          list(object({
+              name                   = string
+              description            = optional(string)
+              tags                   = optional(list(string), [])
+              destination_range      = string
+              next_hop_gateway       = optional(string)
+              next_hop_internet      = optional(bool, false)
+              next_hop_ip            = optional(string)
+              next_hop_instance      = optional(string)
+              next_hop_instance_zone = optional(string)
+              next_hop_vpn_tunnel    = optional(string)
+              next_hop_ilb           = optional(string)
+              priority               = optional(number, 1000)
+            }))
         defaultValue: []
+        connections:
+          - source:
+              source: github.com/terraform-google-modules/terraform-google-lb-internal
+              version: ">= 5.0"
+            spec:
+              outputExpr: forwarding_rule_id
+              inputPath: next_hop_ilb
       - name: module_depends_on
         description: List of modules or resources this module depends on.
         varType: list(any)
         defaultValue: []
     outputs:
+      - name: route_ids
+        description: The IDs of the created routes.
+        type:
+          - list
+          - string
+      - name: route_names
+        description: The names of the created routes.
+        type:
+          - list
+          - string
       - name: routes
         description: The created routes resources
+        type:
+          - list
+          - - object
+            - as_paths:
+                - list
+                - - object
+                  - as_lists:
+                      - list
+                      - number
+                    path_segment_type: string
+              creation_timestamp: string
+              description: string
+              dest_range: string
+              id: string
+              name: string
+              network: string
+              next_hop_gateway: string
+              next_hop_hub: string
+              next_hop_ilb: string
+              next_hop_instance: string
+              next_hop_instance_zone: string
+              next_hop_inter_region_cost: string
+              next_hop_ip: string
+              next_hop_med: string
+              next_hop_network: string
+              next_hop_origin: string
+              next_hop_peering: string
+              next_hop_vpn_tunnel: string
+              params:
+                - list
+                - - object
+                  - resource_manager_tags:
+                      - map
+                      - string
+              priority: number
+              project: string
+              route_status: string
+              route_type: string
+              self_link: string
+              tags:
+                - set
+                - string
+              timeouts:
+                - object
+                - create: string
+                  delete: string
+              warnings:
+                - list
+                - - object
+                  - code: string
+                    data:
+                      - list
+                      - - object
+                        - key: string
+                          value: string
+                    message: string
   requirements:
     roles:
       - level: Project

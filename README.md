@@ -83,14 +83,14 @@ module "vpc" {
             name                   = "egress-internet"
             description            = "route through IGW to access internet"
             destination_range      = "0.0.0.0/0"
-            tags                   = "egress-inet"
-            next_hop_internet      = "true"
+            tags                   = ["egress-inet"]
+            next_hop_internet      = true
         },
         {
             name                   = "app-proxy"
             description            = "route through proxy to reach app"
             destination_range      = "10.50.10.0/24"
-            tags                   = "app-proxy"
+            tags                   = ["app-proxy"]
             next_hop_instance      = "app-proxy-instance"
             next_hop_instance_zone = "us-west1-a"
         },
@@ -126,7 +126,7 @@ Then perform the following commands on the root folder:
 | network\_name | The name of the network being created | `string` | n/a | yes |
 | network\_profile | "A full or partial URL of the network profile to apply to this network.<br>This field can be set only at resource creation time. For example, the<br>following are valid URLs:<br>  * https://www.googleapis.com/compute/beta/projects/{projectId}/global/networkProfiles/{network_profile_name}<br>  * projects/{projectId}/global/networkProfiles/{network\_profile\_name} | `string` | `null` | no |
 | project\_id | The ID of the project where this VPC will be created | `string` | n/a | yes |
-| routes | List of routes being created in this VPC | `list(map(string))` | `[]` | no |
+| routes | List of routes being created in this VPC. | <pre>list(object({<br>    name                   = string<br>    description            = optional(string)<br>    tags                   = optional(list(string), [])<br>    destination_range      = string<br>    next_hop_gateway       = optional(string)<br>    next_hop_internet      = optional(bool, false)<br>    next_hop_ip            = optional(string)<br>    next_hop_instance      = optional(string)<br>    next_hop_instance_zone = optional(string)<br>    next_hop_vpn_tunnel    = optional(string)<br>    next_hop_ilb           = optional(string)<br>    priority               = optional(number, 1000)<br>  }))</pre> | `[]` | no |
 | routing\_mode | The network routing mode (default 'GLOBAL') | `string` | `"GLOBAL"` | no |
 | secondary\_ranges | Secondary ranges that will be used in some of the subnets | `map(list(object({ range_name = string, ip_cidr_range = string })))` | `{}` | no |
 | shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | `bool` | `false` | no |

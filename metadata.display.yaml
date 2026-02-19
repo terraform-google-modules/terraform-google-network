@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -76,19 +76,19 @@ spec:
         network_firewall_policy_enforcement_order:
           name: network_firewall_policy_enforcement_order
           title: Network Firewall Policy Enforcement Order
-          altDefaults:
-            - type: ALTERNATE_TYPE_DC
-              value: "BEFORE_CLASSIC_FIREWALL"
           enumValueLabels:
             - label: After Classic Firewall
               value: AFTER_CLASSIC_FIREWALL
             - label: Before Classic Firewall
               value: BEFORE_CLASSIC_FIREWALL
+          altDefaults:
+            - type: ALTERNATE_TYPE_DC
+              value: BEFORE_CLASSIC_FIREWALL
         network_name:
           name: network_name
           title: Network Name
           regexValidation: ^[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?$
-          validation: "Network name must be 1-63 characters long, start with a lowercase letter, end with a lowercase letter or digit, and contain only lowercase letters, digits, or hyphens."
+          validation: Network name must be 1-63 characters long, start with a lowercase letter, end with a lowercase letter or digit, and contain only lowercase letters, digits, or hyphens.
         network_profile:
           name: network_profile
           title: Network Profile

@@ -26,8 +26,8 @@ locals {
       name              = "${var.network_01_name}-egress-inet"
       description       = "route through IGW to access internet"
       destination_range = "0.0.0.0/0"
-      tags              = "egress-inet"
-      next_hop_internet = "true"
+      tags              = ["egress-inet"]
+      next_hop_internet = true
     },
   ]
 
@@ -36,22 +36,21 @@ locals {
       name              = "${var.network_02_name}-egress-inet"
       description       = "route through IGW to access internet"
       destination_range = "0.0.0.0/0"
-      tags              = "egress-inet"
-      next_hop_internet = "true"
+      tags              = ["egress-inet"]
+      next_hop_internet = true
     },
     {
       name              = "${var.network_02_name}-testapp-proxy"
       description       = "route through proxy to reach app"
       destination_range = "10.50.10.0/24"
-      tags              = "app-proxy"
+      tags              = ["app-proxy"]
       next_hop_ip       = "10.10.40.10"
     },
   ]
 }
 
 module "test-vpc-module-01" {
-  source  = "terraform-google-modules/network/google"
-  version = "~> 13.0"
+  source = "../.."
 
   project_id   = var.project_id
   network_name = var.network_01_name
@@ -104,8 +103,7 @@ module "test-vpc-module-01" {
 }
 
 module "test-vpc-module-02" {
-  source       = "terraform-google-modules/network/google"
-  version      = "~> 13.0"
+  source       = "../.."
   project_id   = var.project_id
   network_name = var.network_02_name
 
