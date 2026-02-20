@@ -24,6 +24,11 @@ output "subnets" {
   description = "A map with keys of form subnet_region/subnet_name and values being the outputs of the google_compute_subnetwork resources used to create corresponding subnets."
 }
 
+output "subnets_by_region_purpose" {
+  value       = [for subnet in values(module.subnets.subnets) : { id = subnet.id, purpose = subnet.purpose, region = subnet.region }]
+  description = "A list of subnet summary objects containing id, purpose, and region extracted from the subnets map."
+}
+
 output "network_name" {
   value       = module.vpc.network_name
   description = "The name of the VPC being created"

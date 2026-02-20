@@ -143,6 +143,7 @@ Then perform the following commands on the root folder:
 | project\_id | VPC project id |
 | route\_names | The route names associated with this VPC |
 | subnets | A map with keys of form subnet\_region/subnet\_name and values being the outputs of the google\_compute\_subnetwork resources used to create corresponding subnets. |
+| subnets\_by\_region\_purpose | A list of subnet summary objects containing id, purpose, and region extracted from the subnets map. |
 | subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets\_ids | The IDs of the subnets being created |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |

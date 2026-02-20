@@ -117,3 +117,37 @@ spec:
         subnets:
           name: subnets
           title: Subnets
+    runtime:
+      outputs:
+        network:
+          visibility: VISIBILITY_ROOT
+        network_id:
+          visibility: VISIBILITY_ROOT
+        network_name:
+          visibility: VISIBILITY_ROOT
+        network_self_link:
+          visibility: VISIBILITY_ROOT
+        project_id:
+          visibility: VISIBILITY_ROOT
+        route_names:
+          visibility: VISIBILITY_ROOT
+        subnets:
+          visibility: VISIBILITY_ROOT
+        subnets_by_region_purpose:
+          visibility: VISIBILITY_ROOT
+        subnets_flow_logs:
+          visibility: VISIBILITY_ROOT
+        subnets_ids:
+          visibility: VISIBILITY_ROOT
+        subnets_ips:
+          visibility: VISIBILITY_ROOT
+        subnets_names:
+          visibility: VISIBILITY_ROOT
+        subnets_private_access:
+          visibility: VISIBILITY_ROOT
+        subnets_regions:
+          visibility: VISIBILITY_ROOT
+        subnets_secondary_ranges:
+          visibility: VISIBILITY_ROOT
+        subnets_self_links:
+          visibility: VISIBILITY_ROOT
