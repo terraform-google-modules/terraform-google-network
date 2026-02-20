@@ -380,6 +380,14 @@ spec:
         type:
           - object
           - {}
+      - name: subnets_by_region_purpose
+        description: A list of subnet summary objects containing id, purpose, and region extracted from the subnets map.
+        type:
+          - list
+          - - object
+            - id: string
+              purpose: string
+              region: string
       - name: subnets_flow_logs
         description: Whether the subnets will have VPC flow logs enabled
         type:
@@ -395,14 +403,6 @@ spec:
         type:
           - list
           - string
-      - name: subnets_by_region_purpose
-        description: A list of subnet summary objects containing id, purpose, and region extracted from the subnets map.
-        type:
-          - list
-          - - object
-            - id: string
-              purpose: string
-              region: string
       - name: subnets_names
         description: The names of the subnets being created
         type:

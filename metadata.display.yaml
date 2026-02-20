@@ -133,6 +133,8 @@ spec:
           visibility: VISIBILITY_ROOT
         subnets:
           visibility: VISIBILITY_ROOT
+        subnets_by_region_purpose:
+          visibility: VISIBILITY_ROOT
         subnets_flow_logs:
           visibility: VISIBILITY_ROOT
         subnets_ids:
@@ -148,6 +150,4 @@ spec:
         subnets_secondary_ranges:
           visibility: VISIBILITY_ROOT
         subnets_self_links:
-          visibility: VISIBILITY_ROOT
-        subnets_by_region_purpose:
           visibility: VISIBILITY_ROOT
