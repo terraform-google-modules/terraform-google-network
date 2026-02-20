@@ -29,6 +29,7 @@ Session.vim
 **/.terraform.d/*
 .terraform.lock
 .terraform.lock.hcl
+.terraform.lock
 
 # .tfstate files
 *.tfstate
