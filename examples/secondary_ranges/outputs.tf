@@ -63,3 +63,13 @@ output "route_names" {
   value       = module.vpc-secondary-ranges.route_names
   description = "The routes associated with this VPC"
 }
+
+output "internal_range_id" {
+  value       = google_network_connectivity_internal_range.internal_range.id
+  description = "The ID of the created internal range"
+}
+
+output "internal_range_name" {
+  value       = google_network_connectivity_internal_range.internal_range.name
+  description = "The name of the created internal range"
+}

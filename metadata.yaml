@@ -168,7 +168,7 @@ spec:
         required: true
       - name: secondary_ranges
         description: Secondary ranges that will be used in some of the subnets
-        varType: map(list(object({ range_name = string, ip_cidr_range = string })))
+        varType: map(list(object({ range_name = string, ip_cidr_range = optional(string), reserved_internal_range = optional(string) })))
         defaultValue: {}
       - name: routes
         description: List of routes being created in this VPC.
@@ -452,6 +452,6 @@ spec:
       - servicenetworking.googleapis.com
     providerVersions:
       - source: hashicorp/google
-        version: ">= 4.64, < 8"
+        version: ">= 6.0, < 8"
       - source: hashicorp/google-beta
-        version: ">= 4.64, < 8"
+        version: ">= 6.0, < 8"

@@ -73,6 +73,10 @@ module "vpc" {
                 range_name    = "subnet-01-secondary-01"
                 ip_cidr_range = "192.168.64.0/24"
             },
+            {
+                range_name              = "subnet-01-secondary-02"
+                reserved_internal_range = "networkconnectivity.googleapis.com/projects/my-project/locations/global/internalRanges/my-range"
+            },
         ]
 
         subnet-02 = []
@@ -128,7 +132,7 @@ Then perform the following commands on the root folder:
 | project\_id | The ID of the project where this VPC will be created | `string` | n/a | yes |
 | routes | List of routes being created in this VPC. | <pre>list(object({<br>    name                   = string<br>    description            = optional(string)<br>    tags                   = optional(list(string), [])<br>    destination_range      = string<br>    next_hop_gateway       = optional(string)<br>    next_hop_internet      = optional(bool, false)<br>    next_hop_ip            = optional(string)<br>    next_hop_instance      = optional(string)<br>    next_hop_instance_zone = optional(string)<br>    next_hop_vpn_tunnel    = optional(string)<br>    next_hop_ilb           = optional(string)<br>    priority               = optional(number, 1000)<br>  }))</pre> | `[]` | no |
 | routing\_mode | The network routing mode (default 'GLOBAL') | `string` | `"GLOBAL"` | no |
-| secondary\_ranges | Secondary ranges that will be used in some of the subnets | `map(list(object({ range_name = string, ip_cidr_range = string })))` | `{}` | no |
+| secondary\_ranges | Secondary ranges that will be used in some of the subnets | `map(list(object({ range_name = string, ip_cidr_range = optional(string), reserved_internal_range = optional(string) })))` | `{}` | no |
 | shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | `bool` | `false` | no |
 | subnets | The list of subnets being created | <pre>list(object({<br>    subnet_name                      = string<br>    subnet_ip                        = string<br>    subnet_region                    = string<br>    subnet_private_access            = optional(string)<br>    subnet_private_ipv6_access       = optional(string)<br>    subnet_flow_logs                 = optional(string)<br>    subnet_flow_logs_interval        = optional(string)<br>    subnet_flow_logs_sampling        = optional(string)<br>    subnet_flow_logs_metadata        = optional(string)<br>    subnet_flow_logs_filter          = optional(string)<br>    subnet_flow_logs_metadata_fields = optional(list(string))<br>    description                      = optional(string)<br>    purpose                          = optional(string)<br>    role                             = optional(string)<br>    stack_type                       = optional(string)<br>    ipv6_access_type                 = optional(string)<br>  }))</pre> | n/a | yes |
 
