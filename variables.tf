@@ -38,7 +38,7 @@ variable "shared_vpc_host" {
 
 variable "subnets_region" {
   type        = string
-  description = "Optional subnets identical region. If set, all subnets will be created in this region. If null, the subnet-specific region or default (us-central1) is used."
+  description = "Optional subnets region. If set, all subnets will be created in this region."
   default     = null
 }
 
