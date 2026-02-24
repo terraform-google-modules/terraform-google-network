@@ -17,7 +17,7 @@
 locals {
   subnets = {
     for x in var.subnets :
-    "${x.subnet_region}/${x.subnet_name}" => x
+    "${coalesce(var.subnets_region, x.subnet_region, "undefined")}/${x.subnet_name}" => x
   }
 }
 
@@ -30,7 +30,7 @@ resource "google_compute_subnetwork" "subnetwork" {
   for_each                   = local.subnets
   name                       = each.value.subnet_name
   ip_cidr_range              = each.value.subnet_ip
-  region                     = each.value.subnet_region
+  region                     = var.subnets_region != null ? var.subnets_region : each.value.subnet_region
   private_ip_google_access   = lookup(each.value, "subnet_private_access", "false")
   private_ipv6_google_access = lookup(each.value, "subnet_private_ipv6_access", null)
   dynamic "log_config" {
@@ -65,4 +65,11 @@ resource "google_compute_subnetwork" "subnetwork" {
   role             = lookup(each.value, "role", null)
   stack_type       = lookup(each.value, "stack_type", null)
   ipv6_access_type = lookup(each.value, "ipv6_access_type", null)
+
+  lifecycle {
+    precondition {
+      condition     = var.subnets_region != null || each.value.subnet_region != null
+      error_message = "A region must be provided either via 'subnets_region' or 'subnet_region' in the subnet definition."
+    }
+  }
 }

@@ -40,3 +40,6 @@ spec:
         subnets:
           name: subnets
           title: Subnets
+        subnets_region:
+          name: subnets_region
+          title: Subnets Region
