@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-output "service_connection_policy_id" {
-  description = "ID of the created Service Connection Policy."
-  value       = module.service_connection_policy.id
+output "service_connection_policy_ids" {
+  description = "IDs of the created Service Connection Policies."
+  value       = module.service_connection_policy.service_connection_policy_ids
 }

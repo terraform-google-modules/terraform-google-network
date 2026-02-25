@@ -14,27 +14,15 @@
  * limitations under the License.
  */
 
-output "id" {
-  description = "The resource ID of the created Service Connection Policy."
-  value       = google_network_connectivity_service_connection_policy.this.id
+output "service_connection_policies" {
+  description = "Service Connection Policies created."
+  value       = google_network_connectivity_service_connection_policy.service_connection_policies
 }
 
-output "name" {
-  description = "The name of the created Service Connection Policy."
-  value       = google_network_connectivity_service_connection_policy.this.name
-}
-
-output "location" {
-  description = "The region of the created Service Connection Policy."
-  value       = google_network_connectivity_service_connection_policy.this.location
-}
-
-output "network" {
-  description = "The VPC network attached to the policy."
-  value       = google_network_connectivity_service_connection_policy.this.network
-}
-
-output "service_class" {
-  description = "The service class attached to the policy."
-  value       = google_network_connectivity_service_connection_policy.this.service_class
+output "service_connection_policy_ids" {
+  description = "IDs of the created Service Connection Policies."
+  value = {
+    for name, policy in google_network_connectivity_service_connection_policy.service_connection_policies :
+    name => policy.id
+  }
 }

@@ -15,82 +15,44 @@
  */
 
 variable "project_id" {
-  description = "The project ID where the Service Connection Policy will be created."
+  description = "The project ID where APIs will be enabled (when enable_apis is true)."
   type        = string
-}
-
-variable "name" {
-  description = "Name of the Service Connection Policy."
-  type        = string
-
-  validation {
-    condition     = length(trimspace(var.name)) > 0
-    error_message = "name must not be empty."
-  }
 }
 
 variable "location" {
-  description = "Region where the policy will be created (e.g., us-central1)."
+  description = "Region where the Service Connection Policies will be created (e.g., us-east4)."
   type        = string
-
-  validation {
-    condition     = can(regex("^[a-z]+-[a-z0-9]+[0-9]$", var.location))
-    error_message = "location must look like a region (e.g., us-central1, europe-west1)."
-  }
-}
-
-variable "network" {
-  description = "VPC network self_link (recommended) or id to attach the policy to."
-  type        = string
-
-  validation {
-    condition     = length(trimspace(var.network)) > 0
-    error_message = "network must not be empty."
-  }
 }
 
 variable "service_class" {
   description = "Service class of the managed service to enable PSC for (see product docs for valid values)."
   type        = string
-
-  validation {
-    condition     = length(trimspace(var.service_class)) > 0
-    error_message = "service_class must not be empty."
-  }
 }
 
-variable "description" {
-  description = "Optional description for the policy."
-  type        = string
-  default     = null
+variable "enable_apis" {
+  description = "Whether to enable required APIs in the project."
+  type        = bool
+  default     = true
 }
 
-variable "labels" {
-  description = "Labels to apply to the policy."
-  type        = map(string)
-  default     = {}
-}
-
-variable "subnetworks" {
-  description = "List of subnetwork self_links used by PSC (psc_config.subnetworks)."
+variable "activate_apis" {
+  description = "APIs to enable when enable_apis is true."
   type        = list(string)
-  default     = []
-
-    validation {
-    condition = alltrue([
-        for s in var.subnetworks : length(trimspace(s)) > 0
-    ])
-    error_message = "subnetworks must not contain empty strings."
-    }
+  default = [
+    "networkconnectivity.googleapis.com",
+    "compute.googleapis.com",
+  ]
 }
 
-variable "limit" {
-  description = "Optional PSC connection limit (psc_config.limit)."
-  type        = number
-  default     = null
-
-  validation {
-    condition     = var.limit == null || var.limit > 0
-    error_message = "limit must be null or a positive number."
-  }
+variable "service_connection_policies" {
+  description = "The Service Connection Policies to create."
+  type = map(object({
+    description     = optional(string)
+    network_name    = string
+    network_project = string
+    subnet_names    = list(string)
+    limit           = optional(number)
+    labels          = optional(map(string), {})
+  }))
+  default = {}
 }

@@ -23,6 +23,6 @@ terraform apply
 
 | Name | Description |
 |------|-------------|
-| service\_connection\_policy\_id | ID of the created Service Connection Policy. |
+| service\_connection\_policy\_ids | IDs of the created Service Connection Policies. |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->

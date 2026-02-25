@@ -22,7 +22,7 @@ spec:
   info:
     title: Service Connection Policy
     source:
-      repo: https://github.com/terraform-google-modules/terraform-google-network.git
+      repo: https://github.com/bruno561/terraform-google-network.git
       sourceType: git
       dir: /modules/service-connection-policy
     actuationTool:
@@ -98,50 +98,44 @@ spec:
   interfaces:
     variables:
       - name: project_id
-        description: The project ID where the Service Connection Policy will be created.
-        varType: string
-        required: true
-      - name: name
-        description: Name of the Service Connection Policy.
+        description: The project ID where APIs will be enabled (when enable_apis is true).
         varType: string
         required: true
       - name: location
-        description: Region where the policy will be created (e.g., us-central1).
-        varType: string
-        required: true
-      - name: network
-        description: VPC network self_link (recommended) or id to attach the policy to.
+        description: Region where the Service Connection Policies will be created (e.g., us-east4).
         varType: string
         required: true
       - name: service_class
         description: Service class of the managed service to enable PSC for (see product docs for valid values).
         varType: string
         required: true
-      - name: description
-        description: Optional description for the policy.
-        varType: string
-      - name: labels
-        description: Labels to apply to the policy.
-        varType: map(string)
-        defaultValue: {}
-      - name: subnetworks
-        description: List of subnetwork self_links used by PSC (psc_config.subnetworks).
+      - name: enable_apis
+        description: Whether to enable required APIs in the project.
+        varType: bool
+        defaultValue: true
+      - name: activate_apis
+        description: APIs to enable when enable_apis is true.
         varType: list(string)
-        defaultValue: []
-      - name: limit
-        description: Optional PSC connection limit (psc_config.limit).
-        varType: number
+        defaultValue:
+          - networkconnectivity.googleapis.com
+          - compute.googleapis.com
+      - name: service_connection_policies
+        description: The Service Connection Policies to create.
+        varType: |-
+          map(object({
+              description     = optional(string)
+              network_name    = string
+              network_project = string
+              subnet_names    = list(string)
+              limit           = optional(number)
+              labels          = optional(map(string), {})
+            }))
+        defaultValue: {}
     outputs:
-      - name: id
-        description: The resource ID of the created Service Connection Policy.
-      - name: location
-        description: The region of the created Service Connection Policy.
-      - name: name
-        description: The name of the created Service Connection Policy.
-      - name: network
-        description: The VPC network attached to the policy.
-      - name: service_class
-        description: The service class attached to the policy.
+      - name: service_connection_policies
+        description: Service Connection Policies created.
+      - name: service_connection_policy_ids
+        description: IDs of the created Service Connection Policies.
   requirements:
     roles:
       - level: Project

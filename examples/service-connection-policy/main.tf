@@ -39,11 +39,15 @@ module "service_connection_policy" {
   source = "terraform-google-modules/network/google//modules/service-connection-policy"
 
   project_id    = var.project_id
-  name          = "example-scp"
   location      = var.region
-  network       = module.network.network_self_link
   service_class = var.service_class
 
-  subnetworks = [module.network.subnets_self_links[0]]
-  labels      = { env = "dev" }
+  service_connection_policies = {
+    "example-scp" = {
+      network_project = var.project_id
+      network_name    = "example-vpc"
+      subnet_names    = ["psc-subnet"]
+      labels          = { env = "dev" }
+    }
+  }
 }

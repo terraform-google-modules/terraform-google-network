@@ -14,17 +14,36 @@
  * limitations under the License.
  */
 
-resource "google_network_connectivity_service_connection_policy" "this" {
-  project       = var.project_id
-  name          = var.name
+resource "google_network_connectivity_service_connection_policy" "service_connection_policies" {
+  for_each      = var.service_connection_policies
+  project       = each.value.network_project
+  name          = each.key
   location      = var.location
-  network       = var.network
   service_class = var.service_class
-  description   = var.description
-  labels        = var.labels
+  description   = lookup(each.value, "description", null)
+  network       = "projects/${each.value.network_project}/global/networks/${each.value.network_name}"
+  labels        = each.value.labels
 
   psc_config {
-    subnetworks = var.subnetworks
-    limit       = var.limit
+    subnetworks = [
+      for x in each.value.subnet_names :
+      "projects/${each.value.network_project}/regions/${var.location}/subnetworks/${x}"
+    ]
+    limit = lookup(each.value, "limit", null)
   }
+
+  depends_on = [module.enable_apis]
+}
+
+module "enable_apis" {
+  source  = "terraform-google-modules/project-factory/google//modules/project_services"
+  version = "~> 18.0"
+
+  project_id  = var.project_id
+  enable_apis = var.enable_apis
+
+  disable_services_on_destroy = false
+  disable_dependent_services  = false
+
+  activate_apis = var.activate_apis
 }

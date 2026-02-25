@@ -62,24 +62,18 @@ module "service_connection_policy" {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| description | Optional description for the policy. | `string` | `null` | no |
-| labels | Labels to apply to the policy. | `map(string)` | `{}` | no |
-| limit | Optional PSC connection limit (psc\_config.limit). | `number` | `null` | no |
-| location | Region where the policy will be created (e.g., us-central1). | `string` | n/a | yes |
-| name | Name of the Service Connection Policy. | `string` | n/a | yes |
-| network | VPC network self\_link (recommended) or id to attach the policy to. | `string` | n/a | yes |
-| project\_id | The project ID where the Service Connection Policy will be created. | `string` | n/a | yes |
+| activate\_apis | APIs to enable when enable\_apis is true. | `list(string)` | <pre>[<br>  "networkconnectivity.googleapis.com",<br>  "compute.googleapis.com"<br>]</pre> | no |
+| enable\_apis | Whether to enable required APIs in the project. | `bool` | `true` | no |
+| location | Region where the Service Connection Policies will be created (e.g., us-east4). | `string` | n/a | yes |
+| project\_id | The project ID where APIs will be enabled (when enable\_apis is true). | `string` | n/a | yes |
 | service\_class | Service class of the managed service to enable PSC for (see product docs for valid values). | `string` | n/a | yes |
-| subnetworks | List of subnetwork self\_links used by PSC (psc\_config.subnetworks). | `list(string)` | `[]` | no |
+| service\_connection\_policies | The Service Connection Policies to create. | <pre>map(object({<br>    description     = optional(string)<br>    network_name    = string<br>    network_project = string<br>    subnet_names    = list(string)<br>    limit           = optional(number)<br>    labels          = optional(map(string), {})<br>  }))</pre> | `{}` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| id | The resource ID of the created Service Connection Policy. |
-| location | The region of the created Service Connection Policy. |
-| name | The name of the created Service Connection Policy. |
-| network | The VPC network attached to the policy. |
-| service\_class | The service class attached to the policy. |
+| service\_connection\_policies | Service Connection Policies created. |
+| service\_connection\_policy\_ids | IDs of the created Service Connection Policies. |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
