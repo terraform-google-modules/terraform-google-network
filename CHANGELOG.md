@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [16.0.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.0.0...v16.0.1) (2026-02-25)
+
+
+### Bug Fixes
+
+* added the new output variable for subets, added the visibility to the existing output variables and added input variable subnets_region ([#678](https://github.com/terraform-google-modules/terraform-google-network/issues/678)) ([2b8c9fe](https://github.com/terraform-google-modules/terraform-google-network/commit/2b8c9fe96da03b62ff1d783c69901bcf082c4f87))
+
 ## [16.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v15.2.0...v16.0.0) (2026-02-19)
 
 
