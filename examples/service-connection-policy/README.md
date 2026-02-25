@@ -9,6 +9,7 @@ This example creates:
 ```bash
 terraform init
 terraform apply
+```
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
