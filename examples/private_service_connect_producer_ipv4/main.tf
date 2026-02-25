@@ -36,7 +36,7 @@ resource "google_compute_subnetwork" "producer_subnetwork" {
 
 module "test_ilb" {
   source  = "GoogleCloudPlatform/lb-internal/google"
-  version = "~> 7.0"
+  version = "~> 8.0"
 
   project     = var.project_id
   network     = google_compute_network.producer_network.name
