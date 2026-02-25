@@ -28,39 +28,21 @@ spec:
   ui:
     input:
       variables:
-        activate_apis:
-          name: activate_apis
-          title: Activate Apis
-        description:
-          name: description
-          title: Description
-        enable_apis:
-          name: enable_apis
-          title: Enable Apis
-        labels:
-          name: labels
-          title: Labels
-        limit:
-          name: limit
-          title: Limit
-        location:
-          name: location
-          title: Location
-        name:
-          name: name
-          title: Name
-        network:
-          name: network
-          title: Network
         project_id:
           name: project_id
           title: Project Id
+        location:
+          name: location
+          title: Location
         service_class:
           name: service_class
           title: Service Class
+        enable_apis:
+          name: enable_apis
+          title: Enable Apis
+        activate_apis:
+          name: activate_apis
+          title: Activate Apis
         service_connection_policies:
           name: service_connection_policies
           title: Service Connection Policies
-        subnetworks:
-          name: subnetworks
-          title: Subnetworks

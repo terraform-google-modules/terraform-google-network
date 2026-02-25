@@ -1,10 +1,12 @@
 # Service Connection Policy
 
-Creates a **Network Connectivity Service Connection Policy** to enable
-**Private Service Connect (PSC)** connectivity for supported managed services in Google Cloud.
+Creates **Network Connectivity Service Connection Policies** to enable
+**Private Service Connect (PSC)** connectivity for supported managed services.
 
-This module allows you to define which VPC network and subnetworks will be used
-to automatically provision PSC endpoints for compatible services.
+This module follows the same general pattern used by the Redis Cluster module:
+- Accepts a map of policies (`service_connection_policies`)
+- Constructs network and subnetwork self-links from `network_project`, `network_name`, and `subnet_names`
+- Optionally enables required APIs
 
 ## Requirements
 
@@ -13,49 +15,31 @@ The following APIs must be enabled in the target project:
 - `networkconnectivity.googleapis.com`
 - `compute.googleapis.com`
 
-## Provider
-
-This module declares the `google` provider only.  
-If you need to use features that are still in beta, you can inject the
-`google-beta` provider from the root module:
-
-```hcl
-provider "google-beta" {
-  project = var.project_id
-  region  = var.region
-}
-
-module "service_connection_policy" {
-  source = "terraform-google-modules/network/google//modules/service-connection-policy"
-
-  providers = {
-    google = google-beta
-  }
-
-  # ...
-}
-
+By default, this module can enable the required APIs automatically (see `enable_apis`).
 
 ## Usage
 
+```hcl
 module "service_connection_policy" {
   source  = "terraform-google-modules/network/google//modules/service-connection-policy"
   version = "~> 13.1"
 
   project_id    = "my-project"
-  name          = "example-scp"
   location      = "us-east4"
-  network        = "projects/my-project/global/networks/default"
   service_class = "gcp-memorystore-redis"
 
-  subnetworks = [
-    "projects/my-project/regions/us-east4/subnetworks/default"
-  ]
-
-  labels = {
-    env = "dev"
+  service_connection_policies = {
+    "example-scp" = {
+      network_project = "my-project"
+      network_name    = "example-vpc"
+      subnet_names    = ["psc-subnet"]
+      labels          = { env = "dev" }
+      # limit        = 120
+      # description  = "Example policy"
+    }
   }
 }
+```
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs

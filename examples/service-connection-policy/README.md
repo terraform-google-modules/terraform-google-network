@@ -1,8 +1,7 @@
 # Service Connection Policy example
 
 This example creates:
-
-- A VPC network and subnetwork
+- A VPC network and a subnetwork
 - A Service Connection Policy attached to that network and subnetwork
 
 ## Run
