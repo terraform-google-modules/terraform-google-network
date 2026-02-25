@@ -36,11 +36,17 @@ variable "shared_vpc_host" {
   default     = false
 }
 
+variable "subnets_region" {
+  type        = string
+  description = "Optional subnets region. If set, all subnets will be created in this region."
+  default     = null
+}
+
 variable "subnets" {
   type = list(object({
     subnet_name                      = string
     subnet_ip                        = string
-    subnet_region                    = string
+    subnet_region                    = optional(string)
     subnet_private_access            = optional(string)
     subnet_private_ipv6_access       = optional(string)
     subnet_flow_logs                 = optional(string)
