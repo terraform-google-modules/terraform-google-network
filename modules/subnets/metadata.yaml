@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ spec:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
       dir: /modules/subnets
-    version: 13.1.0
+    version: 16.0.1
     actuationTool:
       flavor: Terraform
       version: ">= 1.3"
@@ -104,13 +104,16 @@ spec:
         description: The name of the network where subnets will be created
         varType: string
         required: true
+      - name: subnets_region
+        description: Optional subnets region. If set, all subnets will be created in this region.
+        varType: string
       - name: subnets
         description: The list of subnets being created
         varType: |-
           list(object({
               subnet_name                      = string
               subnet_ip                        = string
-              subnet_region                    = string
+              subnet_region                    = optional(string)
               subnet_private_access            = optional(string, "false")
               subnet_private_ipv6_access       = optional(string)
               subnet_flow_logs                 = optional(string, "false")

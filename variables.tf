@@ -36,11 +36,17 @@ variable "shared_vpc_host" {
   default     = false
 }
 
+variable "subnets_region" {
+  type        = string
+  description = "Optional subnets region. If set, all subnets will be created in this region."
+  default     = null
+}
+
 variable "subnets" {
   type = list(object({
     subnet_name                      = string
     subnet_ip                        = string
-    subnet_region                    = string
+    subnet_region                    = optional(string)
     subnet_private_access            = optional(string)
     subnet_private_ipv6_access       = optional(string)
     subnet_flow_logs                 = optional(string)
@@ -65,9 +71,22 @@ variable "secondary_ranges" {
 }
 
 variable "routes" {
-  type        = list(map(string))
-  description = "List of routes being created in this VPC"
-  default     = []
+  description = "List of routes being created in this VPC."
+  type = list(object({
+    name                   = string
+    description            = optional(string)
+    tags                   = optional(list(string), [])
+    destination_range      = string
+    next_hop_gateway       = optional(string)
+    next_hop_internet      = optional(bool, false)
+    next_hop_ip            = optional(string)
+    next_hop_instance      = optional(string)
+    next_hop_instance_zone = optional(string)
+    next_hop_vpn_tunnel    = optional(string)
+    next_hop_ilb           = optional(string)
+    priority               = optional(number, 1000)
+  }))
+  default = []
 }
 
 variable "firewall_rules" {

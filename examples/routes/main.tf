@@ -22,8 +22,7 @@
 
 # [START vpc_static_route_create]
 module "google_compute_route" {
-  source       = "terraform-google-modules/network/google//modules/routes"
-  version      = "~> 13.0"
+  source       = "../../modules/routes" #adding local path
   project_id   = var.project_id # Replace this with your project ID in quotes
   network_name = "default"
 
@@ -32,8 +31,8 @@ module "google_compute_route" {
       name              = "egress-internet"
       description       = "route through IGW to access internet"
       destination_range = "0.0.0.0/0"
-      tags              = "egress-inet"
-      next_hop_internet = "true"
+      tags              = ["egress-inet"]
+      next_hop_internet = true
     }
   ]
 }
