@@ -132,15 +132,25 @@ This module creates a **Network Firewall Policy** attached to the VPC. It does *
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| bgp\_always\_compare\_med | If set to true, the Cloud Router will use MED values from the peer even if the AS paths differ. Default is false. | `bool` | `false` | no |
+| bgp\_best\_path\_selection\_mode | Specifies the BGP best path selection mode. Valid values are `STANDARD` or `LEGACY`. Default is `LEGACY`. | `string` | `"LEGACY"` | no |
+| bgp\_inter\_region\_cost | Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`. | `string` | `null` | no |
+| description | An optional description of this network. The resource must be recreated to modify this field. | `string` | `""` | no |
 | dns\_config | DNS configuration. | <pre>object({<br>    enable_logging               = optional(bool, true)<br>    onprem_forwarding            = optional(bool, false)<br>    enable_inbound_forwarding    = optional(bool, true)<br>    dns_hub_project_id           = optional(string, "")<br>    dns_hub_network_name         = optional(string, "")<br>    domain                       = optional(string, "")<br>    type                         = optional(string, "")<br>    target_name_server_addresses = optional(list(map(any)), [])<br>  })</pre> | `{}` | no |
 | enable\_all\_vpc\_internal\_traffic | Enable firewall policy rule to allow internal traffic (ingress and egress). | `bool` | `false` | no |
+| enable\_ipv6\_ula | Enabled IPv6 ULA, this is a permanent change and cannot be undone! (default 'false') | `bool` | `false` | no |
 | firewall\_enable\_logging | Toggle firewall logging for VPC Firewalls. | `bool` | `true` | no |
+| internal\_ipv6\_range | When enabling IPv6 ULA, optionally, specify a /48 from fd20::/20 (default null) | `string` | `null` | no |
+| mtu | The network MTU (If set to 0, meaning MTU is unset - defaults to '1460'). Recommended values: 1460 (default for historic reasons), 1500 (Internet default), or 8896 (for Jumbo packets). Allowed are all values in the range 1300 to 8896, inclusively. | `number` | `0` | no |
 | nat\_config | Configuration of NAT cloud router. | <pre>object({<br>    enabled = optional(bool, false)<br>    bgp_asn = optional(number, 64512)<br>    regions = optional(list(object({<br>      name          = string<br>      num_addresses = optional(number, 2)<br>    })))<br>  })</pre> | `{}` | no |
 | ncc\_hub\_config | Network Connectivity Center configuration. | <pre>object({<br>    create_hub                     = optional(bool, true)<br>    uri                            = optional(string)<br>    name                           = optional(string)<br>    description                    = optional(string)<br>    hub_labels                     = optional(map(string))<br>    policy_mode                    = optional(string, "PRESET")<br>    preset_topology                = optional(string, "MESH")<br>    export_psc                     = optional(bool, false)<br>    spoke_labels                   = optional(map(string))<br>    spoke_exclude_export_ranges    = optional(set(string), [])<br>    spoke_include_export_ranges    = optional(set(string), [])<br>    spoke_description              = optional(string)<br>    spoke_group                    = optional(string, "default")<br>    producer_labels                = optional(map(string))<br>    producer_exclude_export_ranges = optional(set(string), [])<br>    producer_include_export_ranges = optional(set(string), [])<br>    producer_description           = optional(string)<br>    auto_accept_projects_center    = optional(list(string), [])<br>    auto_accept_projects_edge      = optional(list(string), [])<br>    auto_accept_projects_default   = optional(list(string), [])<br>  })</pre> | `{}` | no |
+| network\_firewall\_policy\_enforcement\_order | Set the order that Firewall Rules and Firewall Policies are evaluated. Valid values are `BEFORE_CLASSIC_FIREWALL` and `AFTER_CLASSIC_FIREWALL`. (default null or equivalent to `AFTER_CLASSIC_FIREWALL`) | `string` | `null` | no |
+| network\_profile | "A full or partial URL of the network profile to apply to this network.<br>This field can be set only at resource creation time. For example, the<br>following are valid URLs:<br>  * https://www.googleapis.com/compute/beta/projects/{projectId}/global/networkProfiles/{network_profile_name}<br>  * projects/{projectId}/global/networkProfiles/{network\_profile\_name} | `string` | `null` | no |
 | private\_service\_cidr | CIDR range for private service networking. Used for Cloud SQL and other managed services. | `string` | `null` | no |
 | private\_service\_connect\_ip | The subnet internal IP to be used as the private service connect endpoint in the Shared VPC | `string` | n/a | yes |
 | project\_id | Project ID for Shared VPC. | `string` | n/a | yes |
 | resource\_codes | codes for resources created | <pre>object({<br>    short = optional(string, "p")<br>    long  = optional(string, "production")<br>  })</pre> | n/a | yes |
+| routing\_mode | The network routing mode (default 'GLOBAL') | `string` | `"GLOBAL"` | no |
 | secondary\_ranges | Secondary ranges that will be used in some of the subnets | `map(list(object({ range_name = string, ip_cidr_range = string })))` | `{}` | no |
 | subnets | The list of subnets being created | <pre>list(object({<br>    subnet_name                      = string<br>    subnet_ip                        = string<br>    subnet_region                    = string<br>    subnet_private_access            = optional(string, "false")<br>    subnet_private_ipv6_access       = optional(string)<br>    subnet_flow_logs                 = optional(string, "false")<br>    subnet_flow_logs_interval        = optional(string, "INTERVAL_5_SEC")<br>    subnet_flow_logs_sampling        = optional(string, "0.5")<br>    subnet_flow_logs_metadata        = optional(string, "INCLUDE_ALL_METADATA")<br>    subnet_flow_logs_filter          = optional(string, "true")<br>    subnet_flow_logs_metadata_fields = optional(list(string), [])<br>    description                      = optional(string)<br>    purpose                          = optional(string)<br>    role                             = optional(string)<br>    stack_type                       = optional(string)<br>    ipv6_access_type                 = optional(string)<br>  }))</pre> | `[]` | no |
 | vpc\_name | The name of the network being created. Complete name will be `vpc-{vpc_name}` | `string` | n/a | yes |
@@ -153,10 +163,16 @@ This module creates a **Network Firewall Policy** attached to the VPC. It does *
 | dns\_policy | The name of the DNS policy being created |
 | firewall\_policy | Policy created for firewall policy rules. |
 | ncc\_hub\_uri | The NCC Hub ID |
+| network | The created network |
 | network\_name | The name of the VPC being created |
 | network\_self\_link | The URI of the VPC being created |
+| project\_id | VPC project id |
+| route\_names | The route names associated with this VPC |
+| subnets | A map with keys of form subnet\_region/subnet\_name and values being the outputs of the google\_compute\_subnetwork resources used to create corresponding subnets. |
+| subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |
 | subnets\_names | The names of the subnets being created |
+| subnets\_private\_access | Whether the subnets will have access to Google API's without a public IP |
 | subnets\_regions | The region where the subnets will be created |
 | subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
 | subnets\_self\_links | The self-links of subnets being created |

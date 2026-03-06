@@ -28,24 +28,51 @@ spec:
   ui:
     input:
       variables:
+        bgp_always_compare_med:
+          name: bgp_always_compare_med
+          title: Bgp Always Compare Med
+        bgp_best_path_selection_mode:
+          name: bgp_best_path_selection_mode
+          title: Bgp Best Path Selection Mode
+        bgp_inter_region_cost:
+          name: bgp_inter_region_cost
+          title: Bgp Inter Region Cost
+        description:
+          name: description
+          title: Description
         dns_config:
           name: dns_config
           title: Dns Config
         enable_all_vpc_internal_traffic:
           name: enable_all_vpc_internal_traffic
           title: Enable All Vpc Internal Traffic
+        enable_ipv6_ula:
+          name: enable_ipv6_ula
+          title: Enable Ipv6 Ula
         firewall_enable_logging:
           name: firewall_enable_logging
           title: Firewall Enable Logging
+        internal_ipv6_range:
+          name: internal_ipv6_range
+          title: Internal Ipv6 Range
         mode:
           name: mode
           title: Mode
+        mtu:
+          name: mtu
+          title: Mtu
         nat_config:
           name: nat_config
           title: Nat Config
         ncc_hub_config:
           name: ncc_hub_config
           title: Ncc Hub Config
+        network_firewall_policy_enforcement_order:
+          name: network_firewall_policy_enforcement_order
+          title: Network Firewall Policy Enforcement Order
+        network_profile:
+          name: network_profile
+          title: Network Profile
         private_service_cidr:
           name: private_service_cidr
           title: Private Service Cidr
@@ -61,6 +88,9 @@ spec:
         resource_codes:
           name: resource_codes
           title: Resource Codes
+        routing_mode:
+          name: routing_mode
+          title: Routing Mode
         secondary_ranges:
           name: secondary_ranges
           title: Secondary Ranges

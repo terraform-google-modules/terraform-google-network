@@ -28,11 +28,22 @@ module "main" {
 
   project_id                             = var.project_id
   network_name                           = local.network_name
+  description                            = var.description
   shared_vpc_host                        = "true"
   delete_default_internet_gateway_routes = "true"
 
   subnets          = var.subnets
   secondary_ranges = var.secondary_ranges
+
+  routing_mode                              = var.routing_mode
+  mtu                                       = var.mtu
+  enable_ipv6_ula                           = var.enable_ipv6_ula
+  internal_ipv6_range                       = var.internal_ipv6_range
+  network_firewall_policy_enforcement_order = var.network_firewall_policy_enforcement_order
+  network_profile                           = var.network_profile
+  bgp_always_compare_med                    = var.bgp_always_compare_med
+  bgp_best_path_selection_mode              = var.bgp_best_path_selection_mode
+  bgp_inter_region_cost                     = var.bgp_inter_region_cost
 
   routes = concat(
     var.nat_config.enabled ?

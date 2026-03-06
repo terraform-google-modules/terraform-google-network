@@ -15,10 +15,26 @@
  * limitations under the License.
  */
 
+output "network" {
+  value       = module.main.network
+  description = "The created network"
+}
+
+output "subnets" {
+  value       = module.main.subnets
+  description = "A map with keys of form subnet_region/subnet_name and values being the outputs of the google_compute_subnetwork resources used to create corresponding subnets."
+}
+
 output "network_name" {
   value       = module.main.network_name
   description = "The name of the VPC being created"
 }
+
+output "project_id" {
+  value       = module.main.project_id
+  description = "VPC project id"
+}
+
 
 output "dns_policy" {
   value       = google_dns_policy.default_policy.name
@@ -63,4 +79,19 @@ output "firewall_policy" {
 output "ncc_hub_uri" {
   value       = module.network_connectivity_center.ncc_hub_id
   description = "The NCC Hub ID"
+}
+
+output "subnets_private_access" {
+  value       = module.main.subnets_private_access
+  description = "Whether the subnets will have access to Google API's without a public IP"
+}
+
+output "subnets_flow_logs" {
+  value       = module.main.subnets_flow_logs
+  description = "Whether the subnets will have VPC flow logs enabled"
+}
+
+output "route_names" {
+  value       = module.main.route_names
+  description = "The route names associated with this VPC"
 }
