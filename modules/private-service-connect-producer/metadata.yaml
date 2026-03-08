@@ -119,6 +119,12 @@ spec:
         description: Name, id or self link of the network to create resources in.
         varType: string
         required: true
+        connections:
+          - source:
+              source: https://github.com/terraform-google-modules/terraform-google-network
+              version: ">= 13.1.0"
+            spec:
+              outputExpr: network_name
       - name: network_project_id
         description: (Optional) Name of the project for the Shared VPC host network, in which the NAT subnets will be created. Required for Shared VPC case.
         varType: string
