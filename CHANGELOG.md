@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [16.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.0.1...v16.1.0) (2026-03-09)
+
+
+### Features
+
+* Added connections with VPC component ([#682](https://github.com/terraform-google-modules/terraform-google-network/issues/682)) ([28eeaeb](https://github.com/terraform-google-modules/terraform-google-network/commit/28eeaeb60badaefa18654c58f55b0dbca892c3f2))
+
 ## [16.0.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.0.0...v16.0.1) (2026-02-25)
 
 
