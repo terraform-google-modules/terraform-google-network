@@ -25,7 +25,7 @@ spec:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
       dir: /modules/private-service-connect-endpoints-for-published-services
-    version: 15.1.0
+    version: 16.1.0
     actuationTool:
       flavor: Terraform
       version: ">= 1.5"
@@ -108,10 +108,22 @@ spec:
         description: Name, id or self link of the network to create resources in. For Shared VPC case, use network self link.
         varType: string
         required: true
+        connections:
+          - source:
+              source: https://github.com/terraform-google-modules/terraform-google-network
+              version: ">= 16.0.1"
+            spec:
+              outputExpr: network_name
       - name: subnetwork
         description: Name, id or self link of the subnetwork to create resources in. For Shared VPC case, use subnetwork self link.
         varType: string
         required: true
+        connections:
+          - source:
+              source: https://github.com/terraform-google-modules/terraform-google-network
+              version: ">= 16.0.1"
+            spec:
+              outputExpr: subnets_names[0]
       - name: forwarding_rule_name
         description: "Private Service Connect Forwarding Rule resource name. Follow regular GCE naming pattern: https://docs.cloud.google.com/compute/docs/naming-resources#resource-name-format."
         varType: string
