@@ -39,6 +39,8 @@ spec:
         location: modules/firewall-rules
       - name: hierarchical-firewall-policy
         location: modules/hierarchical-firewall-policy
+      - name: network
+        location: modules/foundation/network
       - name: network-connectivity-center
         location: modules/network-connectivity-center
       - name: network-firewall-policy
