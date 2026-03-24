@@ -29,7 +29,7 @@ locals {
 }
 
 module "main" {
-  source = "../../../../terraform-google-network/modules/foundation/network"
+  source = "../../../../modules/foundation/network"
 
   project_id                      = var.project_id
   vpc_name                        = var.network_name
