@@ -50,14 +50,14 @@ variable "subnets" {
     subnet_name                      = string
     subnet_ip                        = string
     subnet_region                    = string
-    subnet_private_access            = optional(string, "false")
+    subnet_private_access            = optional(string, "true")
     subnet_private_ipv6_access       = optional(string)
-    subnet_flow_logs                 = optional(string, "false")
+    subnet_flow_logs                 = optional(string, "true")
     subnet_flow_logs_interval        = optional(string, "INTERVAL_5_SEC")
     subnet_flow_logs_sampling        = optional(string, "0.5")
     subnet_flow_logs_metadata        = optional(string, "INCLUDE_ALL_METADATA")
-    subnet_flow_logs_filter          = optional(string, "true")
     subnet_flow_logs_metadata_fields = optional(list(string), [])
+    subnet_flow_logs_filter          = optional(string, "true")
     description                      = optional(string)
     purpose                          = optional(string)
     role                             = optional(string)
@@ -119,12 +119,12 @@ variable "dns_config" {
   description = "DNS configuration."
   type = object({
     enable_logging               = optional(bool, true)
+    type                         = optional(string, "")
     onprem_forwarding            = optional(bool, false)
     enable_inbound_forwarding    = optional(bool, true)
     dns_hub_project_id           = optional(string, "")
     dns_hub_network_name         = optional(string, "")
     domain                       = optional(string, "")
-    type                         = optional(string, "")
     target_name_server_addresses = optional(list(map(any)), [])
   })
   default = {}

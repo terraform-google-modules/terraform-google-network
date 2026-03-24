@@ -29,7 +29,7 @@ variable "hub_configuration" {
 
   validation {
     condition = (
-      var.hub_configuration.create || (var.hub_configuration.uri != null && var.hub_configuration.uri != "")
+      var.hub_configuration.create || (var.hub_configuration.existing_uri != null && var.hub_configuration.existing_uri != "")
     )
     error_message = "If 'create' is set to false, a non-empty 'uri' for the existing hub must be provided."
   }

@@ -1,4 +1,3 @@
-
 /**
  * Copyright 2026 Google LLC
  *
@@ -36,7 +35,7 @@ output "project_id" {
 }
 
 output "dns_policy" {
-  value       = google_dns_policy.default_policy.name
+  value       = module.main.dns_policy
   description = "The name of the DNS policy being created"
 }
 
@@ -71,12 +70,12 @@ output "subnets_secondary_ranges" {
 }
 
 output "firewall_policy" {
-  value       = module.firewall_rules.fw_policy
+  value       = module.main.firewall_policy
   description = "Policy created for firewall policy rules."
 }
 
 output "ncc_hub_uri" {
-  value       = module.network_connectivity_center.ncc_hub_id
+  value       = module.main.ncc_hub_uri
   description = "The NCC Hub ID"
 }
 

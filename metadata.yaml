@@ -88,6 +88,8 @@ spec:
         location: examples/global-network-firewall-policy
       - name: hierarchical-firewall-policy
         location: examples/hierarchical-firewall-policy
+      - name: hub_and_spoke
+        location: examples/foundation/hub_and_spoke
       - name: ilb_routing
         location: examples/ilb_routing
       - name: multi_vpc
@@ -114,6 +116,8 @@ spec:
         location: examples/routes
       - name: secondary_ranges
         location: examples/secondary_ranges
+      - name: shared_vpc
+        location: examples/foundation/shared_vpc
       - name: simple_ipv6_project
         location: examples/simple_ipv6_project
       - name: simple_project

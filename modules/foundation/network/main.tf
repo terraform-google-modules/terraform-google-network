@@ -52,7 +52,7 @@ module "main" {
         name              = "rt-${var.resource_codes.short}-${var.vpc_name}-1000-egress-internet-default"
         description       = "Tag based route through IGW to access internet"
         destination_range = "0.0.0.0/0"
-        tags              = "egress-internet"
+        tags              = ["egress-internet"]
         next_hop_internet = "true"
         priority          = "1000"
       }

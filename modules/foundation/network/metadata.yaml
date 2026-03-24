@@ -54,6 +54,8 @@ spec:
         location: examples/global-network-firewall-policy
       - name: hierarchical-firewall-policy
         location: examples/hierarchical-firewall-policy
+      - name: hub_and_spoke
+        location: examples/foundation/hub_and_spoke
       - name: ilb_routing
         location: examples/ilb_routing
       - name: multi_vpc
@@ -80,6 +82,8 @@ spec:
         location: examples/routes
       - name: secondary_ranges
         location: examples/secondary_ranges
+      - name: shared_vpc
+        location: examples/foundation/shared_vpc
       - name: simple_ipv6_project
         location: examples/simple_ipv6_project
       - name: simple_project
@@ -127,14 +131,14 @@ spec:
               subnet_name                      = string
               subnet_ip                        = string
               subnet_region                    = string
-              subnet_private_access            = optional(string, "false")
+              subnet_private_access            = optional(string, "true")
               subnet_private_ipv6_access       = optional(string)
-              subnet_flow_logs                 = optional(string, "false")
+              subnet_flow_logs                 = optional(string, "true")
               subnet_flow_logs_interval        = optional(string, "INTERVAL_5_SEC")
               subnet_flow_logs_sampling        = optional(string, "0.5")
               subnet_flow_logs_metadata        = optional(string, "INCLUDE_ALL_METADATA")
-              subnet_flow_logs_filter          = optional(string, "true")
               subnet_flow_logs_metadata_fields = optional(list(string), [])
+              subnet_flow_logs_filter          = optional(string, "true")
               description                      = optional(string)
               purpose                          = optional(string)
               role                             = optional(string)
@@ -182,12 +186,12 @@ spec:
         varType: |-
           object({
               enable_logging               = optional(bool, true)
+              type                         = optional(string, "")
               onprem_forwarding            = optional(bool, false)
               enable_inbound_forwarding    = optional(bool, true)
               dns_hub_project_id           = optional(string, "")
               dns_hub_network_name         = optional(string, "")
               domain                       = optional(string, "")
-              type                         = optional(string, "")
               target_name_server_addresses = optional(list(map(any)), [])
             })
         defaultValue: {}
