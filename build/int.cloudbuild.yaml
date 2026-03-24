@@ -286,6 +286,36 @@ steps:
     - verify private-service-connect-endpoints-for-published-services
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'cft test run TestPrivateServiceConnectEndpointsForPublishedServices --stage teardown --verbose']
+- id: converge foundation-network-base
+  waitFor:
+    - destroy private-service-connect-endpoints-for-published-services
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestFoundationSharedVPC --stage apply --verbose']
+- id: verify foundation-network-base
+  waitFor:
+    - converge foundation-network-base
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestFoundationSharedVPC --stage verify --verbose']
+- id: destroy foundation-network-base
+  waitFor:
+    - verify foundation-network-base
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestFoundationSharedVPC --stage teardown --verbose']
+- id: converge foundation-network-hub-and-spoke
+  waitFor:
+    - destroy foundation-network-base
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestFoundationHubAndSpoke --stage apply --verbose']
+- id: verify foundation-network-hub-and-spoke
+  waitFor:
+    - converge foundation-network-base
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestFoundationHubAndSpoke --stage verify --verbose']
+- id: destroy foundation-network-hub-and-spoke
+  waitFor:
+    - verify foundation-network-hub-and-spoke
+  name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
+  args: ['/bin/bash', '-c', 'cft test run TestFoundationHubAndSpoke --stage teardown --verbose']
 tags:
 - 'ci'
 - 'integration'

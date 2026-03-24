@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestHubAndSopke(t *testing.T) {
+func TestFoundationHubAndSpoke(t *testing.T) {
 	net := tft.NewTFBlueprintTest(t)
 	net.DefineVerify(
 		func(assert *assert.Assertions) {

@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSharedVPC(t *testing.T) {
+func TestFoundationSharedVPC(t *testing.T) {
 	net := tft.NewTFBlueprintTest(t)
 	net.DefineVerify(
 		func(assert *assert.Assertions) {
