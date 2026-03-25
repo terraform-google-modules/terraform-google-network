@@ -25,7 +25,9 @@ import (
 )
 
 func TestFoundationHubAndSpoke(t *testing.T) {
-	net := tft.NewTFBlueprintTest(t)
+	net := tft.NewTFBlueprintTest(t,
+		tft.WithTFDir("../../../fixtures/foundation/hub_and_spoke"),
+	)
 	net.DefineVerify(
 		func(assert *assert.Assertions) {
 			net.DefaultVerify(assert)
