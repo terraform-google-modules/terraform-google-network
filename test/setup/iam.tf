@@ -30,7 +30,8 @@ locals {
     "roles/networkconnectivity.hubAdmin",
     "roles/networksecurity.mirroringDeploymentAdmin",
     "roles/networksecurity.mirroringEndpointAdmin",
-    "roles/networksecurity.securityProfileAdmin"
+    "roles/networksecurity.securityProfileAdmin",
+    "roles/compute.xpnAdmin"
   ]
 }
 
