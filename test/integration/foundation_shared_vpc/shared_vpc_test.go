@@ -24,9 +24,7 @@ import (
 )
 
 func TestFoundationSharedVPC(t *testing.T) {
-	net := tft.NewTFBlueprintTest(t,
-		tft.WithTFDir("../../../fixtures/foundation/shared_vpc"),
-	)
+	net := tft.NewTFBlueprintTest(t)
 	net.DefineVerify(
 		func(assert *assert.Assertions) {
 			net.DefaultVerify(assert)

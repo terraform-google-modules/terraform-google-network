@@ -15,11 +15,15 @@
  */
 
 locals {
-  network_name = "foundation-${var.random_string_for_testing}"
+  hub_network_name   = "found-h-${var.random_string_for_testing}"
+  spoke_network_name = "found-s-${var.random_string_for_testing}"
 }
 
 module "example" {
-  source       = "../../../../examples/foundation/shared_vpc"
-  project_id   = var.project_id
-  network_name = local.network_name
+  source = "../../../examples/foundation_hub_and_spoke"
+
+  project_id_hub     = var.project_id
+  network_name_hub   = local.hub_network_name
+  project_id_spoke   = var.private_service_connect_producer_project_id
+  network_name_spoke = local.spoke_network_name
 }

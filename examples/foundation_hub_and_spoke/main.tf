@@ -59,7 +59,7 @@ locals {
 }
 
 module "hub" {
-  source = "../../../modules/foundation/network"
+  source = "../../modules/foundation/network"
 
   project_id                      = var.project_id_hub
   vpc_name                        = var.network_name_hub
@@ -160,7 +160,7 @@ module "hub" {
 
 
 module "spoke" {
-  source = "../../../modules/foundation/network"
+  source = "../../modules/foundation/network"
 
   project_id                      = var.project_id_spoke
   vpc_name                        = var.network_name_spoke

@@ -57,12 +57,14 @@ spec:
         location: examples/delete_default_gateway_routes
       - name: firewall_logging
         location: examples/firewall_logging
+      - name: foundation_hub_and_spoke
+        location: examples/foundation_hub_and_spoke
+      - name: foundation_shared_vpc
+        location: examples/foundation_shared_vpc
       - name: global-network-firewall-policy
         location: examples/global-network-firewall-policy
       - name: hierarchical-firewall-policy
         location: examples/hierarchical-firewall-policy
-      - name: hub_and_spoke
-        location: examples/foundation/hub_and_spoke
       - name: ilb_routing
         location: examples/ilb_routing
       - name: multi_vpc
@@ -89,8 +91,6 @@ spec:
         location: examples/routes
       - name: secondary_ranges
         location: examples/secondary_ranges
-      - name: shared_vpc
-        location: examples/foundation/shared_vpc
       - name: simple_ipv6_project
         location: examples/simple_ipv6_project
       - name: simple_project
