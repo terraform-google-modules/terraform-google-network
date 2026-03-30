@@ -308,7 +308,7 @@ steps:
   args: ['/bin/bash', '-c', 'cft test run TestFoundationHubAndSpoke --stage apply --verbose']
 - id: verify foundation-network-hub-and-spoke
   waitFor:
-    - converge foundation-network-base
+    - converge foundation-network-hub-and-spoke
   name: 'gcr.io/cloud-foundation-cicd/$_DOCKER_IMAGE_DEVELOPER_TOOLS:$_DOCKER_TAG_VERSION_DEVELOPER_TOOLS'
   args: ['/bin/bash', '-c', 'cft test run TestFoundationHubAndSpoke --stage verify --verbose']
 - id: destroy foundation-network-hub-and-spoke
