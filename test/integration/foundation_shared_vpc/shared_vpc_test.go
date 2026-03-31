@@ -29,11 +29,12 @@ func TestFoundationSharedVPC(t *testing.T) {
 		func(assert *assert.Assertions) {
 			net.DefaultVerify(assert)
 			projectID := net.GetStringOutput("project_id")
+			networkName := net.GetStringOutput("network_name")
 
 			// VPC
-			vpc := gcloud.Runf(t, "compute networks describe %s --project %s", net.GetStringOutput("network_name"))
+			vpc := gcloud.Runf(t, "compute networks describe %s --project %s", networkName, projectID)
 			assert.Equal("servicenetworking-googleapis-com", vpc.Get("peerings.0.name").String(), "should have service networking configured")
-			sub_nets := gcloud.Runf(t, "compute networks list %s --project %s", net.GetStringOutput("network_name"), projectID).Array()
+			sub_nets := gcloud.Runf(t, "compute networks subnets list %s --project %s", networkName, projectID).Array()
 			assert.Equal(4, len(sub_nets), "should have four sub networks configured")
 			private_sub_count := 0
 			proxy_sub_count := 0
