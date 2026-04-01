@@ -146,7 +146,7 @@ func TestFoundationSharedVPC(t *testing.T) {
 					action:    "deny",
 				},
 			} {
-				r := gcloud.Runf(t, "compute network-firewall-policies rules describe %s --firewall-policy=%s --global-firewall-policy --project %s ", rule.priority, "fp-c-firewalls", projectID)
+				r := gcloud.Runf(t, "compute network-firewall-policies rules describe %s --firewall-policy=%s --global-firewall-policy --project %s ", rule.priority, "fp-c-firewalls", projectID).Array()[0]
 				assert.Equal(rule.direction, r.Get("direction").String(), fmt.Sprintf("rule with priority %s should be EGRESS", rule.priority))
 				assert.Equal(rule.action, r.Get("action").String(), fmt.Sprintf("rule with priority %s should be allow", rule.priority))
 			}

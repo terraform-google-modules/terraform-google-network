@@ -188,7 +188,7 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 					action:    "deny",
 				},
 			} {
-				rHub := gcloud.Runf(t, "compute network-firewall-policies rules describe %s --firewall-policy=%s --global-firewall-policy --project %s ", rule.priority, "fp-c-firewalls", projectIDHub)
+				rHub := gcloud.Runf(t, "compute network-firewall-policies rules describe %s --firewall-policy=%s --global-firewall-policy --project %s ", rule.priority, "fp-c-firewalls", projectIDHub).Array()[0]
 				assert.Equal(rule.direction, rHub.Get("direction").String(), fmt.Sprintf("rule with priority %s should be EGRESS", rule.priority))
 				assert.Equal(rule.action, rHub.Get("action").String(), fmt.Sprintf("rule with priority %s should be allow", rule.priority))
 			}
