@@ -59,8 +59,8 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 			assert.Empty(gcloud.Runf(t, "compute shared-vpc list-associated-resources %s", projectIDHub).Array(), fmt.Sprintf("%s should be a shared VPC Host project", projectIDHub))
 
 			// NCC
-			nccHubName := net.GetStringOutput("ncc_hub_name")
-			op := gcloud.Runf(t, "network-connectivity hubs describe %s --project %s", nccHubName, projectIDHub)
+			nccHubURI := net.GetStringOutput("ncc_hub_uri")
+			op := gcloud.Runf(t, "network-connectivity hubs describe %s --project %s", nccHubURI, projectIDHub)
 			presetTopology := op.Get("presetTopology").String()
 			assert.Equal("STAR", presetTopology, "should have star topology")
 			nccSpokeStateCount := op.Get("spokeSummary.spokeStateCounts").Array()
@@ -68,7 +68,7 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 			assert.Equal("ACTIVE", nccSpokeStateCount[0].Get("state").String(), "should have only active spokes")
 			assert.Equal("2", nccSpokeStateCount[0].Get("count").String(), "should have two active spokes")
 
-			groups := gcloud.Runf(t, "network-connectivity hubs groups list --hub %s --project %s", nccHubName, projectIDHub).Array()
+			groups := gcloud.Runf(t, "network-connectivity hubs groups list --hub %s --project %s", nccHubURI, projectIDHub).Array()
 			assert.Equal(2, len(groups), "should have two group")
 			//filter center group loop checking the name
 			hasCenter := false
@@ -81,13 +81,13 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 				if gName == "center" {
 					hasCenter = true
 					assert.Equal(projectIDHub, group.Get("autoAccept.autoAcceptProjects.0").String(), "%s should be on auto accept", projectIDHub)
-					fullGroupName := fmt.Sprintf("projects/%s/locations/global/hubs/%s/groups/%s", projectIDHub, nccHubName, "center")
+					fullGroupName := fmt.Sprintf("projects/%s/locations/global/hubs/%s/groups/%s", projectIDHub, nccHubURI, "center")
 					assert.Equal(fullGroupName, group.Get("name").String(), "should have center group")
 				}
 				if gName == "edge" {
 					hasEdge = true
 					assert.Equal(projectIDHub, group.Get("autoAccept.autoAcceptProjects.0").String(), "%s should be on auto accept", projectIDSpoke)
-					fullGroupName := fmt.Sprintf("projects/%s/locations/global/hubs/%s/groups/%s", projectIDHub, nccHubName, "edge")
+					fullGroupName := fmt.Sprintf("projects/%s/locations/global/hubs/%s/groups/%s", projectIDHub, nccHubURI, "edge")
 					assert.Equal(fullGroupName, group.Get("name").String(), "should have edge group")
 				}
 			}

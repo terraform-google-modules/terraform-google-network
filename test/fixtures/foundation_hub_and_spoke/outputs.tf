@@ -113,3 +113,8 @@ output "spoke_routes" {
   value       = module.example.spoke_route_names
   description = "The route names associated with this VPC"
 }
+
+output "ncc_hub_uri" {
+  value       = module.example.ncc_hub_uri
+  description = "The NCC Hub ID"
+}

@@ -63,3 +63,8 @@ output "routes" {
   value       = module.example.route_names
   description = "The route names associated with this VPC"
 }
+
+output "ncc_hub_uri" {
+  value       = module.example.ncc_hub_uri
+  description = "The NCC Hub ID"
+}

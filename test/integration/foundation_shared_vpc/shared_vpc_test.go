@@ -57,8 +57,8 @@ func TestFoundationSharedVPC(t *testing.T) {
 			assert.Empty(gcloud.Runf(t, "compute shared-vpc list-associated-resources %s", projectID).Array(), fmt.Sprintf("%s should be a shared VPC Host project", projectID))
 
 			// NCC
-			nccHubName := net.GetStringOutput("ncc_hub_name")
-			op := gcloud.Runf(t, "network-connectivity hubs describe %s --project %s", nccHubName, projectID)
+			nccHubURI := net.GetStringOutput("ncc_hub_uri")
+			op := gcloud.Runf(t, "network-connectivity hubs describe %s --project %s", nccHubURI, projectID)
 			meshPresetTopology := op.Get("presetTopology").String()
 			assert.Equal("MESH", meshPresetTopology, "should have mesh topology")
 			nccSpokeStateCount := op.Get("spokeSummary.spokeStateCounts").Array()
@@ -66,11 +66,11 @@ func TestFoundationSharedVPC(t *testing.T) {
 			assert.Equal("ACTIVE", nccSpokeStateCount[0].Get("state").String(), "should have only active spokes")
 			assert.Equal("2", nccSpokeStateCount[0].Get("count").String(), "should have two active spokes")
 
-			groups := gcloud.Runf(t, "network-connectivity hubs groups list --hub %s --project %s", nccHubName, projectID).Array()
+			groups := gcloud.Runf(t, "network-connectivity hubs groups list --hub %s --project %s", nccHubURI, projectID).Array()
 			assert.Equal(1, len(groups), "should have one group")
 			assert.Equal("ACTIVE", groups[0].Get("state").String(), "should have active group")
 			assert.Equal(projectID, groups[0].Get("autoAccept.autoAcceptProjects.0").String(), "%s should be on auto accept", projectID)
-			groupName := fmt.Sprintf("projects/%s/locations/global/hubs/%s/groups/default", projectID, nccHubName)
+			groupName := fmt.Sprintf("projects/%s/locations/global/hubs/%s/groups/default", projectID, nccHubURI)
 			assert.Equal(groupName, groups[0].Get("name").String(), "should have default group")
 
 			// DNS
