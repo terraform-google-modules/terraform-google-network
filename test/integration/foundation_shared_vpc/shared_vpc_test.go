@@ -141,7 +141,7 @@ func TestFoundationSharedVPC(t *testing.T) {
 					action:    "allow",
 				},
 				{
-					priority:  "*65530",
+					priority:  "65530",
 					direction: "EGRESS",
 					action:    "deny",
 				},
