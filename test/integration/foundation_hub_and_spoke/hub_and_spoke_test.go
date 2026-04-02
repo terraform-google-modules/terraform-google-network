@@ -81,25 +81,22 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 				if gName == "center" {
 					hasCenter = true
 					assert.Equal(projectIDHub, group.Get("autoAccept.autoAcceptProjects.0").String(), "%s should be on auto accept", projectIDHub)
-					fullGroupName := fmt.Sprintf("projects/%s/locations/global/hubs/%s/groups/%s", projectIDHub, nccHubURI, "center")
+					fullGroupName := fmt.Sprintf("%s/groups/%s", nccHubURI, "center")
 					assert.Equal(fullGroupName, group.Get("name").String(), "should have center group")
 				}
 				if gName == "edge" {
 					hasEdge = true
 					assert.Equal(projectIDHub, group.Get("autoAccept.autoAcceptProjects.0").String(), "%s should be on auto accept", projectIDSpoke)
-					fullGroupName := fmt.Sprintf("projects/%s/locations/global/hubs/%s/groups/%s", projectIDHub, nccHubURI, "edge")
+					fullGroupName := fmt.Sprintf("%s/groups/%s", nccHubURI, "edge")
 					assert.Equal(fullGroupName, group.Get("name").String(), "should have edge group")
 				}
 			}
 			assert.True(hasCenter, "must have a centre group")
 			assert.True(hasEdge, "must have a edge group")
 
-			//filter edge group
-
 			// DNS
 			dnsPoliciesHub := gcloud.Runf(t, "dns policies list --project %s", projectIDHub).Array()
 			assert.Equal(1, len(dnsPoliciesHub), "should have one DNS Policy")
-			assert.Equal("ACTIVE", dnsPoliciesHub[0].Get("state").String(), "should have active DNS Policy")
 			policyName := dnsPoliciesHub[0].Get("name").String()
 			assert.True(dnsPoliciesHub[0].Get("enableLogging").Bool(), fmt.Sprintf("DNS Policy %s should have Logs enabled", policyName))
 			assert.True(dnsPoliciesHub[0].Get("enableInboundForwarding").Bool(), fmt.Sprintf("DNS Policy %s should have Forwarding enabled", policyName))

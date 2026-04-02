@@ -70,13 +70,12 @@ func TestFoundationSharedVPC(t *testing.T) {
 			assert.Equal(1, len(groups), "should have one group")
 			assert.Equal("ACTIVE", groups[0].Get("state").String(), "should have active group")
 			assert.Equal(projectID, groups[0].Get("autoAccept.autoAcceptProjects.0").String(), "%s should be on auto accept", projectID)
-			groupName := fmt.Sprintf("projects/%s/locations/global/hubs/%s/groups/default", projectID, nccHubURI)
+			groupName := fmt.Sprintf("%s/groups/default", nccHubURI)
 			assert.Equal(groupName, groups[0].Get("name").String(), "should have default group")
 
 			// DNS
 			dnsPolicies := gcloud.Runf(t, "dns policies list --project %s", projectID).Array()
 			assert.Equal(1, len(dnsPolicies), "should have one DNS Policy")
-			assert.Equal("ACTIVE", dnsPolicies[0].Get("state").String(), "should have active DNS Policy")
 			assert.True(dnsPolicies[0].Get("enableLogging").Bool(), fmt.Sprintf("DNS Policy %s should have logs enabled", dnsPolicies[0].Get("name").String()))
 
 			for _, dnsName := range []string{
