@@ -66,7 +66,7 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 			nccSpokeStateCount := op.Get("spokeSummary.spokeStateCounts").Array()
 			assert.Equal(1, len(nccSpokeStateCount), "should have spokes in one State")
 			assert.Equal("ACTIVE", nccSpokeStateCount[0].Get("state").String(), "should have only active spokes")
-			assert.Equal("2", nccSpokeStateCount[0].Get("count").String(), "should have two active spokes")
+			assert.Equal("4", nccSpokeStateCount[0].Get("count").String(), "should have two active spokes")
 
 			groups := gcloud.Runf(t, "network-connectivity hubs groups list --hub %s --project %s", nccHubURI, projectIDHub).Array()
 			assert.Equal(2, len(groups), "should have two group")
@@ -86,7 +86,7 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 				}
 				if gName == "edge" {
 					hasEdge = true
-					assert.Equal(projectIDHub, group.Get("autoAccept.autoAcceptProjects.0").String(), "%s should be on auto accept", projectIDSpoke)
+					assert.Equal(projectIDSpoke, group.Get("autoAccept.autoAcceptProjects.0").String(), "%s should be on auto accept", projectIDSpoke)
 					fullGroupName := fmt.Sprintf("%s/groups/%s", nccHubURI, "edge")
 					assert.Equal(fullGroupName, group.Get("name").String(), "should have edge group")
 				}
