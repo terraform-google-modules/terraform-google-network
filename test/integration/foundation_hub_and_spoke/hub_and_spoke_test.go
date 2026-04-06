@@ -123,32 +123,32 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 				{
 					name:  "*.gcrHub.io.",
 					rtype: "CNAME",
-					zone:  "dz-c-svpc-gcr",
+					zone:  "dz-h-svpc-gcr",
 				},
 				{
 					name:  "*.googleapis.com.",
 					rtype: "CNAME",
-					zone:  "dz-c-svpc-apis",
+					zone:  "dz-h-svpc-apis",
 				},
 				{
 					name:  "*.pkg.dev.",
 					rtype: "CNAME",
-					zone:  "dz-c-svpc-pkg-dev",
+					zone:  "dz-h-svpc-pkg-dev",
 				},
 				{
 					name:  "gcrHub.io.",
 					rtype: "A",
-					zone:  "dz-c-svpc-gcr",
+					zone:  "dz-h-svpc-gcr",
 				},
 				{
 					name:  "restricted.googleapis.com.",
 					rtype: "A",
-					zone:  "dz-c-svpc-apis",
+					zone:  "dz-h-svpc-apis",
 				},
 				{
 					name:  "pkg.dev.",
 					rtype: "A",
-					zone:  "dz-c-svpc-pkg-dev",
+					zone:  "dz-h-svpc-pkg-dev",
 				},
 			} {
 				record := gcloud.Runf(t, "dns record-sets describe '%s' --type=%s --zone=%s  --project %s ", recordSet.name, recordSet.rtype, recordSet.zone, projectIDHub)
