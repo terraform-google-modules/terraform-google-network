@@ -121,7 +121,7 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 				zone  string
 			}{
 				{
-					name:  "*.gcrHub.io.",
+					name:  "*.gcr.io.",
 					rtype: "CNAME",
 					zone:  "dz-h-svpc-gcr",
 				},
@@ -136,7 +136,7 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 					zone:  "dz-h-svpc-pkg-dev",
 				},
 				{
-					name:  "gcrHub.io.",
+					name:  "gcr.io.",
 					rtype: "A",
 					zone:  "dz-h-svpc-gcr",
 				},
