@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [17.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.1.0...v17.0.0) (2026-04-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **TPG>6.28.0:** expose ip_collection and external_ipv6_prefix in subnets module ([#685](https://github.com/terraform-google-modules/terraform-google-network/issues/685))
+
+### Features
+
+* **TPG>6.28.0:** expose ip_collection and external_ipv6_prefix in subnets module ([#685](https://github.com/terraform-google-modules/terraform-google-network/issues/685)) ([7599552](https://github.com/terraform-google-modules/terraform-google-network/commit/7599552c7da6fdcf953f60f573ee1b7801870a7c))
+
 ## [16.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.0.1...v16.1.0) (2026-03-09)
 
 
