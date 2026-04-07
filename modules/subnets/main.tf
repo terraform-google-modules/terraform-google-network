@@ -61,10 +61,12 @@ resource "google_compute_subnetwork" "subnetwork" {
     }
   }
 
-  purpose          = lookup(each.value, "purpose", null)
-  role             = lookup(each.value, "role", null)
-  stack_type       = lookup(each.value, "stack_type", null)
-  ipv6_access_type = lookup(each.value, "ipv6_access_type", null)
+  purpose              = lookup(each.value, "purpose", null)
+  role                 = lookup(each.value, "role", null)
+  stack_type           = lookup(each.value, "stack_type", null)
+  ipv6_access_type     = lookup(each.value, "ipv6_access_type", null)
+  ip_collection        = lookup(each.value, "ip_collection", null)
+  external_ipv6_prefix = lookup(each.value, "external_ipv6_prefix", null)
 
   lifecycle {
     precondition {
