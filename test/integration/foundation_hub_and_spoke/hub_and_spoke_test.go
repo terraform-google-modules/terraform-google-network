@@ -160,7 +160,7 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 				"us-central1",
 				"us-west1",
 			} {
-				r := gcloud.Runf(t, "compute routers list --regions %s --project %s ", region, projectIDHub)
+				r := gcloud.Runf(t, "compute routers list --regions %s --project %s ", region, projectIDHub).Array()[0]
 				routerName := r.Get("name")
 				assert.NotEmpty(r.Get("nats").Array(), fmt.Sprintf("router %s should have NAT configuration", routerName))
 				assert.Equal(2, len(r.Get("nats.0.natIps").Array()), fmt.Sprintf("router %s should have two IPs", routerName))
