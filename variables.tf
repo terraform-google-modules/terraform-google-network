@@ -60,6 +60,8 @@ variable "subnets" {
     role                             = optional(string)
     stack_type                       = optional(string)
     ipv6_access_type                 = optional(string)
+    ip_collection                    = optional(string)
+    external_ipv6_prefix             = optional(string)
   }))
   description = "The list of subnets being created"
 }
