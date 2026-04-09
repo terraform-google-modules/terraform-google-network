@@ -147,9 +147,9 @@ spec:
         connections:
           - source:
               source: github.com/GoogleCloudPlatform/terraform-google-regional-lb-http//modules/frontend
-              version: ">= 0.7.0"
+              version: ">= 0.9.0"
             spec:
-              outputExpr: forwarding_rules[0]
+              outputExpr: forwarding_rule
           - source:
               source: github.com/terraform-google-modules/terraform-google-lb-http//modules/frontend
               version: ">= 14.1.0"
