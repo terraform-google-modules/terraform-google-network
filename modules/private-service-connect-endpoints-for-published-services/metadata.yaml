@@ -148,6 +148,16 @@ spec:
               version: ">= 13.0.0"
             spec:
               outputExpr: service_attachment_self_link
+          - source:
+              source: https://github.com/terraform-google-modules/terraform-google-sql-db//modules/mysql
+              version: ">= 26.2.2"
+            spec:
+              outputExpr: instance_psc_attachment
+          - source:
+              source: https://github.com/terraform-google-modules/terraform-google-sql-db//modules/postgresql
+              version: ">= 26.2.2"
+            spec:
+              outputExpr: instance_psc_attachment
       - name: service_directory_namespace
         description: Service Directory namespace to register the forwarding rule under.
         varType: string
