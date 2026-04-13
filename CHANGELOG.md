@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [18.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v17.1.0...v18.0.0) (2026-04-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v7 ([#662](https://github.com/terraform-google-modules/terraform-google-network/issues/662))
+
+### Features
+
+* Add MySQL and PostgreSQL connections ([#690](https://github.com/terraform-google-modules/terraform-google-network/issues/690)) ([bca5e20](https://github.com/terraform-google-modules/terraform-google-network/commit/bca5e20430ac0c2663e84073455c503053363130))
+
+
+### Bug Fixes
+
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v7 ([#662](https://github.com/terraform-google-modules/terraform-google-network/issues/662)) ([2027d08](https://github.com/terraform-google-modules/terraform-google-network/commit/2027d0885f3fa9577d6990bb1005e15e11b66cd3))
+
 ## [17.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v17.0.0...v17.1.0) (2026-04-09)
 
 
