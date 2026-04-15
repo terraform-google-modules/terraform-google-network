@@ -250,3 +250,9 @@ variable "bgp_inter_region_cost" {
   description = "Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`."
   default     = null
 }
+
+variable "enable_private_services_connection" {
+  description = "Whether to enable private services connection in the VPC network."
+  type        = bool
+  default     = false
+}
