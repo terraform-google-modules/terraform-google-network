@@ -90,3 +90,11 @@ module "firewall_rules" {
   ingress_rules = var.ingress_rules
   egress_rules  = var.egress_rules
 }
+
+module "private_service_access" {
+  source = "./modules/private-service-access"
+  count  = var.enable_private_services_connection ? 1 : 0
+
+  project_id = var.project_id
+  network_id = google_compute_network.network.id
+}
