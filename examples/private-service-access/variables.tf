@@ -18,9 +18,3 @@ variable "project_id" {
   description = "The ID of the project where the network will be created."
   type        = string
 }
-
-variable "region" {
-  description = "The region where the subnet will be created."
-  type        = string
-  default     = "us-west1"
-}
