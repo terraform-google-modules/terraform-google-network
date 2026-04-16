@@ -44,7 +44,7 @@ func TestPrivateServiceAccess(t *testing.T) {
 		// 2. Verify the VPC Peering connection to Service Networking
 		// We list peerings for the network and check for the service networking peering
 		peeringOp := gcloud.Run(t, fmt.Sprintf("services vpc-peerings list --network %s --project %s --format=json", networkName, projectID))
-		
+
 		// Find the peering for 'servicenetworking.googleapis.com'
 		foundPeering := false
 		for _, peering := range peeringOp.Array() {
