@@ -108,6 +108,8 @@ module "network_connectivity_center_star" {
 ################################
 module "vpc_spoke_vpc" {
   source       = "terraform-google-modules/network/google"
+  version      = "~> 18.0"
+
   project_id   = var.project_id
   network_name = var.vpc_spoke_vpc_name
   routing_mode = "GLOBAL"
