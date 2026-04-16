@@ -14,20 +14,16 @@
  * limitations under the License.
  */
 
-resource "random_string" "suffix" {
-  length  = 4
-  special = false
-  upper   = false
-}
-
-module "test-vpc-private-access" {
+module "vpc" {
   source       = "../../"
   project_id   = var.project_id
-  network_name = "psa-vpc-${random_string.suffix.result}"
-  routing_mode = "GLOBAL"
+  network_name = "example-psa-vpc"
 
-  # Enabling the Private Services Access connection
-  enable_private_services_connection = true
+  private_service_access_config = {
+    enable_private_services_connection = true
+    address_name                       = "custom-psa-address"
+    prefix_length                      = 16
+  }
 
   subnets = [
     {
