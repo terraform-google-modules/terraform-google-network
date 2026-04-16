@@ -251,8 +251,17 @@ variable "bgp_inter_region_cost" {
   default     = null
 }
 
-variable "enable_private_services_connection" {
-  description = "Whether to enable private services connection in the VPC network."
-  type        = bool
-  default     = false
+variable "private_service_access_config" {
+  description = "Configuration for Private Service Access (PSA) connection."
+  type = object({
+    enable_private_services_connection = bool
+    address_name                       = string
+    prefix_length                      = number
+  })
+  default = {
+    enable_private_services_connection = false
+    address_name                       = "private-ip-address"
+    prefix_length                      = 16
+  }
 }
+
