@@ -96,8 +96,7 @@ module "private_service_access" {
   count  = var.private_service_access_config.enable_private_services_connection ? 1 : 0
 
   project_id    = var.project_id
-  network_id    = module.vpc.network_id 
+  network_id    = module.vpc.network_id
   address_name  = var.private_service_access_config.address_name
   prefix_length = var.private_service_access_config.prefix_length
 }
-
