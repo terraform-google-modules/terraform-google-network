@@ -29,6 +29,7 @@ Session.vim
 **/.terraform.d/*
 .terraform.lock
 .terraform.lock.hcl
+.terraform.lock
 
 # .tfstate files
 *.tfstate
@@ -48,6 +49,6 @@ crash.log
 # version control.
 #
 # example.tfvars
-test/fixtures/shared/terraform.tfvars
+test/fixtures/**/terraform.tfvars
 
 credentials.json

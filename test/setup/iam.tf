@@ -80,10 +80,15 @@ resource "google_folder_iam_member" "folder1" {
 }
 
 resource "google_folder_iam_member" "folder2" {
-  for_each = toset(["roles/compute.orgSecurityResourceAdmin", "roles/compute.orgFirewallPolicyUser"])
-  folder   = google_folder.folder2.id
-  role     = each.value
-  member   = "serviceAccount:${google_service_account.int_test.email}"
+  for_each = toset([
+    "roles/compute.orgSecurityResourceAdmin",
+    "roles/compute.orgFirewallPolicyUser",
+    "roles/compute.xpnAdmin" // required for Shared VPC Configuration
+  ])
+
+  folder = google_folder.folder2.id
+  role   = each.value
+  member = "serviceAccount:${google_service_account.int_test.email}"
 }
 
 resource "google_folder_iam_member" "folder3" {
