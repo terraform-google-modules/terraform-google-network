@@ -20,11 +20,11 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 4.25.0, < 8"
+      version = ">= 6.28.0, < 8"
     }
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:subnets/v16.1.0"
+    module_name = "blueprints/terraform/terraform-google-network:subnets/v18.0.0"
   }
 }

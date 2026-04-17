@@ -25,7 +25,7 @@ spec:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
       dir: /modules/private-service-connect-endpoints-for-published-services
-    version: 16.1.0
+    version: 18.0.0
     actuationTool:
       flavor: Terraform
       version: ">= 1.5"
@@ -152,6 +152,16 @@ spec:
               version: ">= 13.0.0"
             spec:
               outputExpr: service_attachment_self_link
+          - source:
+              source: https://github.com/terraform-google-modules/terraform-google-sql-db//modules/mysql
+              version: ">= 26.2.2"
+            spec:
+              outputExpr: instance_psc_attachment
+          - source:
+              source: https://github.com/terraform-google-modules/terraform-google-sql-db//modules/postgresql
+              version: ">= 26.2.2"
+            spec:
+              outputExpr: instance_psc_attachment
       - name: service_directory_namespace
         description: Service Directory namespace to register the forwarding rule under.
         varType: string

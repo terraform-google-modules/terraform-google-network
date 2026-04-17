@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [18.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v17.1.0...v18.0.0) (2026-04-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v7 ([#662](https://github.com/terraform-google-modules/terraform-google-network/issues/662))
+
+### Features
+
+* Add MySQL and PostgreSQL connections ([#690](https://github.com/terraform-google-modules/terraform-google-network/issues/690)) ([bca5e20](https://github.com/terraform-google-modules/terraform-google-network/commit/bca5e20430ac0c2663e84073455c503053363130))
+
+
+### Bug Fixes
+
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v7 ([#662](https://github.com/terraform-google-modules/terraform-google-network/issues/662)) ([2027d08](https://github.com/terraform-google-modules/terraform-google-network/commit/2027d0885f3fa9577d6990bb1005e15e11b66cd3))
+
+## [17.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v17.0.0...v17.1.0) (2026-04-09)
+
+
+### Features
+
+* Add connection with regional L7 load balancer ([#687](https://github.com/terraform-google-modules/terraform-google-network/issues/687)) ([fe9ef03](https://github.com/terraform-google-modules/terraform-google-network/commit/fe9ef0389207161cdc87e3e37eea2c0aad210622))
+
+## [17.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.1.0...v17.0.0) (2026-04-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **TPG>6.28.0:** expose ip_collection and external_ipv6_prefix in subnets module ([#685](https://github.com/terraform-google-modules/terraform-google-network/issues/685))
+
+### Features
+
+* **TPG>6.28.0:** expose ip_collection and external_ipv6_prefix in subnets module ([#685](https://github.com/terraform-google-modules/terraform-google-network/issues/685)) ([7599552](https://github.com/terraform-google-modules/terraform-google-network/commit/7599552c7da6fdcf953f60f573ee1b7801870a7c))
+
 ## [16.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.0.1...v16.1.0) (2026-03-09)
 
 
