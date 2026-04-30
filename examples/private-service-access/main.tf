@@ -15,7 +15,7 @@
  */
 
 module "vpc" {
-  source       = "zubitripathy/network/google"
+  source       = "../.."
   project_id   = var.project_id
   network_name = "example-psa-vpc"
 
