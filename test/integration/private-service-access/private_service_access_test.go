@@ -50,7 +50,11 @@ func TestPrivateServiceAccess(t *testing.T) {
 		for _, peering := range peeringOp.Array() {
 			if peering.Get("service").String() == "servicenetworking.googleapis.com" {
 				foundPeering = true
-				assert.Contains(peering.Get("reservedPeeringRanges").Export().([]interface{}), addressName, "Peering should use the reserved IP range")
+				var reservedPeeringRanges []string
+				for _, reservedPeeringRange := range peering.Get("reservedPeeringRanges").Array() {
+					reservedPeeringRanges = append(reservedPeeringRanges, reservedPeeringRange.String())
+				}
+				assert.Contains(reservedPeeringRanges, addressName, "Peering should use the reserved IP range")
 				break
 			}
 		}
