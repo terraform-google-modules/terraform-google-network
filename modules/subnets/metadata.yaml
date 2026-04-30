@@ -64,6 +64,8 @@ spec:
         location: examples/network_service_tiers
       - name: packet_mirroring
         location: examples/packet_mirroring
+      - name: private-service-access
+        location: examples/private-service-access
       - name: private_service_connect
         location: examples/private_service_connect
       - name: private_service_connect_endpoints_for_published_services
@@ -170,4 +172,4 @@ spec:
       - servicenetworking.googleapis.com
     providerVersions:
       - source: hashicorp/google
-        version: ">= 4.25.0, < 8"
+        version: ">= 6.28.0, < 8"

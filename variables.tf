@@ -250,3 +250,18 @@ variable "bgp_inter_region_cost" {
   description = "Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`."
   default     = null
 }
+
+variable "private_service_access_config" {
+  description = "Configuration for Private Service Access (PSA) connection."
+  type = object({
+    enable_private_services_connection = bool
+    address_name                       = string
+    prefix_length                      = number
+  })
+  default = {
+    enable_private_services_connection = false
+    address_name                       = "private-ip-address"
+    prefix_length                      = 16
+  }
+}
+

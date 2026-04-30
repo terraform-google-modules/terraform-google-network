@@ -71,6 +71,8 @@ spec:
         location: examples/network_service_tiers
       - name: packet_mirroring
         location: examples/packet_mirroring
+      - name: private-service-access
+        location: examples/private-service-access
       - name: private_service_connect
         location: examples/private_service_connect
       - name: private_service_connect_endpoints_for_published_services
