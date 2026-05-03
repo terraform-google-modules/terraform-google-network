@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [18.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.0.0...v18.1.0) (2026-05-03)
+
+
+### Features
+
+* Implement private services connection module with examples and tests ([#692](https://github.com/terraform-google-modules/terraform-google-network/issues/692)) ([1abce4f](https://github.com/terraform-google-modules/terraform-google-network/commit/1abce4fef75e4889396fac663affe86199ed7af2))
+* support reserved_internal_range in secondary_ranges ([#693](https://github.com/terraform-google-modules/terraform-google-network/issues/693)) ([5f8760d](https://github.com/terraform-google-modules/terraform-google-network/commit/5f8760d40fdf5325a908c49c6f4e0f0d6d53de2b))
+
 ## [18.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v17.1.0...v18.0.0) (2026-04-13)
 
 

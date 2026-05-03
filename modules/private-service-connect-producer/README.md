@@ -23,7 +23,7 @@ IPv4
 ```hcl
 module "psc_producer" {
   source  = "terraform-google-modules/psc-producer/google"
-  version = "~> 18.0"
+  version = "~> 18.1"
 
   project = "my-project-id"
   network = "my-network-name"

@@ -29,6 +29,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:private-service-access/v18.0.0"
+    module_name = "blueprints/terraform/terraform-google-network:private-service-access/v18.1.0"
   }
 }
