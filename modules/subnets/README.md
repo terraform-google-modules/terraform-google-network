@@ -13,7 +13,7 @@ Basic usage of this submodule is as follows:
 ```hcl
 module "vpc" {
     source  = "terraform-google-modules/network/google//modules/subnets"
-    version = "~> 18.0"
+    version = "~> 18.1"
 
     project_id   = "<PROJECT ID>"
     network_name = "example-vpc"
@@ -66,7 +66,7 @@ module "vpc" {
 |------|-------------|------|---------|:--------:|
 | network\_name | The name of the network where subnets will be created | `string` | n/a | yes |
 | project\_id | The ID of the project where subnets will be created | `string` | n/a | yes |
-| secondary\_ranges | Secondary ranges that will be used in some of the subnets | `map(list(object({ range_name = string, ip_cidr_range = string })))` | `{}` | no |
+| secondary\_ranges | Secondary ranges that will be used in some of the subnets | `map(list(object({ range_name = string, ip_cidr_range = optional(string), reserved_internal_range = optional(string) })))` | `{}` | no |
 | subnets | The list of subnets being created | <pre>list(object({<br>    subnet_name                      = string<br>    subnet_ip                        = string<br>    subnet_region                    = optional(string)<br>    subnet_private_access            = optional(string, "false")<br>    subnet_private_ipv6_access       = optional(string)<br>    subnet_flow_logs                 = optional(string, "false")<br>    subnet_flow_logs_interval        = optional(string, "INTERVAL_5_SEC")<br>    subnet_flow_logs_sampling        = optional(string, "0.5")<br>    subnet_flow_logs_metadata        = optional(string, "INCLUDE_ALL_METADATA")<br>    subnet_flow_logs_filter          = optional(string, "true")<br>    subnet_flow_logs_metadata_fields = optional(list(string), [])<br>    description                      = optional(string)<br>    purpose                          = optional(string)<br>    role                             = optional(string)<br>    stack_type                       = optional(string)<br>    ipv6_access_type                 = optional(string)<br>    ip_collection                    = optional(string)<br>    external_ipv6_prefix             = optional(string)<br>  }))</pre> | n/a | yes |
 | subnets\_region | Optional subnets region. If set, all subnets will be created in this region. | `string` | `null` | no |
 

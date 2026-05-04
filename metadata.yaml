@@ -24,7 +24,7 @@ spec:
     source:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
-    version: 18.0.0
+    version: 18.1.0
     actuationTool:
       flavor: Terraform
       version: ">= 1.3"
@@ -47,6 +47,8 @@ spec:
         location: modules/network-firewall-policy
       - name: network-peering
         location: modules/network-peering
+      - name: private-service-access
+        location: modules/private-service-access
       - name: private-service-connect
         location: modules/private-service-connect
       - name: private-service-connect-endpoints-for-published-services
@@ -102,6 +104,8 @@ spec:
         location: examples/network_service_tiers
       - name: packet_mirroring
         location: examples/packet_mirroring
+      - name: private-service-access
+        location: examples/private-service-access
       - name: private_service_connect
         location: examples/private_service_connect
       - name: private_service_connect_endpoints_for_published_services
@@ -328,6 +332,18 @@ spec:
       - name: bgp_inter_region_cost
         description: Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`.
         varType: string
+      - name: private_service_access_config
+        description: Configuration for Private Service Access (PSA) connection.
+        varType: |-
+          object({
+              enable_private_services_connection = bool
+              address_name                       = string
+              prefix_length                      = number
+            })
+        defaultValue:
+          address_name: private-ip-address
+          enable_private_services_connection: false
+          prefix_length: 16
     outputs:
       - name: network
         description: The created network

@@ -108,7 +108,7 @@ module "network_connectivity_center_star" {
 ################################
 module "vpc_spoke_vpc" {
   source  = "terraform-google-modules/network/google"
-  version = "~> 13.0"
+  version = "~> 18.0"
 
   project_id   = var.project_id
   network_name = var.vpc_spoke_vpc_name
@@ -138,9 +138,8 @@ module "vpc_spoke_vpc" {
 ################################
 # Simulates an on-prem network that will be connected over VPN
 module "vpn_spoke_remote_vpc" {
-  source  = "terraform-google-modules/network/google"
-  version = "~> 13.0"
-
+  source       = "terraform-google-modules/network/google"
+  version      = "~> 18.0.0"
   project_id   = var.project_id
   network_name = var.vpn_spoke_remote_vpc_name
   routing_mode = "GLOBAL"
@@ -165,9 +164,8 @@ module "vpn_spoke_remote_vpc" {
 }
 
 module "vpn_spoke_local_vpc" {
-  source  = "terraform-google-modules/network/google"
-  version = "~> 13.0"
-
+  source       = "terraform-google-modules/network/google"
+  version      = "~> 18.0.0"
   project_id   = var.project_id
   network_name = var.vpn_spoke_local_vpc_name
   routing_mode = "GLOBAL"
@@ -265,9 +263,8 @@ resource "random_shuffle" "zone" {
 }
 
 module "router_appliance_spoke_vpc" {
-  source  = "terraform-google-modules/network/google"
-  version = "~> 13.0"
-
+  source       = "terraform-google-modules/network/google"
+  version      = "~> 18.0.0"
   project_id   = var.project_id
   network_name = var.router_appliance_vpc_name
   routing_mode = "GLOBAL"

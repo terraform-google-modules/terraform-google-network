@@ -25,7 +25,7 @@ spec:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
       dir: /modules/private-service-connect-producer
-    version: 18.0.0
+    version: 18.1.0
     actuationTool:
       flavor: Terraform
       version: ">= 1.5"
@@ -75,6 +75,8 @@ spec:
         location: examples/network_service_tiers
       - name: packet_mirroring
         location: examples/packet_mirroring
+      - name: private-service-access
+        location: examples/private-service-access
       - name: private_service_connect
         location: examples/private_service_connect
       - name: private_service_connect_endpoints_for_published_services

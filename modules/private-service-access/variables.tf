@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,24 @@
  * limitations under the License.
  */
 
-terraform {
-  required_version = ">= 1.3"
+variable "project_id" {
+  description = "The project ID of the VPC network."
+  type        = string
+}
 
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 3.33, < 8"
-    }
-  }
+variable "network_id" {
+  description = "The ID of the VPC network (e.g., google_compute_network.vpc.id)."
+  type        = string
+}
 
-  provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:firewall-rules/v18.1.0"
-  }
+variable "address_name" {
+  description = "The name of the reserved IP range."
+  type        = string
+  default     = "private-ip-address"
+}
+
+variable "prefix_length" {
+  description = "The prefix length of the reserved IP range."
+  type        = number
+  default     = 16
 }

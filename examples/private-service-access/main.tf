@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,22 @@
  * limitations under the License.
  */
 
-terraform {
-  required_version = ">= 1.3"
+module "vpc" {
+  source       = "../.."
+  project_id   = var.project_id
+  network_name = "example-psa-vpc"
 
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 3.33, < 8"
+  private_service_access_config = {
+    enable_private_services_connection = true
+    address_name                       = "custom-psa-address"
+    prefix_length                      = 16
+  }
+
+  subnets = [
+    {
+      subnet_name   = "psa-subnet"
+      subnet_ip     = "10.0.0.0/24"
+      subnet_region = "us-central1"
     }
-  }
-
-  provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:firewall-rules/v18.1.0"
-  }
+  ]
 }
