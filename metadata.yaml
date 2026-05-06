@@ -39,6 +39,8 @@ spec:
         location: modules/firewall-rules
       - name: hierarchical-firewall-policy
         location: modules/hierarchical-firewall-policy
+      - name: network
+        location: modules/foundation/network
       - name: network-connectivity-center
         location: modules/network-connectivity-center
       - name: network-firewall-policy
@@ -84,6 +86,10 @@ spec:
         location: examples/delete_default_gateway_routes
       - name: firewall_logging
         location: examples/firewall_logging
+      - name: foundation_hub_and_spoke
+        location: examples/foundation_hub_and_spoke
+      - name: foundation_shared_vpc
+        location: examples/foundation_shared_vpc
       - name: global-network-firewall-policy
         location: examples/global-network-firewall-policy
       - name: hierarchical-firewall-policy
