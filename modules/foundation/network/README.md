@@ -5,6 +5,7 @@ This Terraform module deploys a **Shared VPC Host** network on Google Cloud Plat
 ## Prerequisites
 
 ### 1. Required APIs
+
 The project where this module is deployed must have the following APIs enabled:
 
 *   `compute.googleapis.com` (Compute Engine)
@@ -13,6 +14,7 @@ The project where this module is deployed must have the following APIs enabled:
 *   `networkconnectivity.googleapis.com` (Network Connectivity Center)
 
 ### 2. IAM Roles
+
 The Service Account running Terraform requires the following roles at the **Project** level:
 
 *   **Compute Network Admin** (`roles/compute.networkAdmin`): For VPC, Subnets, Routes.
@@ -24,7 +26,7 @@ The Service Account running Terraform requires the following roles at the **Proj
 
 ## Features
 
-*   **Shared VPC:** Automatically configures the network as a Shared VPC Host (`shared_vpc_host = "true"`).
+*   **Shared VPC:** Can configure the network as a Shared VPC Host (`shared_vpc_host = "true"`).
 *   **Network Connectivity Center (NCC):**
     *   Supports **Mesh** (full-mesh connectivity) or **Star** (Hub & Spoke) topologies.
     *   Granular control over spoke export filters and producer route propagation.
@@ -123,9 +125,9 @@ This module creates a **Network Firewall Policy** attached to the VPC. It does *
 
 ## Requirements
 
-*   **Terraform:** `>= 0.13`
-*   **Provider:** `google` `>= 3.50` (Excluding `6.26.0`, `6.27.0`)
-*   **Provider:** `google-beta` `>= 3.50`
+*   **Terraform:** `>= 1.3`
+*   **Provider:** `google` `>= 7.8`
+*   **Provider:** `google-beta` `>= 7.8`
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
@@ -142,16 +144,17 @@ This module creates a **Network Firewall Policy** attached to the VPC. It does *
 | firewall\_enable\_logging | Toggle firewall logging for VPC Firewalls. | `bool` | `true` | no |
 | internal\_ipv6\_range | When enabling IPv6 ULA, optionally, specify a /48 from fd20::/20 (default null) | `string` | `null` | no |
 | mtu | The network MTU (If set to 0, meaning MTU is unset - defaults to '1460'). Recommended values: 1460 (default for historic reasons), 1500 (Internet default), or 8896 (for Jumbo packets). Allowed are all values in the range 1300 to 8896, inclusively. | `number` | `0` | no |
-| nat\_config | Configuration of NAT cloud router. | <pre>object({<br>    enabled = optional(bool, false)<br>    bgp_asn = optional(number, 64512)<br>    regions = optional(list(object({<br>      name          = string<br>      num_addresses = optional(number, 2)<br>    })))<br>  })</pre> | `{}` | no |
+| nat\_config | Configuration of NAT cloud router. | <pre>object({<br>    enabled     = optional(bool, false)<br>    egress_tags = optional(list(string), ["egress-internet"])<br>    bgp_asn     = optional(number, 64512)<br>    regions = optional(list(object({<br>      name          = string<br>      num_addresses = optional(number, 2)<br>    })))<br>  })</pre> | `{}` | no |
 | ncc\_hub\_config | Network Connectivity Center configuration. | <pre>object({<br>    create_hub                     = optional(bool, true)<br>    uri                            = optional(string)<br>    name                           = optional(string)<br>    description                    = optional(string)<br>    hub_labels                     = optional(map(string))<br>    policy_mode                    = optional(string, "PRESET")<br>    preset_topology                = optional(string, "MESH")<br>    export_psc                     = optional(bool, false)<br>    spoke_labels                   = optional(map(string))<br>    spoke_exclude_export_ranges    = optional(set(string), [])<br>    spoke_include_export_ranges    = optional(set(string), [])<br>    spoke_description              = optional(string)<br>    spoke_group                    = optional(string, "default")<br>    producer_labels                = optional(map(string))<br>    producer_exclude_export_ranges = optional(set(string), [])<br>    producer_include_export_ranges = optional(set(string), [])<br>    producer_description           = optional(string)<br>    auto_accept_projects_center    = optional(list(string), [])<br>    auto_accept_projects_edge      = optional(list(string), [])<br>    auto_accept_projects_default   = optional(list(string), [])<br>  })</pre> | `{}` | no |
 | network\_firewall\_policy\_enforcement\_order | Set the order that Firewall Rules and Firewall Policies are evaluated. Valid values are `BEFORE_CLASSIC_FIREWALL` and `AFTER_CLASSIC_FIREWALL`. (default null or equivalent to `AFTER_CLASSIC_FIREWALL`) | `string` | `null` | no |
 | network\_profile | "A full or partial URL of the network profile to apply to this network.<br>This field can be set only at resource creation time. For example, the<br>following are valid URLs:<br>  * https://www.googleapis.com/compute/beta/projects/{projectId}/global/networkProfiles/{network_profile_name}<br>  * projects/{projectId}/global/networkProfiles/{network\_profile\_name} | `string` | `null` | no |
 | private\_service\_cidr | CIDR range for private service networking. Used for Cloud SQL and other managed services. | `string` | `null` | no |
 | private\_service\_connect\_ip | The subnet internal IP to be used as the private service connect endpoint in the Shared VPC | `string` | n/a | yes |
-| project\_id | Project ID for Shared VPC. | `string` | n/a | yes |
+| project\_id | Project ID for VPC. | `string` | n/a | yes |
 | resource\_codes | codes for resources created | <pre>object({<br>    short = optional(string, "p")<br>    long  = optional(string, "production")<br>  })</pre> | n/a | yes |
 | routing\_mode | The network routing mode (default 'GLOBAL') | `string` | `"GLOBAL"` | no |
 | secondary\_ranges | Secondary ranges that will be used in some of the subnets | `map(list(object({ range_name = string, ip_cidr_range = string })))` | `{}` | no |
+| shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | `bool` | `false` | no |
 | subnets | The list of subnets being created | <pre>list(object({<br>    subnet_name                      = string<br>    subnet_ip                        = string<br>    subnet_region                    = string<br>    subnet_private_access            = optional(string, "true")<br>    subnet_private_ipv6_access       = optional(string)<br>    subnet_flow_logs                 = optional(string, "true")<br>    subnet_flow_logs_interval        = optional(string, "INTERVAL_5_SEC")<br>    subnet_flow_logs_sampling        = optional(string, "0.5")<br>    subnet_flow_logs_metadata        = optional(string, "INCLUDE_ALL_METADATA")<br>    subnet_flow_logs_metadata_fields = optional(list(string), [])<br>    subnet_flow_logs_filter          = optional(string, "true")<br>    description                      = optional(string)<br>    purpose                          = optional(string)<br>    role                             = optional(string)<br>    stack_type                       = optional(string)<br>    ipv6_access_type                 = optional(string)<br>  }))</pre> | `[]` | no |
 | vpc\_name | The name of the network being created. Complete name will be `vpc-{vpc_name}` | `string` | n/a | yes |
 | windows\_activation\_enabled | Enable Windows license activation for Windows workloads. See https://docs.cloud.google.com/compute/docs/instances/windows/creating-managing-windows-instances . | `bool` | `false` | no |

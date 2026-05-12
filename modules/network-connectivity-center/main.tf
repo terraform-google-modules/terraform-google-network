@@ -56,6 +56,14 @@ resource "google_network_connectivity_hub" "hub" {
   preset_topology = var.ncc_hub_policy_mode == "PRESET" ? var.ncc_hub_preset_topology : (var.ncc_hub_policy_mode == "CUSTOM" ? "PRESET_TOPOLOGY_UNSPECIFIED" : "MESH")
 }
 
+# Added 'count' to google_network_connectivity_hub.hub to allow conditional creation.
+# This moved block prevents Terraform from destroying and recreating existing hubs
+# by migrating the state from a singular resource to an indexed resource [0].
+moved {
+  from = google_network_connectivity_hub.hub
+  to   = google_network_connectivity_hub.hub[0]
+}
+
 resource "google_network_connectivity_group" "group" {
   for_each = var.ncc_groups
 

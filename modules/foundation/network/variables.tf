@@ -15,8 +15,14 @@
  */
 
 variable "project_id" {
-  description = "Project ID for Shared VPC."
+  description = "Project ID for VPC."
   type        = string
+}
+
+variable "shared_vpc_host" {
+  description = "Makes this project a Shared VPC host if 'true' (default 'false')"
+  type        = bool
+  default     = false
 }
 
 variable "resource_codes" {
@@ -76,8 +82,9 @@ variable "secondary_ranges" {
 variable "nat_config" {
   description = "Configuration of NAT cloud router."
   type = object({
-    enabled = optional(bool, false)
-    bgp_asn = optional(number, 64512)
+    enabled     = optional(bool, false)
+    egress_tags = optional(list(string), ["egress-internet"])
+    bgp_asn     = optional(number, 64512)
     regions = optional(list(object({
       name          = string
       num_addresses = optional(number, 2)

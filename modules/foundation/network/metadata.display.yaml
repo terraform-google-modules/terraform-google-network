@@ -94,6 +94,9 @@ spec:
         secondary_ranges:
           name: secondary_ranges
           title: Secondary Ranges
+        shared_vpc_host:
+          name: shared_vpc_host
+          title: Shared Vpc Host
         subnets:
           name: subnets
           title: Subnets

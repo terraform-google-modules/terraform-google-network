@@ -20,7 +20,7 @@ locals {
 }
 
 /******************************************
-  Shared VPC configuration
+  VPC configuration
  *****************************************/
 
 module "main" {
@@ -29,8 +29,8 @@ module "main" {
   project_id                             = var.project_id
   network_name                           = local.network_name
   description                            = var.description
-  shared_vpc_host                        = "true"
-  delete_default_internet_gateway_routes = "true"
+  shared_vpc_host                        = var.shared_vpc_host
+  delete_default_internet_gateway_routes = true
 
   subnets          = var.subnets
   secondary_ranges = var.secondary_ranges
@@ -52,7 +52,7 @@ module "main" {
         name              = "rt-${var.resource_codes.short}-${var.vpc_name}-1000-egress-internet-default"
         description       = "Tag based route through IGW to access internet"
         destination_range = "0.0.0.0/0"
-        tags              = ["egress-internet"]
+        tags              = var.nat_config.egress_tags
         next_hop_internet = "true"
         priority          = "1000"
       }
