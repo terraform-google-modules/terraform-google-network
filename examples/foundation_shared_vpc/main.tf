@@ -36,6 +36,7 @@ module "main" {
   private_service_connect_ip      = "10.17.0.5"
   private_service_cidr            = "10.16.40.0/21"
   enable_all_vpc_internal_traffic = false
+  shared_vpc_host                 = true
 
   resource_codes = {
     short = "c"

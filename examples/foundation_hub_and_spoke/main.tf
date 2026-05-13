@@ -66,6 +66,7 @@ module "hub" {
   private_service_connect_ip      = local.private_service_connect_ip
   private_service_cidr            = local.private_service_cidr_hub
   enable_all_vpc_internal_traffic = false
+  shared_vpc_host                 = true
 
   resource_codes = {
     short = "h"
@@ -167,6 +168,7 @@ module "spoke" {
   private_service_connect_ip      = local.private_service_connect_ip_spoke
   private_service_cidr            = local.private_service_cidr_spoke
   enable_all_vpc_internal_traffic = false
+  shared_vpc_host                 = true
 
   resource_codes = {
     short = "s"
