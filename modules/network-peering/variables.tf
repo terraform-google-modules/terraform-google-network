@@ -25,6 +25,12 @@ variable "local_network" {
   type        = string
 }
 
+variable "create_remote_peer" {
+  description = "If the remote peer should be created."
+  type        = bool
+  default     = true
+}
+
 variable "peer_network" {
   description = "Resource link of the peer network."
   type        = string

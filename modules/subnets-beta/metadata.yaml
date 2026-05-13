@@ -50,6 +50,10 @@ spec:
         location: examples/delete_default_gateway_routes
       - name: firewall_logging
         location: examples/firewall_logging
+      - name: foundation_hub_and_spoke
+        location: examples/foundation_hub_and_spoke
+      - name: foundation_shared_vpc
+        location: examples/foundation_shared_vpc
       - name: global-network-firewall-policy
         location: examples/global-network-firewall-policy
       - name: hierarchical-firewall-policy
@@ -130,7 +134,7 @@ spec:
         required: true
       - name: secondary_ranges
         description: Secondary ranges that will be used in some of the subnets
-        varType: map(list(object({ range_name = string, ip_cidr_range = string })))
+        varType: map(list(object({ range_name = string, ip_cidr_range = optional(string), reserved_internal_range = optional(string) })))
         defaultValue: {}
       - name: module_depends_on
         description: List of modules or resources this module depends on.
@@ -171,4 +175,4 @@ spec:
       - servicenetworking.googleapis.com
     providerVersions:
       - source: hashicorp/google-beta
-        version: ">= 2.19, < 8"
+        version: ">= 6.0, < 8"
