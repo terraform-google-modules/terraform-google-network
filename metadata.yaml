@@ -409,6 +409,7 @@ spec:
             - id: string
               purpose: string
               region: string
+              ip_cidr_range: string 
       - name: subnets_flow_logs
         description: Whether the subnets will have VPC flow logs enabled
         type:
