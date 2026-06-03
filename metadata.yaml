@@ -409,7 +409,15 @@ spec:
             - id: string
               purpose: string
               region: string
-              ip_cidr_range: string 
+      - name: subnets_by_region_purpose_ip_cidr_range
+        description: A list of subnet summary objects containing id, purpose,ip_cidr_range and region extracted from the subnets map.
+        type:
+          - list
+          - - object
+            - id: string
+              ip_cidr_range: string
+              purpose: string
+              region: string
       - name: subnets_flow_logs
         description: Whether the subnets will have VPC flow logs enabled
         type:
