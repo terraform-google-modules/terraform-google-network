@@ -146,11 +146,11 @@ Then perform the following commands on the root folder:
 | route\_names | The route names associated with this VPC |
 | subnets | A map with keys of form subnet\_region/subnet\_name and values being the outputs of the google\_compute\_subnetwork resources used to create corresponding subnets. |
 | subnets\_by\_region\_purpose | A list of subnet summary objects containing id, purpose, and region extracted from the subnets map. |
-| subnets\_by\_region\_purpose\_ip\_cidr\_range | A list of subnet summary objects containing id, purpose,ip\_cidr\_range and region extracted from the subnets map. |
 | subnets\_flow\_logs | Whether the subnets will have VPC flow logs enabled |
 | subnets\_ids | The IDs of the subnets being created |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |
 | subnets\_names | The names of the subnets being created |
+| subnets\_overview | A high-level overview of the created subnets and their core addressing/routing attributes such as id, purpose,ip\_cidr\_range and region extracted from the subnets map. |
 | subnets\_private\_access | Whether the subnets will have access to Google API's without a public IP |
 | subnets\_regions | The region where the subnets will be created |
 | subnets\_secondary\_ranges | The secondary ranges associated with these subnets |
