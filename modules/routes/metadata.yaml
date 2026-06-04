@@ -130,6 +130,17 @@ spec:
               priority               = optional(number, 1000)
             }))
         defaultValue: []
+      - name: module_depends_on
+        description: List of modules or resources this module depends on.
+        varType: list(any)
+        defaultValue: []
+      - name: common_next_hop_config
+        description: A map containing common next hop details for routes. If value any input for routes is not provided it will take the value from here if provided.
+        varType: |-
+          object({
+              next_hop_ilb = optional(string)
+            })
+        defaultValue: {}
         connections:
           - source:
               source: github.com/terraform-google-modules/terraform-google-lb-internal
@@ -137,10 +148,6 @@ spec:
             spec:
               outputExpr: forwarding_rule_id
               inputPath: next_hop_ilb
-      - name: module_depends_on
-        description: List of modules or resources this module depends on.
-        varType: list(any)
-        defaultValue: []
     outputs:
       - name: route_ids
         description: The IDs of the created routes.
