@@ -409,15 +409,6 @@ spec:
             - id: string
               purpose: string
               region: string
-      - name: subnets_by_region_purpose_ip_cidr_range
-        description: A list of subnet summary objects containing id, purpose,ip_cidr_range and region extracted from the subnets map.
-        type:
-          - list
-          - - object
-            - id: string
-              ip_cidr_range: string
-              purpose: string
-              region: string
       - name: subnets_flow_logs
         description: Whether the subnets will have VPC flow logs enabled
         type:
@@ -438,6 +429,15 @@ spec:
         type:
           - list
           - string
+      - name: subnets_overview
+        description: A high-level overview of the created subnets and their core addressing/routing attributes such as id, purpose,ip_cidr_range and region extracted from the subnets map.
+        type:
+          - list
+          - - object
+            - id: string
+              ip_cidr_range: string
+              purpose: string
+              region: string
       - name: subnets_private_access
         description: Whether the subnets will have access to Google API's without a public IP
         type:
