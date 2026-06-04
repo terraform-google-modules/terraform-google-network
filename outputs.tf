@@ -95,6 +95,6 @@ output "route_names" {
 }
 
 output "subnets_by_region_purpose_ip_cidr_range" {
-  value       = [for subnet in values(module.subnets.subnets) : { id = subnet.id, purpose = subnet.purpose, region = subnet.region,ip_cidr_range = subnet.ip_cidr_range}]
+  value       = [for subnet in values(module.subnets.subnets) : { id = subnet.id, purpose = subnet.purpose, region = subnet.region,ip_cidr_range = subnet.ip_cidr_range }]
   description = "A list of subnet summary objects containing id, purpose,ip_cidr_range and region extracted from the subnets map."
 }
