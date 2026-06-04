@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [18.1.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.1.0...v18.1.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* added new output field in vpc and corrected connetion in routes ([#698](https://github.com/terraform-google-modules/terraform-google-network/issues/698)) ([8993633](https://github.com/terraform-google-modules/terraform-google-network/commit/89936338dd64356a6effaba761de06536bbc3205))
+* updated the output field name for vpc ([#700](https://github.com/terraform-google-modules/terraform-google-network/issues/700)) ([15a08fd](https://github.com/terraform-google-modules/terraform-google-network/commit/15a08fd1c83934dcfd18bf7eb9c0f4f7cb68a4bc))
+
 ## [18.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.0.0...v18.1.0) (2026-05-03)
 
 
