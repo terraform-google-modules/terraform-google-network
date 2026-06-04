@@ -48,3 +48,11 @@ variable "module_depends_on" {
   type        = list(any)
   default     = []
 }
+
+variable "common_next_hop_config" {
+  description = "A map containing common next hop details for routes. If value any input for routes is not provided it will take the value from here if provided."
+  type = object({
+    next_hop_ilb = optional(string)
+  })
+  default = {}
+}

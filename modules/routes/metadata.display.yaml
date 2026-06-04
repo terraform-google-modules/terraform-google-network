@@ -26,6 +26,9 @@ spec:
   ui:
     input:
       variables:
+        common_next_hop_config:
+          name: common_next_hop_config
+          title: Common Next Hop Config
         module_depends_on:
           name: module_depends_on
           title: Module Depends On
