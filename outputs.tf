@@ -32,7 +32,7 @@ output "subnets_by_region_purpose" {
 output "network_name" {
   value       = module.vpc.network_name
   description = "The name of the VPC being created"
-  depends_on  = [module.vpc]
+  depends_on  = [module.vpc.network_id]
 }
 
 output "network_id" {
