@@ -30,7 +30,8 @@ output "subnets_by_region_purpose" {
 }
 
 output "network_name" {
-  value       = module.vpc.network_name
+  # This expression ensures the output value is not known until the VPC is created.
+  value       = module.vpc.network_id != "" ? module.vpc.network_name : null
   description = "The name of the VPC being created"
 }
 
