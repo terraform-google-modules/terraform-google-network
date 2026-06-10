@@ -29,6 +29,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:vpc/v18.1.1"
+    module_name = "blueprints/terraform/terraform-google-network:vpc/v18.1.2"
   }
 }

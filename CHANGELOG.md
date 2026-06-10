@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [18.1.2](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.1.1...v18.1.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* added dependency in output variable ([#701](https://github.com/terraform-google-modules/terraform-google-network/issues/701)) ([708a488](https://github.com/terraform-google-modules/terraform-google-network/commit/708a48821475027673bca760aa727bf763b890ba))
+
 ## [18.1.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.1.0...v18.1.1) (2026-06-04)
 
 
