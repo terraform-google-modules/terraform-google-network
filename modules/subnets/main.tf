@@ -56,15 +56,18 @@ resource "google_compute_subnetwork" "subnetwork" {
     for_each = contains(keys(var.secondary_ranges), each.value.subnet_name) == true ? var.secondary_ranges[each.value.subnet_name] : []
 
     content {
-      range_name    = secondary_ip_range.value.range_name
-      ip_cidr_range = secondary_ip_range.value.ip_cidr_range
+      range_name              = secondary_ip_range.value.range_name
+      ip_cidr_range           = secondary_ip_range.value.ip_cidr_range
+      reserved_internal_range = secondary_ip_range.value.reserved_internal_range
     }
   }
 
-  purpose          = lookup(each.value, "purpose", null)
-  role             = lookup(each.value, "role", null)
-  stack_type       = lookup(each.value, "stack_type", null)
-  ipv6_access_type = lookup(each.value, "ipv6_access_type", null)
+  purpose              = lookup(each.value, "purpose", null)
+  role                 = lookup(each.value, "role", null)
+  stack_type           = lookup(each.value, "stack_type", null)
+  ipv6_access_type     = lookup(each.value, "ipv6_access_type", null)
+  ip_collection        = lookup(each.value, "ip_collection", null)
+  external_ipv6_prefix = lookup(each.value, "external_ipv6_prefix", null)
 
   lifecycle {
     precondition {

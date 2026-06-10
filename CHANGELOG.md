@@ -2,6 +2,63 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [18.1.2](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.1.1...v18.1.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* added dependency in output variable ([#701](https://github.com/terraform-google-modules/terraform-google-network/issues/701)) ([708a488](https://github.com/terraform-google-modules/terraform-google-network/commit/708a48821475027673bca760aa727bf763b890ba))
+
+## [18.1.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.1.0...v18.1.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* added new output field in vpc and corrected connetion in routes ([#698](https://github.com/terraform-google-modules/terraform-google-network/issues/698)) ([8993633](https://github.com/terraform-google-modules/terraform-google-network/commit/89936338dd64356a6effaba761de06536bbc3205))
+* updated the output field name for vpc ([#700](https://github.com/terraform-google-modules/terraform-google-network/issues/700)) ([15a08fd](https://github.com/terraform-google-modules/terraform-google-network/commit/15a08fd1c83934dcfd18bf7eb9c0f4f7cb68a4bc))
+
+## [18.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.0.0...v18.1.0) (2026-05-03)
+
+
+### Features
+
+* Implement private services connection module with examples and tests ([#692](https://github.com/terraform-google-modules/terraform-google-network/issues/692)) ([1abce4f](https://github.com/terraform-google-modules/terraform-google-network/commit/1abce4fef75e4889396fac663affe86199ed7af2))
+* support reserved_internal_range in secondary_ranges ([#693](https://github.com/terraform-google-modules/terraform-google-network/issues/693)) ([5f8760d](https://github.com/terraform-google-modules/terraform-google-network/commit/5f8760d40fdf5325a908c49c6f4e0f0d6d53de2b))
+
+## [18.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v17.1.0...v18.0.0) (2026-04-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v7 ([#662](https://github.com/terraform-google-modules/terraform-google-network/issues/662))
+
+### Features
+
+* Add MySQL and PostgreSQL connections ([#690](https://github.com/terraform-google-modules/terraform-google-network/issues/690)) ([bca5e20](https://github.com/terraform-google-modules/terraform-google-network/commit/bca5e20430ac0c2663e84073455c503053363130))
+
+
+### Bug Fixes
+
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v7 ([#662](https://github.com/terraform-google-modules/terraform-google-network/issues/662)) ([2027d08](https://github.com/terraform-google-modules/terraform-google-network/commit/2027d0885f3fa9577d6990bb1005e15e11b66cd3))
+
+## [17.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v17.0.0...v17.1.0) (2026-04-09)
+
+
+### Features
+
+* Add connection with regional L7 load balancer ([#687](https://github.com/terraform-google-modules/terraform-google-network/issues/687)) ([fe9ef03](https://github.com/terraform-google-modules/terraform-google-network/commit/fe9ef0389207161cdc87e3e37eea2c0aad210622))
+
+## [17.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.1.0...v17.0.0) (2026-04-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **TPG>6.28.0:** expose ip_collection and external_ipv6_prefix in subnets module ([#685](https://github.com/terraform-google-modules/terraform-google-network/issues/685))
+
+### Features
+
+* **TPG>6.28.0:** expose ip_collection and external_ipv6_prefix in subnets module ([#685](https://github.com/terraform-google-modules/terraform-google-network/issues/685)) ([7599552](https://github.com/terraform-google-modules/terraform-google-network/commit/7599552c7da6fdcf953f60f573ee1b7801870a7c))
+
 ## [16.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.0.1...v16.1.0) (2026-03-09)
 
 

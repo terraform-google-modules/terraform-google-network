@@ -48,12 +48,14 @@ variable "subnets" {
     role                             = optional(string)
     stack_type                       = optional(string)
     ipv6_access_type                 = optional(string)
+    ip_collection                    = optional(string)
+    external_ipv6_prefix             = optional(string)
   }))
   description = "The list of subnets being created"
 }
 
 variable "secondary_ranges" {
-  type        = map(list(object({ range_name = string, ip_cidr_range = string })))
+  type        = map(list(object({ range_name = string, ip_cidr_range = optional(string), reserved_internal_range = optional(string) })))
   description = "Secondary ranges that will be used in some of the subnets"
   default     = {}
 }

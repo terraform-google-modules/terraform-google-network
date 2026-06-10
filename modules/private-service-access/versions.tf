@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,17 @@ terraform {
   required_version = ">= 1.3"
 
   required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 6.18, < 8"
+    }
     google-beta = {
       source  = "hashicorp/google-beta"
-      version = ">= 3.0, < 8"
+      version = ">= 6.18, < 8"
     }
   }
 
-  provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-google-network:routes-beta/v18.1.2"
+  provider_meta "google" {
+    module_name = "blueprints/terraform/terraform-google-network:private-service-access/v18.1.2"
   }
 }
