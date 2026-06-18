@@ -35,3 +35,9 @@ variable "prefix_length" {
   type        = number
   default     = 16
 }
+
+variable "existing_peering_ranges" {
+  description = "Names of pre-existing reserved IP ranges to use for the peering connection. When set, no new google_compute_global_address is created. Use this to adopt an existing service networking connection into Terraform state without recreating the address."
+  type        = list(string)
+  default     = []
+}

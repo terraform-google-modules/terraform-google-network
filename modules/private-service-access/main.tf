@@ -15,6 +15,7 @@
  */
 
 resource "google_compute_global_address" "private_ip_address" {
+  count         = length(var.existing_peering_ranges) == 0 ? 1 : 0
   name          = var.address_name
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
@@ -26,5 +27,5 @@ resource "google_compute_global_address" "private_ip_address" {
 resource "google_service_networking_connection" "private_vpc_connection" {
   network                 = var.network_id
   service                 = "servicenetworking.googleapis.com"
-  reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
+  reserved_peering_ranges = length(var.existing_peering_ranges) > 0 ? var.existing_peering_ranges : [google_compute_global_address.private_ip_address[0].name]
 }
