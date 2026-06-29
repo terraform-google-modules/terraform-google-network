@@ -15,8 +15,20 @@
  */
 
 output "network" {
-  value       = google_compute_network.network
-  description = "The VPC resource being created"
+  value = {
+    id                      = google_compute_network.network.id
+    name                    = google_compute_network.network.name
+    project                 = google_compute_network.network.project
+    self_link               = google_compute_network.network.self_link
+    gateway_ipv4            = google_compute_network.network.gateway_ipv4
+    routing_mode            = google_compute_network.network.routing_mode
+    auto_create_subnetworks = google_compute_network.network.auto_create_subnetworks
+    description             = google_compute_network.network.description
+    mtu                     = google_compute_network.network.mtu
+    network_id              = google_compute_network.network.network_id
+    numeric_id              = google_compute_network.network.network_id
+  }
+  description = "Selected attributes of the VPC resource being created"
 }
 
 output "network_name" {
