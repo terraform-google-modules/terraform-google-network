@@ -29,8 +29,8 @@ resource "google_network_connectivity_service_connection_policy" "service_connec
       for x in each.value.subnet_names :
       "projects/${each.value.network_project}/regions/${each.value.location}/subnetworks/${x}"
     ]
-    limit = lookup(each.value, "limit", null)
-    producer_instance_location                         = lookup(each.value, "producer_instance_location", null)
+    limit                                             = lookup(each.value, "limit", null)
+    producer_instance_location                        = lookup(each.value, "producer_instance_location", null)
     allowed_google_producers_resource_hierarchy_level = lookup(each.value, "allowed_google_producers_resource_hierarchy_level", null)
   }
 

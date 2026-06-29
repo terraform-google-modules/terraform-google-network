@@ -28,16 +28,16 @@ variable "enable_apis" {
 variable "service_connection_policies" {
   description = "The Service Connection Policies to create."
   type = map(object({
-    description     = optional(string)
-    location        = string
-    service_class   = string
-    network_name    = string
-    network_project = string
-    subnet_names    = list(string)
-    limit           = optional(number)
-    producer_instance_location                         = optional(string)
+    description                                       = optional(string)
+    location                                          = string
+    service_class                                     = string
+    network_name                                      = string
+    network_project                                   = string
+    subnet_names                                      = list(string)
+    limit                                             = optional(number)
+    producer_instance_location                        = optional(string)
     allowed_google_producers_resource_hierarchy_level = optional(list(string))
-    labels          = optional(map(string), {})
+    labels                                            = optional(map(string), {})
   }))
   default = {}
 }
