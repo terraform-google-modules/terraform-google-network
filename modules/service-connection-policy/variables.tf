@@ -19,39 +19,24 @@ variable "project_id" {
   type        = string
 }
 
-variable "location" {
-  description = "Region where the Service Connection Policies will be created (e.g., us-east4)."
-  type        = string
-}
-
-variable "service_class" {
-  description = "Service class of the managed service to enable PSC for (see product docs for valid values)."
-  type        = string
-}
-
 variable "enable_apis" {
   description = "Whether to enable required APIs in the project."
   type        = bool
   default     = true
 }
 
-variable "activate_apis" {
-  description = "APIs to enable when enable_apis is true."
-  type        = list(string)
-  default = [
-    "networkconnectivity.googleapis.com",
-    "compute.googleapis.com",
-  ]
-}
-
 variable "service_connection_policies" {
   description = "The Service Connection Policies to create."
   type = map(object({
     description     = optional(string)
+    location        = string
+    service_class   = string
     network_name    = string
     network_project = string
     subnet_names    = list(string)
     limit           = optional(number)
+    producer_instance_location                         = optional(string)
+    allowed_google_producers_resource_hierarchy_level = optional(list(string))
     labels          = optional(map(string), {})
   }))
   default = {}

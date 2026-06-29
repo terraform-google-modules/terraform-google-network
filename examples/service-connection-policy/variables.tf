@@ -18,15 +18,3 @@ variable "project_id" {
   description = "Project ID."
   type        = string
 }
-
-variable "region" {
-  description = "Region (e.g., us-central1)."
-  type        = string
-  default     = "us-central1"
-}
-
-variable "service_class" {
-  description = "Service class for the managed service (example value shown in README)."
-  type        = string
-  default     = "gcp-memorystore-redis"
-}

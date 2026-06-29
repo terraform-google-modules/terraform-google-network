@@ -20,7 +20,11 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = ">= 6.0"
+      version = ">= 6.40, < 8"
     }
+  }
+
+  provider_meta "google" {
+    module_name = "blueprints/terraform/terraform-google-network:service-connection-policy/v18.1.2"
   }
 }

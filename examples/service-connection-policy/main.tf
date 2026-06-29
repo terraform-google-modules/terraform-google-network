@@ -16,12 +16,12 @@
 
 provider "google" {
   project = var.project_id
-  region  = var.region
+  region  = "us-central1"
 }
 
 module "network" {
   source  = "terraform-google-modules/network/google"
-  version = "~> 13.1"
+  version = "~> 18.1"
 
   project_id   = var.project_id
   network_name = "example-vpc"
@@ -30,20 +30,21 @@ module "network" {
     {
       subnet_name   = "psc-subnet"
       subnet_ip     = "10.10.0.0/24"
-      subnet_region = var.region
+      subnet_region = "us-central1"
     }
   ]
 }
 
 module "service_connection_policy" {
-  source = "terraform-google-modules/network/google//modules/service-connection-policy"
+  source  = "terraform-google-modules/network/google//modules/service-connection-policy"
+  version = "~> 18.1"
 
-  project_id    = var.project_id
-  location      = var.region
-  service_class = var.service_class
+  project_id = var.project_id
 
   service_connection_policies = {
     "example-scp" = {
+      location        = "us-central1"
+      service_class   = "gcp-memorystore-redis"
       network_project = var.project_id
       network_name    = "example-vpc"
       subnet_names    = ["psc-subnet"]

@@ -4,6 +4,8 @@ This example creates:
 - A VPC network and a subnetwork
 - A Service Connection Policy attached to that network and subnetwork
 
+All values are hardcoded except `project_id`.
+
 ## Run
 
 ```bash
@@ -16,8 +18,6 @@ terraform apply
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | project\_id | Project ID. | `string` | n/a | yes |
-| region | Region (e.g., us-central1). | `string` | `"us-central1"` | no |
-| service\_class | Service class for the managed service (example value shown in README). | `string` | `"gcp-memorystore-redis"` | no |
 
 ## Outputs
 

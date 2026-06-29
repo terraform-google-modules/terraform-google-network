@@ -39,33 +39,23 @@ spec:
         description: The project ID where APIs will be enabled (when enable_apis is true).
         varType: string
         required: true
-      - name: location
-        description: Region where the Service Connection Policies will be created (e.g., us-east4).
-        varType: string
-        required: true
-      - name: service_class
-        description: Service class of the managed service to enable PSC for (see product docs for valid values).
-        varType: string
-        required: true
       - name: enable_apis
         description: Whether to enable required APIs in the project.
         varType: bool
         defaultValue: true
-      - name: activate_apis
-        description: APIs to enable when enable_apis is true.
-        varType: list(string)
-        defaultValue:
-          - networkconnectivity.googleapis.com
-          - compute.googleapis.com
       - name: service_connection_policies
         description: The Service Connection Policies to create.
         varType: |-
           map(object({
               description     = optional(string)
+              location        = string
+              service_class   = string
               network_name    = string
               network_project = string
               subnet_names    = list(string)
               limit           = optional(number)
+              producer_instance_location                         = optional(string)
+              allowed_google_producers_resource_hierarchy_level = optional(list(string))
               labels          = optional(map(string), {})
             }))
         defaultValue: {}
@@ -84,7 +74,8 @@ spec:
     services:
       - compute.googleapis.com
       - networkconnectivity.googleapis.com
+      - serviceconsumermanagement.googleapis.com
       - serviceusage.googleapis.com
     providerVersions:
       - source: hashicorp/google
-        version: ">= 6.0"
+        version: ">= 6.40, < 8"

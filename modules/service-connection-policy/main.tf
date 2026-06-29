@@ -18,8 +18,8 @@ resource "google_network_connectivity_service_connection_policy" "service_connec
   for_each      = var.service_connection_policies
   project       = each.value.network_project
   name          = each.key
-  location      = var.location
-  service_class = var.service_class
+  location      = each.value.location
+  service_class = each.value.service_class
   description   = lookup(each.value, "description", null)
   network       = "projects/${each.value.network_project}/global/networks/${each.value.network_name}"
   labels        = each.value.labels
@@ -27,9 +27,11 @@ resource "google_network_connectivity_service_connection_policy" "service_connec
   psc_config {
     subnetworks = [
       for x in each.value.subnet_names :
-      "projects/${each.value.network_project}/regions/${var.location}/subnetworks/${x}"
+      "projects/${each.value.network_project}/regions/${each.value.location}/subnetworks/${x}"
     ]
     limit = lookup(each.value, "limit", null)
+    producer_instance_location                         = lookup(each.value, "producer_instance_location", null)
+    allowed_google_producers_resource_hierarchy_level = lookup(each.value, "allowed_google_producers_resource_hierarchy_level", null)
   }
 
   depends_on = [module.enable_apis]
@@ -45,5 +47,9 @@ module "enable_apis" {
   disable_services_on_destroy = false
   disable_dependent_services  = false
 
-  activate_apis = var.activate_apis
+  activate_apis = [
+    "serviceconsumermanagement.googleapis.com",
+    "networkconnectivity.googleapis.com",
+    "compute.googleapis.com",
+  ]
 }
