@@ -2,6 +2,130 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [18.1.2](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.1.1...v18.1.2) (2026-06-10)
+
+
+### Bug Fixes
+
+* added dependency in output variable ([#701](https://github.com/terraform-google-modules/terraform-google-network/issues/701)) ([708a488](https://github.com/terraform-google-modules/terraform-google-network/commit/708a48821475027673bca760aa727bf763b890ba))
+
+## [18.1.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.1.0...v18.1.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* added new output field in vpc and corrected connetion in routes ([#698](https://github.com/terraform-google-modules/terraform-google-network/issues/698)) ([8993633](https://github.com/terraform-google-modules/terraform-google-network/commit/89936338dd64356a6effaba761de06536bbc3205))
+* updated the output field name for vpc ([#700](https://github.com/terraform-google-modules/terraform-google-network/issues/700)) ([15a08fd](https://github.com/terraform-google-modules/terraform-google-network/commit/15a08fd1c83934dcfd18bf7eb9c0f4f7cb68a4bc))
+
+## [18.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.0.0...v18.1.0) (2026-05-03)
+
+
+### Features
+
+* Implement private services connection module with examples and tests ([#692](https://github.com/terraform-google-modules/terraform-google-network/issues/692)) ([1abce4f](https://github.com/terraform-google-modules/terraform-google-network/commit/1abce4fef75e4889396fac663affe86199ed7af2))
+* support reserved_internal_range in secondary_ranges ([#693](https://github.com/terraform-google-modules/terraform-google-network/issues/693)) ([5f8760d](https://github.com/terraform-google-modules/terraform-google-network/commit/5f8760d40fdf5325a908c49c6f4e0f0d6d53de2b))
+
+## [18.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v17.1.0...v18.0.0) (2026-04-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v7 ([#662](https://github.com/terraform-google-modules/terraform-google-network/issues/662))
+
+### Features
+
+* Add MySQL and PostgreSQL connections ([#690](https://github.com/terraform-google-modules/terraform-google-network/issues/690)) ([bca5e20](https://github.com/terraform-google-modules/terraform-google-network/commit/bca5e20430ac0c2663e84073455c503053363130))
+
+
+### Bug Fixes
+
+* **deps:** Update Terraform terraform-google-modules/cloud-dns/google to v7 ([#662](https://github.com/terraform-google-modules/terraform-google-network/issues/662)) ([2027d08](https://github.com/terraform-google-modules/terraform-google-network/commit/2027d0885f3fa9577d6990bb1005e15e11b66cd3))
+
+## [17.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v17.0.0...v17.1.0) (2026-04-09)
+
+
+### Features
+
+* Add connection with regional L7 load balancer ([#687](https://github.com/terraform-google-modules/terraform-google-network/issues/687)) ([fe9ef03](https://github.com/terraform-google-modules/terraform-google-network/commit/fe9ef0389207161cdc87e3e37eea2c0aad210622))
+
+## [17.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.1.0...v17.0.0) (2026-04-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **TPG>6.28.0:** expose ip_collection and external_ipv6_prefix in subnets module ([#685](https://github.com/terraform-google-modules/terraform-google-network/issues/685))
+
+### Features
+
+* **TPG>6.28.0:** expose ip_collection and external_ipv6_prefix in subnets module ([#685](https://github.com/terraform-google-modules/terraform-google-network/issues/685)) ([7599552](https://github.com/terraform-google-modules/terraform-google-network/commit/7599552c7da6fdcf953f60f573ee1b7801870a7c))
+
+## [16.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.0.1...v16.1.0) (2026-03-09)
+
+
+### Features
+
+* Added connections with VPC component ([#682](https://github.com/terraform-google-modules/terraform-google-network/issues/682)) ([28eeaeb](https://github.com/terraform-google-modules/terraform-google-network/commit/28eeaeb60badaefa18654c58f55b0dbca892c3f2))
+
+## [16.0.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v16.0.0...v16.0.1) (2026-02-25)
+
+
+### Bug Fixes
+
+* added the new output variable for subets, added the visibility to the existing output variables and added input variable subnets_region ([#678](https://github.com/terraform-google-modules/terraform-google-network/issues/678)) ([2b8c9fe](https://github.com/terraform-google-modules/terraform-google-network/commit/2b8c9fe96da03b62ff1d783c69901bcf082c4f87))
+
+## [16.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v15.2.0...v16.0.0) (2026-02-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* add ADC compliance for modules/routes ([#677](https://github.com/terraform-google-modules/terraform-google-network/issues/677))
+
+### Features
+
+* add ADC compliance for modules/routes ([#677](https://github.com/terraform-google-modules/terraform-google-network/issues/677)) ([8eff67d](https://github.com/terraform-google-modules/terraform-google-network/commit/8eff67dffb8d8ae2c1f1c63fb55134f7ea88d279))
+
+## [15.2.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v15.1.0...v15.2.0) (2026-02-09)
+
+
+### Features
+
+* Adding connection with ILB ([#673](https://github.com/terraform-google-modules/terraform-google-network/issues/673)) ([3341231](https://github.com/terraform-google-modules/terraform-google-network/commit/3341231a29669362f6b6d19c99be43aae92ab762))
+
+## [15.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v15.0.0...v15.1.0) (2026-02-05)
+
+
+### Features
+
+* **firewall_rules:** add connections and output types in metadata.yaml ([#671](https://github.com/terraform-google-modules/terraform-google-network/issues/671)) ([9a526c9](https://github.com/terraform-google-modules/terraform-google-network/commit/9a526c995181aa7ac36d4c2ecb66afee625d7c07))
+
+## [15.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v14.0.0...v15.0.0) (2026-02-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* fixing connection with global & regional lb modules ([#669](https://github.com/terraform-google-modules/terraform-google-network/issues/669))
+
+### Bug Fixes
+
+* fixing connection with global & regional lb modules ([#669](https://github.com/terraform-google-modules/terraform-google-network/issues/669)) ([fbbd57e](https://github.com/terraform-google-modules/terraform-google-network/commit/fbbd57eb30c9ab535bd1eaf681f1ed3e9a7f8cc9))
+
+## [14.0.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.1.0...v14.0.0) (2026-02-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* Fixing connection with psc producer ([#667](https://github.com/terraform-google-modules/terraform-google-network/issues/667))
+* **TPG>6.42:** Add policy_type variable to network firewall policy ([#657](https://github.com/terraform-google-modules/terraform-google-network/issues/657))
+
+### Features
+
+* **TPG>6.42:** Add policy_type variable to network firewall policy ([#657](https://github.com/terraform-google-modules/terraform-google-network/issues/657)) ([3ca6e5e](https://github.com/terraform-google-modules/terraform-google-network/commit/3ca6e5ecbee6990921cc66e43d10b51060f6da91))
+
+
+### Bug Fixes
+
+* Fixing connection with psc producer ([#667](https://github.com/terraform-google-modules/terraform-google-network/issues/667)) ([5c5a8cb](https://github.com/terraform-google-modules/terraform-google-network/commit/5c5a8cb80e363ad1338d468d485cf3e788f10f61))
+
 ## [13.1.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v13.0.1...v13.1.0) (2026-01-22)
 
 

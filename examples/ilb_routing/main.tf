@@ -16,7 +16,7 @@
 
 module "vpc" {
   source  = "terraform-google-modules/network/google//modules/vpc"
-  version = "~> 13.0"
+  version = "~> 16.0"
 
   network_name = var.network_name
   project_id   = var.project_id
@@ -24,7 +24,7 @@ module "vpc" {
 
 module "subnets" {
   source  = "terraform-google-modules/network/google//modules/subnets-beta"
-  version = "~> 13.0"
+  version = "~> 16.0"
 
   project_id   = var.project_id
   network_name = module.vpc.network_name
@@ -47,7 +47,7 @@ module "subnets" {
 
 module "subnets-backup" {
   source  = "terraform-google-modules/network/google//modules/subnets-beta"
-  version = "~> 13.0"
+  version = "~> 16.0"
 
   project_id   = var.project_id
   network_name = module.vpc.network_name
@@ -96,8 +96,7 @@ resource "google_compute_forwarding_rule" "this" {
 }
 
 module "routes" {
-  source       = "terraform-google-modules/network/google//modules/routes-beta"
-  version      = "~> 13.0"
+  source       = "../../modules/routes-beta"
   project_id   = var.project_id
   network_name = module.vpc.network_name
   routes_count = 2
@@ -107,8 +106,8 @@ module "routes" {
       name              = "${var.network_name}-egress-inet"
       description       = "route through IGW to access internet"
       destination_range = "0.0.0.0/0"
-      tags              = "egress-inet"
-      next_hop_internet = "true"
+      tags              = ["egress-inet"]
+      next_hop_internet = true
     },
     {
       name              = "${var.network_name}-ilb"

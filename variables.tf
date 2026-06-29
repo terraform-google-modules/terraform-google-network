@@ -36,11 +36,17 @@ variable "shared_vpc_host" {
   default     = false
 }
 
+variable "subnets_region" {
+  type        = string
+  description = "Optional subnets region. If set, all subnets will be created in this region."
+  default     = null
+}
+
 variable "subnets" {
   type = list(object({
     subnet_name                      = string
     subnet_ip                        = string
-    subnet_region                    = string
+    subnet_region                    = optional(string)
     subnet_private_access            = optional(string)
     subnet_private_ipv6_access       = optional(string)
     subnet_flow_logs                 = optional(string)
@@ -54,20 +60,35 @@ variable "subnets" {
     role                             = optional(string)
     stack_type                       = optional(string)
     ipv6_access_type                 = optional(string)
+    ip_collection                    = optional(string)
+    external_ipv6_prefix             = optional(string)
   }))
   description = "The list of subnets being created"
 }
 
 variable "secondary_ranges" {
-  type        = map(list(object({ range_name = string, ip_cidr_range = string })))
+  type        = map(list(object({ range_name = string, ip_cidr_range = optional(string), reserved_internal_range = optional(string) })))
   description = "Secondary ranges that will be used in some of the subnets"
   default     = {}
 }
 
 variable "routes" {
-  type        = list(map(string))
-  description = "List of routes being created in this VPC"
-  default     = []
+  description = "List of routes being created in this VPC."
+  type = list(object({
+    name                   = string
+    description            = optional(string)
+    tags                   = optional(list(string), [])
+    destination_range      = string
+    next_hop_gateway       = optional(string)
+    next_hop_internet      = optional(bool, false)
+    next_hop_ip            = optional(string)
+    next_hop_instance      = optional(string)
+    next_hop_instance_zone = optional(string)
+    next_hop_vpn_tunnel    = optional(string)
+    next_hop_ilb           = optional(string)
+    priority               = optional(number, 1000)
+  }))
+  default = []
 }
 
 variable "firewall_rules" {
@@ -229,3 +250,18 @@ variable "bgp_inter_region_cost" {
   description = "Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`."
   default     = null
 }
+
+variable "private_service_access_config" {
+  description = "Configuration for Private Service Access (PSA) connection."
+  type = object({
+    enable_private_services_connection = bool
+    address_name                       = string
+    prefix_length                      = number
+  })
+  default = {
+    enable_private_services_connection = false
+    address_name                       = "private-ip-address"
+    prefix_length                      = 16
+  }
+}
+

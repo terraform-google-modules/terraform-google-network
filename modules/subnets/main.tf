@@ -17,7 +17,7 @@
 locals {
   subnets = {
     for x in var.subnets :
-    "${x.subnet_region}/${x.subnet_name}" => x
+    "${coalesce(var.subnets_region, x.subnet_region, "undefined")}/${x.subnet_name}" => x
   }
 }
 
@@ -30,7 +30,7 @@ resource "google_compute_subnetwork" "subnetwork" {
   for_each                   = local.subnets
   name                       = each.value.subnet_name
   ip_cidr_range              = each.value.subnet_ip
-  region                     = each.value.subnet_region
+  region                     = var.subnets_region != null ? var.subnets_region : each.value.subnet_region
   private_ip_google_access   = lookup(each.value, "subnet_private_access", "false")
   private_ipv6_google_access = lookup(each.value, "subnet_private_ipv6_access", null)
   dynamic "log_config" {
@@ -56,13 +56,23 @@ resource "google_compute_subnetwork" "subnetwork" {
     for_each = contains(keys(var.secondary_ranges), each.value.subnet_name) == true ? var.secondary_ranges[each.value.subnet_name] : []
 
     content {
-      range_name    = secondary_ip_range.value.range_name
-      ip_cidr_range = secondary_ip_range.value.ip_cidr_range
+      range_name              = secondary_ip_range.value.range_name
+      ip_cidr_range           = secondary_ip_range.value.ip_cidr_range
+      reserved_internal_range = secondary_ip_range.value.reserved_internal_range
     }
   }
 
-  purpose          = lookup(each.value, "purpose", null)
-  role             = lookup(each.value, "role", null)
-  stack_type       = lookup(each.value, "stack_type", null)
-  ipv6_access_type = lookup(each.value, "ipv6_access_type", null)
+  purpose              = lookup(each.value, "purpose", null)
+  role                 = lookup(each.value, "role", null)
+  stack_type           = lookup(each.value, "stack_type", null)
+  ipv6_access_type     = lookup(each.value, "ipv6_access_type", null)
+  ip_collection        = lookup(each.value, "ip_collection", null)
+  external_ipv6_prefix = lookup(each.value, "external_ipv6_prefix", null)
+
+  lifecycle {
+    precondition {
+      condition     = var.subnets_region != null || each.value.subnet_region != null
+      error_message = "A region must be provided either via 'subnets_region' or 'subnet_region' in the subnet definition."
+    }
+  }
 }

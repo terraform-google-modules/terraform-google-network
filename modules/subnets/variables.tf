@@ -24,11 +24,17 @@ variable "network_name" {
   type        = string
 }
 
+variable "subnets_region" {
+  type        = string
+  description = "Optional subnets region. If set, all subnets will be created in this region."
+  default     = null
+}
+
 variable "subnets" {
   type = list(object({
     subnet_name                      = string
     subnet_ip                        = string
-    subnet_region                    = string
+    subnet_region                    = optional(string)
     subnet_private_access            = optional(string, "false")
     subnet_private_ipv6_access       = optional(string)
     subnet_flow_logs                 = optional(string, "false")
@@ -42,12 +48,14 @@ variable "subnets" {
     role                             = optional(string)
     stack_type                       = optional(string)
     ipv6_access_type                 = optional(string)
+    ip_collection                    = optional(string)
+    external_ipv6_prefix             = optional(string)
   }))
   description = "The list of subnets being created"
 }
 
 variable "secondary_ranges" {
-  type        = map(list(object({ range_name = string, ip_cidr_range = string })))
+  type        = map(list(object({ range_name = string, ip_cidr_range = optional(string), reserved_internal_range = optional(string) })))
   description = "Secondary ranges that will be used in some of the subnets"
   default     = {}
 }

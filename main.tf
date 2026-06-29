@@ -45,6 +45,7 @@ module "subnets" {
   network_name     = module.vpc.network_name
   subnets          = var.subnets
   secondary_ranges = var.secondary_ranges
+  subnets_region   = var.subnets_region
 }
 
 /******************************************
@@ -88,4 +89,14 @@ module "firewall_rules" {
   rules         = local.rules
   ingress_rules = var.ingress_rules
   egress_rules  = var.egress_rules
+}
+
+module "private_service_access" {
+  source = "./modules/private-service-access"
+  count  = var.private_service_access_config.enable_private_services_connection ? 1 : 0
+
+  project_id    = var.project_id
+  network_id    = module.vpc.network_id
+  address_name  = var.private_service_access_config.address_name
+  prefix_length = var.private_service_access_config.prefix_length
 }
