@@ -30,7 +30,8 @@ output "subnets_by_region_purpose" {
 }
 
 output "network_name" {
-  value       = module.vpc.network_name
+  # This expression ensures the output value is not known until the VPC is created.
+  value       = module.vpc.network_id != "" ? module.vpc.network_name : null
   description = "The name of the VPC being created"
 }
 
@@ -92,4 +93,9 @@ output "subnets_secondary_ranges" {
 output "route_names" {
   value       = [for route in module.routes.routes : route.name]
   description = "The route names associated with this VPC"
+}
+
+output "subnets_overview" {
+  value       = [for subnet in values(module.subnets.subnets) : { id = subnet.id, purpose = subnet.purpose, region = subnet.region, ip_cidr_range = subnet.ip_cidr_range }]
+  description = "A high-level overview of the created subnets and their core addressing/routing attributes such as id, purpose,ip_cidr_range and region extracted from the subnets map."
 }

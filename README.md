@@ -150,6 +150,7 @@ Then perform the following commands on the root folder:
 | subnets\_ids | The IDs of the subnets being created |
 | subnets\_ips | The IPs and CIDRs of the subnets being created |
 | subnets\_names | The names of the subnets being created |
+| subnets\_overview | A high-level overview of the created subnets and their core addressing/routing attributes such as id, purpose,ip\_cidr\_range and region extracted from the subnets map. |
 | subnets\_private\_access | Whether the subnets will have access to Google API's without a public IP |
 | subnets\_regions | The region where the subnets will be created |
 | subnets\_secondary\_ranges | The secondary ranges associated with these subnets |

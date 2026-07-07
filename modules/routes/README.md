@@ -44,6 +44,7 @@ module "vpc" {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
+| common\_next\_hop\_config | A map containing common next hop details for routes. If value any input for routes is not provided it will take the value from here if provided. | <pre>object({<br>    next_hop_ilb = optional(string)<br>  })</pre> | `{}` | no |
 | module\_depends\_on | List of modules or resources this module depends on. | `list(any)` | `[]` | no |
 | network\_name | The name of the network where routes will be created | `string` | n/a | yes |
 | project\_id | The ID of the project where the routes will be created | `string` | n/a | yes |

@@ -24,7 +24,7 @@ spec:
     source:
       repo: https://github.com/terraform-google-modules/terraform-google-network.git
       sourceType: git
-    version: 18.1.0
+    version: 18.1.2
     actuationTool:
       flavor: Terraform
       version: ">= 1.3"
@@ -435,6 +435,15 @@ spec:
         type:
           - list
           - string
+      - name: subnets_overview
+        description: A high-level overview of the created subnets and their core addressing/routing attributes such as id, purpose,ip_cidr_range and region extracted from the subnets map.
+        type:
+          - list
+          - - object
+            - id: string
+              ip_cidr_range: string
+              purpose: string
+              region: string
       - name: subnets_private_access
         description: Whether the subnets will have access to Google API's without a public IP
         type:

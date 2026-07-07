@@ -39,7 +39,7 @@ resource "google_compute_route" "route" {
   next_hop_instance      = each.value.next_hop_instance
   next_hop_instance_zone = each.value.next_hop_instance_zone
   next_hop_vpn_tunnel    = each.value.next_hop_vpn_tunnel
-  next_hop_ilb           = each.value.next_hop_ilb
+  next_hop_ilb           = each.value.next_hop_ilb != null ? each.value.next_hop_ilb : var.common_next_hop_config.next_hop_ilb
   priority               = each.value.priority
 
   depends_on = [var.module_depends_on]

@@ -149,6 +149,8 @@ spec:
           visibility: VISIBILITY_ROOT
         subnets_names:
           visibility: VISIBILITY_ROOT
+        subnets_overview:
+          visibility: VISIBILITY_ROOT
         subnets_private_access:
           visibility: VISIBILITY_ROOT
         subnets_regions:
