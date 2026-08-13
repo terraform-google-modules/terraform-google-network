@@ -17,12 +17,17 @@
 locals {
   prefix = var.policy_region == null ? var.policy_name : "${var.policy_name}-${var.policy_region}"
   global = var.policy_region == null
+
+  use_map       = length(var.target_vpcs_map) > 0
+  use_list      = length(var.target_vpcs) > 0
+  final_vpc_map = local.use_map ? var.target_vpcs_map : (local.use_list ? { for x in var.target_vpcs : base64encode(x) => x } : {})
 }
 
 ########## Global ##########
 
 resource "google_compute_network_firewall_policy" "fw_policy" {
-  count       = local.global ? 1 : 0
+  count = local.global ? 1 : 0
+
   name        = var.policy_name
   project     = var.project_id
   description = var.description
@@ -30,7 +35,8 @@ resource "google_compute_network_firewall_policy" "fw_policy" {
 }
 
 resource "google_compute_network_firewall_policy_association" "vpc_associations" {
-  for_each          = local.global && length(var.target_vpcs) > 0 ? { for x in var.target_vpcs : base64encode(x) => x } : {}
+  for_each = local.global && (local.use_map || local.use_list) ? local.final_vpc_map : {}
+
   name              = "${local.prefix}-${element(split("/", each.value), length(split("/", each.value)) - 1)}"
   attachment_target = each.value
   firewall_policy   = google_compute_network_firewall_policy.fw_policy[0].name
@@ -39,8 +45,8 @@ resource "google_compute_network_firewall_policy_association" "vpc_associations"
 
 resource "google_compute_network_firewall_policy_rule" "rules" {
   provider = google-beta
+  for_each = local.global ? { for x in var.rules : x.priority => x if x.is_mirroring == false } : {}
 
-  for_each                = local.global ? { for x in var.rules : x.priority => x if x.is_mirroring == false } : {}
   priority                = each.key
   project                 = var.project_id
   action                  = each.value.action
@@ -100,8 +106,8 @@ resource "google_compute_network_firewall_policy_rule" "rules" {
 
 resource "google_compute_network_firewall_policy_packet_mirroring_rule" "rules" {
   provider = google-beta
+  for_each = local.global ? { for x in var.rules : x.priority => x if x.is_mirroring == true } : {}
 
-  for_each               = local.global ? { for x in var.rules : x.priority => x if x.is_mirroring == true } : {}
   priority               = each.key
   project                = var.project_id
   action                 = each.value.action
@@ -139,7 +145,8 @@ resource "google_compute_network_firewall_policy_packet_mirroring_rule" "rules" 
 ########## Regional ##########
 
 resource "google_compute_region_network_firewall_policy" "fw_policy" {
-  count       = local.global ? 0 : 1
+  count = local.global ? 0 : 1
+
   name        = var.policy_name
   project     = var.project_id
   description = var.description
@@ -148,7 +155,8 @@ resource "google_compute_region_network_firewall_policy" "fw_policy" {
 }
 
 resource "google_compute_region_network_firewall_policy_association" "vpc_associations" {
-  for_each          = !local.global && length(var.target_vpcs) > 0 ? { for x in var.target_vpcs : base64encode(x) => x } : {}
+  for_each = !local.global && (local.use_map || local.use_list) ? local.final_vpc_map : {}
+
   name              = "${local.prefix}-${element(split("/", each.value), length(split("/", each.value)) - 1)}"
   attachment_target = each.value
   firewall_policy   = google_compute_region_network_firewall_policy.fw_policy[0].name

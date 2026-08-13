@@ -35,9 +35,15 @@ variable "description" {
 }
 
 variable "target_vpcs" {
-  description = "List of target VPC IDs that the firewall policy will be attached to"
+  description = "[DEPRECATED] List of target VPC IDs that the firewall policy will be attached to. Use `target_vpcs_map` instead to avoid errors with dynamically created VPCs."
   type        = list(string)
   default     = []
+}
+
+variable "target_vpcs_map" {
+  description = "Map of target VPCs that the firewall policy will be attached to. Keys are static strings (e.g., 'prod-vpc'), values are the VPC IDs."
+  type        = map(string)
+  default     = {}
 }
 
 variable "policy_region" {
