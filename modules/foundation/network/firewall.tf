@@ -22,7 +22,7 @@ module "firewall_rules" {
   source = "../../network-firewall-policy"
 
   project_id  = var.project_id
-  policy_name = "fp-${var.resource_codes.short}-firewalls"
+  policy_name = "fp-${var.resource_code}-firewalls"
   description = "Firewall rules for shared vpc: ${module.main.network_name}."
   target_vpcs_map = {
     vpc = "projects/${var.project_id}/global/networks/${local.network_name}"
@@ -34,7 +34,7 @@ module "firewall_rules" {
         priority       = "65530"
         direction      = "EGRESS"
         action         = "deny"
-        rule_name      = "fw-${var.resource_codes.short}-svpc-65530-e-d-all-all-all"
+        rule_name      = "fw-${var.resource_code}-svpc-65530-e-d-all-all-all"
         description    = "Lower priority rule to deny all egress traffic."
         enable_logging = var.firewall_enable_logging
         match = {
@@ -50,7 +50,7 @@ module "firewall_rules" {
         priority       = "1000"
         direction      = "EGRESS"
         action         = "allow"
-        rule_name      = "fw-${var.resource_codes.short}-svpc-1000-e-a-allow-google-apis-all-tcp-443"
+        rule_name      = "fw-${var.resource_code}-svpc-1000-e-a-allow-google-apis-all-tcp-443"
         description    = "Lower priority rule to allow restricted google apis on TCP port 443."
         enable_logging = var.firewall_enable_logging
         match = {
@@ -69,7 +69,7 @@ module "firewall_rules" {
         priority       = "10000"
         direction      = "EGRESS"
         action         = "allow"
-        rule_name      = "fw-${var.resource_codes.short}-svpc-10000-e-a-all-all-all"
+        rule_name      = "fw-${var.resource_code}-svpc-10000-e-a-all-all-all"
         description    = "Allow all egress to the provided IP range."
         enable_logging = var.firewall_enable_logging
         match = {
@@ -87,7 +87,7 @@ module "firewall_rules" {
         priority       = "10001"
         direction      = "INGRESS"
         action         = "allow"
-        rule_name      = "fw-${var.resource_codes.short}-svpc-10001-i-a-all"
+        rule_name      = "fw-${var.resource_code}-svpc-10001-i-a-all"
         description    = "Allow all ingress to the provided IP range."
         enable_logging = var.firewall_enable_logging
         match = {

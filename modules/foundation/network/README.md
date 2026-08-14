@@ -53,12 +53,9 @@ module "shared_vpc_foundation" {
   project_id = "my-project-id"
   vpc_name   = "core-net" # Final VPC Name: vpc-p-core-net
 
-  # Naming convention codes
-  resource_codes = {
-    short = "p"
-    long  = "production"
-  }
-
+  # Naming convention code
+  resource_code = "p"
+ 
   # Subnet Configuration
   subnets = [
     {
@@ -151,7 +148,7 @@ This module creates a **Network Firewall Policy** attached to the VPC. It does *
 | private\_service\_cidr | CIDR range for private service networking. Used for Cloud SQL and other managed services. | `string` | `null` | no |
 | private\_service\_connect\_ip | The subnet internal IP to be used as the private service connect endpoint in the Shared VPC | `string` | n/a | yes |
 | project\_id | Project ID for VPC. | `string` | n/a | yes |
-| resource\_codes | codes for resources created | <pre>object({<br>    short = optional(string, "p")<br>    long  = optional(string, "production")<br>  })</pre> | n/a | yes |
+| resource\_code | Standardized grouping code used to categorize resources by their environment (e.g., 'p' for production) or their architectural/topology role (e.g., 'h' for hub, 's' for spoke). Used as an infix in resource names (e.g., dp-p-svpc-default-policy) | `string` | n/a | yes |
 | routing\_mode | The network routing mode (default 'GLOBAL') | `string` | `"GLOBAL"` | no |
 | secondary\_ranges | Secondary ranges that will be used in some of the subnets | `map(list(object({ range_name = string, ip_cidr_range = string })))` | `{}` | no |
 | shared\_vpc\_host | Makes this project a Shared VPC host if 'true' (default 'false') | `bool` | `false` | no |

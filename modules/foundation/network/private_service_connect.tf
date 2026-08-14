@@ -18,7 +18,7 @@ module "private_service_connect" {
   source = "../../private-service-connect"
 
   project_id                 = var.project_id
-  dns_code                   = "dz-${var.resource_codes.short}-svpc"
+  dns_code                   = "dz-${var.resource_code}-svpc"
   network_self_link          = module.main.network_self_link
   private_service_connect_ip = var.private_service_connect_ip
   forwarding_rule_target     = "vpc-sc"

@@ -25,12 +25,9 @@ variable "shared_vpc_host" {
   default     = false
 }
 
-variable "resource_codes" {
-  description = "codes for resources created"
-  type = object({
-    short = optional(string, "p")
-    long  = optional(string, "production")
-  })
+variable "resource_code" {
+  type        = string
+  description = "Standardized grouping code used to categorize resources by their environment (e.g., 'p' for production) or their architectural/topology role (e.g., 'h' for hub, 's' for spoke). Used as an infix in resource names (e.g., dp-p-svpc-default-policy)"
 }
 
 variable "vpc_name" {
@@ -46,8 +43,8 @@ variable "description" {
 
 variable "routing_mode" {
   type        = string
-  default     = "GLOBAL"
   description = "The network routing mode (default 'GLOBAL')"
+  default     = "GLOBAL"
 }
 
 variable "subnets" {

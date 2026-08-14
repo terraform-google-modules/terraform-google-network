@@ -49,6 +49,9 @@ spec:
         enable_ipv6_ula:
           name: enable_ipv6_ula
           title: Enable Ipv6 Ula
+        environment_code:
+          name: environment_code
+          title: Environment Code
         firewall_enable_logging:
           name: firewall_enable_logging
           title: Firewall Enable Logging
@@ -85,6 +88,9 @@ spec:
         project_number:
           name: project_number
           title: Project Number
+        resource_code:
+          name: resource_code
+          title: Resource Code
         resource_codes:
           name: resource_codes
           title: Resource Codes

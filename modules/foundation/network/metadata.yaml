@@ -110,13 +110,9 @@ spec:
         description: Makes this project a Shared VPC host if 'true' (default 'false')
         varType: bool
         defaultValue: false
-      - name: resource_codes
-        description: codes for resources created
-        varType: |-
-          object({
-              short = optional(string, "p")
-              long  = optional(string, "production")
-            })
+      - name: resource_code
+        description: Standardized grouping code used to categorize resources by their environment (e.g., 'p' for production) or their architectural/topology role (e.g., 'h' for hub, 's' for spoke). Used as an infix in resource names (e.g., dp-p-svpc-default-policy)
+        varType: string
         required: true
       - name: vpc_name
         description: The name of the network being created. Complete name will be `vpc-{vpc_name}`

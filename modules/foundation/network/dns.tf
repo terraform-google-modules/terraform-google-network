@@ -20,7 +20,7 @@
 
 resource "google_dns_policy" "default_policy" {
   project                   = var.project_id
-  name                      = "dp-${var.resource_codes.short}-svpc-default-policy"
+  name                      = "dp-${var.resource_code}-svpc-default-policy"
   enable_logging            = var.dns_config.enable_logging
   enable_inbound_forwarding = var.dns_config.onprem_forwarding ? var.dns_config.enable_inbound_forwarding : false
   networks {
@@ -47,7 +47,7 @@ module "peering_zone" {
 
   project_id  = var.project_id
   type        = "peering"
-  name        = "dz-${var.resource_codes.short}-svpc-to-dns-hub"
+  name        = "dz-${var.resource_code}-svpc-to-dns-hub"
   domain      = var.dns_config.domain
   description = "Private DNS peering zone."
 
@@ -68,7 +68,7 @@ module "dns_forwarding_zone" {
 
   project_id = var.project_id
   type       = "forwarding"
-  name       = "fz-${var.resource_codes.short}-dns-hub"
+  name       = "fz-${var.resource_code}-dns-hub"
   domain     = var.dns_config.domain
 
   private_visibility_config_networks = [

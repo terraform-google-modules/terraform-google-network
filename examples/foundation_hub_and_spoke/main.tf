@@ -68,10 +68,7 @@ module "hub" {
   enable_all_vpc_internal_traffic = false
   shared_vpc_host                 = true
 
-  resource_codes = {
-    short = "h"
-    long  = "hub"
-  }
+  resource_code = "h"
 
   dns_config = {
     onprem_forwarding = true
@@ -170,10 +167,7 @@ module "spoke" {
   enable_all_vpc_internal_traffic = false
   shared_vpc_host                 = true
 
-  resource_codes = {
-    short = "s"
-    long  = "spoke"
-  }
+  resource_code = "s"
 
   dns_config = {
     dns_hub_project_id   = var.project_id_spoke

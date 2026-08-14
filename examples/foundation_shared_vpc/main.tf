@@ -38,10 +38,7 @@ module "main" {
   enable_all_vpc_internal_traffic = false
   shared_vpc_host                 = true
 
-  resource_codes = {
-    short = "c"
-    long  = "common"
-  }
+  resource_code = "c"
 
   ncc_hub_config = {
     create_hub                   = true

@@ -15,7 +15,7 @@
  */
 
 locals {
-  network_name               = "vpc-${var.resource_codes.short}-${var.vpc_name}"
+  network_name               = "vpc-${var.resource_code}-${var.vpc_name}"
   restricted_googleapis_cidr = module.private_service_connect.private_service_connect_ip
 }
 
@@ -49,7 +49,7 @@ module "main" {
     var.nat_config.enabled ?
     [
       {
-        name              = "rt-${var.resource_codes.short}-${var.vpc_name}-1000-egress-internet-default"
+        name              = "rt-${var.resource_code}-${var.vpc_name}-1000-egress-internet-default"
         description       = "Tag based route through IGW to access internet"
         destination_range = "0.0.0.0/0"
         tags              = var.nat_config.egress_tags
@@ -61,7 +61,7 @@ module "main" {
     var.windows_activation_enabled ?
     [
       {
-        name              = "rt-${var.resource_codes.short}-${var.vpc_name}-1000-all-default-windows-kms"
+        name              = "rt-${var.resource_code}-${var.vpc_name}-1000-all-default-windows-kms"
         description       = "Route through IGW to allow Windows KMS activation for GCP."
         destination_range = "35.190.247.13/32"
         next_hop_internet = "true"
