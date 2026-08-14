@@ -106,10 +106,6 @@ spec:
         description: Project ID for VPC.
         varType: string
         required: true
-      - name: shared_vpc_host
-        description: Makes this project a Shared VPC host if 'true' (default 'false')
-        varType: bool
-        defaultValue: false
       - name: resource_code
         description: Standardized grouping code used to categorize resources by their environment (e.g., 'p' for production) or their architectural/topology role (e.g., 'h' for hub, 's' for spoke). Used as an infix in resource names (e.g., dp-p-svpc-default-policy)
         varType: string
@@ -122,12 +118,16 @@ spec:
         description: An optional description of this network. The resource must be recreated to modify this field.
         varType: string
         defaultValue: ""
+      - name: shared_vpc_host
+        description: Makes this project a Shared VPC host if 'true' (default 'false')
+        varType: bool
+        defaultValue: false
       - name: routing_mode
         description: The network routing mode (default 'GLOBAL')
         varType: string
         defaultValue: GLOBAL
       - name: subnets
-        description: The list of subnets being created
+        description: The list of subnets being created. See https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_subnetwork
         varType: |-
           list(object({
               subnet_name                      = string
@@ -153,7 +153,15 @@ spec:
         varType: map(list(object({ range_name = string, ip_cidr_range = string })))
         defaultValue: {}
       - name: nat_config
-        description: Configuration of NAT cloud router.
+        description: |
+          Configuration for Cloud NAT and underlying Cloud Routers.
+          Attributes:
+          - enabled: Set to true to create NAT resources. If false, no routers or NAT IPs are provisioned (default: false).
+          - egress_tags: Network tags used for routing internet egress traffic (default: ["egress-internet"]).
+          - bgp_asn: The BGP Autonomous System Number assigned to the Cloud Router (default: 64512).
+          - regions: Defines which regions get a NAT router.
+            - name: The GCP region name (e.g., "us-central1") where the router and NAT will be deployed.
+            - num_addresses: The number of static external IP addresses to manually allocate and assign to the NAT gateway in this region (default: 2).
         varType: |-
           object({
               enabled     = optional(bool, false)
@@ -185,7 +193,19 @@ spec:
         varType: bool
         defaultValue: false
       - name: dns_config
-        description: DNS configuration.
+        description: |
+          Configuration block for Cloud DNS policies, peering, and forwarding rules.
+          General Attributes:
+          - enable_logging: (bool) Toggles DNS query logging on the default DNS policy (default: true).
+          - onprem_forwarding: (bool) Master toggle to enable resolving on-premise DNS. If true, it provisions either a Peering Zone or Forwarding Zone based on the 'type' attribute.
+          - enable_inbound_forwarding: (bool) Enables inbound DNS queries from on-prem to this VPC. Only active if 'onprem_forwarding' is true (default: true).
+          - type: (string) Defines the architectural role. If set to "spoke", the module creates a DNS Peering Zone. If not "spoke", it creates a DNS Forwarding Zone.
+          - domain: (string) The DNS suffix/domain for the peering or forwarding zone. Required if 'onprem_forwarding' is true.
+          Spoke Attributes (Required if onprem_forwarding = true AND type = "spoke"):
+          - dns_hub_project_id: (string) The project ID hosting the Hub VPC to peer DNS queries to.
+          - dns_hub_network_name: (string) The Hub VPC network name to target for DNS peering.
+          Hub/Forwarder Attributes (Required if onprem_forwarding = true AND type != "spoke"):
+          - target_name_server_addresses: (list of maps) The on-premises or remote name servers to forward DNS queries to.
         varType: |-
           object({
               enable_logging               = optional(bool, true)
@@ -199,7 +219,33 @@ spec:
             })
         defaultValue: {}
       - name: ncc_hub_config
-        description: Network Connectivity Center configuration.
+        description: |
+          Configuration block for Google Cloud Network Connectivity Center (NCC) Hub and Spokes.
+          Hub Creation & Identity:
+          - create_hub: (bool) Toggles whether to create a new NCC Hub (true) or use an existing one (false).
+          - uri: (string) The URI of an existing Hub. [Required if create_hub is FALSE]
+          - name: (string) Name of the new NCC Hub. [Required if create_hub is TRUE]
+          - description: (string) Description for the new NCC Hub. [Required if create_hub is TRUE]
+          - hub_labels: (map) Labels to apply to the new Hub. [Required if create_hub is TRUE]
+          Topology & Routing:
+          - preset_topology: (string) Network topology for the hub, either "MESH" or "STAR". [Required if create_hub is TRUE]
+          - policy_mode: (string) Route policy mode (default: "PRESET").
+          - export_psc: (bool) Allows exporting Private Service Connect routes across the hub (default: false).
+          VPC Spoke Configuration (Attaches the module's main network):
+          - spoke_group: (string) The NCC group the spoke belongs to (default: "default").
+          - spoke_description: (string) Description for the main VPC spoke.
+          - spoke_labels: (map) Labels for the main VPC spoke.
+          - spoke_exclude_export_ranges: (set of strings) IP ranges to exclude from route export.
+          - spoke_include_export_ranges: (set of strings) IP ranges to explicitly include in route export.
+          Producer Network Configuration (Active only if 'var.private_service_cidr' is defined):
+          - producer_description: (string) Description for the linked Private Service Connect (producer) spoke.
+          - producer_labels: (map) Labels for the producer spoke.
+          - producer_exclude_export_ranges: (set of strings) IP ranges to exclude for the producer network.
+          - producer_include_export_ranges: (set of strings) IP ranges to include for the producer network.
+          Auto-Accept Policies (Configures project auto-acceptance based on topology):
+          - auto_accept_projects_default: (list of strings) Projects allowed in the "default" group (Used when topology is MESH).
+          - auto_accept_projects_center: (list of strings) Projects allowed in the "center" group (Used when topology is STAR).
+          - auto_accept_projects_edge: (list of strings) Projects allowed in the "edge" group (Used when topology is STAR).
         varType: |-
           object({
               create_hub                     = optional(bool, true)

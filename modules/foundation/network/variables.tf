@@ -19,12 +19,6 @@ variable "project_id" {
   type        = string
 }
 
-variable "shared_vpc_host" {
-  description = "Makes this project a Shared VPC host if 'true' (default 'false')"
-  type        = bool
-  default     = false
-}
-
 variable "resource_code" {
   type        = string
   description = "Standardized grouping code used to categorize resources by their environment (e.g., 'p' for production) or their architectural/topology role (e.g., 'h' for hub, 's' for spoke). Used as an infix in resource names (e.g., dp-p-svpc-default-policy)"
@@ -41,6 +35,12 @@ variable "description" {
   default     = ""
 }
 
+variable "shared_vpc_host" {
+  description = "Makes this project a Shared VPC host if 'true' (default 'false')"
+  type        = bool
+  default     = false
+}
+
 variable "routing_mode" {
   type        = string
   description = "The network routing mode (default 'GLOBAL')"
@@ -48,7 +48,7 @@ variable "routing_mode" {
 }
 
 variable "subnets" {
-  description = "The list of subnets being created"
+  description = "The list of subnets being created. See https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_subnetwork"
   type = list(object({
     subnet_name                      = string
     subnet_ip                        = string
@@ -77,7 +77,16 @@ variable "secondary_ranges" {
 }
 
 variable "nat_config" {
-  description = "Configuration of NAT cloud router."
+  description = <<-EOT
+    Configuration for Cloud NAT and underlying Cloud Routers.
+    Attributes:
+    - enabled: Set to true to create NAT resources. If false, no routers or NAT IPs are provisioned (default: false).
+    - egress_tags: Network tags used for routing internet egress traffic (default: ["egress-internet"]).
+    - bgp_asn: The BGP Autonomous System Number assigned to the Cloud Router (default: 64512).
+    - regions: Defines which regions get a NAT router.
+      - name: The GCP region name (e.g., "us-central1") where the router and NAT will be deployed.
+      - num_addresses: The number of static external IP addresses to manually allocate and assign to the NAT gateway in this region (default: 2).
+  EOT
   type = object({
     enabled     = optional(bool, false)
     egress_tags = optional(list(string), ["egress-internet"])
@@ -120,7 +129,20 @@ variable "enable_all_vpc_internal_traffic" {
 }
 
 variable "dns_config" {
-  description = "DNS configuration."
+  description = <<-EOT
+    Configuration block for Cloud DNS policies, peering, and forwarding rules.
+    General Attributes:
+    - enable_logging: (bool) Toggles DNS query logging on the default DNS policy (default: true).
+    - onprem_forwarding: (bool) Master toggle to enable resolving on-premise DNS. If true, it provisions either a Peering Zone or Forwarding Zone based on the 'type' attribute.
+    - enable_inbound_forwarding: (bool) Enables inbound DNS queries from on-prem to this VPC. Only active if 'onprem_forwarding' is true (default: true).
+    - type: (string) Defines the architectural role. If set to "spoke", the module creates a DNS Peering Zone. If not "spoke", it creates a DNS Forwarding Zone.
+    - domain: (string) The DNS suffix/domain for the peering or forwarding zone. Required if 'onprem_forwarding' is true.
+    Spoke Attributes (Required if onprem_forwarding = true AND type = "spoke"):
+    - dns_hub_project_id: (string) The project ID hosting the Hub VPC to peer DNS queries to.
+    - dns_hub_network_name: (string) The Hub VPC network name to target for DNS peering.
+    Hub/Forwarder Attributes (Required if onprem_forwarding = true AND type != "spoke"):
+    - target_name_server_addresses: (list of maps) The on-premises or remote name servers to forward DNS queries to.
+  EOT
   type = object({
     enable_logging               = optional(bool, true)
     type                         = optional(string, "")
@@ -148,7 +170,34 @@ variable "dns_config" {
 }
 
 variable "ncc_hub_config" {
-  description = "Network Connectivity Center configuration."
+  description = <<-EOT
+    Configuration block for Google Cloud Network Connectivity Center (NCC) Hub and Spokes.
+    Hub Creation & Identity:
+    - create_hub: (bool) Toggles whether to create a new NCC Hub (true) or use an existing one (false).
+    - uri: (string) The URI of an existing Hub. [Required if create_hub is FALSE]
+    - name: (string) Name of the new NCC Hub. [Required if create_hub is TRUE]
+    - description: (string) Description for the new NCC Hub. [Required if create_hub is TRUE]
+    - hub_labels: (map) Labels to apply to the new Hub. [Required if create_hub is TRUE]
+    Topology & Routing:
+    - preset_topology: (string) Network topology for the hub, either "MESH" or "STAR". [Required if create_hub is TRUE]
+    - policy_mode: (string) Route policy mode (default: "PRESET").
+    - export_psc: (bool) Allows exporting Private Service Connect routes across the hub (default: false).
+    VPC Spoke Configuration (Attaches the module's main network):
+    - spoke_group: (string) The NCC group the spoke belongs to (default: "default").
+    - spoke_description: (string) Description for the main VPC spoke.
+    - spoke_labels: (map) Labels for the main VPC spoke.
+    - spoke_exclude_export_ranges: (set of strings) IP ranges to exclude from route export.
+    - spoke_include_export_ranges: (set of strings) IP ranges to explicitly include in route export.
+    Producer Network Configuration (Active only if 'var.private_service_cidr' is defined):
+    - producer_description: (string) Description for the linked Private Service Connect (producer) spoke.
+    - producer_labels: (map) Labels for the producer spoke.
+    - producer_exclude_export_ranges: (set of strings) IP ranges to exclude for the producer network.
+    - producer_include_export_ranges: (set of strings) IP ranges to include for the producer network.
+    Auto-Accept Policies (Configures project auto-acceptance based on topology):
+    - auto_accept_projects_default: (list of strings) Projects allowed in the "default" group (Used when topology is MESH).
+    - auto_accept_projects_center: (list of strings) Projects allowed in the "center" group (Used when topology is STAR).
+    - auto_accept_projects_edge: (list of strings) Projects allowed in the "edge" group (Used when topology is STAR).
+  EOT
   type = object({
     create_hub                     = optional(bool, true)
     uri                            = optional(string)
@@ -207,19 +256,18 @@ variable "enable_ipv6_ula" {
 
 variable "internal_ipv6_range" {
   type        = string
-  default     = null
   description = "When enabling IPv6 ULA, optionally, specify a /48 from fd20::/20 (default null)"
+  default     = null
 }
 
 variable "network_firewall_policy_enforcement_order" {
   type        = string
-  default     = null
   description = "Set the order that Firewall Rules and Firewall Policies are evaluated. Valid values are `BEFORE_CLASSIC_FIREWALL` and `AFTER_CLASSIC_FIREWALL`. (default null or equivalent to `AFTER_CLASSIC_FIREWALL`)"
+  default     = null
 }
 
 variable "network_profile" {
   type        = string
-  default     = null
   description = <<-EOT
     "A full or partial URL of the network profile to apply to this network.
     This field can be set only at resource creation time. For example, the
@@ -227,6 +275,7 @@ variable "network_profile" {
       * https://www.googleapis.com/compute/beta/projects/{projectId}/global/networkProfiles/{network_profile_name}
       * projects/{projectId}/global/networkProfiles/{network_profile_name}
     EOT
+  default     = null
 }
 
 variable "bgp_always_compare_med" {
