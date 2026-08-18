@@ -78,7 +78,7 @@ resource "google_network_connectivity_group" "group" {
 resource "google_network_connectivity_spoke" "vpc_spoke" {
   for_each = var.vpc_spokes
 
-  project     = split("/", each.value.uri)[1]
+  project     = regex("projects/([^/]+)/", each.value.uri)[0]
   name        = each.key
   location    = "global"
   description = each.value.description
