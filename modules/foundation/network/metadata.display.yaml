@@ -109,6 +109,9 @@ spec:
         vpc_name:
           name: vpc_name
           title: Vpc Name
+        vpc_spoke_key:
+          name: vpc_spoke_key
+          title: Vpc Spoke Key
         windows_activation_enabled:
           name: windows_activation_enabled
           title: Windows Activation Enabled

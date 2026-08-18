@@ -184,6 +184,7 @@ variable "ncc_hub_config" {
     - export_psc: (bool) Allows exporting Private Service Connect routes across the hub (default: false).
     VPC Spoke Configuration (Attaches the module's main network):
     - spoke_group: (string) The NCC group the spoke belongs to (default: "default").
+    - spoke_name: (string) Name for the main VPC spoke.
     - spoke_description: (string) Description for the main VPC spoke.
     - spoke_labels: (map) Labels for the main VPC spoke.
     - spoke_exclude_export_ranges: (set of strings) IP ranges to exclude from route export.
@@ -210,6 +211,7 @@ variable "ncc_hub_config" {
     spoke_labels                   = optional(map(string))
     spoke_exclude_export_ranges    = optional(set(string), [])
     spoke_include_export_ranges    = optional(set(string), [])
+    spoke_name                     = optional(string, "vpc-spoke")
     spoke_description              = optional(string)
     spoke_group                    = optional(string, "default")
     producer_labels                = optional(map(string))

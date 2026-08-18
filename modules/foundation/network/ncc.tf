@@ -36,7 +36,7 @@ module "network_connectivity_center" {
   export_psc              = var.ncc_hub_config.export_psc
 
   vpc_spokes = {
-    "vpc" = merge(
+    (var.ncc_hub_config.spoke_name) = merge(
       {
         uri                   = module.main.network_id
         exclude_export_ranges = var.ncc_hub_config.spoke_exclude_export_ranges
