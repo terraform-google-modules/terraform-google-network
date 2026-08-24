@@ -49,3 +49,6 @@ spec:
         target_vpcs:
           name: target_vpcs
           title: Target Vpcs
+        target_vpcs_map:
+          name: target_vpcs_map
+          title: Target Vpcs Map

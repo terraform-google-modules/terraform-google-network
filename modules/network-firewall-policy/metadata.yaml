@@ -50,6 +50,10 @@ spec:
         location: examples/delete_default_gateway_routes
       - name: firewall_logging
         location: examples/firewall_logging
+      - name: foundation_hub_and_spoke
+        location: examples/foundation_hub_and_spoke
+      - name: foundation_shared_vpc
+        location: examples/foundation_shared_vpc
       - name: global-network-firewall-policy
         location: examples/global-network-firewall-policy
       - name: hierarchical-firewall-policy
@@ -110,9 +114,13 @@ spec:
         description: An optional description of this resource. Provide this property when you create the resource
         varType: string
       - name: target_vpcs
-        description: List of target VPC IDs that the firewall policy will be attached to
+        description: "[DEPRECATED] List of target VPC IDs that the firewall policy will be attached to. Use `target_vpcs_map` instead to avoid errors with dynamically created VPCs."
         varType: list(string)
         defaultValue: []
+      - name: target_vpcs_map
+        description: Map of target VPCs that the firewall policy will be attached to. Keys are static strings (e.g., 'prod-vpc'), values are the VPC IDs.
+        varType: map(string)
+        defaultValue: {}
       - name: policy_region
         description: Location of the firewall policy. Needed for regional firewall policies. Default is null (Global firewall policy)
         varType: string
