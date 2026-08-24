@@ -28,7 +28,7 @@ An extensive example that also contains the creation and attachment of multiple 
 | ncc\_groups | Groups for Hubs using the star topolgy | <pre>map(object({<br>    name                 = string<br>    labels               = optional(map(string))<br>    description          = optional(string)<br>    auto_accept_projects = optional(list(string), [])<br>  }))</pre> | `{}` | no |
 | ncc\_hub\_description | The description of the NCC Hub | `string` | `null` | no |
 | ncc\_hub\_labels | These labels will be added the NCC hub | `map(string)` | `{}` | no |
-| ncc\_hub\_name | The Name of the NCC Hub | `string` | n/a | yes |
+| ncc\_hub\_name | The Name of the NCC Hub. Required if the Hub is to be created. | `string` | `null` | no |
 | ncc\_hub\_policy\_mode | The policy mode of the hub. Type must be one of `PRESET` or `CUSTOM`. | `string` | `"PRESET"` | no |
 | ncc\_hub\_preset\_topology | The topology implemented in the hub. Type must be one of `STAR`, `MESH` or `HYBRID_INSPECTION`. | `string` | `null` | no |
 | project\_id | Project ID of the project that holds the network. | `string` | n/a | yes |

@@ -32,8 +32,7 @@ resource "random_string" "network_peering_suffix" {
 }
 
 resource "google_compute_network_peering" "local_network_peering" {
-  provider = google-beta
-
+  provider             = google-beta
   name                 = local.local_network_peering_name
   network              = var.local_network
   peer_network         = var.peer_network
@@ -49,9 +48,7 @@ resource "google_compute_network_peering" "local_network_peering" {
 }
 
 resource "google_compute_network_peering" "peer_network_peering" {
-  provider = google-beta
-  count    = var.create_remote_peer ? 1 : 0
-
+  provider             = google-beta
   name                 = local.peer_network_peering_name
   network              = var.peer_network
   peer_network         = var.local_network

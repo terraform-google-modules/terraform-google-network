@@ -28,12 +28,6 @@ spec:
   ui:
     input:
       variables:
-        create_new_hub:
-          name: create_new_hub
-          title: Create New Hub
-        existing_hub_uri:
-          name: existing_hub_uri
-          title: Existing Hub Uri
         export_psc:
           name: export_psc
           title: Export Psc

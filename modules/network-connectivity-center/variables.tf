@@ -36,8 +36,9 @@ variable "hub_configuration" {
 }
 
 variable "ncc_hub_name" {
-  description = "The Name of the NCC Hub"
+  description = "The Name of the NCC Hub. Required if the Hub is to be created."
   type        = string
+  default     = null
 }
 
 variable "ncc_hub_description" {

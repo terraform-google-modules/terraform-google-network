@@ -44,6 +44,15 @@ locals {
   }
 }
 
+resource "null_resource" "ncc_hub_name_validation" {
+  lifecycle {
+    precondition {
+      condition     = !var.hub_configuration.create || (var.hub_configuration.create && var.ncc_hub_name != null)
+      error_message = "Error: IF the Network Connectivity Hub must be created 'ncc_hub_name' is required."
+    }
+  }
+}
+
 resource "google_network_connectivity_hub" "hub" {
   count = var.hub_configuration.create ? 1 : 0
 

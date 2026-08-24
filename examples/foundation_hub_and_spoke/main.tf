@@ -170,7 +170,7 @@ module "spoke" {
   resource_code = "s"
 
   dns_config = {
-    dns_hub_project_id   = var.project_id_spoke
+    dns_hub_project_id   = var.project_id_hub
     dns_hub_network_name = module.hub.network_name
     type                 = "spoke"
   }

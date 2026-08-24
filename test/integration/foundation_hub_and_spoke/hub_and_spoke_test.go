@@ -91,7 +91,7 @@ func TestFoundationHubAndSpoke(t *testing.T) {
 					assert.Equal(fullGroupName, group.Get("name").String(), "should have edge group")
 				}
 			}
-			assert.True(hasCenter, "must have a centre group")
+			assert.True(hasCenter, "must have a center group")
 			assert.True(hasEdge, "must have a edge group")
 
 			// DNS

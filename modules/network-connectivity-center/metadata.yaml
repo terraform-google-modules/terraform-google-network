@@ -115,9 +115,8 @@ spec:
             })
         defaultValue: {}
       - name: ncc_hub_name
-        description: The Name of the NCC Hub
+        description: The Name of the NCC Hub. Required if the Hub is to be created.
         varType: string
-        required: true
       - name: ncc_hub_description
         description: The description of the NCC Hub
         varType: string

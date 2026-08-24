@@ -158,6 +158,7 @@ variable "dns_config" {
   validation {
     condition = var.dns_config.onprem_forwarding == false || (
       var.dns_config.type == "spoke" ? (
+        var.dns_config.domain != "" &&
         var.dns_config.dns_hub_project_id != "" &&
         var.dns_config.dns_hub_network_name != ""
         ) : (
