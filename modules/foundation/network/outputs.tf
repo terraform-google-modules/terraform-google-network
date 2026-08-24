@@ -76,7 +76,7 @@ output "firewall_policy" {
 }
 
 output "ncc_hub_uri" {
-  value       = module.network_connectivity_center.ncc_hub_id
+  value       = local.hub_id
   description = "The NCC Hub ID"
 }
 

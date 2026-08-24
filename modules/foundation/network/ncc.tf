@@ -17,15 +17,17 @@
 locals {
   is_star = var.ncc_hub_config.create_hub && var.ncc_hub_config.preset_topology == "STAR"
   is_mesh = var.ncc_hub_config.create_hub && var.ncc_hub_config.preset_topology == "MESH"
+
+  hub_id = (
+    var.ncc_hub_config.create_hub
+    ? module.network_connectivity_center[0].ncc_hub.id
+    : var.ncc_hub_config.uri
+  )
 }
 
 module "network_connectivity_center" {
   source = "../../network-connectivity-center"
-
-  hub_configuration = {
-    create       = var.ncc_hub_config.create_hub
-    existing_uri = var.ncc_hub_config.uri
-  }
+  count  = var.ncc_hub_config.create_hub ? 1 : 0
 
   project_id              = var.project_id
   ncc_hub_name            = var.ncc_hub_config.name
@@ -78,4 +80,43 @@ module "network_connectivity_center" {
     } : {}
   )
 
+}
+
+// Reusing existing NCC Hub
+resource "google_network_connectivity_spoke" "vpc_spoke" {
+  count = !var.ncc_hub_config.create_hub ? 1 : 0
+
+  project     = regex("projects/([^/]+)/", module.main.network_id)[0]
+  name        = var.ncc_hub_config.spoke_name
+  location    = "global"
+  description = var.ncc_hub_config.spoke_description
+  hub         = local.hub_id
+  labels      = var.ncc_hub_config.spoke_labels
+  group       = var.ncc_hub_config.spoke_group
+
+  linked_vpc_network {
+    uri                   = module.main.network_id
+    exclude_export_ranges = var.ncc_hub_config.spoke_exclude_export_ranges
+    include_export_ranges = var.ncc_hub_config.spoke_include_export_ranges
+  }
+}
+
+resource "google_network_connectivity_spoke" "producer_vpc_network_spoke" {
+  count = !var.ncc_hub_config.create_hub && var.private_service_cidr != null ? 1 : 0
+
+  project     = var.project_id
+  name        = "${var.ncc_hub_config.spoke_name}-linked-spoke"
+  location    = "global"
+  description = var.ncc_hub_config.producer_description
+  hub         = local.hub_id
+  labels      = var.ncc_hub_config.producer_labels
+  group       = var.ncc_hub_config.spoke_group
+
+  linked_producer_vpc_network {
+    network               = module.main.network_name
+    peering               = google_service_networking_connection.private_vpc_connection[0].peering
+    exclude_export_ranges = var.ncc_hub_config.producer_exclude_export_ranges
+    include_export_ranges = var.ncc_hub_config.producer_include_export_ranges
+  }
+  depends_on = [google_network_connectivity_spoke.vpc_spoke]
 }
