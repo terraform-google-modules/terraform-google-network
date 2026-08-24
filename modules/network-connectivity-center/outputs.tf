@@ -14,14 +14,9 @@
  * limitations under the License.
  */
 
-output "ncc_hub_id" {
-  description = "The NCC Hub ID"
-  value       = local.hub_id
-}
-
 output "ncc_hub" {
   description = "The NCC Hub object"
-  value       = var.hub_configuration.create ? google_network_connectivity_hub.hub[0] : null
+  value       = google_network_connectivity_hub.hub
 }
 
 output "vpc_spokes" {

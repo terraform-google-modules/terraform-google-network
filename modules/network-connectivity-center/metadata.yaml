@@ -106,17 +106,10 @@ spec:
         description: Project ID of the project that holds the network.
         varType: string
         required: true
-      - name: hub_configuration
-        description: Configuration for the Network Connectivity Center hub. Set 'create' to true to create a new hub. If 'create' is false, you must provide the 'uri' of an existing hub.
-        varType: |-
-          object({
-              create       = optional(bool, true)
-              existing_uri = optional(string)
-            })
-        defaultValue: {}
       - name: ncc_hub_name
-        description: The Name of the NCC Hub. Required if the Hub is to be created.
+        description: The Name of the NCC Hub
         varType: string
+        required: true
       - name: ncc_hub_description
         description: The description of the NCC Hub
         varType: string
@@ -208,8 +201,6 @@ spec:
         description: All hybrid spoke objects
       - name: ncc_hub
         description: The NCC Hub object
-      - name: ncc_hub_id
-        description: The NCC Hub ID
       - name: producer_vpc_network_spoke
         description: All producer network vpc spoke objects
       - name: router_appliance_spokes

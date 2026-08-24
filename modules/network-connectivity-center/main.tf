@@ -15,13 +15,6 @@
  */
 
 locals {
-
-  hub_id = (
-    var.hub_configuration.create
-    ? google_network_connectivity_hub.hub[0].id
-    : var.hub_configuration.existing_uri
-  )
-
   vpc_spokes = {
     for k, v in google_network_connectivity_spoke.vpc_spoke :
     k => v
@@ -44,18 +37,7 @@ locals {
   }
 }
 
-resource "null_resource" "ncc_hub_name_validation" {
-  lifecycle {
-    precondition {
-      condition     = !var.hub_configuration.create || (var.hub_configuration.create && var.ncc_hub_name != null)
-      error_message = "Error: IF the Network Connectivity Hub must be created 'ncc_hub_name' is required."
-    }
-  }
-}
-
 resource "google_network_connectivity_hub" "hub" {
-  count = var.hub_configuration.create ? 1 : 0
-
   name            = var.ncc_hub_name
   project         = var.project_id
   description     = var.ncc_hub_description
@@ -65,33 +47,23 @@ resource "google_network_connectivity_hub" "hub" {
   preset_topology = var.ncc_hub_policy_mode == "PRESET" ? var.ncc_hub_preset_topology : (var.ncc_hub_policy_mode == "CUSTOM" ? "PRESET_TOPOLOGY_UNSPECIFIED" : "MESH")
 }
 
-# Added 'count' to google_network_connectivity_hub.hub to allow conditional creation.
-# This moved block prevents Terraform from destroying and recreating existing hubs
-# by migrating the state from a singular resource to an indexed resource [0].
-moved {
-  from = google_network_connectivity_hub.hub
-  to   = google_network_connectivity_hub.hub[0]
-}
-
 resource "google_network_connectivity_group" "group" {
   for_each = var.ncc_groups
-
-  name    = each.value.name
-  hub     = local.hub_id
-  project = var.project_id
+  name     = each.value.name
+  hub      = google_network_connectivity_hub.hub.id
+  project  = var.project_id
   auto_accept {
     auto_accept_projects = each.value.auto_accept_projects
   }
 }
 
 resource "google_network_connectivity_spoke" "vpc_spoke" {
-  for_each = var.vpc_spokes
-
-  project     = regex("projects/([^/]+)/", each.value.uri)[0]
+  for_each    = var.vpc_spokes
+  project     = split("/", each.value.uri)[1]
   name        = each.key
   location    = "global"
   description = each.value.description
-  hub         = local.hub_id
+  hub         = google_network_connectivity_hub.hub.id
   labels      = merge(var.spoke_labels, each.value.labels)
   group       = each.value.group
 
@@ -103,13 +75,12 @@ resource "google_network_connectivity_spoke" "vpc_spoke" {
 }
 
 resource "google_network_connectivity_spoke" "producer_vpc_network_spoke" {
-  for_each = { for x, y in var.vpc_spokes : x => y.link_producer_vpc_network if y.link_producer_vpc_network != null }
-
+  for_each    = { for x, y in var.vpc_spokes : x => y.link_producer_vpc_network if y.link_producer_vpc_network != null }
   project     = var.project_id
   name        = "${each.key}-linked-spoke"
   location    = "global"
   description = each.value.description
-  hub         = local.hub_id
+  hub         = google_network_connectivity_hub.hub.id
   labels      = merge(var.spoke_labels, each.value.labels)
   group       = each.value.group
 
@@ -123,13 +94,12 @@ resource "google_network_connectivity_spoke" "producer_vpc_network_spoke" {
 }
 
 resource "google_network_connectivity_spoke" "hybrid_spoke" {
-  for_each = var.hybrid_spokes
-
+  for_each    = var.hybrid_spokes
   project     = var.project_id
   name        = each.key
   location    = each.value.location
   description = each.value.description
-  hub         = local.hub_id
+  hub         = google_network_connectivity_hub.hub.id
   labels      = merge(var.spoke_labels, each.value.labels)
   group       = each.value.group
 
@@ -153,13 +123,12 @@ resource "google_network_connectivity_spoke" "hybrid_spoke" {
 }
 
 resource "google_network_connectivity_spoke" "router_appliance_spoke" {
-  for_each = var.router_appliance_spokes
-
+  for_each    = var.router_appliance_spokes
   project     = var.project_id
   name        = each.key
   location    = each.value.location
   description = each.value.description
-  hub         = local.hub_id
+  hub         = google_network_connectivity_hub.hub.id
   labels      = merge(var.spoke_labels, each.value.labels)
   group       = each.value.group
 
