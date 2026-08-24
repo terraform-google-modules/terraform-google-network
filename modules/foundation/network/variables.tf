@@ -224,8 +224,6 @@ variable "ncc_hub_config" {
     auto_accept_projects_default   = optional(list(string), [])
   })
 
-  default = {}
-
   validation {
     condition = (
       (

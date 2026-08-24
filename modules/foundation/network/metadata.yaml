@@ -271,7 +271,7 @@ spec:
               auto_accept_projects_edge      = optional(list(string), [])
               auto_accept_projects_default   = optional(list(string), [])
             })
-        defaultValue: {}
+        required: true
       - name: mtu
         description: "The network MTU (If set to 0, meaning MTU is unset - defaults to '1460'). Recommended values: 1460 (default for historic reasons), 1500 (Internet default), or 8896 (for Jumbo packets). Allowed are all values in the range 1300 to 8896, inclusively."
         varType: number
