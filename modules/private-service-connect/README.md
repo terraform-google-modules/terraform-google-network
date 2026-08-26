@@ -52,21 +52,24 @@ If you have a firewall rule blocking egress traffic, you will need to configure 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | dns\_code | Code to identify DNS resources in the form of `{dns_code}-{dns_type}` | `string` | `"dz"` | no |
+| enable\_gcr\_dns | Enable DNS zone creation for legacy gcr.io. Set to false for GDC/TPC environments where Container Registry is not available. | `bool` | `true` | no |
 | forwarding\_rule\_name | Forwarding rule resource name. The forwarding rule name for PSC Google APIs must be an 1-20 characters string with lowercase letters and numbers and must start with a letter. Defaults to `globalrule` | `string` | `"globalrule"` | no |
 | forwarding\_rule\_target | Target resource to receive the matched traffic. Only `all-apis` and `vpc-sc` are valid. | `string` | n/a | yes |
 | network\_self\_link | Network self link for Private Service Connect. | `string` | n/a | yes |
+| pkg\_dev\_domain | Domain for Artifact Registry. Change if using a custom universe\_domain. | `string` | `"pkg.dev"` | no |
 | private\_service\_connect\_ip | The internal IP to be used for the private service connect. | `string` | n/a | yes |
 | private\_service\_connect\_name | Private Service Connect endpoint name. Defaults to `global-psconnect-ip` | `string` | `"global-psconnect-ip"` | no |
 | project\_id | Project ID for Private Service Connect. | `string` | n/a | yes |
 | psc\_global\_access | This is used in PSC consumer ForwardingRule to control whether the PSC endpoint can be accessed from another region. Defaults to `false` | `bool` | `false` | no |
 | service\_directory\_namespace | Service Directory namespace to register the forwarding rule under. | `string` | `null` | no |
 | service\_directory\_region | Service Directory region to register this global forwarding rule under. Defaults to `us-central1` if not defined. | `string` | `null` | no |
+| universe\_domain | The universe domain to use for Google Cloud APIs. This defines the API endpoint boundary for your deployment. The default is 'googleapis.com' for the standard public Google Cloud. Modify this value if you are deploying to isolated environments like Google Distributed Cloud (GDC), Trusted Partner Cloud (TPC), or other sovereign cloud environments. | `string` | `"googleapis.com"` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| dns\_zone\_gcr\_name | Name for Managed DNS zone for GCR |
+| dns\_zone\_gcr\_name | Name for Managed DNS zone for GCR. Null if GCR DNS is disabled. |
 | dns\_zone\_googleapis\_name | Name for Managed DNS zone for GoogleAPIs |
 | dns\_zone\_pkg\_dev\_name | Name for Managed DNS zone for PKG\_DEV |
 | forwarding\_rule\_name | Forwarding rule resource name. |

@@ -31,6 +31,9 @@ spec:
         dns_code:
           name: dns_code
           title: Dns Code
+        enable_gcr_dns:
+          name: enable_gcr_dns
+          title: Enable Gcr Dns
         forwarding_rule_name:
           name: forwarding_rule_name
           title: Forwarding Rule Name
@@ -40,6 +43,9 @@ spec:
         network_self_link:
           name: network_self_link
           title: Network Self Link
+        pkg_dev_domain:
+          name: pkg_dev_domain
+          title: Pkg Dev Domain
         private_service_connect_ip:
           name: private_service_connect_ip
           title: Private Service Connect Ip
@@ -58,3 +64,6 @@ spec:
         service_directory_region:
           name: service_directory_region
           title: Service Directory Region
+        universe_domain:
+          name: universe_domain
+          title: Universe Domain

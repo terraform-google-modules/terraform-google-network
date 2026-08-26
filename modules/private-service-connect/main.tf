@@ -15,8 +15,10 @@
  */
 
 locals {
+  restricted_api  = "restricted.${var.universe_domain}."
+  private_api     = "private.${var.universe_domain}."
   dns_code        = var.dns_code != "" ? "${var.dns_code}-" : ""
-  googleapis_url  = var.forwarding_rule_target == "vpc-sc" ? "restricted.googleapis.com." : "private.googleapis.com."
+  googleapis_url  = var.forwarding_rule_target == "vpc-sc" ? local.restricted_api : local.private_api
   recordsets_name = split(".", local.googleapis_url)[0]
 }
 
