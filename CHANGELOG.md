@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [18.2.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.1.2...v18.2.0) (2026-08-27)
+
+
+### Features
+
+* add support for other Google universes ([#712](https://github.com/terraform-google-modules/terraform-google-network/issues/712)) ([2a9912f](https://github.com/terraform-google-modules/terraform-google-network/commit/2a9912fc0ac01e93bead9894a07801ad3e83a54a))
+* New foundation network module ([#665](https://github.com/terraform-google-modules/terraform-google-network/issues/665)) ([bc23eeb](https://github.com/terraform-google-modules/terraform-google-network/commit/bc23eeb097e483f7eaf70f00d267e309921e1f45))
+
 ## [18.1.2](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.1.1...v18.1.2) (2026-06-10)
 
 

@@ -31,10 +31,10 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:foundation-network/v13.0.0"
+    module_name = "blueprints/terraform/terraform-google-network:foundation-network/v18.2.0"
   }
 
   provider_meta "google-beta" {
-    module_name = "blueprints/terraform/terraform-google-network:foundation-network/v13.0.0"
+    module_name = "blueprints/terraform/terraform-google-network:foundation-network/v18.2.0"
   }
 }
