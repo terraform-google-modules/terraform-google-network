@@ -53,8 +53,8 @@ output "dns_zone_googleapis_name" {
 }
 
 output "dns_zone_gcr_name" {
-  value       = module.gcr.name
-  description = "Name for Managed DNS zone for GCR"
+  value       = var.enable_gcr_dns ? module.gcr[0].name : null
+  description = "Name for Managed DNS zone for GCR. Null if GCR DNS is disabled."
 }
 
 output "dns_zone_pkg_dev_name" {

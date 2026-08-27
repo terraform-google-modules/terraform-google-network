@@ -24,7 +24,7 @@ module "googleapis" {
   project_id  = var.project_id
   type        = "private"
   name        = "${local.dns_code}apis"
-  domain      = "googleapis.com."
+  domain      = "${var.universe_domain}."
   description = "Private DNS zone to configure ${local.googleapis_url}"
 
   private_visibility_config_networks = [
@@ -51,9 +51,16 @@ module "googleapis" {
   GCR DNS Zone & records.
  *****************************************/
 
+moved {
+  from = module.gcr
+  to   = module.gcr[0]
+}
+
 module "gcr" {
-  source      = "terraform-google-modules/cloud-dns/google"
-  version     = "~> 7.0"
+  source  = "terraform-google-modules/cloud-dns/google"
+  version = "~> 7.0"
+  count   = var.enable_gcr_dns ? 1 : 0
+
   project_id  = var.project_id
   type        = "private"
   name        = "${local.dns_code}gcr"
@@ -90,8 +97,8 @@ module "pkg_dev" {
   project_id  = var.project_id
   type        = "private"
   name        = "${local.dns_code}pkg-dev"
-  domain      = "pkg.dev."
-  description = "Private DNS zone to configure pkg.dev"
+  domain      = "${var.pkg_dev_domain}."
+  description = "Private DNS zone to configure ${var.pkg_dev_domain}"
 
   private_visibility_config_networks = [
     var.network_self_link
@@ -102,7 +109,7 @@ module "pkg_dev" {
       name    = "*"
       type    = "CNAME"
       ttl     = 300
-      records = ["pkg.dev."]
+      records = ["${var.pkg_dev_domain}."]
     },
     {
       name    = ""

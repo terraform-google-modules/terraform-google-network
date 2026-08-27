@@ -296,3 +296,32 @@ variable "bgp_inter_region_cost" {
   description = "Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`."
   default     = null
 }
+
+variable "universe_domain" {
+  description = "The universe domain to use for Google Cloud APIs. This defines the API endpoint boundary for your deployment. The default is 'googleapis.com' for the standard public Google Cloud. Modify this value if you are deploying to isolated environments like Google Distributed Cloud (GDC), Trusted Partner Cloud (TPC), or other sovereign cloud environments."
+  type        = string
+  default     = "googleapis.com"
+
+  validation {
+    condition     = var.universe_domain != null && length(trimspace(coalesce(var.universe_domain, ""))) > 0
+    error_message = "The universe_domain variable cannot be null or an empty string."
+  }
+}
+
+
+variable "pkg_dev_domain" {
+  description = "Domain for Artifact Registry. Change if using a custom universe_domain."
+  type        = string
+  default     = "pkg.dev"
+
+  validation {
+    condition     = var.pkg_dev_domain != null && length(trimspace(coalesce(var.pkg_dev_domain, ""))) > 0
+    error_message = "The pkg_dev_domain variable cannot be null or an empty string."
+  }
+}
+
+variable "enable_gcr_dns" {
+  description = "Enable DNS zone creation for legacy gcr.io. Set to false for GDC/TPC environments where Container Registry is not available."
+  type        = bool
+  default     = true
+}

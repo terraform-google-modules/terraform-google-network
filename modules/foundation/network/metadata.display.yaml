@@ -46,6 +46,9 @@ spec:
         enable_all_vpc_internal_traffic:
           name: enable_all_vpc_internal_traffic
           title: Enable All Vpc Internal Traffic
+        enable_gcr_dns:
+          name: enable_gcr_dns
+          title: Enable Gcr Dns
         enable_ipv6_ula:
           name: enable_ipv6_ula
           title: Enable Ipv6 Ula
@@ -76,6 +79,9 @@ spec:
         network_profile:
           name: network_profile
           title: Network Profile
+        pkg_dev_domain:
+          name: pkg_dev_domain
+          title: Pkg Dev Domain
         private_service_cidr:
           name: private_service_cidr
           title: Private Service Cidr
@@ -106,6 +112,9 @@ spec:
         subnets:
           name: subnets
           title: Subnets
+        universe_domain:
+          name: universe_domain
+          title: Universe Domain
         vpc_name:
           name: vpc_name
           title: Vpc Name

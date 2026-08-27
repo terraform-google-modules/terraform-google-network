@@ -140,9 +140,21 @@ spec:
         description: This is used in PSC consumer ForwardingRule to control whether the PSC endpoint can be accessed from another region. Defaults to `false`
         varType: bool
         defaultValue: false
+      - name: universe_domain
+        description: The universe domain to use for Google Cloud APIs. This defines the API endpoint boundary for your deployment. The default is 'googleapis.com' for the standard public Google Cloud. Modify this value if you are deploying to isolated environments like Google Distributed Cloud (GDC), Trusted Partner Cloud (TPC), or other sovereign cloud environments.
+        varType: string
+        defaultValue: googleapis.com
+      - name: pkg_dev_domain
+        description: Domain for Artifact Registry. Change if using a custom universe_domain.
+        varType: string
+        defaultValue: pkg.dev
+      - name: enable_gcr_dns
+        description: Enable DNS zone creation for legacy gcr.io. Set to false for GDC/TPC environments where Container Registry is not available.
+        varType: bool
+        defaultValue: true
     outputs:
       - name: dns_zone_gcr_name
-        description: Name for Managed DNS zone for GCR
+        description: Name for Managed DNS zone for GCR. Null if GCR DNS is disabled.
       - name: dns_zone_googleapis_name
         description: Name for Managed DNS zone for GoogleAPIs
       - name: dns_zone_pkg_dev_name
