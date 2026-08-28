@@ -48,7 +48,7 @@ The Service Account running Terraform requires the following roles at the **Proj
 ```hcl
 module "shared_vpc_foundation" {
   source  = "terraform-google-modules/network/google//modules/foundation/network"
-  version = "~> 13.0"
+  version = "~> 18.2"
 
   project_id = "my-project-id"
   vpc_name   = "core-net" # Final VPC Name: vpc-p-core-net
