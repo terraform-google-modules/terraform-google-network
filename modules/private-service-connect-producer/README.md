@@ -22,7 +22,7 @@ IPv4
 
 ```hcl
 module "psc_producer" {
-  source  = "terraform-google-modules/psc-producer/google"
+  source  = "terraform-google-modules/network/google//modules/private-service-connect-producer"
   version = "~> 18.2"
 
   project = "my-project-id"
@@ -51,7 +51,7 @@ IPv6
 
 ```hcl
 module "psc_producer" {
-  source  = "terraform-google-modules/psc-producer/google"
+  source  = "terraform-google-modules/network/google//modules/private-service-connect-producer"
   version = "~> 0.1"
 
   project = "my-project-id"
@@ -80,7 +80,7 @@ IPv4_IPv6
 
 ```hcl
 module "psc_producer" {
-  source  = "terraform-google-modules/psc-producer/google"
+  source  = "terraform-google-modules/network/google//modules/private-service-connect-producer"
   version = "~> 0.1"
 
   project = "my-project-id"
@@ -98,14 +98,14 @@ module "psc_producer" {
   consumer_reject_lists = ["rejected-project-id"]
   nat_subnets           = [
     {
-      name       = "producer-nat-subnet-0"
-      stack_type = "IPV4_IPV6"
-      ipv4_range = "10.10.20.0/24" # required for dual-stack subnet
-    }
+      subnet_name = "producer-nat-subnet-0"
+      stack_type  = "IPV4_IPV6"
+      ipv4_range  = "10.10.20.0/24" # required for dual-stack subnet
+    },
     {
-      name       = "producer-nat-subnet-1"
-      stack_type = "IPV4_IPV6"
-      ipv4_range = "10.10.30.0/24" # required for dual-stack subnet
+      subnet_name = "producer-nat-subnet-1"
+      stack_type  = "IPV4_IPV6"
+      ipv4_range  = "10.10.30.0/24" # required for dual-stack subnet
     }
   ]
   target_service        = var.forwarding_rule_url
@@ -116,7 +116,7 @@ Shared VPC
 
 ```hcl
 module "psc_producer" {
-  source  = "terraform-google-modules/psc-producer/google"
+  source  = "terraform-google-modules/network/google//modules/private-service-connect-producer"
   version = "~> 0.1"
 
   project = "service-project-id"
