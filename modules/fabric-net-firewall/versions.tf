@@ -25,6 +25,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:fabric-net-firewall/v18.2.0"
+    module_name = "blueprints/terraform/terraform-google-network:fabric-net-firewall/v18.3.0"
   }
 }
