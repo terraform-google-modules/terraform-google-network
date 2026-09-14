@@ -41,7 +41,7 @@ data "google_compute_network" "vpc_dns_hub" {
 
 module "peering_zone" {
   source  = "terraform-google-modules/cloud-dns/google"
-  version = "~> 6.1"
+  version = "~> 7.0"
 
   count = var.dns_config.onprem_forwarding && var.dns_config.type == "spoke" ? 1 : 0
 
@@ -62,7 +62,7 @@ module "peering_zone" {
 *****************************************/
 module "dns_forwarding_zone" {
   source  = "terraform-google-modules/cloud-dns/google"
-  version = "~> 6.1"
+  version = "~> 7.0"
 
   count = var.dns_config.onprem_forwarding && var.dns_config.type != "spoke" ? 1 : 0
 
