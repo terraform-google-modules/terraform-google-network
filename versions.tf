@@ -28,6 +28,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network/v18.2.0"
+    module_name = "blueprints/terraform/terraform-google-network/v18.3.0"
   }
 }

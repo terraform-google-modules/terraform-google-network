@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [18.3.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.2.0...v18.3.0) (2026-09-11)
+
+
+### Features
+
+* **deps:** Update Terraform Google Provider to v8 ([#713](https://github.com/terraform-google-modules/terraform-google-network/issues/713)) ([5000bed](https://github.com/terraform-google-modules/terraform-google-network/commit/5000bedb16e9cfba74253b54d74089b3fea1d698))
+
+
+### Bug Fixes
+
+* Update boot disk image from Debian 11 to 13 in example ([#717](https://github.com/terraform-google-modules/terraform-google-network/issues/717)) ([fe85cbf](https://github.com/terraform-google-modules/terraform-google-network/commit/fe85cbfd3bfdb41e4e5155ec1070e5f8033d457d))
+
 ## [18.2.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.1.2...v18.2.0) (2026-08-27)
 
 

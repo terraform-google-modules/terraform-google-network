@@ -25,6 +25,6 @@ terraform {
     }
   }
   provider_meta "google" {
-    module_name = "blueprints/terraform/terraform-google-network:network-connectivity-center/v18.2.0"
+    module_name = "blueprints/terraform/terraform-google-network:network-connectivity-center/v18.3.0"
   }
 }
