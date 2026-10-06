@@ -134,6 +134,7 @@ spec:
       - name: network_project_id
         description: (Optional) Name of the project for the Shared VPC host network, in which the NAT subnets will be created. Required for Shared VPC case.
         varType: string
+        defaultValue: null
       - name: nat_subnets
         description: "  NAT Subnets.\n  - subnet_name: (Optional) Name of the subnet. Defaults to `$var.name-nat-subnet-$index` if unset.\n  - ipv4_range: (Optional) IPv4 range is required for IPV4_ONLY and IPV4_IPV6 stack type. Leave ipv4_range unset for IPV6_ONLY subnet.\n  - stack_type: (Optional) IPV4_ONLY, IPV4_IPV6 or IPV6_ONLY. IPv6 range is assigned by GCP.\n"
         varType: |-
@@ -146,6 +147,7 @@ spec:
       - name: domain_names
         description: (Optional) The domain names to be used during the integration between the PSC connected endpoints and the Cloud DNS.
         varType: list(string)
+        defaultValue: null
       - name: target_service
         description: "Target service URL ex. ILB, SWP. Supported types: https://cloud.google.com/vpc/docs/configure-private-service-connect-producer#lb-types "
         varType: string
@@ -182,6 +184,7 @@ spec:
       - name: consumer_reject_lists
         description: (Optional) An array of projects/networks that are not allowed to connect to this service attachment.
         varType: list(string)
+        defaultValue: null
       - name: enable_proxy_protocol
         description: (Optional) Enables the proxy protocol which is for supplying client TCP/IP address data in TCP connections that traverse proxies on their way to destination servers.
         varType: bool
@@ -193,6 +196,7 @@ spec:
       - name: propagated_connection_limit
         description: (Optional) The number of consumer spokes that connected Private Service Connect endpoints can be propagated to through Network Connectivity Center.
         varType: number
+        defaultValue: null
     outputs:
       - name: service_attachment_id
         description: ID of the service attachment with format `projects/{$project}/regions/{$region}/serviceAttachments/{$name}`
