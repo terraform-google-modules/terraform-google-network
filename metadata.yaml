@@ -157,6 +157,7 @@ spec:
       - name: subnets_region
         description: Optional subnets region. If set, all subnets will be created in this region.
         varType: string
+        defaultValue: null
       - name: subnets
         description: The list of subnets being created
         varType: |-
@@ -310,9 +311,11 @@ spec:
       - name: internal_ipv6_range
         description: When enabling IPv6 ULA, optionally, specify a /48 from fd20::/20 (default null)
         varType: string
+        defaultValue: null
       - name: network_firewall_policy_enforcement_order
         description: Set the order that Firewall Rules and Firewall Policies are evaluated. Valid values are `BEFORE_CLASSIC_FIREWALL` and `AFTER_CLASSIC_FIREWALL`. (default null or equivalent to `AFTER_CLASSIC_FIREWALL`)
         varType: string
+        defaultValue: null
       - name: network_profile
         description: |
           "A full or partial URL of the network profile to apply to this network.
@@ -321,6 +324,7 @@ spec:
             * https://www.googleapis.com/compute/beta/projects/{projectId}/global/networkProfiles/{network_profile_name}
             * projects/{projectId}/global/networkProfiles/{network_profile_name}
         varType: string
+        defaultValue: null
       - name: bgp_always_compare_med
         description: If set to true, the Cloud Router will use MED values from the peer even if the AS paths differ. Default is false.
         varType: bool
@@ -332,6 +336,7 @@ spec:
       - name: bgp_inter_region_cost
         description: Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`.
         varType: string
+        defaultValue: null
       - name: private_service_access_config
         description: Configuration for Private Service Access (PSA) connection.
         varType: |-
