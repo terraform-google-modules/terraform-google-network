@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [18.3.1](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.3.0...v18.3.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* populate null defaultValue in psc-endpoint blueprint metadata ([#719](https://github.com/terraform-google-modules/terraform-google-network/issues/719)) ([9881251](https://github.com/terraform-google-modules/terraform-google-network/commit/98812519345b09d9f2fb2285ce8a1632468d3e22))
+* populate null defaultValue in psc-producer blueprint metadata ([#720](https://github.com/terraform-google-modules/terraform-google-network/issues/720)) ([efee00f](https://github.com/terraform-google-modules/terraform-google-network/commit/efee00f843fc3c653639ae11803282977b3eb679))
+
 ## [18.3.0](https://github.com/terraform-google-modules/terraform-google-network/compare/v18.2.0...v18.3.0) (2026-09-11)
 
 
