@@ -141,9 +141,11 @@ spec:
       - name: ip_address
         description: Private Service Connect Endpoint IP address. GCP will pick an IP if left unset.
         varType: string
+        defaultValue: null
       - name: ip_version
         description: "`IPv4`or `IPv6`. Only set this field when private_service_connect_ip is unset. If both ip_address and ip_version are unset, GCP will pick an IPv4 address."
         varType: string
+        defaultValue: null
       - name: service_attachment
         description: The target service attachment resource URL for this Private Service Connect Endpoint.
         varType: string
@@ -167,6 +169,7 @@ spec:
       - name: service_directory_namespace
         description: Service Directory namespace to register the forwarding rule under.
         varType: string
+        defaultValue: null
       - name: psc_global_access
         description: Whether to allow Private Service Connect global access.
         varType: bool
