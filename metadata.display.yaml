@@ -52,6 +52,9 @@ spec:
         delete_default_internet_gateway_routes:
           name: delete_default_internet_gateway_routes
           title: Delete Default Internet Gateway Routes
+        deletion_policy:
+          name: deletion_policy
+          title: Deletion Policy
         description:
           name: description
           title: Description

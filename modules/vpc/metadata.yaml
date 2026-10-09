@@ -122,6 +122,9 @@ spec:
         description: An optional description of this resource. The resource must be recreated to modify this field.
         varType: string
         defaultValue: ""
+      - name: deletion_policy
+        description: Controls VPC network deletion. Valid values are DELETE, PREVENT, and ABANDON. When null, the provider-level deletion policy is used (DELETE unless overridden).
+        varType: string
       - name: auto_create_subnetworks
         description: When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources.
         varType: bool
@@ -208,6 +211,6 @@ spec:
       - servicenetworking.googleapis.com
     providerVersions:
       - source: hashicorp/google
-        version: ">= 6.19, < 8"
+        version: ">= 6.19, < 9"
       - source: hashicorp/google-beta
-        version: ">= 6.19, < 8"
+        version: ">= 7.33, < 9"

@@ -105,6 +105,10 @@ Then perform the following commands on the root folder:
 - `terraform apply` to apply the infrastructure build
 - `terraform destroy` to destroy the built infrastructure
 
+## VPC deletion policy
+
+Set `deletion_policy = "PREVENT"` to prevent Terraform from deleting the VPC network. The default `null` preserves the provider-level deletion policy (`DELETE` unless overridden). This applies only to the VPC network, not its subnets, routes, or firewall rules. See the [VPC submodule documentation](./modules/vpc/README.md#deletion-policy) for supported modes and how to disable protection.
+
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
@@ -115,6 +119,7 @@ Then perform the following commands on the root folder:
 | bgp\_best\_path\_selection\_mode | Specifies the BGP best path selection mode. Valid values are `STANDARD` or `LEGACY`. Default is `LEGACY`. | `string` | `"LEGACY"` | no |
 | bgp\_inter\_region\_cost | Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`. | `string` | `null` | no |
 | delete\_default\_internet\_gateway\_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | `bool` | `false` | no |
+| deletion\_policy | Controls VPC network deletion. Valid values are DELETE, PREVENT, and ABANDON. When null, the provider-level deletion policy is used (DELETE unless overridden). | `string` | `null` | no |
 | description | An optional description of this resource. The resource must be recreated to modify this field. | `string` | `""` | no |
 | egress\_rules | List of egress rules. This will be ignored if variable 'rules' is non-empty | <pre>list(object({<br>    name                    = string<br>    description             = optional(string, null)<br>    disabled                = optional(bool, null)<br>    priority                = optional(number, null)<br>    destination_ranges      = optional(list(string), [])<br>    source_ranges           = optional(list(string), [])<br>    source_tags             = optional(list(string))<br>    source_service_accounts = optional(list(string))<br>    target_tags             = optional(list(string))<br>    target_service_accounts = optional(list(string))<br><br>    allow = optional(list(object({<br>      protocol = string<br>      ports    = optional(list(string))<br>    })), [])<br>    deny = optional(list(object({<br>      protocol = string<br>      ports    = optional(list(string))<br>    })), [])<br>    log_config = optional(object({<br>      metadata = string<br>    }))<br>  }))</pre> | `[]` | no |
 | enable\_ipv6\_ula | Enabled IPv6 ULA, this is a permanent change and cannot be undone! (default 'false') | `bool` | `false` | no |

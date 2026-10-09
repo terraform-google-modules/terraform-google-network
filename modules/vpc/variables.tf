@@ -42,6 +42,17 @@ variable "description" {
   default     = ""
 }
 
+variable "deletion_policy" {
+  type        = string
+  description = "Controls VPC network deletion. Valid values are DELETE, PREVENT, and ABANDON. When null, the provider-level deletion policy is used (DELETE unless overridden)."
+  default     = null
+
+  validation {
+    condition     = var.deletion_policy == null ? true : contains(["DELETE", "PREVENT", "ABANDON"], var.deletion_policy)
+    error_message = "deletion_policy must be null, DELETE, PREVENT, or ABANDON."
+  }
+}
+
 variable "auto_create_subnetworks" {
   type        = bool
   description = "When set to true, the network is created in 'auto subnet mode' and it will create a subnet for each region automatically across the 10.128.0.0/9 address range. When set to false, the network is created in 'custom subnet mode' so the user can explicitly connect subnetwork resources."

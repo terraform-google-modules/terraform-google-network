@@ -23,6 +23,19 @@ module "vpc" {
 }
 ```
 
+## Deletion policy
+
+The optional `deletion_policy` input controls Terraform's handling of VPC network deletion:
+
+- `DELETE` allows Terraform to delete the network.
+- `PREVENT` rejects attempts by Terraform to delete the network.
+- `ABANDON` removes the network from Terraform management without deleting it in GCP.
+- `null` (the default) preserves the provider-level deletion policy, which defaults to `DELETE` unless overridden.
+
+Apply `deletion_policy = "PREVENT"` before relying on this protection: the provider checks the policy recorded in Terraform state. To delete or replace a protected network, first apply `deletion_policy = "DELETE"`, then perform the deletion or replacement. This setting does not protect other resources or prevent deletion outside Terraform.
+
+This input requires `google-beta >= 7.33`.
+
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
@@ -33,6 +46,7 @@ module "vpc" {
 | bgp\_best\_path\_selection\_mode | Specifies the BGP best path selection mode. Valid values are `STANDARD` or `LEGACY`. Default is `LEGACY`. | `string` | `"LEGACY"` | no |
 | bgp\_inter\_region\_cost | Specifies the BGP inter-region cost mode. Valid values are `DEFAULT` or `ADD_COST_TO_MED`. | `string` | `null` | no |
 | delete\_default\_internet\_gateway\_routes | If set, ensure that all routes within the network specified whose names begin with 'default-route' and with a next hop of 'default-internet-gateway' are deleted | `bool` | `false` | no |
+| deletion\_policy | Controls VPC network deletion. Valid values are DELETE, PREVENT, and ABANDON. When null, the provider-level deletion policy is used (DELETE unless overridden). | `string` | `null` | no |
 | description | An optional description of this resource. The resource must be recreated to modify this field. | `string` | `""` | no |
 | enable\_ipv6\_ula | Enabled IPv6 ULA, this is a permanent change and cannot be undone! (default 'false') | `bool` | `false` | no |
 | internal\_ipv6\_range | When enabling IPv6 ULA, optionally, specify a /48 from fd20::/20 (default null) | `string` | `null` | no |
