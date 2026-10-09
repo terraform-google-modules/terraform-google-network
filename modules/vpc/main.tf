@@ -24,6 +24,7 @@ resource "google_compute_network" "network" {
   routing_mode                              = var.routing_mode
   project                                   = var.project_id
   description                               = var.description
+  deletion_policy                           = var.deletion_policy
   delete_default_routes_on_create           = var.delete_default_internet_gateway_routes
   mtu                                       = var.mtu
   enable_ula_internal_ipv6                  = var.enable_ipv6_ula
